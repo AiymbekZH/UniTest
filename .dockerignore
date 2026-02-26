@@ -1,0 +1,13 @@
+node_modules
+client/node_modules
+client/src
+client/public
+client/package*.json
+client/vite.config.js
+client/tailwind.config.js
+client/postcss.config.js
+client/index.html
+.git
+.env
+*.md
+LOGO
