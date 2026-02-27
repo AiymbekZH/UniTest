@@ -70,6 +70,7 @@ export default function CreateTest() {
   const [test, setTest] = useState({
     title: '',
     description: '',
+    contextText: '',
     tags: [],
     tagInput: '',
     questions: [createQuestion()],
@@ -98,6 +99,7 @@ export default function CreateTest() {
         setTest({
           title: t.title,
           description: t.description || '',
+          contextText: t.contextText || '',
           tags: t.tags || [],
           tagInput: '',
           questions: t.questions || [createQuestion()],
@@ -236,8 +238,49 @@ export default function CreateTest() {
   };
 
   const handleSave = async () => {
-    if (!test.title.trim()) { toast.error('Введите название теста'); return; }
-    if (test.questions.some(q => !q.questionText.trim())) { toast.error('Заполните все вопросы'); return; }
+    if (!test.title.trim()) { toast.error(t('enterTestName')); return; }
+    if (test.questions.some(q => !q.questionText.trim())) { toast.error(t('fillAllQuestions')); return; }
+
+    // Validate each question has correct answers
+    for (let i = 0; i < test.questions.length; i++) {
+      const q = test.questions[i];
+      const qNum = i + 1;
+
+      // Check for empty options
+      if ((q.type === 'single-choice' || q.type === 'multiple-choice' || q.type === 'true-false') && 
+          q.options.some(opt => !opt.text.trim())) {
+        toast.error(`${t('question')} ${qNum}: ${t('emptyOptions')}`);
+        return;
+      }
+
+      // Check for correct answers
+      if (q.type === 'single-choice' || q.type === 'true-false') {
+        if (!q.correctAnswer || !q.options.find(opt => opt.id === q.correctAnswer)) {
+          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswer')}`);
+          return;
+        }
+      } else if (q.type === 'multiple-choice') {
+        if (!q.correctAnswers || q.correctAnswers.length === 0) {
+          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswer')}`);
+          return;
+        }
+      } else if (q.type === 'fill-blank') {
+        if (!q.correctAnswer || !q.correctAnswer.trim()) {
+          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswerFound')}`);
+          return;
+        }
+      } else if (q.type === 'matching') {
+        if (!q.matchingRightSide || q.matchingRightSide.length === 0) {
+          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswer')}`);
+          return;
+        }
+        // Check matching pairs have correct answers
+        if (!q.options.every(opt => opt.correctMatch)) {
+          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswer')}`);
+          return;
+        }
+      }
+    }
 
     setSaving(true);
     try {
@@ -396,7 +439,7 @@ export default function CreateTest() {
 
               <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400 space-y-1">
                 <p>Вопросов: <strong className="text-dark">{test.questions.length}</strong></p>
-                <p>Баллов: <strong className="text-dark">{totalPoints}</strong></p>
+                <p>{t('points')}: <strong className="text-dark">{totalPoints}</strong></p>
               </div>
             </div>
 
@@ -428,7 +471,7 @@ export default function CreateTest() {
               <div>
                 <h1 className="text-xl font-bold text-dark">{editId ? 'Редактировать тест' : 'Создать тест'}</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {test.questions.length} вопросов · {totalPoints} баллов
+                  {test.questions.length} {t('questions')} · {totalPoints} {t('points')}
                   {!editId && draftStatus && (
                     <span className={`ml-2 ${draftStatus === 'saved' ? 'text-emerald-500' : 'text-gray-400'}`}>
                       {draftStatus === 'saving' ? '⏳ Сохранение...' : '✓ Черновик сохранён'}
@@ -533,6 +576,35 @@ export default function CreateTest() {
               value={test.description}
               onChange={e => updateTest('description', e.target.value)}
             />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t('contextTextLabel')} {t('contextTextOptional')}:
+                </label>
+                {test.contextText && (
+                  <button
+                    onClick={() => {
+                      const updated = test.questions.map(q => ({
+                        ...q,
+                        questionText: q.questionText || test.contextText
+                      }));
+                      setTest(prev => ({ ...prev, questions: updated }));
+                      toast.success('Текст добавлен во все вопросы');
+                    }}
+                    className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+                  >
+                    <Plus size={12} /> {t('insertToAllQuestions')}
+                  </button>
+                )}
+              </div>
+              <textarea
+                className="input-field resize-none text-sm py-2"
+                rows="4"
+                placeholder="Например, текст для чтения, к которому относятся все вопросы..."
+                value={test.contextText}
+                onChange={e => updateTest('contextText', e.target.value)}
+              />
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               {test.tags.map((tag, i) => (
                 <span key={i} className="badge-info flex items-center gap-1 text-xs">
@@ -638,7 +710,7 @@ export default function CreateTest() {
                         <div className="flex items-center gap-1">
                           <input type="number" min="0" className="w-14 text-center input-field py-1 px-1 text-xs"
                             value={question.points} onChange={e => updateQuestion(qIndex, 'points', parseInt(e.target.value) || 0)} />
-                          <span className="text-[10px] text-gray-500">баллов</span>
+                          <span className="text-[10px] text-gray-500">{t('points')}</span>
                         </div>
                       </div>
 
@@ -741,7 +813,7 @@ export default function CreateTest() {
                       {question.type === 'fill-blank' && (
                         <div>
                           <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Правильный ответ</label>
-                          <input className="input-field text-sm py-2" placeholder="Введите правильный ответ"
+                          <input className="input-field text-sm py-2" placeholder={t('enterCorrectAnswer')}
                             value={question.correctAnswer} onChange={e => updateQuestion(qIndex, 'correctAnswer', e.target.value)} />
                         </div>
                       )}
@@ -896,7 +968,7 @@ export default function CreateTest() {
                     const ids = Array.from(checks).map(c => c.value);
                     const selected = bankQuestions.filter(q => ids.includes(q._id));
                     if (selected.length) addFromBank(selected);
-                    else toast.error('Выберите вопросы');
+                    else toast.error(t('selectQuestions'));
                   }} className="w-full btn-primary text-sm py-2">
                     Добавить выбранные
                   </button>

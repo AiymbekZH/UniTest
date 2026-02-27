@@ -200,49 +200,53 @@ export default function Dashboard() {
                 className="glass-card-solid p-6 cursor-pointer group relative"
               >
                 {/* Menu */}
-                {test.creator?._id === user?.id && (
-                  <div className="absolute top-4 right-4">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === test._id ? null : test._id); }}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                <div className="absolute top-4 right-4">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === test._id ? null : test._id); }}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <MoreVertical size={16} className="text-gray-400" />
+                  </button>
+                  {menuOpen === test._id && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-glass border border-gray-100 dark:border-slate-700 p-1.5 z-10"
                     >
-                      <MoreVertical size={16} className="text-gray-400" />
-                    </button>
-                    {menuOpen === test._id && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-glass border border-gray-100 dark:border-slate-700 p-1.5 z-10"
+                      {test.creator?._id === user?.id && (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/edit-test/${test._id}`); setMenuOpen(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
+                          >
+                            <Edit3 size={14} /> Редактировать
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/results/${test._id}`); setMenuOpen(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
+                          >
+                            <Users size={14} /> Результаты
+                          </button>
+                          <hr className="my-1 border-gray-100 dark:border-slate-700" />
+                        </>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); copyShareLink(test.shareLink); setMenuOpen(null); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
                       >
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/edit-test/${test._id}`); setMenuOpen(null); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
-                        >
-                          <Edit3 size={14} /> Редактировать
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); copyShareLink(test.shareLink); setMenuOpen(null); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
-                        >
-                          <Copy size={14} /> Скопировать ссылку
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/results/${test._id}`); setMenuOpen(null); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
-                        >
-                          <Users size={14} /> Результаты
-                        </button>
-                        <hr className="my-1 border-gray-100 dark:border-slate-700" />
+                        <Copy size={14} /> Скопировать ссылку
+                      </button>
+                      {test.creator?._id === user?.id && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ open: true, id: test._id }); setMenuOpen(null); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                         >
                           <Trash2 size={14} /> Удалить
                         </button>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </motion.div>
+                  )}
+                </div>
 
                 <div onClick={() => navigate(`/test-profile/${test.shareLink}`)}>
                   {/* Status badge */}

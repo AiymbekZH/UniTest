@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import useAntiCheat from '../hooks/useAntiCheat';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -79,7 +80,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
           <span className="text-white text-xs font-bold">?</span>
         </div>
         <p className="text-xs text-primary-700 dark:text-primary-300">
-          Нажмите на элемент слева, затем на его пару справа. Совпавшие пары будут выделены одним цветом.
+          {t('matchingInstruction')}
         </p>
       </div>
 
@@ -101,7 +102,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-primary-500" />
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Элементы</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('elements')}</p>
           </div>
           {question.options.map(opt => {
             const matched = getMatchedRight(opt.id);
@@ -153,7 +154,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Пары</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('pairs')}</p>
           </div>
           {rightSide.map((text, idx) => {
             const used = isRightUsed(text);
@@ -206,7 +207,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
           animate={{ opacity: 1, y: 0 }}
           className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700"
         >
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Ваши пары:</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">{t('yourPairs')}</p>
           <div className="flex flex-wrap gap-1.5">
             {pairs.map((p, i) => {
               const leftText = question.options.find(o => o.id === p.left)?.text || p.left;
@@ -228,6 +229,7 @@ export default function TakeTest() {
   const { shareLink } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -262,7 +264,7 @@ export default function TakeTest() {
     if (test?.settings?.antiCheat?.maxViolations && count >= test.settings.antiCheat.maxViolations) {
       setTimeout(() => {
         setShowViolationWarning(false);
-        toast.error('Превышен лимит нарушений! Тест автоматически завершён.', { duration: 5000 });
+        toast.error(t('violationsLimit'), { duration: 5000 });
         handleSubmit(true);
       }, 1500);
     }
@@ -287,7 +289,7 @@ export default function TakeTest() {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          toast.error('Время вышло!');
+          toast.error(t('timeUp'));
           handleSubmit(true);
           return 0;
         }
@@ -322,7 +324,7 @@ export default function TakeTest() {
         setAttemptInfo({ attempts: attRes.data.attempts, maxAttempts: res.data.settings?.maxAttempts || 0 });
       } catch (_) {}
     } catch (err) {
-      toast.error('Тест не найден');
+      toast.error(t('testNotFound'));
       navigate('/');
     } finally {
       setLoading(false);
@@ -331,7 +333,7 @@ export default function TakeTest() {
 
   const startTest = () => {
     if (!user && !guestName.trim()) {
-      toast.error('Введите ваше имя');
+      toast.error(t('enterYourName'));
       return;
     }
     startTimeRef.current = Date.now();
@@ -388,7 +390,7 @@ export default function TakeTest() {
         [questionId]: { ...res.data, checked: true }
       }));
     } catch (err) {
-      toast.error('Ошибка проверки ответа');
+      toast.error(t('checkAnswerError'));
     } finally {
       setCheckingAnswer(false);
     }
@@ -433,7 +435,7 @@ export default function TakeTest() {
 
       navigate(`/result/${res.data._id}`);
     } catch (err) {
-      toast.error('Ошибка отправки');
+      toast.error(t('submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -490,15 +492,15 @@ export default function TakeTest() {
           {test.description && <p className="text-gray-500 text-sm mb-4">{test.description}</p>}
 
           <div className="flex flex-wrap justify-center gap-3 mb-6 text-sm">
-            <span className="badge-info">{test.questions.length} вопросов</span>
+            <span className="badge-info">{test.questions.length} {t('questions')}</span>
             {test.settings?.timeLimit > 0 && (
               <span className="badge-warning flex items-center gap-1">
-                <Clock size={12} /> {test.settings.timeLimit} мин
+                <Clock size={12} /> {test.settings.timeLimit} {t('minutes')}
               </span>
             )}
             {test.settings?.maxAttempts > 0 && (
               <span className="badge-info flex items-center gap-1">
-                Попытки: {attemptInfo.attempts}/{test.settings.maxAttempts}
+                {t('attempts')}: {attemptInfo.attempts}/{test.settings.maxAttempts}
               </span>
             )}
             {test.settings?.antiCheat?.blockTabSwitch && (
@@ -508,7 +510,7 @@ export default function TakeTest() {
             )}
             {test.settings?.instantFeedback && (
               <span className="badge-info flex items-center gap-1">
-                <Check size={12} /> Мгновенная проверка
+                <Check size={12} /> {t('instantFeedback')}
               </span>
             )}
           </div>
@@ -517,12 +519,12 @@ export default function TakeTest() {
           {test.settings?.antiCheat?.blockTabSwitch && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 text-left">
               <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
-                <Shield size={16} /> Правила прохождения теста:
+                <Shield size={16} /> {t('testRules')}
               </h3>
               <ul className="text-xs text-red-600 dark:text-red-300 space-y-1.5">
-                <li>-- Нельзя покидать страницу теста (переключать вкладки, сворачивать браузер)</li>
-                <li>-- Каждое нарушение фиксируется и видно преподавателю</li>
-                <li>-- Максимум нарушений: <strong>{test.settings.antiCheat.maxViolations}</strong> — после этого тест завершится автоматически</li>
+                <li>{t('rule1')}</li>
+                <li>{t('rule2')}</li>
+                <li>-- {t('maxViolations')}: <strong>{test.settings.antiCheat.maxViolations}</strong> {t('autoTerminate')}</li>
               </ul>
             </div>
           )}
@@ -531,10 +533,10 @@ export default function TakeTest() {
           {test.settings?.instantFeedback && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 text-left">
               <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-2">
-                <Check size={16} /> Режим: Мгновенная проверка
+                <Check size={16} /> {t('instantFeedbackMode')}
               </h3>
               <p className="text-xs text-blue-600 dark:text-blue-300">
-                После каждого ответа вы сразу увидите, правильный ли он. Изменить ответ после проверки нельзя.
+                {t('instantFeedbackInfo')}
               </p>
             </div>
           )}
@@ -542,15 +544,15 @@ export default function TakeTest() {
           {/* Attempt limit exceeded */}
           {attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 text-center">
-              <p className="text-sm font-semibold text-red-600">Вы уже использовали все попытки ({attemptInfo.maxAttempts})</p>
+              <p className="text-sm font-semibold text-red-600">{t('allAttemptsUsed')} ({attemptInfo.maxAttempts})</p>
             </div>
           )}
 
           {/* Guest name form */}
           {showGuestForm && (
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 text-left">Ваше имя</label>
-              <input className="input-field" placeholder="Введите ваше полное имя"
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 text-left">{t('yourName')}</label>
+              <input className="input-field" placeholder={t('enterFullName')}
                 value={guestName} onChange={e => setGuestName(e.target.value)} />
             </div>
           )}
@@ -562,7 +564,7 @@ export default function TakeTest() {
             disabled={attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts}
             className="btn-primary w-full text-lg py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Начать тест
+            {t('startTestBtn')}
           </motion.button>
         </motion.div>
       </div>
@@ -584,10 +586,10 @@ export default function TakeTest() {
           dialogOpenRef.current = false;
           handleSubmit(true);
         }}
-        title="Завершить тест"
-        message={`Вы ответили на ${answeredCount} из ${test.questions.length} вопросов. Завершить тест и отправить ответы?`}
-        confirmText="Завершить"
-        cancelText="Продолжить тест"
+        title={t('finishTest')}
+        message={`${t('answeredQuestions')} ${answeredCount} ${t('outOfQuestions')} ${test.questions.length} ${t('questionsText')}. ${t('finishAndSubmit')}`}
+        confirmText={t('finish')}
+        cancelText={t('continueTest')}
         variant="warning"
       />
 
@@ -642,11 +644,11 @@ export default function TakeTest() {
                 {currentQ + 1}
               </span>
               <span className="text-[10px] sm:text-xs text-gray-400 font-medium">
-                {question.points} {question.points === 1 ? 'балл' : 'баллов'}
+                {question.points} {question.points === 1 ? t('point') : t('points')}
               </span>
               {question.type === 'multiple-choice' && (
                 <span className="text-[10px] sm:text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-md font-medium">
-                  Несколько ответов
+                  {t('multipleAnswers')}
                 </span>
               )}
               {currentFeedback?.checked && (
@@ -655,10 +657,29 @@ export default function TakeTest() {
                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
                     : 'bg-red-100 dark:bg-red-900/30 text-red-600'
                 }`}>
-                  {currentFeedback.isCorrect ? 'Правильно' : 'Неправильно'}
+                  {currentFeedback.isCorrect ? t('correct') : t('incorrect')}
                 </span>
               )}
             </div>
+
+            {/* Context text (reading comprehension) */}
+            {test.contextText && (
+              <div className="mb-4 sm:mb-6 p-4 sm:p-5 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <div className="flex-1">
+                    <h4 className="text-xs sm:text-sm font-bold text-blue-700 dark:text-blue-400 mb-1 sm:mb-2">
+                      {t('contextTextLabel')}
+                    </h4>
+                    <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {test.contextText}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Question text */}
             <h3 className="text-base sm:text-lg font-semibold text-dark mb-4 sm:mb-6 leading-relaxed">
@@ -818,7 +839,7 @@ export default function TakeTest() {
                 <div className="flex gap-2">
                   <input
                     className="input-field text-base sm:text-lg flex-1"
-                    placeholder="Введите ответ..."
+                    placeholder={t('enterAnswer')}
                     value={currentAnswer?.textAnswer || ''}
                     onChange={e => handleAnswer(question.id, 'text', e.target.value)}
                     disabled={currentFeedback?.checked}
@@ -920,10 +941,10 @@ export default function TakeTest() {
                 </div>
                 <div>
                   <p className={`text-sm font-bold ${currentFeedback.isCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
-                    {currentFeedback.isCorrect ? 'Правильно!' : 'Неправильно'}
+                    {currentFeedback.isCorrect ? `${t('correct')}!` : t('incorrect')}
                   </p>
                   <p className={`text-xs ${currentFeedback.isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    +{currentFeedback.isCorrect ? currentFeedback.points : 0} из {currentFeedback.points} баллов
+                    +{currentFeedback.isCorrect ? currentFeedback.points : 0} {t('outOfQuestions')} {currentFeedback.points} {t('points')}
                   </p>
                 </div>
                 {currentQ < test.questions.length - 1 && (
@@ -994,11 +1015,11 @@ export default function TakeTest() {
               className="flex items-center gap-1 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-30 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600 active:scale-95"
             >
               <ChevronLeft size={16} />
-              <span className="hidden sm:inline">Назад</span>
+              <span>{t('previous')}</span>
             </button>
 
             <div className="text-[10px] sm:text-xs text-gray-400 font-medium text-center">
-              {answeredCount}/{test.questions.length} отвечено
+              {answeredCount}/{test.questions.length} {t('answered')}
             </div>
 
             {currentQ < test.questions.length - 1 ? (
@@ -1006,7 +1027,7 @@ export default function TakeTest() {
                 onClick={() => setCurrentQ(prev => prev + 1)}
                 className="flex items-center gap-1 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all bg-primary-600 text-white hover:bg-primary-700 active:scale-95 shadow-sm"
               >
-                <span className="hidden sm:inline">Далее</span>
+                <span>{t('next')}</span>
                 <ChevronRight size={16} />
               </button>
             ) : (
@@ -1019,7 +1040,7 @@ export default function TakeTest() {
                 {submitting ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <><Send size={14} /> <span>Завершить</span></>
+                  <><Send size={14} /> <span>{t('finish')}</span></>
                 )}
               </motion.button>
             )}

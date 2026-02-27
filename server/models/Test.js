@@ -38,6 +38,7 @@ const questionSchema = new mongoose.Schema({
 const testSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   description: { type: String, default: '', trim: true },
+  contextText: { type: String, default: '', trim: true }, // General text for all questions (reading comprehension)
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   questions: [questionSchema],
   settings: {
