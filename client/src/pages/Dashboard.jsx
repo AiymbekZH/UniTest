@@ -122,20 +122,20 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex flex-col sm:flex-row gap-3 mb-8"
+          className="flex items-center gap-3 mb-8 flex-wrap"
         >
-          <form onSubmit={handleSearch} className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <form onSubmit={handleSearch} className="relative flex-1 min-w-[200px] max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              className="input-field pl-11 pr-4"
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200/80 dark:border-slate-600 rounded-full text-sm text-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-700 transition-all duration-200"
               placeholder={t('searchTests')}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </form>
 
-          <div className="flex gap-2">
+          <div className="flex gap-1 bg-gray-100/80 dark:bg-slate-800 rounded-full p-1 border border-gray-200/50 dark:border-slate-700">
             {[
               { key: 'latest', label: t('newest') },
               { key: 'popular', label: t('popular') },
@@ -144,10 +144,10 @@ export default function Dashboard() {
               <button
                 key={s.key}
                 onClick={() => setSort(s.key)}
-                className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300
+                className={`px-4 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-all duration-200
                   ${sort === s.key
-                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/25'
-                    : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600'}`}
+                    ? 'bg-white dark:bg-slate-700 text-dark shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-dark dark:hover:text-gray-200'}`}
               >
                 {s.label}
               </button>
@@ -197,7 +197,7 @@ export default function Dashboard() {
                 key={test._id}
                 variants={cardVariants}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="glass-card-solid p-6 cursor-pointer group relative"
+                className="glass-card-solid p-5 cursor-pointer group relative flex flex-col"
               >
                 {/* Menu */}
                 <div className="absolute top-4 right-4">
@@ -248,13 +248,13 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                <div onClick={() => navigate(`/test-profile/${test.shareLink}`)}>
+                <div onClick={() => navigate(`/test-profile/${test.shareLink}`)} className="flex flex-col flex-1">
                   {/* Status badge */}
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2.5">
                     {test.settings?.isPublic ? (
-                      <span className="badge-info flex items-center gap-1"><Eye size={10} /> {t('publicTest')}</span>
+                      <span className="badge-info flex items-center gap-1 text-[10px] py-0.5 px-2"><Eye size={10} /> {t('publicTest')}</span>
                     ) : (
-                      <span className="badge-warning flex items-center gap-1"><EyeOff size={10} /> {t('privateTest')}</span>
+                      <span className="badge-warning flex items-center gap-1 text-[10px] py-0.5 px-2"><EyeOff size={10} /> {t('privateTest')}</span>
                     )}
                     <span className="text-[10px] text-gray-400">
                       {test.questions?.length || 0} {t('questions')}
@@ -262,41 +262,44 @@ export default function Dashboard() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-lg font-semibold text-dark mb-1 group-hover:text-primary-600 transition-colors line-clamp-2 pr-8">
+                  <h3 className="text-[15px] font-semibold text-dark mb-1 group-hover:text-primary-600 transition-colors line-clamp-1 pr-8">
                     {test.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-sm text-gray-500 mb-4 line-clamp-2">
+                  <p className="text-[13px] text-gray-500 mb-3 line-clamp-1">
                     {test.description || t('noDescription')}
                   </p>
 
                   {/* Tags */}
                   {test.tags?.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-4">
+                    <div className="flex flex-wrap gap-1.5 mb-3">
                       {test.tags.slice(0, 3).map((tag, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-md text-[11px] text-gray-600">
+                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-slate-700 rounded-md text-[11px] text-gray-600 dark:text-gray-400">
                           <Tag size={9} /> {tag}
                         </span>
                       ))}
                     </div>
                   )}
 
+                  {/* Spacer to push footer down */}
+                  <div className="flex-1" />
+
                   {/* Footer */}
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-700">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-primary-100 text-primary-600 rounded-md flex items-center justify-center text-[10px] font-semibold overflow-hidden">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 bg-primary-100 text-primary-600 rounded-md flex items-center justify-center text-[10px] font-semibold overflow-hidden flex-shrink-0">
                         {test.creator?.avatar ? (
                           <img src={test.creator.avatar} alt="" className="w-full h-full object-cover rounded-md" />
                         ) : (
                           <>{test.creator?.firstName?.[0]}{test.creator?.lastName?.[0]}</>
                         )}
                       </div>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 truncate">
                         {test.creator?.firstName} {test.creator?.lastName?.[0]}.
                       </span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5 flex-shrink-0">
                       {renderStars(test.rating)}
                       <button
                         onClick={(e) => { e.stopPropagation(); navigate(`/leaderboard/${test._id}`); }}

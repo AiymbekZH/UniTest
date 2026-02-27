@@ -52,29 +52,29 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           {isAuthenticated && (
-            <div className="hidden lg:flex items-center gap-1">
+            <div className="hidden lg:flex items-center gap-0.5">
               {navLinks.map(link => (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all duration-200
                     ${isActive(link.to)
                       ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600'
                       : 'text-gray-500 dark:text-gray-400 hover:text-dark dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                 >
-                  <link.icon size={16} />
+                  <link.icon size={15} />
                   {link.label}
                 </Link>
               ))}
               {user?.role === 'admin' && (
                 <Link
                   to="/admin"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all duration-200
                     ${isActive('/admin')
                       ? 'bg-red-50 dark:bg-red-900/30 text-red-600'
                       : 'text-gray-500 dark:text-gray-400 hover:text-dark dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                 >
-                  <Shield size={16} />
+                  <Shield size={15} />
                   {t('admin')}
                 </Link>
               )}
