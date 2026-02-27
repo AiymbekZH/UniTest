@@ -34,8 +34,10 @@ export default function CommentsSection({ testId }) {
   const [sending, setSending] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [reportModal, setReportModal] = useState(null);
   const [reportReason, setReportReason] = useState('');
+  const [editOriginalText, setEditOriginalText] = useState('');
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export default function CommentsSection({ testId }) {
     try {
       const res = await api.post(`/comments/${testId}`, {
         text: text.trim(),
-        replyTo: replyTo ? (replyTo.replyTo || replyTo._id) : null
+        replyTo: replyTo ? replyTo._id : null
       });
       setComments(prev => [res.data.comment, ...prev]);
       setText('');
@@ -293,7 +295,13 @@ export default function CommentsSection({ testId }) {
               />
               <div className="flex justify-end gap-2 mt-2">
                 <button
-                  onClick={() => setEditingComment(null)}
+                  onClick={() => {
+                    if (editText.trim() !== editOriginalText.trim()) {
+                      if (!window.confirm(t('cancelEditConfirm') || 'Discard changes?')) return;
+                    }
+                    setEditingComment(null);
+                    setEditText('');
+                  }}
                   className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition"
                 >
                   {t('cancel')}
@@ -327,19 +335,36 @@ export default function CommentsSection({ testId }) {
                 )}
                 {user?.id === comment.user?._id && (
                   <button
-                    onClick={() => { setEditingComment(comment._id); setEditText(comment.text); }}
+                    onClick={() => { setEditingComment(comment._id); setEditText(comment.text); setEditOriginalText(comment.text); }}
                     className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-full transition sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     {t('editComment')}
                   </button>
                 )}
                 {(user?.id === comment.user?._id || user?.role === 'admin') && (
-                  <button
-                    onClick={() => handleDelete(comment._id)}
-                    className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 px-2.5 py-1.5 rounded-full transition sm:opacity-0 sm:group-hover:opacity-100"
-                  >
-                    {t('deleteComment')}
-                  </button>
+                  confirmDelete === comment._id ? (
+                    <div className="flex items-center gap-1 ml-1">
+                      <button
+                        onClick={() => { handleDelete(comment._id); setConfirmDelete(null); }}
+                        className="text-[13px] font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2.5 py-1.5 rounded-full transition"
+                      >
+                        {t('delete')}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-full transition"
+                      >
+                        {t('cancel')}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(comment._id)}
+                      className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 px-2.5 py-1.5 rounded-full transition sm:opacity-0 sm:group-hover:opacity-100"
+                    >
+                      {t('deleteComment')}
+                    </button>
+                  )
                 )}
                 {isAuthenticated && user?.id !== comment.user?._id && (
                   <button

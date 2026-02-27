@@ -126,6 +126,7 @@ const translations = {
     reportUser: 'Report user',
     // Comments extended
     editComment: 'Edit',
+    cancelEditConfirm: 'Discard changes?',
     edited: 'edited',
     testCreator: 'Author',
     // User profile
@@ -437,6 +438,7 @@ const translations = {
     reportComment: 'Пожаловаться на комментарий',
     reportUser: 'Пожаловаться на пользователя',
     editComment: 'Редактировать',
+    cancelEditConfirm: 'Отменить изменения?',
     edited: 'изменено',
     testCreator: 'Автор',
     userProfile: 'Профиль пользователя',
@@ -745,6 +747,7 @@ const translations = {
     reportComment: 'Пікірге шағымдану',
     reportUser: 'Пайдаланушыға шағымдану',
     editComment: 'Өңдеу',
+    cancelEditConfirm: 'Өзгерістерді болдырмау керек пе?',
     edited: 'өңделген',
     testCreator: 'Автор',
     userProfile: 'Пайдаланушы профилі',
