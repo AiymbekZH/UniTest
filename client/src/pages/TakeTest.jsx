@@ -229,6 +229,7 @@ export default function TakeTest() {
   const { shareLink } = useParams();
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get('preview') === 'true';
+  const isPractice = searchParams.get('practice') === 'true';
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -251,6 +252,11 @@ export default function TakeTest() {
   const startTimeRef = useRef(null);
   const dialogOpenRef = useRef(false);
   const navScrollRef = useRef(null);
+
+  // Ticket/Variant system
+  const [ticketState, setTicketState] = useState(null); // null = not loaded, { variants, myVariant }
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [ticketLoading, setTicketLoading] = useState(false);
 
   // Instant feedback state
   const [feedback, setFeedback] = useState({}); // { [questionId]: { isCorrect, correctOptionIds, correctText, correctPairs, explanation, checked } }
@@ -365,10 +371,26 @@ export default function TakeTest() {
     }
   }, [currentQ]);
 
-  const fetchTest = async () => {
+  const fetchTest = async (variantNum) => {
     try {
-      const res = await api.get(`/tests/share/${shareLink}`);
+      const url = variantNum
+        ? `/tests/share/${shareLink}?variant=${variantNum}`
+        : `/tests/share/${shareLink}`;
+      const res = await api.get(url);
       setTest(res.data);
+
+      // Check if test has variant system enabled
+      if (res.data.settings?.variants?.enabled && !isPreview && !isPractice) {
+        // Fetch ticket status
+        try {
+          const ticketRes = await api.get(`/tests/${res.data._id}/tickets`);
+          setTicketState(ticketRes.data);
+          if (ticketRes.data.myVariant) {
+            setSelectedVariant(ticketRes.data.myVariant);
+          }
+        } catch (_) {}
+      }
+
       if (!user) setShowGuestForm(true);
       try {
         const attRes = await api.get(`/results/my-attempts/${res.data._id}`);
@@ -383,6 +405,46 @@ export default function TakeTest() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Ticket polling: refresh every 2 seconds when ticket picker is open
+  useEffect(() => {
+    if (!test?.settings?.variants?.enabled || selectedVariant || started || isPreview || isPractice) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get(`/tests/${test._id}/tickets`);
+        setTicketState(res.data);
+        if (res.data.myVariant) setSelectedVariant(res.data.myVariant);
+      } catch (_) {}
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [test, selectedVariant, started, isPreview, isPractice]);
+
+  const claimTicket = async (variantNumber) => {
+    setTicketLoading(true);
+    try {
+      const res = await api.post(`/tests/${test._id}/tickets/claim`, {
+        variantNumber,
+        guestName: !user ? guestName : ''
+      });
+      setSelectedVariant(res.data.variantNumber);
+      // Re-fetch test with variant ordering
+      await fetchTest(res.data.variantNumber);
+      toast.success(`🎫 Билет #${res.data.variantNumber} выбран!`);
+    } catch (err) {
+      if (err.response?.status === 409) {
+        toast.error(err.response.data.message || 'Билет уже занят!');
+        // Refresh tickets
+        try {
+          const ticketRes = await api.get(`/tests/${test._id}/tickets`);
+          setTicketState(ticketRes.data);
+        } catch (_) {}
+      } else {
+        toast.error('Ошибка при выборе билета');
+      }
+    } finally {
+      setTicketLoading(false);
     }
   };
 
@@ -473,8 +535,15 @@ export default function TakeTest() {
 
     // Preview mode: don't save results, just navigate back
     if (isPreview) {
-      toast.success('Превью завершен — результат не сохраняется');
+      toast.success(t('previewMode') || 'Превью завершен — результат не сохраняется');
       navigate(-1);
+      return;
+    }
+
+    // Practice mode: don't save results, show score locally
+    if (isPractice) {
+      toast.success(t('practiceModeDesc') || 'Тренировка завершена — результат не сохраняется');
+      navigate(`/test-profile/${shareLink}`);
       return;
     }
 
@@ -641,8 +710,29 @@ export default function TakeTest() {
             </div>
           )}
 
+          {/* Practice mode info */}
+          {isPractice && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4 text-center">
+              <h3 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-1 flex items-center justify-center gap-2">
+                🏋️ {t('practiceMode')}
+              </h3>
+              <p className="text-xs text-green-600 dark:text-green-300">
+                {t('practiceModeDesc')}
+              </p>
+            </div>
+          )}
+
+          {/* Preview mode info */}
+          {isPreview && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4 text-center">
+              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                👁️ {t('previewMode')}
+              </p>
+            </div>
+          )}
+
           {/* Attempt limit exceeded */}
-          {attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts && (
+          {!isPractice && !isPreview && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 text-center">
               <p className="text-sm font-semibold text-red-600">{t('allAttemptsUsed')} ({attemptInfo.maxAttempts})</p>
             </div>
@@ -661,7 +751,7 @@ export default function TakeTest() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={startTest}
-            disabled={attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts}
+            disabled={!isPractice && !isPreview && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts}
             className="btn-primary w-full text-lg py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('startTestBtn')}

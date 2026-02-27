@@ -5,7 +5,7 @@ import {
   Plus, Trash2, Save, ArrowLeft, Image, Video, Music,
   Check, X, Type, ListChecks, ToggleLeft,
   FileText, Link2, Settings, Upload, ChevronUp, ChevronDown,
-  Database, FileSpreadsheet, Eye, EyeOff, Download, CalendarDays
+  Database, FileSpreadsheet, Eye, EyeOff
 } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -82,6 +82,12 @@ export default function CreateTest() {
       showResults: true,
       allowReview: true,
       instantFeedback: true,
+      questionPoolSize: 0,
+      inactivityTimeout: 0,
+      practiceMode: false,
+      variants: { enabled: false, count: 0 },
+      startDate: '',
+      endDate: '',
       maxAttempts: 1,
       isPublic: false,
       antiCheat: {
@@ -89,11 +95,7 @@ export default function CreateTest() {
         blockCopyPaste: true,
         blockScreenshot: true,
         maxViolations: 5,
-      },
-      startDate: '',
-      endDate: '',
-      questionPoolSize: 0,
-      inactivityTimeout: 0,
+      }
     }
   });
 
@@ -305,10 +307,6 @@ export default function CreateTest() {
   };
 
   const handleFileImport = async (file) => {
-    if (file.name.endsWith('.json')) {
-      await handleImportJSON(file);
-      return;
-    }
     try {
       const text = await file.text();
       const lines = text.split('\n').filter(l => l.trim());
@@ -378,42 +376,6 @@ export default function CreateTest() {
     setTest(prev => ({ ...prev, questions: [...prev.questions, ...toAdd] }));
     toast.success(`${t('addedFromBank')}: ${toAdd.length}`);
     setShowBankModal(false);
-  };
-
-  const handleExportJSON = () => {
-    const { tagInput, ...data } = test;
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${test.title || 'test'}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success(t('exportedJSON') || 'Скачан JSON');
-  };
-
-  const handleImportJSON = async (file) => {
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!data.questions || !Array.isArray(data.questions)) {
-        toast.error(t('invalidJSONFormat') || 'Неверный формат JSON');
-        return;
-      }
-      setTest(prev => ({
-        ...prev,
-        title: data.title || prev.title,
-        description: data.description || prev.description,
-        tags: data.tags || prev.tags,
-        questions: data.questions.map(q => ({ ...q, id: q.id || uuidv4() })),
-        settings: data.settings ? { ...prev.settings, ...data.settings } : prev.settings,
-      }));
-      toast.success(t('importedJSON') || 'Тест импортирован из JSON');
-    } catch (err) {
-      toast.error(t('errorReadingFile'));
-    }
-    setShowImportModal(false);
   };
 
   const saveToBank = async () => {
@@ -495,10 +457,6 @@ export default function CreateTest() {
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 <FileSpreadsheet size={14} /> {t('importCSV')}
               </button>
-              <button onClick={handleExportJSON}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                <Download size={14} /> {t('exportJSON') || 'Экспорт JSON'}
-              </button>
               <button onClick={saveToBank}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 <Save size={14} /> {t('saveToBank')}
@@ -574,42 +532,64 @@ export default function CreateTest() {
                     </div>
                   </div>
 
-                  {/* Deadline dates + pool size + inactivity */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Deadline */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
-                        <CalendarDays size={11} /> {t('startDate') || 'Дата начала'}
-                      </label>
-                      <input type="datetime-local" className="input-field text-sm py-2"
-                        value={test.settings.startDate ? new Date(test.settings.startDate).toISOString().slice(0,16) : ''}
-                        onChange={e => updateSettings('startDate', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('startDate')}</label>
+                      <input type="datetime-local" className="input-field text-sm py-2" value={test.settings.startDate || ''}
+                        onChange={e => updateSettings('startDate', e.target.value)} />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
-                        <CalendarDays size={11} /> {t('endDate') || 'Дата окончания'}
-                      </label>
-                      <input type="datetime-local" className="input-field text-sm py-2"
-                        value={test.settings.endDate ? new Date(test.settings.endDate).toISOString().slice(0,16) : ''}
-                        onChange={e => updateSettings('endDate', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('endDate')}</label>
+                      <input type="datetime-local" className="input-field text-sm py-2" value={test.settings.endDate || ''}
+                        onChange={e => updateSettings('endDate', e.target.value)} />
+                    </div>
+                  </div>
+
+                  {/* Pool + Inactivity */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('questionPoolSize')}</label>
+                      <input type="number" className="input-field text-sm py-2" min="0" value={test.settings.questionPoolSize || 0}
+                        onChange={e => updateSettings('questionPoolSize', parseInt(e.target.value) || 0)} placeholder={t('poolSizeHint')} />
+                      <p className="text-[10px] text-gray-400 mt-0.5">{t('poolSizeHint')}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                        {t('questionPoolSize') || 'Выборка N воп. (0 = все)'}
-                      </label>
-                      <input type="number" className="input-field text-sm py-2" min="0"
-                        value={test.settings.questionPoolSize || 0}
-                        onChange={e => updateSettings('questionPoolSize', parseInt(e.target.value) || 0)}
-                        placeholder="0" />
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('inactivityTimeout')}</label>
+                      <input type="number" className="input-field text-sm py-2" min="0" value={test.settings.inactivityTimeout || 0}
+                        onChange={e => updateSettings('inactivityTimeout', parseInt(e.target.value) || 0)} placeholder={t('inactivityHint')} />
+                      <p className="text-[10px] text-gray-400 mt-0.5">{t('inactivityHint')}</p>
                     </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                        {t('inactivityTimeout') || 'Бездействие, мин (0 = выкл)'}
-                      </label>
-                      <input type="number" className="input-field text-sm py-2" min="0"
-                        value={test.settings.inactivityTimeout || 0}
-                        onChange={e => updateSettings('inactivityTimeout', parseInt(e.target.value) || 0)}
-                        placeholder="0" />
+                  </div>
+
+                  {/* Variant/Ticket system */}
+                  <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-3">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => updateSettings('variants', { ...test.settings.variants, enabled: !test.settings.variants?.enabled })}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all
+                          ${test.settings.variants?.enabled ? 'bg-indigo-100 dark:bg-indigo-900/40 border-indigo-300 dark:border-indigo-600 text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-500'}`}
+                      >
+                        <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center transition-all
+                          ${test.settings.variants?.enabled ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 dark:border-slate-500'}`}>
+                          {test.settings.variants?.enabled && <Check size={8} className="text-white" />}
+                        </div>
+                        🎫 {t('variantsEnabled') || 'Система билетов'}
+                      </button>
+                      {test.settings.variants?.enabled && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-indigo-600 dark:text-indigo-400">{t('variantCount') || 'Кол-во вариантов'}:</label>
+                          <input type="number" className="input-field text-sm py-1.5 w-20" min="2" max="100"
+                            value={test.settings.variants?.count || 0}
+                            onChange={e => updateSettings('variants', { ...test.settings.variants, count: parseInt(e.target.value) || 0 })} />
+                        </div>
+                      )}
                     </div>
+                    {test.settings.variants?.enabled && (
+                      <p className="text-[10px] text-indigo-500 dark:text-indigo-400 mt-2">
+                        {t('variantsHint') || 'Студенты выбирают билет при входе. Каждый билет = уникальный порядок вопросов. Один билет на одного студента.'}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -619,6 +599,7 @@ export default function CreateTest() {
                       { key: 'shuffleOptions', label: t('shuffleOptions'), update: updateSettings },
                       { key: 'showResults', label: t('showResults'), update: updateSettings },
                       { key: 'instantFeedback', label: t('instantFeedback'), update: updateSettings },
+                      { key: 'practiceMode', label: t('practiceModeLabel'), update: updateSettings },
                       { key: 'blockTabSwitch', label: t('blockTabSwitch'), update: updateAntiCheat, isAntiCheat: true },
                       { key: 'blockCopyPaste', label: t('blockCopyPaste'), update: updateAntiCheat, isAntiCheat: true },
                       { key: 'blockScreenshot', label: t('blockScreenshot'), update: updateAntiCheat, isAntiCheat: true },
@@ -687,9 +668,6 @@ export default function CreateTest() {
             </button>
             <button onClick={() => setShowImportModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <FileSpreadsheet size={12} /> {t('importCSV')}
-            </button>
-            <button onClick={handleExportJSON} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
-              <Download size={12} /> JSON
             </button>
             <button onClick={saveToBank} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <Save size={12} /> {t('saveToBank')}
@@ -1022,7 +1000,7 @@ export default function CreateTest() {
                 <FileSpreadsheet size={32} className="text-gray-400" />
                 <span className="text-sm text-gray-500 dark:text-gray-400">{t('clickToSelectFile')}</span>
                 <span className="text-xs text-gray-400">.csv, .txt</span>
-                <input type="file" className="hidden" accept=".csv,.txt,.tsv,.json"
+                <input type="file" className="hidden" accept=".csv,.txt,.tsv"
                   onChange={e => e.target.files[0] && handleFileImport(e.target.files[0])} />
               </label>
               <button onClick={() => setShowImportModal(false)}

@@ -345,7 +345,17 @@ export default function TestProfile() {
                   onClick={() => navigate(`/test/${shareLink}?preview=true`)}
                   className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-200 dark:border-amber-700 text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
                 >
-                  <Eye size={16} /> Превью
+                  <Eye size={16} /> {t('previewMode') || 'Превью'}
+                </button>
+              )}
+
+              {/* Practice mode button */}
+              {test.settings?.practiceMode && (
+                <button
+                  onClick={() => navigate(`/test/${shareLink}?practice=true`)}
+                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-200 dark:border-green-700 text-sm font-medium text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition"
+                >
+                  🏋️ {t('practiceModeLabel') || 'Тренировка'}
                 </button>
               )}
             </motion.div>

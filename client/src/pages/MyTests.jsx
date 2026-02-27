@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FileText, Plus, Edit3, Trash2, Share2, Users,
-  Copy, Eye, EyeOff, MoreVertical, BarChart3, ArrowLeft
+  Copy, Eye, EyeOff, MoreVertical, BarChart3, ArrowLeft, Download, Upload
 } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -52,6 +52,59 @@ export default function MyTests() {
     toast.success('Ссылка скопирована!');
   };
 
+  const exportTest = async (testId) => {
+    try {
+      const res = await api.get(`/tests/${testId}`);
+      const data = res.data;
+      const exportData = {
+        _exportVersion: 1,
+        title: data.title,
+        description: data.description,
+        tags: data.tags,
+        questions: data.questions,
+        settings: data.settings,
+        coverImage: data.coverImage
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${data.title.replace(/[^a-zA-Z0-9а-яА-Яәөұқіңғүһ\s-]/gi, '')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Тест экспортирован!');
+    } catch {
+      toast.error('Ошибка экспорта');
+    }
+  };
+
+  const importTest = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.title || !data.questions?.length) {
+        toast.error('Некорректный файл');
+        return;
+      }
+      const payload = {
+        title: data.title + ' (импорт)',
+        description: data.description || '',
+        tags: data.tags || [],
+        questions: data.questions,
+        settings: data.settings || {},
+        coverImage: data.coverImage || ''
+      };
+      await api.post('/tests', payload);
+      toast.success('Тест импортирован!');
+      fetchMyTests();
+    } catch {
+      toast.error('Ошибка импорта — проверьте файл');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-surface">
       <Toaster position="top-right" />
@@ -79,9 +132,15 @@ export default function MyTests() {
               <p className="text-sm text-gray-500">{tests.length} тестов создано</p>
             </div>
           </div>
-          <button onClick={() => navigate('/create-test')} className="btn-primary flex items-center gap-2 text-sm">
-            <Plus size={16} /> Создать тест
-          </button>
+          <div className="flex items-center gap-2">
+            <label className="btn-secondary flex items-center gap-2 text-sm cursor-pointer">
+              <Upload size={16} /> Импорт JSON
+              <input type="file" accept=".json" className="hidden" onChange={importTest} />
+            </label>
+            <button onClick={() => navigate('/create-test')} className="btn-primary flex items-center gap-2 text-sm">
+              <Plus size={16} /> Создать тест
+            </button>
+          </div>
         </motion.div>
 
         {loading ? (
@@ -138,6 +197,10 @@ export default function MyTests() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => exportTest(test._id)}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-green-600 transition-colors" title="Экспорт JSON">
+                    <Download size={16} />
+                  </button>
                   <button onClick={() => copyLink(test.shareLink)}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-primary-600 transition-colors" title="Скопировать ссылку">
                     <Copy size={16} />

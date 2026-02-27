@@ -135,7 +135,7 @@ export default function QuestionBank() {
 
           {/* Search & Filter */}
           <div className="glass-card-solid p-4 mb-6">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-3">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input className="input-field pl-9 py-2 text-sm" placeholder="Поиск по тексту вопроса..."
@@ -146,28 +146,15 @@ export default function QuestionBank() {
                 <option value="">Все типы</option>
                 {Object.entries(typeMap).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
+              {categories.length > 0 && (
+                <select value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setPage(1); }}
+                  className="input-field py-2 text-sm w-full sm:w-44">
+                  <option value="">Все категории</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
               <button type="submit" className="btn-primary py-2 px-4 text-sm">Найти</button>
             </form>
-            {/* Category chips */}
-            {categories.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 dark:border-slate-700">
-                <button
-                  onClick={() => { setFilterCategory(''); setPage(1); }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border
-                    ${!filterCategory ? 'bg-primary-600 text-white border-primary-600' : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:border-primary-400'}`}>
-                  Все категории
-                </button>
-                {categories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => { setFilterCategory(cat); setPage(1); }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border
-                      ${filterCategory === cat ? 'bg-primary-600 text-white border-primary-600' : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:border-primary-400'}`}>
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Bulk actions */}

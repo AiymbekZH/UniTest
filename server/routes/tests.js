@@ -1,5 +1,6 @@
 const express = require('express');
 const Test = require('../models/Test');
+const TicketClaim = require('../models/TicketClaim');
 const { auth, optionalAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
@@ -164,11 +165,32 @@ router.get('/share/:shareLink', optionalAuth, async (req, res) => {
 
     // Don't send correct answers to test takers
     const sanitized = test.toObject();
+
+    // Seeded shuffle for variant-based ordering
+    const variantNum = parseInt(req.query.variant) || 0;
+    function seededShuffle(arr, seed) {
+      const result = [...arr];
+      let s = seed;
+      for (let i = result.length - 1; i > 0; i--) {
+        s = (s * 9301 + 49297) % 233280;
+        const j = Math.floor((s / 233280) * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    }
+
     // Random pool selection: if questionPoolSize > 0 and < total, pick random subset
     const poolSize = test.settings?.questionPoolSize || 0;
     if (poolSize > 0 && poolSize < sanitized.questions.length) {
-      const shuffled = [...sanitized.questions].sort(() => Math.random() - 0.5);
+      const shuffled = variantNum > 0
+        ? seededShuffle(sanitized.questions, variantNum * 1000)
+        : [...sanitized.questions].sort(() => Math.random() - 0.5);
       sanitized.questions = shuffled.slice(0, poolSize);
+    }
+
+    // If variant system is active, shuffle questions deterministically per variant
+    if (variantNum > 0 && test.settings?.variants?.enabled) {
+      sanitized.questions = seededShuffle(sanitized.questions, variantNum);
     }
 
     sanitized.questions = sanitized.questions.map(q => {
@@ -372,6 +394,103 @@ router.get('/:id/my-rating', auth, async (req, res) => {
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
     const myRating = test.ratings?.find(r => r.user.toString() === req.user._id.toString());
     res.json({ rating: myRating?.rating || 0 });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка', error: error.message });
+  }
+});
+
+// =================== TICKET / VARIANT SYSTEM ===================
+
+// Get ticket status for a test (which variants are available)
+router.get('/:id/tickets', optionalAuth, async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.id).select('settings.variants');
+    if (!test) return res.status(404).json({ message: 'Тест не найден' });
+    if (!test.settings?.variants?.enabled || !test.settings.variants.count) {
+      return res.status(400).json({ message: 'Варианты не включены для этого теста' });
+    }
+    const variantCount = test.settings.variants.count;
+    const claims = await TicketClaim.find({ test: req.params.id })
+      .populate('user', 'firstName lastName')
+      .lean();
+
+    // Build variant status array
+    const variants = [];
+    for (let i = 1; i <= variantCount; i++) {
+      const claim = claims.find(c => c.variantNumber === i);
+      variants.push({
+        number: i,
+        claimed: !!claim,
+        claimedBy: claim ? (claim.user ? `${claim.user.firstName} ${claim.user.lastName}` : claim.guestName) : null,
+        isMe: claim ? (req.user ? claim.user?._id?.toString() === req.user._id.toString() : false) : false
+      });
+    }
+
+    // Check if current user already has a ticket
+    let myVariant = null;
+    if (req.user) {
+      const myClaim = claims.find(c => c.user?._id?.toString() === req.user._id.toString());
+      if (myClaim) myVariant = myClaim.variantNumber;
+    }
+
+    res.json({ variants, myVariant, variantCount });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка', error: error.message });
+  }
+});
+
+// Claim a ticket variant
+router.post('/:id/tickets/claim', optionalAuth, async (req, res) => {
+  try {
+    const { variantNumber, guestName } = req.body;
+    const test = await Test.findById(req.params.id).select('settings.variants');
+    if (!test) return res.status(404).json({ message: 'Тест не найден' });
+    if (!test.settings?.variants?.enabled) {
+      return res.status(400).json({ message: 'Варианты не включены' });
+    }
+    if (variantNumber < 1 || variantNumber > test.settings.variants.count) {
+      return res.status(400).json({ message: 'Неверный номер варианта' });
+    }
+
+    // Check if user already has a ticket for this test
+    if (req.user) {
+      const existing = await TicketClaim.findOne({ test: req.params.id, user: req.user._id });
+      if (existing) {
+        return res.json({ variantNumber: existing.variantNumber, alreadyClaimed: true });
+      }
+    }
+
+    // Try to claim (atomic — unique index will prevent duplicates)
+    try {
+      const claim = new TicketClaim({
+        test: req.params.id,
+        user: req.user?._id || null,
+        guestName: !req.user ? (guestName || 'Guest') : '',
+        variantNumber
+      });
+      await claim.save();
+      res.json({ variantNumber, alreadyClaimed: false });
+    } catch (dupErr) {
+      if (dupErr.code === 11000) {
+        return res.status(409).json({ message: 'Этот билет уже занят!' });
+      }
+      throw dupErr;
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка', error: error.message });
+  }
+});
+
+// Release a ticket (for admin/creator cleanup)
+router.delete('/:id/tickets', auth, async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.id).select('creator');
+    if (!test) return res.status(404).json({ message: 'Тест не найден' });
+    if (test.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Нет прав' });
+    }
+    await TicketClaim.deleteMany({ test: req.params.id });
+    res.json({ message: 'Все билеты сброшены' });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка', error: error.message });
   }
