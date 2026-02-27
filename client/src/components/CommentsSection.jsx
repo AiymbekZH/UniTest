@@ -221,9 +221,9 @@ export default function CommentsSection({ testId }) {
           }`}
           disabled={!isAuthenticated}
         >
-          <ChevronUp size={16} strokeWidth={2.5} />
+          <ChevronUp size={18} strokeWidth={2.5} />
         </button>
-        <span className={`text-xs font-semibold min-w-[16px] text-center tabular-nums ${
+        <span className={`text-[13px] font-semibold min-w-[16px] text-center tabular-nums ${
           score > 0 ? 'text-primary-600' : score < 0 ? 'text-red-500' : 'text-gray-400'
         }`}>
           {score !== 0 ? score : ''}
@@ -237,7 +237,7 @@ export default function CommentsSection({ testId }) {
           }`}
           disabled={!isAuthenticated}
         >
-          <ChevronDown size={16} strokeWidth={2.5} />
+          <ChevronDown size={18} strokeWidth={2.5} />
         </button>
       </div>
     );
@@ -255,16 +255,16 @@ export default function CommentsSection({ testId }) {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => comment.user?._id && navigate(`/user/${comment.user._id}`)}
-              className={`${isReply ? 'text-xs' : 'text-[13px]'} font-semibold text-dark hover:text-primary-600 transition`}
+              className={`${isReply ? 'text-[13px]' : 'text-sm'} font-semibold text-dark hover:text-primary-600 transition`}
             >
               @{comment.user?.firstName}{comment.user?.lastName ? ` ${comment.user.lastName}` : ''}
             </button>
             {isCreator(comment.user?._id) && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded text-[10px] font-medium">
-                <Crown size={9} className="text-amber-500" /> {t('testCreator')}
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded text-[11px] font-medium">
+                <Crown size={10} className="text-amber-500" /> {t('testCreator')}
               </span>
             )}
-            <span className="text-[11px] text-gray-400 dark:text-gray-500">
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               {timeAgo(comment.createdAt)}
               {comment.isEdited && <span className="ml-1 italic">({t('edited')})</span>}
             </span>
@@ -274,7 +274,7 @@ export default function CommentsSection({ testId }) {
           {isReply && replyToUser && (
             <button
               onClick={() => replyToUser._id && navigate(`/user/${replyToUser._id}`)}
-              className="text-xs text-primary-500 hover:text-primary-600 font-medium mt-0.5 transition"
+              className="text-[13px] text-primary-500 hover:text-primary-600 font-medium mt-0.5 transition"
             >
               @{replyToUser.firstName}{replyToUser.lastName ? ` ${replyToUser.lastName}` : ''}
             </button>
@@ -309,18 +309,18 @@ export default function CommentsSection({ testId }) {
             </div>
           ) : (
             <>
-              <p className={`${isReply ? 'text-xs' : 'text-sm'} text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap leading-relaxed`}>
+              <p className={`${isReply ? 'text-[13px]' : 'text-[15px]'} text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap leading-relaxed`}>
                 {comment.text}
               </p>
 
               {/* Actions row: votes + text buttons */}
-              <div className="flex items-center gap-1 mt-1.5 -ml-1">
+              <div className="flex items-center gap-1 mt-1.5 -ml-1 flex-wrap">
                 <VoteButtons comment={comment} />
 
                 {isAuthenticated && (
                   <button
                     onClick={() => { setReplyTo(comment); setInputFocused(true); setTimeout(() => inputRef.current?.focus(), 100); }}
-                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2.5 py-1 rounded-full transition ml-1"
+                    className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-full transition ml-1"
                   >
                     {t('reply')}
                   </button>
@@ -328,7 +328,7 @@ export default function CommentsSection({ testId }) {
                 {user?.id === comment.user?._id && (
                   <button
                     onClick={() => { setEditingComment(comment._id); setEditText(comment.text); }}
-                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2.5 py-1 rounded-full transition opacity-0 group-hover:opacity-100"
+                    className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-full transition sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     {t('editComment')}
                   </button>
@@ -336,7 +336,7 @@ export default function CommentsSection({ testId }) {
                 {(user?.id === comment.user?._id || user?.role === 'admin') && (
                   <button
                     onClick={() => handleDelete(comment._id)}
-                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 px-2.5 py-1 rounded-full transition opacity-0 group-hover:opacity-100"
+                    className="text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 px-2.5 py-1.5 rounded-full transition sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     {t('deleteComment')}
                   </button>
@@ -344,9 +344,9 @@ export default function CommentsSection({ testId }) {
                 {isAuthenticated && user?.id !== comment.user?._id && (
                   <button
                     onClick={() => setReportModal(comment._id)}
-                    className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-orange-500 transition opacity-0 group-hover:opacity-100"
+                    className="p-1.5 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-orange-500 transition sm:opacity-0 sm:group-hover:opacity-100"
                   >
-                    <Flag size={12} />
+                    <Flag size={14} />
                   </button>
                 )}
               </div>
@@ -378,11 +378,12 @@ export default function CommentsSection({ testId }) {
           )}
           <div className="flex gap-3 items-start">
             <Avatar u={user} size={36} />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full bg-transparent border-b border-gray-200 dark:border-slate-700 focus:border-primary-500 outline-none text-sm text-dark placeholder-gray-400 dark:placeholder-gray-500 pb-1.5 transition-colors"
+                dir="ltr"
+                className="w-full bg-transparent border-b border-gray-200 dark:border-slate-700 focus:border-primary-500 outline-none text-[15px] text-dark text-left placeholder-gray-400 dark:placeholder-gray-500 pb-2 transition-colors"
                 placeholder={t('writeComment')}
                 value={text}
                 onChange={e => setText(e.target.value)}
@@ -391,11 +392,7 @@ export default function CommentsSection({ testId }) {
                 maxLength={1000}
               />
               {(inputFocused || text.trim()) && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="flex justify-end gap-2 mt-2"
-                >
+                <div className="flex justify-end gap-2 mt-2">
                   <button
                     onClick={handleCancel}
                     className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition"
@@ -409,7 +406,7 @@ export default function CommentsSection({ testId }) {
                   >
                     {t('addComment')}
                   </button>
-                </motion.div>
+                </div>
               )}
             </div>
           </div>
@@ -433,9 +430,9 @@ export default function CommentsSection({ testId }) {
                   <div className="ml-12 mt-2">
                     <button
                       onClick={() => toggleReplies(comment._id)}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 px-2.5 py-1.5 rounded-full transition -ml-2.5"
+                      className="flex items-center gap-1.5 text-[13px] font-semibold text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 px-2.5 py-1.5 rounded-full transition -ml-2.5"
                     >
-                      {repliesExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      {repliesExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       {commentReplies.length} {commentReplies.length === 1
                         ? (t('reply') || 'reply').toLowerCase()
                         : (t('comments') || 'replies').toLowerCase()}
