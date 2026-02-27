@@ -1,9 +1,10 @@
-﻿import { useState, useRef, useEffect } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap, Plus, LogOut, Menu, X,
-  User, Shield, Globe, Sun, Moon, ChevronDown
+  LayoutDashboard, FileText, BarChart3, Database, Sun, Moon,
+  User, Shield, Globe
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -19,18 +20,6 @@ export default function Navbar() {
   const [showMenu, setShowMenu] = useState(false);
   const [showMobile, setShowMobile] = useState(false);
   const [showLang, setShowLang] = useState(false);
-  const menuRef = useRef(null);
-  const langRef = useRef(null);
-
-  // Close dropdowns on outside click
-  useEffect(() => {
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
-      if (langRef.current && !langRef.current.contains(e.target)) setShowLang(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -38,82 +27,89 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { to: '/dashboard', label: t('home') },
-    { to: '/my-tests', label: t('myTests') },
-    { to: '/my-results', label: t('results') },
-    { to: '/question-bank', label: t('questionBank') },
-    ...(user?.role === 'admin' ? [{ to: '/admin', label: t('admin') }] : []),
+    { to: '/dashboard', label: t('home'), icon: LayoutDashboard },
+    { to: '/my-tests', label: t('myTests'), icon: FileText },
+    { to: '/my-results', label: t('results'), icon: BarChart3 },
+    { to: '/question-bank', label: t('questionBank'), icon: Database },
   ];
 
   const isActive = (path) => location.pathname === path;
 
   const langLabels = { en: 'EN', ru: 'RU', kz: 'KZ' };
-  const langIcons = { en: 'EN', ru: '🇷🇺', kz: '🇰🇿' };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl backdrop-saturate-150 border-b border-gray-200/60 dark:border-slate-700/60">
+    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-100/50 dark:border-slate-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-12">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center
-                          group-hover:shadow-md group-hover:shadow-primary-600/20 transition-all duration-200">
-              <GraduationCap className="w-4 h-4 text-white" />
+          <Link to="/dashboard" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center
+                          group-hover:shadow-lg group-hover:shadow-primary-600/25 transition-all duration-300">
+              <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <span className="text-[15px] font-semibold text-dark tracking-tight hidden sm:block">UniTest</span>
+            <span className="text-lg font-bold text-dark hidden sm:block">UniTest</span>
           </Link>
 
-          {/* Desktop Nav — clean text links */}
+          {/* Desktop Nav */}
           {isAuthenticated && (
-            <div className="hidden lg:flex items-center gap-0.5 ml-8">
+            <div className="hidden lg:flex items-center gap-1">
               {navLinks.map(link => (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300
                     ${isActive(link.to)
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800/70'}`}
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-dark dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                 >
+                  <link.icon size={16} />
                   {link.label}
                 </Link>
               ))}
+              {user?.role === 'admin' && (
+                <Link
+                  to="/admin"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300
+                    ${isActive('/admin')
+                      ? 'bg-red-50 dark:bg-red-900/30 text-red-600'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-dark dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                >
+                  <Shield size={16} />
+                  {t('admin')}
+                </Link>
+              )}
             </div>
           )}
 
           {/* Right side */}
-          <div className="flex items-center gap-1.5">
-            {/* Language */}
-            <div className="relative" ref={langRef}>
+          <div className="flex items-center gap-2">
+            {/* Language switcher */}
+            <div className="relative">
               <button
                 onClick={() => setShowLang(!showLang)}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all"
+                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-all flex items-center gap-1 text-xs font-medium"
               >
-                <Globe size={14} />
-                <span>{langLabels[lang]}</span>
+                <Globe size={16} />
+                <span className="hidden sm:inline">{langLabels[lang]}</span>
               </button>
               <AnimatePresence>
                 {showLang && (
                   <motion.div
-                    initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                    initial={{ opacity: 0, y: -5, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -4, scale: 0.96 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-1.5 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-lg shadow-black/8 dark:shadow-black/30 border border-gray-200/80 dark:border-slate-700 p-1 z-50"
+                    exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                    className="absolute right-0 mt-1 w-32 glass-card-solid p-1 shadow-glass z-50"
                   >
                     {[
-                      { code: 'en', label: 'English', flag: 'EN' },
-                      { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-                      { code: 'kz', label: 'Қазақша', flag: '🇰🇿' }
+                      { code: 'en', label: 'EN English' },
+                      { code: 'ru', label: '🇷🇺 Русский' },
+                      { code: 'kz', label: '🇰🇿 Қазақша' }
                     ].map(l => (
                       <button key={l.code}
                         onClick={() => { setLanguage(l.code); setShowLang(false); }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-colors
-                          ${lang === l.code 
-                            ? 'bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white font-medium' 
-                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/50'}`}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors
+                          ${lang === l.code ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                       >
-                        <span className="text-sm">{l.flag}</span>
                         {l.label}
                       </button>
                     ))}
@@ -122,80 +118,86 @@ export default function Navbar() {
               </AnimatePresence>
             </div>
 
-            {/* Theme */}
+            {/* Dark mode toggle */}
             <button
               onClick={toggleTheme}
-              className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 dark:text-gray-500 transition-all"
+              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-all"
+              title={dark ? t('lightTheme') : t('darkTheme')}
             >
-              {dark ? <Sun size={16} /> : <Moon size={16} />}
+              {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
             {isAuthenticated ? (
               <>
                 <NotificationBell />
 
-                {/* Create — capsule button */}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => navigate('/create-test')}
-                  className="hidden sm:flex items-center gap-1.5 h-8 px-3.5 bg-primary-600 hover:bg-primary-700 text-white text-[13px] font-medium rounded-full transition-all duration-200 hover:shadow-md hover:shadow-primary-600/20"
+                  className="btn-primary hidden sm:flex items-center gap-2 py-2 px-4 text-sm"
                 >
-                  <Plus size={14} strokeWidth={2.5} />
-                  <span>{t('createTest')}</span>
-                </button>
+                  <Plus size={16} />
+                  {t('createTest')}
+                </motion.button>
 
-                {/* Avatar + dropdown */}
-                <div className="relative" ref={menuRef}>
+                {/* User menu */}
+                <div className="relative">
                   <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="flex items-center gap-1.5 ml-0.5 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-all"
+                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all"
                   >
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center text-[11px] font-semibold text-white overflow-hidden">
+                    <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/50 text-primary-600 rounded-lg flex items-center justify-center font-semibold text-xs overflow-hidden">
                       {user?.avatar ? (
-                        <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+                        <img src={user.avatar} alt="" className="w-full h-full object-cover rounded-lg" />
                       ) : (
                         <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
                       )}
                     </div>
+                    <span className="text-sm font-medium text-dark hidden xl:block">
+                      {user?.firstName} {user?.lastName}
+                    </span>
                   </button>
 
                   <AnimatePresence>
                     {showMenu && (
                       <motion.div
-                        initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.96 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-lg shadow-black/8 dark:shadow-black/30 border border-gray-200/80 dark:border-slate-700 p-1.5 z-50"
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-56 glass-card-solid p-2 shadow-glass z-50"
                       >
-                        <div className="px-3 py-2.5 mb-1">
+                        <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-700 mb-1">
                           <p className="text-sm font-medium text-dark">{user?.firstName} {user?.lastName}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{user?.email}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                          <span className="badge-info mt-1 text-[10px]">
+                            {user?.role === 'admin' ? t('adminRole') : user?.role === 'teacher' ? t('teacher') : t('student')}
+                          </span>
                         </div>
-                        <div className="h-px bg-gray-100 dark:bg-slate-700 mx-1 mb-1" />
                         <Link
                           to="/profile"
                           onClick={() => setShowMenu(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
                         >
-                          <User size={15} />
+                          <User size={16} />
                           {t('profile')}
                         </Link>
                         {user?.role === 'admin' && (
                           <Link
                             to="/admin"
                             onClick={() => setShowMenu(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
                           >
-                            <Shield size={15} />
+                            <Shield size={16} />
                             {t('admin')}
                           </Link>
                         )}
-                        <div className="h-px bg-gray-100 dark:bg-slate-700 mx-1 my-1" />
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                         >
-                          <LogOut size={15} />
+                          <LogOut size={16} />
                           {t('logout')}
                         </button>
                       </motion.div>
@@ -205,22 +207,22 @@ export default function Navbar() {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <Link to="/login" className="px-3 py-1.5 text-[13px] font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition rounded-full">
+                <Link to="/login" className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-dark transition">
                   {t('login')}
                 </Link>
-                <Link to="/register" className="h-8 px-4 bg-primary-600 hover:bg-primary-700 text-white text-[13px] font-medium rounded-full flex items-center transition-all">
+                <Link to="/register" className="btn-primary py-2 px-4 text-sm">
                   {t('register')}
                 </Link>
               </div>
             )}
 
-            {/* Mobile hamburger */}
+            {/* Mobile menu toggle */}
             {isAuthenticated && (
               <button
-                className="lg:hidden p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-all ml-0.5"
+                className="lg:hidden p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all"
                 onClick={() => setShowMobile(!showMobile)}
               >
-                {showMobile ? <X size={18} className="text-dark" /> : <Menu size={18} className="text-dark" />}
+                {showMobile ? <X size={20} className="text-dark" /> : <Menu size={20} className="text-dark" />}
               </button>
             )}
           </div>
@@ -233,26 +235,32 @@ export default function Navbar() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="lg:hidden overflow-hidden pb-3"
+              className="lg:hidden overflow-hidden pb-4"
             >
-              <div className="flex flex-col gap-0.5 pt-1">
+              <div className="flex flex-col gap-1 pt-2">
                 {navLinks.map(link => (
                   <Link
                     key={link.to}
                     to={link.to}
                     onClick={() => setShowMobile(false)}
-                    className={`px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all
-                      ${isActive(link.to) 
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' 
-                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800'}`}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all
+                      ${isActive(link.to) ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                   >
+                    <link.icon size={16} />
                     {link.label}
                   </Link>
                 ))}
+                {user?.role === 'admin' && (
+                  <Link to="/admin" onClick={() => setShowMobile(false)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all
+                      ${isActive('/admin') ? 'bg-red-50 dark:bg-red-900/30 text-red-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                  >
+                    <Shield size={16} /> {t('admin')}
+                  </Link>
+                )}
                 <button
                   onClick={() => { navigate('/create-test'); setShowMobile(false); }}
-                  className="flex items-center justify-center gap-2 mt-2 h-10 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-full transition-all"
+                  className="btn-primary flex items-center justify-center gap-2 mt-2"
                 >
                   <Plus size={16} />
                   {t('createTest')}

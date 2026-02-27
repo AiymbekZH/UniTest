@@ -18,14 +18,14 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-sm;
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-glass;
   }
   .dark .glass-card {
     @apply bg-slate-800/80 border-slate-700/50;
   }
   
   .glass-card-solid {
-    @apply bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200;
+    @apply bg-white rounded-2xl shadow-card border border-gray-100/50;
   }
   .dark .glass-card-solid {
     @apply bg-slate-800 border-slate-700/50 shadow-none;
@@ -33,66 +33,66 @@
 
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-6 
-           rounded-full text-sm transition-all duration-200 ease-out
-           hover:shadow-lg hover:shadow-primary-600/20 
+           rounded-xl transition-all duration-300 ease-out
+           hover:shadow-lg hover:shadow-primary-600/25 
            active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
     @apply bg-white hover:bg-gray-50 text-dark font-medium py-2.5 px-6 
-           rounded-full text-sm border border-gray-200 transition-all duration-200
-           hover:border-gray-300 active:scale-[0.98];
+           rounded-xl border border-gray-200 transition-all duration-300
+           hover:shadow-soft active:scale-[0.98];
   }
   .dark .btn-secondary {
-    @apply bg-slate-800 hover:bg-slate-700 text-gray-200 border-slate-700;
+    @apply bg-slate-700 hover:bg-slate-600 text-gray-200 border-slate-600;
   }
 
   .btn-danger {
     @apply bg-red-500 hover:bg-red-600 text-white font-medium py-2.5 px-6 
-           rounded-full text-sm transition-all duration-200
-           hover:shadow-lg hover:shadow-red-500/20 active:scale-[0.98];
+           rounded-xl transition-all duration-300
+           hover:shadow-lg hover:shadow-red-500/25 active:scale-[0.98];
   }
 
   .input-field {
-    @apply w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-full
-           text-sm text-dark placeholder-gray-400
-           focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400
-           focus:bg-white transition-all duration-200;
+    @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-xl
+           text-dark placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500
+           transition-all duration-300;
   }
   .dark .input-field {
-    @apply bg-slate-800 border-slate-700 text-gray-100 placeholder-gray-500 focus:bg-slate-700;
+    @apply bg-slate-700 border-slate-600 text-gray-100 placeholder-gray-500;
   }
 
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium;
   }
 
   .badge-success {
-    @apply badge bg-emerald-50 text-emerald-600;
+    @apply badge bg-emerald-50 text-emerald-700;
   }
   .dark .badge-success {
-    @apply bg-emerald-900/20 text-emerald-400;
+    @apply bg-emerald-900/30 text-emerald-400;
   }
 
   .badge-warning {
-    @apply badge bg-amber-50 text-amber-600;
+    @apply badge bg-amber-50 text-amber-700;
   }
   .dark .badge-warning {
-    @apply bg-amber-900/20 text-amber-400;
+    @apply bg-amber-900/30 text-amber-400;
   }
 
   .badge-danger {
-    @apply badge bg-red-50 text-red-600;
+    @apply badge bg-red-50 text-red-700;
   }
   .dark .badge-danger {
-    @apply bg-red-900/20 text-red-400;
+    @apply bg-red-900/30 text-red-400;
   }
 
   .badge-info {
-    @apply badge bg-primary-50 text-primary-600;
+    @apply badge bg-primary-50 text-primary-700;
   }
   .dark .badge-info {
-    @apply bg-primary-900/20 text-primary-400;
+    @apply bg-primary-900/30 text-primary-400;
   }
 
   /* Dark mode page backgrounds */
