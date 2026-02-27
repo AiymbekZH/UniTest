@@ -1,11 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, Reply, Trash2, MessageSquareOff, Edit3, Flag, Check, X, Crown } from 'lucide-react';
+import { Send, Reply, Trash2, MessageSquareOff, Edit3, Flag, Check, X, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import toast from 'react-hot-toast';
+
+function timeAgo(date) {
+  const now = new Date();
+  const d = new Date(date);
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return 'now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)}d`;
+  if (diff < 31536000) return `${Math.floor(diff / 2592000)}mo`;
+  return `${Math.floor(diff / 31536000)}y`;
+}
 
 export default function CommentsSection({ testId }) {
   const { user, isAuthenticated } = useAuth();
@@ -20,8 +32,10 @@ export default function CommentsSection({ testId }) {
   const [disabled, setDisabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
   const [reportModal, setReportModal] = useState(null);
   const [reportReason, setReportReason] = useState('');
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (!testId) return;
@@ -49,6 +63,7 @@ export default function CommentsSection({ testId }) {
       setComments(prev => [res.data.comment, ...prev]);
       setText('');
       setReplyTo(null);
+      setInputFocused(false);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error');
     } finally {
@@ -91,13 +106,19 @@ export default function CommentsSection({ testId }) {
     }
   };
 
+  const handleCancel = () => {
+    setText('');
+    setReplyTo(null);
+    setInputFocused(false);
+  };
+
   const isCreator = (userId) => creatorId && userId === creatorId;
 
   if (loading) return null;
 
   if (disabled) {
     return (
-      <div className="glass-card-solid p-4 mt-6">
+      <div className="py-6 mt-6">
         <div className="flex items-center gap-2 text-gray-400 text-sm">
           <MessageSquareOff size={16} />
           {t('commentsDisabled')}
@@ -111,9 +132,7 @@ export default function CommentsSection({ testId }) {
   const rootIds = new Set(rootComments.map(c => c._id));
   const getReplies = (commentId) => replies.filter(r => {
     const rt = r.replyTo?._id || r.replyTo;
-    // Direct reply to this root comment
     if (rt === commentId) return true;
-    // Reply to a reply (nested) - find the root parent
     if (!rootIds.has(rt)) {
       const parent = comments.find(c => c._id === rt);
       if (parent) {
@@ -124,159 +143,199 @@ export default function CommentsSection({ testId }) {
     return false;
   });
 
-  const UserAvatar = ({ u, size = 'w-8 h-8', textSize = 'text-xs' }) => (
-    <div className={`${size} rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center ${textSize} font-bold text-primary-600 flex-shrink-0 overflow-hidden`}>
-      {u?.avatar ? (
-        <img src={u.avatar} alt="" className="w-full h-full object-cover" />
-      ) : (
-        <span>{u?.firstName?.[0]}{u?.lastName?.[0]}</span>
-      )}
-    </div>
-  );
-
-  const CreatorBadge = () => (
-    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-md text-[9px] font-semibold">
-      <Crown size={8} /> {t('testCreator')}
-    </span>
-  );
-
-  const CommentActions = ({ comment, isReply = false }) => (
-    <div className="flex items-center gap-2 mt-2">
-      {isAuthenticated && (
-        <button onClick={() => setReplyTo(comment)}
-          className="text-[11px] text-primary-500 hover:text-primary-600 flex items-center gap-1 transition">
-          <Reply size={10} /> {t('reply')}
-        </button>
-      )}
-      {user?.id === comment.user?._id && (
-        <button onClick={() => { setEditingComment(comment._id); setEditText(comment.text); }}
-          className="text-[11px] text-blue-500 hover:text-blue-600 flex items-center gap-1 transition">
-          <Edit3 size={10} /> {t('editComment')}
-        </button>
-      )}
-      {(user?.id === comment.user?._id || user?.role === 'admin') && (
-        <button onClick={() => handleDelete(comment._id)}
-          className="text-[11px] text-red-400 hover:text-red-500 flex items-center gap-1 transition">
-          <Trash2 size={10} /> {t('deleteComment')}
-        </button>
-      )}
-      {isAuthenticated && user?.id !== comment.user?._id && (
-        <button onClick={() => setReportModal(comment._id)}
-          className="text-[11px] text-gray-400 hover:text-orange-500 flex items-center gap-1 transition">
-          <Flag size={10} />
-        </button>
-      )}
-    </div>
-  );
-
-  const CommentContent = ({ comment, isReply = false }) => {
-    const isEditing = editingComment === comment._id;
-    return (
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => comment.user?._id && navigate(`/user/${comment.user._id}`)}
-            className="text-sm font-medium text-dark hover:text-primary-600 transition"
-          >
-            {comment.user?.firstName} {comment.user?.lastName}
-          </button>
-          {isCreator(comment.user?._id) && <CreatorBadge />}
-          {comment.isEdited && (
-            <span className="text-[9px] text-gray-400 italic">({t('edited')})</span>
-          )}
-          <span className="text-[10px] text-gray-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
-        </div>
-        {isEditing ? (
-          <div className="mt-2 flex gap-2">
-            <textarea
-              className="input-field text-sm flex-1 resize-none"
-              rows={2}
-              value={editText}
-              onChange={e => setEditText(e.target.value)}
-              maxLength={1000}
-            />
-            <div className="flex flex-col gap-1">
-              <button onClick={() => handleEdit(comment._id)} className="p-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">
-                <Check size={12} />
-              </button>
-              <button onClick={() => setEditingComment(null)} className="p-1.5 rounded-lg bg-gray-200 dark:bg-slate-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 transition">
-                <X size={12} />
-              </button>
-            </div>
-          </div>
+  const Avatar = ({ u, size = 36 }) => (
+    <button
+      onClick={() => u?._id && navigate(`/user/${u._id}`)}
+      className="flex-shrink-0"
+    >
+      <div
+        className="rounded-full bg-primary-600 flex items-center justify-center font-medium text-white overflow-hidden"
+        style={{ width: size, height: size, fontSize: size * 0.38 }}
+      >
+        {u?.avatar ? (
+          <img src={u.avatar} alt="" className="w-full h-full object-cover" />
         ) : (
-          <>
-            <p className={`${isReply ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap`}>{comment.text}</p>
-            <CommentActions comment={comment} isReply={isReply} />
-          </>
+          <span>{u?.firstName?.[0]}{u?.lastName?.[0]}</span>
         )}
+      </div>
+    </button>
+  );
+
+  const CommentItem = ({ comment, isReply = false }) => {
+    const isEditing = editingComment === comment._id;
+    const avatarSize = isReply ? 28 : 36;
+
+    return (
+      <div className="flex gap-3 group">
+        <Avatar u={comment.user} size={avatarSize} />
+        <div className="flex-1 min-w-0">
+          {/* Name row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => comment.user?._id && navigate(`/user/${comment.user._id}`)}
+              className={`${isReply ? 'text-xs' : 'text-[13px]'} font-semibold text-dark hover:text-primary-600 transition`}
+            >
+              @{comment.user?.firstName}{comment.user?.lastName ? ` ${comment.user.lastName}` : ''}
+            </button>
+            {isCreator(comment.user?._id) && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded text-[10px] font-medium">
+                <Crown size={9} className="text-amber-500" /> {t('testCreator')}
+              </span>
+            )}
+            <span className="text-[11px] text-gray-400 dark:text-gray-500">
+              {timeAgo(comment.createdAt)}
+              {comment.isEdited && <span className="ml-1 italic">({t('edited')})</span>}
+            </span>
+          </div>
+
+          {/* Content */}
+          {isEditing ? (
+            <div className="mt-2">
+              <textarea
+                className="w-full bg-transparent border-b border-gray-300 dark:border-slate-600 focus:border-primary-500 outline-none text-sm text-dark resize-none py-1 transition-colors"
+                rows={2}
+                value={editText}
+                onChange={e => setEditText(e.target.value)}
+                maxLength={1000}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  onClick={() => setEditingComment(null)}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  onClick={() => handleEdit(comment._id)}
+                  disabled={!editText.trim()}
+                  className="px-3 py-1.5 text-sm font-medium bg-primary-600 text-white rounded-full hover:bg-primary-700 transition disabled:opacity-40"
+                >
+                  {t('editComment')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className={`${isReply ? 'text-xs' : 'text-sm'} text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap leading-relaxed`}>
+                {comment.text}
+              </p>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 mt-1 -ml-2">
+                {isAuthenticated && (
+                  <button
+                    onClick={() => { setReplyTo(comment); setInputFocused(true); setTimeout(() => inputRef.current?.focus(), 100); }}
+                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2 py-1 rounded-full transition"
+                  >
+                    {t('reply')}
+                  </button>
+                )}
+                {user?.id === comment.user?._id && (
+                  <button
+                    onClick={() => { setEditingComment(comment._id); setEditText(comment.text); }}
+                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2 py-1 rounded-full transition opacity-0 group-hover:opacity-100"
+                  >
+                    {t('editComment')}
+                  </button>
+                )}
+                {(user?.id === comment.user?._id || user?.role === 'admin') && (
+                  <button
+                    onClick={() => handleDelete(comment._id)}
+                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 px-2 py-1 rounded-full transition opacity-0 group-hover:opacity-100"
+                  >
+                    {t('deleteComment')}
+                  </button>
+                )}
+                {isAuthenticated && user?.id !== comment.user?._id && (
+                  <button
+                    onClick={() => setReportModal(comment._id)}
+                    className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-orange-500 transition opacity-0 group-hover:opacity-100"
+                  >
+                    <Flag size={12} />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="mt-6">
-      <h3 className="font-semibold text-dark mb-4 flex items-center gap-2">
-        <MessageCircle size={18} />
-        {t('comments')} ({comments.length})
+    <div className="mt-8">
+      {/* Header */}
+      <h3 className="text-base font-semibold text-dark mb-6">
+        {comments.length} {t('comments').toLowerCase()}
       </h3>
 
-      {/* Comment input */}
+      {/* YouTube-style comment input */}
       {isAuthenticated && (
-        <div className="glass-card-solid p-4 mb-4">
+        <div className="mb-8">
           {replyTo && (
-            <div className="flex items-center gap-2 mb-2 text-xs text-primary-600 bg-primary-50 dark:bg-primary-900/20 p-2 rounded-lg">
-              <Reply size={12} />
-              <span className="flex-1">{t('reply')}: <strong>{replyTo.user?.firstName} {replyTo.user?.lastName}</strong></span>
-              <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-red-500 transition">
+            <div className="flex items-center gap-2 mb-3 ml-12">
+              <span className="text-xs text-gray-500 dark:text-gray-400">{t('reply')}</span>
+              <span className="text-xs font-medium text-dark">@{replyTo.user?.firstName} {replyTo.user?.lastName}</span>
+              <button onClick={() => setReplyTo(null)} className="ml-auto text-gray-400 hover:text-gray-600 transition">
                 <X size={14} />
               </button>
             </div>
           )}
-          <div className="flex gap-2">
-            <UserAvatar u={user} />
-            <textarea
-              className="input-field text-sm flex-1 resize-none min-h-[40px]"
-              rows={2}
-              placeholder={t('writeComment')}
-              value={text}
-              onChange={e => setText(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              maxLength={1000}
-            />
-            <button onClick={handleSend} disabled={!text.trim() || sending}
-              className="btn-primary py-2 px-3 text-sm disabled:opacity-50 self-end">
-              <Send size={14} />
-            </button>
+          <div className="flex gap-3 items-start">
+            <Avatar u={user} size={36} />
+            <div className="flex-1">
+              <input
+                ref={inputRef}
+                type="text"
+                className="w-full bg-transparent border-b border-gray-200 dark:border-slate-700 focus:border-primary-500 outline-none text-sm text-dark placeholder-gray-400 dark:placeholder-gray-500 pb-1.5 transition-colors"
+                placeholder={t('writeComment')}
+                value={text}
+                onChange={e => setText(e.target.value)}
+                onFocus={() => setInputFocused(true)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                maxLength={1000}
+              />
+              {(inputFocused || text.trim()) && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="flex justify-end gap-2 mt-2"
+                >
+                  <button
+                    onClick={handleCancel}
+                    className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    onClick={handleSend}
+                    disabled={!text.trim() || sending}
+                    className="px-4 py-1.5 text-sm font-medium bg-primary-600 text-white rounded-full hover:bg-primary-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    {t('addComment')}
+                  </button>
+                </motion.div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {/* Comments list */}
-      <div className="space-y-3">
+      <div className="space-y-5">
         <AnimatePresence>
           {rootComments.map(comment => (
             <motion.div key={comment._id}
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className={`glass-card-solid p-4 ${isCreator(comment.user?._id) ? 'border-l-3 border-amber-400' : ''}`}
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             >
-              <div className="flex items-start gap-3">
-                <button onClick={() => comment.user?._id && navigate(`/user/${comment.user._id}`)}>
-                  <UserAvatar u={comment.user} />
-                </button>
-                <CommentContent comment={comment} />
-              </div>
+              <CommentItem comment={comment} />
 
               {/* Replies */}
               {getReplies(comment._id).length > 0 && (
-                <div className="ml-11 mt-3 space-y-3 border-l-2 border-gray-100 dark:border-slate-700 pl-3">
+                <div className="ml-12 mt-3 space-y-4">
                   {getReplies(comment._id).map(reply => (
-                    <div key={reply._id} className={`flex items-start gap-2 ${isCreator(reply.user?._id) ? 'bg-amber-50/50 dark:bg-amber-900/10 -ml-3 pl-3 py-2 rounded-r-lg border-l-2 border-amber-400' : ''}`}>
-                      <button onClick={() => reply.user?._id && navigate(`/user/${reply.user._id}`)}>
-                        <UserAvatar u={reply.user} size="w-6 h-6" textSize="text-[10px]" />
-                      </button>
-                      <CommentContent comment={reply} isReply />
-                    </div>
+                    <CommentItem key={reply._id} comment={reply} isReply />
                   ))}
                 </div>
               )}
@@ -285,8 +344,8 @@ export default function CommentsSection({ testId }) {
         </AnimatePresence>
 
         {comments.length === 0 && (
-          <p className="text-center py-6 text-sm text-gray-400">
-            {t('comments')}: 0
+          <p className="text-center py-8 text-sm text-gray-400 dark:text-gray-500">
+            {t('noOneCompleted').includes('test') ? t('writeComment') : t('comments')}: 0
           </p>
         )}
       </div>
@@ -301,31 +360,29 @@ export default function CommentsSection({ testId }) {
           >
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
               onClick={e => e.stopPropagation()}
-              className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6"
+              className="relative w-full max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-5"
             >
-              <h3 className="text-lg font-bold text-dark mb-4 flex items-center gap-2">
-                <Flag size={18} className="text-orange-500" />
-                {t('reportComment')}
-              </h3>
+              <h3 className="text-sm font-semibold text-dark mb-3">{t('reportComment')}</h3>
               <textarea
-                className="input-field text-sm w-full resize-none"
+                className="w-full bg-transparent border border-gray-200 dark:border-slate-600 focus:border-primary-500 rounded-lg outline-none text-sm text-dark p-3 resize-none transition-colors"
                 rows={3}
                 placeholder={t('reportReason')}
                 value={reportReason}
                 onChange={e => setReportReason(e.target.value)}
                 maxLength={500}
+                autoFocus
               />
-              <div className="flex gap-3 mt-4">
+              <div className="flex justify-end gap-2 mt-3">
                 <button onClick={() => { setReportModal(null); setReportReason(''); }}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition">
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition">
                   {t('cancel')}
                 </button>
                 <button onClick={handleReport} disabled={!reportReason.trim()}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition disabled:opacity-50">
+                  className="px-4 py-1.5 text-sm font-medium bg-primary-600 text-white rounded-full hover:bg-primary-700 transition disabled:opacity-40">
                   {t('report')}
                 </button>
               </div>
