@@ -144,8 +144,33 @@ router.get('/share/:shareLink', optionalAuth, async (req, res) => {
     if (!test) {
       return res.status(404).json({ message: 'Тест не найден' });
     }
+
+    // Deadline enforcement
+    const now = new Date();
+    if (test.settings.startDate && now < new Date(test.settings.startDate)) {
+      return res.status(403).json({
+        message: 'Тест ещё не открыт',
+        code: 'NOT_STARTED',
+        startDate: test.settings.startDate
+      });
+    }
+    if (test.settings.endDate && now > new Date(test.settings.endDate)) {
+      return res.status(403).json({
+        message: 'Тест уже закрыт',
+        code: 'ENDED',
+        endDate: test.settings.endDate
+      });
+    }
+
     // Don't send correct answers to test takers
     const sanitized = test.toObject();
+    // Random pool selection: if questionPoolSize > 0 and < total, pick random subset
+    const poolSize = test.settings?.questionPoolSize || 0;
+    if (poolSize > 0 && poolSize < sanitized.questions.length) {
+      const shuffled = [...sanitized.questions].sort(() => Math.random() - 0.5);
+      sanitized.questions = shuffled.slice(0, poolSize);
+    }
+
     sanitized.questions = sanitized.questions.map(q => {
       const { correctAnswer, ...rest } = q;
       if (q.type === 'matching') {
@@ -209,6 +234,33 @@ router.delete('/:id', auth, async (req, res) => {
     res.json({ message: 'Тест удалён' });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка удаления теста', error: error.message });
+  }
+});
+
+// Duplicate test (API only — no frontend button yet)
+router.post('/:id/duplicate', auth, async (req, res) => {
+  try {
+    const original = await Test.findById(req.params.id);
+    if (!original) return res.status(404).json({ message: 'Тест не найден' });
+    if (!original.settings.isPublic && original.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Нет доступа к этому тесту' });
+    }
+    const { _id, __v, shareLink, attemptCount, averageScore, rating, ratingCount, ratings, createdAt, updatedAt, ...data } = original.toObject();
+    const copy = new Test({
+      ...data,
+      title: data.title + ' (копия)',
+      creator: req.user._id,
+      attemptCount: 0,
+      averageScore: 0,
+      rating: 0,
+      ratingCount: 0,
+      ratings: []
+    });
+    await copy.save();
+    await copy.populate('creator', 'firstName lastName email role avatar');
+    res.status(201).json(copy);
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка дублирования теста', error: error.message });
   }
 });
 

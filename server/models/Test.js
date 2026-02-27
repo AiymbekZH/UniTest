@@ -58,7 +58,9 @@ const testSchema = new mongoose.Schema({
     instantFeedback: { type: Boolean, default: true },
     startDate: { type: Date, default: null },
     endDate: { type: Date, default: null },
-    allowComments: { type: Boolean, default: true }
+    allowComments: { type: Boolean, default: true },
+    questionPoolSize: { type: Number, default: 0, min: 0 }, // 0 = use all questions
+    inactivityTimeout: { type: Number, default: 0, min: 0 } // minutes, 0 = disabled
   },
   isDeleted: { type: Boolean, default: false },
   deleteReason: { type: String, default: '' },

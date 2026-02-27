@@ -1,9 +1,9 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, AlertTriangle, ChevronLeft, ChevronRight, Send,
-  Image, Video, Music, Shield, User, Check, X
+  Image, Video, Music, Shield, User, Check, X, Eye
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -227,12 +227,15 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
 
 export default function TakeTest() {
   const { shareLink } = useParams();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get('preview') === 'true';
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useLanguage();
 
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deadlineError, setDeadlineError] = useState(null); // { code, startDate?, endDate? }
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState({});
   const [guestName, setGuestName] = useState('');
@@ -252,6 +255,54 @@ export default function TakeTest() {
   // Instant feedback state
   const [feedback, setFeedback] = useState({}); // { [questionId]: { isCorrect, correctOptionIds, correctText, correctPairs, explanation, checked } }
   const [checkingAnswer, setCheckingAnswer] = useState(false);
+
+  // Session timeout (inactivity)
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+  const [inactivityCountdown, setInactivityCountdown] = useState(60);
+  const lastActivityRef = useRef(Date.now());
+  const inactivityTimerRef = useRef(null);
+  const countdownRef = useRef(null);
+
+  const resetActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    if (showInactivityWarning) {
+      setShowInactivityWarning(false);
+      setInactivityCountdown(60);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    }
+  }, [showInactivityWarning]);
+
+  useEffect(() => {
+    if (!started || !test?.settings?.inactivityTimeout) return;
+    const timeoutMs = test.settings.inactivityTimeout * 60 * 1000;
+    inactivityTimerRef.current = setInterval(() => {
+      const idle = Date.now() - lastActivityRef.current;
+      if (idle >= timeoutMs && !showInactivityWarning) {
+        setShowInactivityWarning(true);
+        setInactivityCountdown(60);
+        countdownRef.current = setInterval(() => {
+          setInactivityCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(countdownRef.current);
+              setShowInactivityWarning(false);
+              handleSubmit(true);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    }, 5000);
+
+    const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
+    events.forEach(e => window.addEventListener(e, resetActivity, { passive: true }));
+
+    return () => {
+      clearInterval(inactivityTimerRef.current);
+      clearInterval(countdownRef.current);
+      events.forEach(e => window.removeEventListener(e, resetActivity));
+    };
+  }, [started, test, showInactivityWarning, resetActivity]);
 
   // Anti-cheat
   const handleViolation = useCallback((violation, count) => {
@@ -324,8 +375,12 @@ export default function TakeTest() {
         setAttemptInfo({ attempts: attRes.data.attempts, maxAttempts: res.data.settings?.maxAttempts || 0 });
       } catch (_) {}
     } catch (err) {
-      toast.error(t('testNotFound'));
-      navigate('/');
+      if (err.response?.status === 403 && err.response?.data?.code) {
+        setDeadlineError(err.response.data);
+      } else {
+        toast.error(t('testNotFound'));
+        navigate('/');
+      }
     } finally {
       setLoading(false);
     }
@@ -416,6 +471,13 @@ export default function TakeTest() {
       return;
     }
 
+    // Preview mode: don't save results, just navigate back
+    if (isPreview) {
+      toast.success('Превью завершен — результат не сохраняется');
+      navigate(-1);
+      return;
+    }
+
     setSubmitting(true);
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
 
@@ -458,6 +520,37 @@ export default function TakeTest() {
     );
   }
 
+  if (!test && deadlineError) {
+    const isNotStarted = deadlineError.code === 'NOT_STARTED';
+    const dateStr = isNotStarted
+      ? new Date(deadlineError.startDate).toLocaleString()
+      : new Date(deadlineError.endDate).toLocaleString();
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+        <Toaster position="top-right" />
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+          className="max-w-sm w-full glass-card p-8 text-center">
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg
+            ${isNotStarted ? 'bg-amber-500 shadow-amber-500/30' : 'bg-red-500 shadow-red-500/30'}`}>
+            <Clock className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-xl font-bold text-dark mb-2">
+            {isNotStarted ? 'Тест ещё не доступен' : 'Тест завершён'}
+          </h2>
+          <p className="text-gray-500 text-sm mb-6">
+            {isNotStarted
+              ? `Тест откроется: ${dateStr}`
+              : `Тест был доступен до: ${dateStr}`
+            }
+          </p>
+          <button onClick={() => navigate('/')} className="btn-primary w-full py-3">
+            {t('back') || 'Назад'}
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!test) return null;
 
   const question = test.questions[currentQ];
@@ -485,6 +578,13 @@ export default function TakeTest() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full glass-card p-8 text-center"
         >
+          {/* Preview mode banner */}
+          {isPreview && (
+            <div className="flex items-center justify-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5 mb-5 text-amber-700 dark:text-amber-400">
+              <Eye size={15} />
+              <span className="text-sm font-semibold">Режим превью — результаты не сохраняются</span>
+            </div>
+          )}
           <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary-600/30">
             <Shield className="w-8 h-8 text-white" />
           </div>
@@ -592,6 +692,28 @@ export default function TakeTest() {
         cancelText={t('continueTest')}
         variant="warning"
       />
+
+      {/* Inactivity warning modal */}
+      <AnimatePresence>
+        {showInactivityWarning && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center">
+              <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-7 h-7 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-bold text-dark mb-2">\u0412\u044b \u0435\u0449\u0451 \u0437\u0434\u0435\u0441\u044c?</h3>
+              <p className="text-sm text-gray-500 mb-1">\u0414\u043e\u043b\u0433\u043e\u0435 \u0431\u0435\u0437\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435. \u0422\u0435\u0441\u0442 \u0431\u0443\u0434\u0435\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d \u0447\u0435\u0440\u0435\u0437:</p>
+              <p className="text-3xl font-mono font-bold text-amber-600 mb-5">{inactivityCountdown}s</p>
+              <button onClick={resetActivity}
+                className="w-full btn-primary py-3 text-sm">
+                \u042f \u0437\u0434\u0435\u0441\u044c, \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u0442\u0435\u0441\u0442
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Compact top bar */}
       <div className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-gray-100 dark:border-slate-700 safe-area-top">

@@ -5,7 +5,7 @@ import {
   Plus, Trash2, Save, ArrowLeft, Image, Video, Music,
   Check, X, Type, ListChecks, ToggleLeft,
   FileText, Link2, Settings, Upload, ChevronUp, ChevronDown,
-  Database, FileSpreadsheet, Eye, EyeOff
+  Database, FileSpreadsheet, Eye, EyeOff, Download, CalendarDays
 } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -89,7 +89,11 @@ export default function CreateTest() {
         blockCopyPaste: true,
         blockScreenshot: true,
         maxViolations: 5,
-      }
+      },
+      startDate: '',
+      endDate: '',
+      questionPoolSize: 0,
+      inactivityTimeout: 0,
     }
   });
 
@@ -301,6 +305,10 @@ export default function CreateTest() {
   };
 
   const handleFileImport = async (file) => {
+    if (file.name.endsWith('.json')) {
+      await handleImportJSON(file);
+      return;
+    }
     try {
       const text = await file.text();
       const lines = text.split('\n').filter(l => l.trim());
@@ -370,6 +378,42 @@ export default function CreateTest() {
     setTest(prev => ({ ...prev, questions: [...prev.questions, ...toAdd] }));
     toast.success(`${t('addedFromBank')}: ${toAdd.length}`);
     setShowBankModal(false);
+  };
+
+  const handleExportJSON = () => {
+    const { tagInput, ...data } = test;
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${test.title || 'test'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t('exportedJSON') || 'Скачан JSON');
+  };
+
+  const handleImportJSON = async (file) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.questions || !Array.isArray(data.questions)) {
+        toast.error(t('invalidJSONFormat') || 'Неверный формат JSON');
+        return;
+      }
+      setTest(prev => ({
+        ...prev,
+        title: data.title || prev.title,
+        description: data.description || prev.description,
+        tags: data.tags || prev.tags,
+        questions: data.questions.map(q => ({ ...q, id: q.id || uuidv4() })),
+        settings: data.settings ? { ...prev.settings, ...data.settings } : prev.settings,
+      }));
+      toast.success(t('importedJSON') || 'Тест импортирован из JSON');
+    } catch (err) {
+      toast.error(t('errorReadingFile'));
+    }
+    setShowImportModal(false);
   };
 
   const saveToBank = async () => {
@@ -451,6 +495,10 @@ export default function CreateTest() {
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 <FileSpreadsheet size={14} /> {t('importCSV')}
               </button>
+              <button onClick={handleExportJSON}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                <Download size={14} /> {t('exportJSON') || 'Экспорт JSON'}
+              </button>
               <button onClick={saveToBank}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 <Save size={14} /> {t('saveToBank')}
@@ -523,6 +571,44 @@ export default function CreateTest() {
                       <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('maxViolations')}</label>
                       <input type="number" className="input-field text-sm py-2" min="1" value={test.settings.antiCheat.maxViolations}
                         onChange={e => updateAntiCheat('maxViolations', parseInt(e.target.value) || 5)} />
+                    </div>
+                  </div>
+
+                  {/* Deadline dates + pool size + inactivity */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                        <CalendarDays size={11} /> {t('startDate') || 'Дата начала'}
+                      </label>
+                      <input type="datetime-local" className="input-field text-sm py-2"
+                        value={test.settings.startDate ? new Date(test.settings.startDate).toISOString().slice(0,16) : ''}
+                        onChange={e => updateSettings('startDate', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                        <CalendarDays size={11} /> {t('endDate') || 'Дата окончания'}
+                      </label>
+                      <input type="datetime-local" className="input-field text-sm py-2"
+                        value={test.settings.endDate ? new Date(test.settings.endDate).toISOString().slice(0,16) : ''}
+                        onChange={e => updateSettings('endDate', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                        {t('questionPoolSize') || 'Выборка N воп. (0 = все)'}
+                      </label>
+                      <input type="number" className="input-field text-sm py-2" min="0"
+                        value={test.settings.questionPoolSize || 0}
+                        onChange={e => updateSettings('questionPoolSize', parseInt(e.target.value) || 0)}
+                        placeholder="0" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                        {t('inactivityTimeout') || 'Бездействие, мин (0 = выкл)'}
+                      </label>
+                      <input type="number" className="input-field text-sm py-2" min="0"
+                        value={test.settings.inactivityTimeout || 0}
+                        onChange={e => updateSettings('inactivityTimeout', parseInt(e.target.value) || 0)}
+                        placeholder="0" />
                     </div>
                   </div>
 
@@ -601,6 +687,9 @@ export default function CreateTest() {
             </button>
             <button onClick={() => setShowImportModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <FileSpreadsheet size={12} /> {t('importCSV')}
+            </button>
+            <button onClick={handleExportJSON} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
+              <Download size={12} /> JSON
             </button>
             <button onClick={saveToBank} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <Save size={12} /> {t('saveToBank')}
@@ -933,7 +1022,7 @@ export default function CreateTest() {
                 <FileSpreadsheet size={32} className="text-gray-400" />
                 <span className="text-sm text-gray-500 dark:text-gray-400">{t('clickToSelectFile')}</span>
                 <span className="text-xs text-gray-400">.csv, .txt</span>
-                <input type="file" className="hidden" accept=".csv,.txt,.tsv"
+                <input type="file" className="hidden" accept=".csv,.txt,.tsv,.json"
                   onChange={e => e.target.files[0] && handleFileImport(e.target.files[0])} />
               </label>
               <button onClick={() => setShowImportModal(false)}

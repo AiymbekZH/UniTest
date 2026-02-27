@@ -32,6 +32,8 @@ export default function QuestionBank() {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [editModal, setEditModal] = useState({ open: false, question: null });
+  const [filterCategory, setFilterCategory] = useState('');
+  const [categories, setCategories] = useState([]);
   const limit = 12;
 
   const fetchQuestions = async () => {
@@ -40,9 +42,11 @@ export default function QuestionBank() {
       const params = new URLSearchParams({ page, limit });
       if (search) params.append('search', search);
       if (filterType) params.append('type', filterType);
+      if (filterCategory) params.append('category', filterCategory);
       const res = await api.get(`/question-bank?${params}`);
       setQuestions(res.data.questions || []);
       setTotalPages(res.data.totalPages || 1);
+      if (res.data.categories) setCategories(res.data.categories);
     } catch (err) {
       toast.error('Ошибка загрузки');
     } finally {
@@ -50,7 +54,7 @@ export default function QuestionBank() {
     }
   };
 
-  useEffect(() => { fetchQuestions(); }, [page, filterType]);
+  useEffect(() => { fetchQuestions(); }, [page, filterType, filterCategory]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -131,7 +135,7 @@ export default function QuestionBank() {
 
           {/* Search & Filter */}
           <div className="glass-card-solid p-4 mb-6">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-3">
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input className="input-field pl-9 py-2 text-sm" placeholder="Поиск по тексту вопроса..."
@@ -144,6 +148,26 @@ export default function QuestionBank() {
               </select>
               <button type="submit" className="btn-primary py-2 px-4 text-sm">Найти</button>
             </form>
+            {/* Category chips */}
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 dark:border-slate-700">
+                <button
+                  onClick={() => { setFilterCategory(''); setPage(1); }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border
+                    ${!filterCategory ? 'bg-primary-600 text-white border-primary-600' : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:border-primary-400'}`}>
+                  Все категории
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => { setFilterCategory(cat); setPage(1); }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border
+                      ${filterCategory === cat ? 'bg-primary-600 text-white border-primary-600' : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:border-primary-400'}`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Bulk actions */}

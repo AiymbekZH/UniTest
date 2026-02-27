@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, Users, Star, Trophy, Play, ArrowLeft,
   Eye, EyeOff, Shield, AlertTriangle, Tag, User,
-  BarChart3, MessageSquare, Flag, Share2, Copy
+  BarChart3, MessageSquare, Flag, Share2, Copy, QrCode
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +27,7 @@ export default function TestProfile() {
   const [hoverRating, setHoverRating] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [showQRModal, setShowQRModal] = useState(false);
 
   useEffect(() => {
     fetchTest();
@@ -134,7 +135,7 @@ export default function TestProfile() {
               animate={{ opacity: 1, y: 0 }}
               className="glass-card-solid p-6 sm:p-8"
             >
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
                 {test.settings?.isPublic ? (
                   <span className="badge-info flex items-center gap-1"><Eye size={10} /> {t('publicTest')}</span>
                 ) : (
@@ -142,6 +143,16 @@ export default function TestProfile() {
                 )}
                 {test.settings?.antiCheat?.blockTabSwitch && (
                   <span className="badge-danger flex items-center gap-1"><Shield size={10} /> Anti-cheat</span>
+                )}
+                {test.settings?.startDate && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                    <Clock size={9} /> {t('from') || '\u0441'} {new Date(test.settings.startDate).toLocaleDateString()}
+                  </span>
+                )}
+                {test.settings?.endDate && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">
+                    <Clock size={9} /> {t('until') || '\u0434\u043e'} {new Date(test.settings.endDate).toLocaleDateString()}
+                  </span>
                 )}
               </div>
 
@@ -319,6 +330,24 @@ export default function TestProfile() {
               >
                 <Share2 size={16} /> {t('copyLink')}
               </button>
+
+              {/* QR code button */}
+              <button
+                onClick={() => setShowQRModal(true)}
+                className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+              >
+                <QrCode size={16} /> QR-код
+              </button>
+
+              {/* Preview button for creator */}
+              {user && test.creator?._id === user?.id && (
+                <button
+                  onClick={() => navigate(`/test/${shareLink}?preview=true`)}
+                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-200 dark:border-amber-700 text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
+                >
+                  <Eye size={16} /> Превью
+                </button>
+              )}
             </motion.div>
 
             {/* Leaderboard preview */}
@@ -373,6 +402,34 @@ export default function TestProfile() {
             </motion.div>
           </div>
         </div>
+
+        {/* QR Code Modal */}
+        <AnimatePresence>
+          {showQRModal && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+              onClick={() => setShowQRModal(false)}>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 text-center max-w-xs w-full">
+                <h3 className="text-lg font-bold text-dark mb-4">QR-код теста</h3>
+                <div className="bg-white p-4 rounded-xl inline-block shadow-inner mb-4">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.origin + '/test-profile/' + shareLink)}`}
+                    alt="QR Code"
+                    className="w-48 h-48"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                  Покажите QR на экране — студенты сканируют и сразу попадают на тест
+                </p>
+                <button onClick={() => setShowQRModal(false)}
+                  className="w-full btn-secondary py-2 text-sm">{t('close') || 'Закрыть'}</button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Report modal */}
         <AnimatePresence>
