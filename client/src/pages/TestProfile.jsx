@@ -121,7 +121,7 @@ export default function TestProfile() {
         {/* Back button */}
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-dark transition mb-6"
+          className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:opacity-70 transition mb-6"
         >
           <ArrowLeft size={16} /> {t('back')}
         </button>
@@ -137,26 +137,26 @@ export default function TestProfile() {
             >
               <div className="flex items-center gap-2 mb-4 flex-wrap">
                 {test.settings?.isPublic ? (
-                  <span className="badge-info flex items-center gap-1"><Eye size={10} /> {t('publicTest')}</span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"><Eye size={10} /> {t('publicTest')}</span>
                 ) : (
-                  <span className="badge-warning flex items-center gap-1"><EyeOff size={10} /> {t('privateTest')}</span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"><EyeOff size={10} /> {t('privateTest')}</span>
                 )}
                 {test.settings?.antiCheat?.blockTabSwitch && (
-                  <span className="badge-danger flex items-center gap-1"><Shield size={10} /> Anti-cheat</span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"><Shield size={10} /> Anti-cheat</span>
                 )}
                 {test.settings?.startDate && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
                     <Clock size={9} /> {t('from') || '\u0441'} {new Date(test.settings.startDate).toLocaleDateString()}
                   </span>
                 )}
                 {test.settings?.endDate && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400">
                     <Clock size={9} /> {t('until') || '\u0434\u043e'} {new Date(test.settings.endDate).toLocaleDateString()}
                   </span>
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-3">{test.title}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-3 tracking-tight">{test.title}</h1>
 
               {test.description && (
                 <p className="text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">{test.description}</p>
@@ -166,7 +166,7 @@ export default function TestProfile() {
               {test.tags?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   {test.tags.map((tag, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 dark:bg-slate-700 rounded-lg text-xs text-gray-600 dark:text-gray-300">
+                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100/80 dark:bg-slate-700 rounded-full text-xs font-medium text-gray-500 dark:text-gray-300">
                       <Tag size={10} /> {tag}
                     </span>
                   ))}
@@ -174,26 +174,26 @@ export default function TestProfile() {
               )}
 
               {/* Stats grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                <div className="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4 text-center">
-                  <BarChart3 size={20} className="text-primary-600 mx-auto mb-1" />
-                  <p className="text-xl font-bold text-dark">{test.questions?.length || 0}</p>
-                  <p className="text-xs text-gray-500">{t('questions')}</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <div className="bg-blue-50/80 dark:bg-blue-900/20 rounded-xl p-4 text-center">
+                  <div className="w-8 h-8 rounded-[10px] bg-blue-100 dark:bg-blue-800/40 text-primary-600 mx-auto mb-2 flex items-center justify-center"><BarChart3 size={16} /></div>
+                  <p className="text-[22px] font-bold text-primary-600 tracking-tight">{test.questions?.length || 0}</p>
+                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('questions')}</p>
                 </div>
-                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 text-center">
-                  <Clock size={20} className="text-amber-600 mx-auto mb-1" />
-                  <p className="text-xl font-bold text-dark">{test.settings?.timeLimit || '∞'}</p>
-                  <p className="text-xs text-gray-500">{t('min')}</p>
+                <div className="bg-amber-50/80 dark:bg-amber-900/20 rounded-xl p-4 text-center">
+                  <div className="w-8 h-8 rounded-[10px] bg-amber-100 dark:bg-amber-800/40 text-amber-600 mx-auto mb-2 flex items-center justify-center"><Clock size={16} /></div>
+                  <p className="text-[22px] font-bold text-amber-600 tracking-tight">{test.settings?.timeLimit || '∞'}</p>
+                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('min')}</p>
                 </div>
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 text-center">
-                  <Users size={20} className="text-emerald-600 mx-auto mb-1" />
-                  <p className="text-xl font-bold text-dark">{test.attemptCount || 0}</p>
-                  <p className="text-xs text-gray-500">{t('totalParticipants')}</p>
+                <div className="bg-emerald-50/80 dark:bg-emerald-900/20 rounded-xl p-4 text-center">
+                  <div className="w-8 h-8 rounded-[10px] bg-emerald-100 dark:bg-emerald-800/40 text-emerald-600 mx-auto mb-2 flex items-center justify-center"><Users size={16} /></div>
+                  <p className="text-[22px] font-bold text-emerald-600 tracking-tight">{test.attemptCount || 0}</p>
+                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('totalParticipants')}</p>
                 </div>
-                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 text-center">
-                  <Star size={20} className="text-purple-600 mx-auto mb-1" />
-                  <p className="text-xl font-bold text-dark">{test.rating?.toFixed(1) || '—'}</p>
-                  <p className="text-xs text-gray-500">{t('rating')}</p>
+                <div className="bg-purple-50/80 dark:bg-purple-900/20 rounded-xl p-4 text-center">
+                  <div className="w-8 h-8 rounded-[10px] bg-purple-100 dark:bg-purple-800/40 text-purple-600 mx-auto mb-2 flex items-center justify-center"><Star size={16} /></div>
+                  <p className="text-[22px] font-bold text-purple-600 tracking-tight">{test.rating?.toFixed(1) || '—'}</p>
+                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('rating')}</p>
                 </div>
               </div>
 
@@ -203,7 +203,7 @@ export default function TestProfile() {
                   <h3 className="text-sm font-semibold text-dark mb-2">{t('questionTypes')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(questionTypes).map(([type, count]) => (
-                      <span key={type} className="px-3 py-1 bg-gray-100 dark:bg-slate-700 rounded-lg text-xs text-gray-600 dark:text-gray-300">
+                      <span key={type} className="px-3.5 py-1.5 bg-gray-100/80 dark:bg-slate-700 border border-gray-200/60 dark:border-slate-600 rounded-full text-xs font-medium text-gray-500 dark:text-gray-300">
                         {getQuestionTypeLabel(type)}: {count}
                       </span>
                     ))}
@@ -278,7 +278,7 @@ export default function TestProfile() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="lg:sticky lg:top-[72px] lg:max-h-[calc(100vh-72px-24px)] lg:overflow-y-auto lg:scrollbar-hide space-y-6">
             {/* Start test card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -320,24 +320,24 @@ export default function TestProfile() {
                 {t('startTest')}
               </motion.button>
 
-              {/* Share button - available to everyone */}
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/test-profile/${shareLink}`);
-                  toast.success(t('linkCopied'));
-                }}
-                className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
-              >
-                <Share2 size={16} /> {t('copyLink')}
-              </button>
-
-              {/* QR code button */}
-              <button
-                onClick={() => setShowQRModal(true)}
-                className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
-              >
-                <QrCode size={16} /> QR-код
-              </button>
+              {/* Share & QR buttons in grid */}
+              <div className="grid grid-cols-2 gap-2.5 mt-3">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/test-profile/${shareLink}`);
+                    toast.success(t('linkCopied'));
+                  }}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+                >
+                  <Share2 size={14} /> {t('copyLink')}
+                </button>
+                <button
+                  onClick={() => setShowQRModal(true)}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+                >
+                  <QrCode size={14} /> QR-код
+                </button>
+              </div>
 
               {/* Preview button for creator */}
               {user && test.creator?._id === user?.id && (
@@ -383,18 +383,16 @@ export default function TestProfile() {
               {leaderboard?.leaderboard?.length > 0 ? (
                 <div className="space-y-2">
                   {leaderboard.leaderboard.slice(0, 5).map((entry, i) => (
-                    <div key={i} className="flex items-center gap-3 py-2">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-                        ${i === 0 ? 'bg-yellow-100 text-yellow-700' :
-                          i === 1 ? 'bg-gray-100 text-gray-600' :
-                          i === 2 ? 'bg-amber-100 text-amber-700' :
+                    <div key={i} className={`flex items-center gap-3 py-2.5 ${i > 0 ? 'border-t border-gray-100 dark:border-slate-700' : ''}`}>
+                      <span className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0
+                        ${i === 0 ? 'bg-amber-100 text-amber-700' :
+                          i === 1 ? 'bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-300' :
+                          i === 2 ? 'bg-orange-100 text-orange-700' :
                           'bg-gray-50 dark:bg-slate-700 text-gray-400'}`}>
                         {i + 1}
                       </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-dark truncate">{entry.userName}</p>
-                      </div>
-                      <span className={`text-sm font-bold ${
+                      <span className="flex-1 min-w-0 text-[13px] font-medium text-dark truncate">{entry.userName}</span>
+                      <span className={`text-[13px] font-bold ${
                         entry.percentage >= 80 ? 'text-emerald-600' :
                         entry.percentage >= 50 ? 'text-amber-500' : 'text-red-500'
                       }`}>

@@ -395,7 +395,14 @@
     }
 
     /* ==================== Sidebar ==================== */
-    .sidebar { position: sticky; top: 72px; }
+    .sidebar {
+      position: sticky;
+      top: 72px;
+      max-height: calc(100vh - 72px - 24px);
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .sidebar::-webkit-scrollbar { display: none; }
 
     .anticheat-banner {
       background: var(--red-bg);
@@ -687,7 +694,7 @@
     /* ==================== Responsive ==================== */
     @media (max-width: 860px) {
       .grid-layout { grid-template-columns: 1fr; }
-      .sidebar .card { position: static; }
+      .sidebar { position: static; max-height: none; overflow: visible; }
       .stats-row { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
