@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, Users, Star, Trophy, Play, ArrowLeft,
   Eye, EyeOff, Shield, AlertTriangle, Tag, User,
-  BarChart3, MessageSquare, Flag
+  BarChart3, MessageSquare, Flag, Share2, Copy
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -57,7 +57,7 @@ export default function TestProfile() {
         } catch (_) {}
       }
     } catch (err) {
-      toast.error('Тест не найден');
+      toast.error(t('testNotFound'));
       navigate('/dashboard');
     } finally {
       setLoading(false);
@@ -66,27 +66,27 @@ export default function TestProfile() {
 
   const handleRate = async (value) => {
     if (!user) {
-      toast.error('Войдите, чтобы оценить тест');
+      toast.error(t('loginToRate'));
       return;
     }
     try {
       const res = await api.post(`/tests/${test._id}/rate`, { rating: value });
       setMyRating(value);
       setTest(prev => ({ ...prev, rating: res.data.rating, ratingCount: res.data.ratingCount }));
-      toast.success(res.data.alreadyRated ? 'Оценка обновлена' : 'Спасибо за оценку!');
+      toast.success(res.data.alreadyRated ? t('ratingUpdated') : t('thanksForRating'));
     } catch (err) {
-      toast.error('Ошибка');
+      toast.error(t('error'));
     }
   };
 
   const getQuestionTypeLabel = (type) => {
     const map = {
-      'single-choice': 'Один ответ',
-      'multiple-choice': 'Несколько ответов',
-      'true-false': 'Верно/Неверно',
-      'essay': 'Эссе',
-      'fill-blank': 'Заполнить пропуск',
-      'matching': 'Сопоставление'
+      'single-choice': t('singleChoice'),
+      'multiple-choice': t('multipleChoice'),
+      'true-false': t('trueFalse'),
+      'essay': t('essay'),
+      'fill-blank': t('fillBlank'),
+      'matching': t('matching')
     };
     return map[type] || type;
   };
@@ -172,7 +172,7 @@ export default function TestProfile() {
                 <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 text-center">
                   <Clock size={20} className="text-amber-600 mx-auto mb-1" />
                   <p className="text-xl font-bold text-dark">{test.settings?.timeLimit || '∞'}</p>
-                  <p className="text-xs text-gray-500">мин</p>
+                  <p className="text-xs text-gray-500">{t('min')}</p>
                 </div>
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 text-center">
                   <Users size={20} className="text-emerald-600 mx-auto mb-1" />
@@ -189,7 +189,7 @@ export default function TestProfile() {
               {/* Question types */}
               {Object.keys(questionTypes).length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-dark mb-2">Типы вопросов</h3>
+                  <h3 className="text-sm font-semibold text-dark mb-2">{t('questionTypes')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(questionTypes).map(([type, count]) => (
                       <span key={type} className="px-3 py-1 bg-gray-100 dark:bg-slate-700 rounded-lg text-xs text-gray-600 dark:text-gray-300">
@@ -235,7 +235,7 @@ export default function TestProfile() {
                 transition={{ delay: 0.1 }}
                 className="glass-card-solid p-6"
               >
-                <h3 className="text-sm font-semibold text-dark mb-3">Оцените тест</h3>
+                <h3 className="text-sm font-semibold text-dark mb-3">{t('rateTest')}</h3>
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map(v => (
                     <button
@@ -256,7 +256,7 @@ export default function TestProfile() {
                     </button>
                   ))}
                   <span className="text-sm text-gray-500 ml-3">
-                    {myRating > 0 ? `Ваша оценка: ${myRating}/5` : 'Нажмите для оценки'}
+                    {myRating > 0 ? `${t('yourRating')}: ${myRating}/5` : t('clickToRate')}
                   </span>
                 </div>
               </motion.div>
@@ -281,20 +281,20 @@ export default function TestProfile() {
                   <p className="font-semibold text-red-700 dark:text-red-400 flex items-center gap-1 mb-1">
                     <Shield size={12} /> Anti-cheat
                   </p>
-                  <p className="text-red-600 dark:text-red-300">Переключение вкладок запрещено. Макс. нарушений: {test.settings.antiCheat.maxViolations}</p>
+                  <p className="text-red-600 dark:text-red-300">{t('tabSwitchBlocked')}: {test.settings.antiCheat.maxViolations}</p>
                 </div>
               )}
 
               {/* Attempt info */}
               {attemptInfo.maxAttempts > 0 && (
                 <div className="mb-4 text-sm text-gray-500">
-                  Попытки: <strong>{attemptInfo.attempts}</strong> / {attemptInfo.maxAttempts}
+                  {t('attempts')}: <strong>{attemptInfo.attempts}</strong> / {attemptInfo.maxAttempts}
                 </div>
               )}
 
               {!canStart && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 mb-4 text-center">
-                  <p className="text-sm font-semibold text-red-600">Все попытки использованы</p>
+                  <p className="text-sm font-semibold text-red-600">{t('allAttemptsUsed')}</p>
                 </div>
               )}
 
@@ -308,6 +308,17 @@ export default function TestProfile() {
                 <Play size={20} />
                 {t('startTest')}
               </motion.button>
+
+              {/* Share button - available to everyone */}
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/test-profile/${shareLink}`);
+                  toast.success(t('linkCopied'));
+                }}
+                className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+              >
+                <Share2 size={16} /> {t('copyLink')}
+              </button>
             </motion.div>
 
             {/* Leaderboard preview */}
@@ -326,7 +337,7 @@ export default function TestProfile() {
                   to={`/leaderboard/${test._id}`}
                   className="text-xs text-primary-600 hover:text-primary-700 font-medium transition"
                 >
-                  Все →
+                  {t('viewAll')}
                 </Link>
               </div>
 

@@ -14,17 +14,17 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { useLanguage } from '../context/LanguageContext';
 import { v4 as uuidv4 } from 'uuid';
 
-const questionTypes = [
-  { value: 'single-choice', label: 'Один ответ', icon: Check, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' },
-  { value: 'multiple-choice', label: 'Несколько ответов', icon: ListChecks, color: 'bg-purple-50 text-purple-600 dark:bg-purple-900/30' },
-  { value: 'true-false', label: 'Верно / Неверно', icon: ToggleLeft, color: 'bg-green-50 text-green-600 dark:bg-green-900/30' },
-  { value: 'essay', label: 'Эссе', icon: FileText, color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30' },
-  { value: 'matching', label: 'Сопоставление', icon: Link2, color: 'bg-rose-50 text-rose-600 dark:bg-rose-900/30' },
-  { value: 'fill-blank', label: 'Заполнить пропуск', icon: Type, color: 'bg-teal-50 text-teal-600 dark:bg-teal-900/30' },
+const questionTypesData = [
+  { value: 'single-choice', labelKey: 'singleChoice', icon: Check, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' },
+  { value: 'multiple-choice', labelKey: 'multipleChoice', icon: ListChecks, color: 'bg-purple-50 text-purple-600 dark:bg-purple-900/30' },
+  { value: 'true-false', labelKey: 'trueFalse', icon: ToggleLeft, color: 'bg-green-50 text-green-600 dark:bg-green-900/30' },
+  { value: 'essay', labelKey: 'essay', icon: FileText, color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30' },
+  { value: 'matching', labelKey: 'matching', icon: Link2, color: 'bg-rose-50 text-rose-600 dark:bg-rose-900/30' },
+  { value: 'fill-blank', labelKey: 'fillBlank', icon: Type, color: 'bg-teal-50 text-teal-600 dark:bg-teal-900/30' },
 ];
 
 function createQuestion(type = 'single-choice') {
-  const base = { id: uuidv4(), type, questionText: '', points: 1, options: [], correctAnswer: '', media: { type: '', url: '', fileName: '' }, explanation: '' };
+  const base = { id: uuidv4(), type, questionText: '', passage: '', points: 1, options: [], correctAnswer: '', media: { type: '', url: '', fileName: '' }, explanation: '' };
 
   if (type === 'single-choice' || type === 'multiple-choice') {
     base.options = [
@@ -67,10 +67,11 @@ export default function CreateTest() {
   const autoSaveTimer = useRef(null);
   const { t } = useLanguage();
 
+  const questionTypes = questionTypesData.map(qt => ({ ...qt, label: t(qt.labelKey) }));
+
   const [test, setTest] = useState({
     title: '',
     description: '',
-    contextText: '',
     tags: [],
     tagInput: '',
     questions: [createQuestion()],
@@ -99,13 +100,12 @@ export default function CreateTest() {
         setTest({
           title: t.title,
           description: t.description || '',
-          contextText: t.contextText || '',
           tags: t.tags || [],
           tagInput: '',
           questions: t.questions || [createQuestion()],
           settings: t.settings || test.settings
         });
-      }).catch(() => toast.error('Ошибка загрузки теста'));
+      }).catch(() => toast.error(t('errorLoading')));
     } else {
       // Check for draft
       const draft = localStorage.getItem('unitest_draft');
@@ -204,7 +204,7 @@ export default function CreateTest() {
   };
 
   const removeQuestion = (index) => {
-    if (test.questions.length <= 1) { toast.error('Минимум 1 вопрос'); return; }
+    if (test.questions.length <= 1) { toast.error(t('minOneQuestion')); return; }
     setTest(prev => ({ ...prev, questions: prev.questions.filter((_, i) => i !== index) }));
     if (activeQuestion >= test.questions.length - 1) setActiveQuestion(Math.max(0, test.questions.length - 2));
   };
@@ -224,9 +224,9 @@ export default function CreateTest() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       updateQuestion(qIndex, 'media', res.data);
-      toast.success('Медиа загружено');
+      toast.success(t('mediaUploaded'));
     } catch (err) {
-      toast.error('Ошибка загрузки медиа');
+      toast.error(t('errorUploadMedia'));
     }
   };
 
@@ -238,45 +238,44 @@ export default function CreateTest() {
   };
 
   const handleSave = async () => {
-    if (!test.title.trim()) { toast.error(t('enterTestName')); return; }
+    if (!test.title.trim()) { toast.error(t('enterTestTitle')); return; }
     if (test.questions.some(q => !q.questionText.trim())) { toast.error(t('fillAllQuestions')); return; }
 
-    // Validate each question has correct answers
+    // Validation: check for correct answers and empty options
     for (let i = 0; i < test.questions.length; i++) {
       const q = test.questions[i];
-      const qNum = i + 1;
+      const num = i + 1;
 
-      // Check for empty options
-      if ((q.type === 'single-choice' || q.type === 'multiple-choice' || q.type === 'true-false') && 
-          q.options.some(opt => !opt.text.trim())) {
-        toast.error(`${t('question')} ${qNum}: ${t('emptyOptions')}`);
+      // For single-choice, multiple-choice, true-false: must have at least one correct option
+      if (['single-choice', 'multiple-choice', 'true-false'].includes(q.type)) {
+        if (!q.options.some(o => o.isCorrect)) {
+          toast.error(t('noCorrectAnswer', { num }));
+          scrollToQuestion(i);
+          return;
+        }
+      }
+
+      // For fill-blank: must have correct answer text
+      if (q.type === 'fill-blank' && !q.correctAnswer?.trim()) {
+        toast.error(t('noCorrectAnswer', { num }));
+        scrollToQuestion(i);
         return;
       }
 
-      // Check for correct answers
-      if (q.type === 'single-choice' || q.type === 'true-false') {
-        if (!q.correctAnswer || !q.options.find(opt => opt.id === q.correctAnswer)) {
-          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswer')}`);
+      // Check for empty option texts (single/multiple choice)
+      if (['single-choice', 'multiple-choice'].includes(q.type)) {
+        if (q.options.some(o => !o.text.trim())) {
+          toast.error(t('emptyOptions', { num }));
+          scrollToQuestion(i);
           return;
         }
-      } else if (q.type === 'multiple-choice') {
-        if (!q.correctAnswers || q.correctAnswers.length === 0) {
-          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswer')}`);
-          return;
-        }
-      } else if (q.type === 'fill-blank') {
-        if (!q.correctAnswer || !q.correctAnswer.trim()) {
-          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswerFound')}`);
-          return;
-        }
-      } else if (q.type === 'matching') {
-        if (!q.matchingRightSide || q.matchingRightSide.length === 0) {
-          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswer')}`);
-          return;
-        }
-        // Check matching pairs have correct answers
-        if (!q.options.every(opt => opt.correctMatch)) {
-          toast.error(`${t('question')} ${qNum}: ${t('noCorrectAnswer')}`);
+      }
+
+      // Matching: check for empty texts or pairs
+      if (q.type === 'matching') {
+        if (q.options.some(o => !o.text.trim() || !o.matchPair?.trim())) {
+          toast.error(t('emptyOptions', { num }));
+          scrollToQuestion(i);
           return;
         }
       }
@@ -287,15 +286,15 @@ export default function CreateTest() {
       const { tagInput, ...data } = test;
       if (editId) {
         await api.put(`/tests/${editId}`, data);
-        toast.success('Тест обновлён!');
+        toast.success(t('testUpdated'));
       } else {
         await api.post('/tests', data);
-        toast.success('Тест создан!');
+        toast.success(t('testCreated'));
         localStorage.removeItem('unitest_draft');
       }
       navigate('/my-tests');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Ошибка сохранения');
+      toast.error(err.response?.data?.message || t('errorSaving'));
     } finally {
       setSaving(false);
     }
@@ -338,12 +337,12 @@ export default function CreateTest() {
       
       if (imported.length > 0) {
         setTest(prev => ({ ...prev, questions: [...prev.questions, ...imported] }));
-        toast.success(`Импортировано ${imported.length} вопросов`);
+        toast.success(`${t('importedQuestions')}: ${imported.length}`);
       } else {
-        toast.error('Не удалось распознать вопросы. Проверьте формат.');
+        toast.error(t('cannotParseQuestions'));
       }
     } catch (err) {
-      toast.error('Ошибка чтения файла');
+      toast.error(t('errorReadingFile'));
     }
     setShowImportModal(false);
   };
@@ -354,7 +353,7 @@ export default function CreateTest() {
       setBankQuestions(res.data.questions || []);
       setShowBankModal(true);
     } catch (err) {
-      toast.error('Ошибка загрузки банка');
+      toast.error(t('errorLoadingBank'));
     }
   };
 
@@ -369,7 +368,7 @@ export default function CreateTest() {
       explanation: q.explanation || ''
     }));
     setTest(prev => ({ ...prev, questions: [...prev.questions, ...toAdd] }));
-    toast.success(`Добавлено ${toAdd.length} вопросов из банка`);
+    toast.success(`${t('addedFromBank')}: ${toAdd.length}`);
     setShowBankModal(false);
   };
 
@@ -379,9 +378,9 @@ export default function CreateTest() {
         questions: test.questions,
         category: test.title
       });
-      toast.success('Вопросы сохранены в банк');
+      toast.success(t('savedToBank'));
     } catch (err) {
-      toast.error('Ошибка сохранения в банк');
+      toast.error(t('errorSavingToBank'));
     }
   };
 
@@ -402,9 +401,9 @@ export default function CreateTest() {
         isOpen={deleteConfirm.open}
         onClose={() => setDeleteConfirm({ open: false, index: null })}
         onConfirm={() => removeQuestion(deleteConfirm.index)}
-        title="Удалить вопрос"
-        message={`Удалить вопрос №${(deleteConfirm.index || 0) + 1}? Это действие нельзя отменить.`}
-        confirmText="Удалить"
+        title={t('deleteQuestion')}
+        message={t('deleteQuestionConfirm', { num: (deleteConfirm.index || 0) + 1 })}
+        confirmText={t('delete')}
         variant="danger"
       />
 
@@ -413,7 +412,7 @@ export default function CreateTest() {
         <div className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-24 space-y-3">
             <div className="glass-card-solid p-4">
-              <h3 className="text-sm font-semibold text-dark mb-3">Навигация</h3>
+              <h3 className="text-sm font-semibold text-dark mb-3">{t('navigation')}</h3>
               <div className="space-y-1 max-h-[50vh] overflow-y-auto pr-1">
                 {test.questions.map((q, i) => {
                   const typeInfo = questionTypes.find(t => t.value === q.type);
@@ -430,7 +429,7 @@ export default function CreateTest() {
                         ${activeQuestion === i ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-slate-600 text-gray-500 dark:text-gray-300'}`}>
                         {i + 1}
                       </span>
-                      <span className="truncate flex-1">{q.questionText || typeInfo?.label || 'Вопрос'}</span>
+                      <span className="truncate flex-1">{q.questionText || typeInfo?.label || t('question')}</span>
                       {!q.questionText.trim() && <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />}
                     </button>
                   );
@@ -438,23 +437,23 @@ export default function CreateTest() {
               </div>
 
               <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                <p>Вопросов: <strong className="text-dark">{test.questions.length}</strong></p>
-                <p>{t('points')}: <strong className="text-dark">{totalPoints}</strong></p>
+                <p>{t('questionsCount')}: <strong className="text-dark">{test.questions.length}</strong></p>
+                <p>{t('pointsCount')}: <strong className="text-dark">{totalPoints}</strong></p>
               </div>
             </div>
 
             <div className="glass-card-solid p-3 space-y-2">
               <button onClick={loadBankQuestions}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                <Database size={14} /> Из банка вопросов
+                <Database size={14} /> {t('fromQuestionBank')}
               </button>
               <button onClick={() => setShowImportModal(true)}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                <FileSpreadsheet size={14} /> Импорт CSV
+                <FileSpreadsheet size={14} /> {t('importCSV')}
               </button>
               <button onClick={saveToBank}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                <Save size={14} /> Сохранить в банк
+                <Save size={14} /> {t('saveToBank')}
               </button>
             </div>
           </div>
@@ -469,12 +468,12 @@ export default function CreateTest() {
                 <ArrowLeft size={20} className="text-dark" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-dark">{editId ? 'Редактировать тест' : 'Создать тест'}</h1>
+                <h1 className="text-xl font-bold text-dark">{editId ? t('editTest') : t('createTest')}</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {test.questions.length} {t('questions')} · {totalPoints} {t('points')}
                   {!editId && draftStatus && (
                     <span className={`ml-2 ${draftStatus === 'saved' ? 'text-emerald-500' : 'text-gray-400'}`}>
-                      {draftStatus === 'saving' ? '⏳ Сохранение...' : '✓ Черновик сохранён'}
+                      {draftStatus === 'saving' ? t('savingDraft') : t('draftSaved')}
                     </span>
                   )}
                 </p>
@@ -482,7 +481,7 @@ export default function CreateTest() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowSettings(!showSettings)} className="btn-secondary flex items-center gap-2 py-2 px-3 text-xs">
-                <Settings size={14} /> Настройки
+                <Settings size={14} /> {t('settings')}
               </button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -492,7 +491,7 @@ export default function CreateTest() {
                 className="btn-primary flex items-center gap-2 py-2 px-4 text-xs"
               >
                 {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
-                {editId ? 'Обновить' : 'Сохранить'}
+                {editId ? t('update') : t('save')}
               </motion.button>
             </div>
           </motion.div>
@@ -507,21 +506,21 @@ export default function CreateTest() {
                 className="overflow-hidden mb-5"
               >
                 <div className="glass-card-solid p-5 space-y-4">
-                  <h3 className="font-semibold text-dark flex items-center gap-2 text-sm"><Settings size={16} /> Настройки теста</h3>
+                  <h3 className="font-semibold text-dark flex items-center gap-2 text-sm"><Settings size={16} /> {t('testSettings')}</h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Время теста (мин)</label>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('timeLimitMin')}</label>
                       <input type="number" className="input-field text-sm py-2" min="0" value={test.settings.timeLimit}
-                        onChange={e => updateSettings('timeLimit', parseInt(e.target.value) || 0)} placeholder="0 = без лимита" />
+                        onChange={e => updateSettings('timeLimit', parseInt(e.target.value) || 0)} placeholder={t('noLimitPlaceholder')} />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Макс. попыток</label>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('maxAttempts')}</label>
                       <input type="number" className="input-field text-sm py-2" min="1" value={test.settings.maxAttempts}
                         onChange={e => updateSettings('maxAttempts', parseInt(e.target.value) || 1)} />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Макс. нарушений</label>
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('maxViolations')}</label>
                       <input type="number" className="input-field text-sm py-2" min="1" value={test.settings.antiCheat.maxViolations}
                         onChange={e => updateAntiCheat('maxViolations', parseInt(e.target.value) || 5)} />
                     </div>
@@ -529,14 +528,14 @@ export default function CreateTest() {
 
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { key: 'isPublic', label: 'Публичный', update: updateSettings },
-                      { key: 'shuffleQuestions', label: 'Перемешать вопросы', update: updateSettings },
-                      { key: 'shuffleOptions', label: 'Перемешать ответы', update: updateSettings },
-                      { key: 'showResults', label: 'Показать результаты', update: updateSettings },
-                      { key: 'instantFeedback', label: 'Мгновенная проверка', update: updateSettings },
-                      { key: 'blockTabSwitch', label: 'Блок. вкладки', update: updateAntiCheat, isAntiCheat: true },
-                      { key: 'blockCopyPaste', label: 'Блок. копирование', update: updateAntiCheat, isAntiCheat: true },
-                      { key: 'blockScreenshot', label: 'Блок. скриншоты', update: updateAntiCheat, isAntiCheat: true },
+                      { key: 'isPublic', label: t('isPublic'), update: updateSettings },
+                      { key: 'shuffleQuestions', label: t('shuffleQuestions'), update: updateSettings },
+                      { key: 'shuffleOptions', label: t('shuffleOptions'), update: updateSettings },
+                      { key: 'showResults', label: t('showResults'), update: updateSettings },
+                      { key: 'instantFeedback', label: t('instantFeedback'), update: updateSettings },
+                      { key: 'blockTabSwitch', label: t('blockTabSwitch'), update: updateAntiCheat, isAntiCheat: true },
+                      { key: 'blockCopyPaste', label: t('blockCopyPaste'), update: updateAntiCheat, isAntiCheat: true },
+                      { key: 'blockScreenshot', label: t('blockScreenshot'), update: updateAntiCheat, isAntiCheat: true },
                     ].map(opt => {
                       const val = opt.isAntiCheat ? test.settings.antiCheat[opt.key] : test.settings[opt.key];
                       return (
@@ -565,46 +564,17 @@ export default function CreateTest() {
             className="glass-card-solid p-5 mb-5 space-y-3">
             <input
               className="w-full text-lg font-bold text-dark bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600"
-              placeholder="Название теста..."
+              placeholder={t('testTitlePlaceholder')}
               value={test.title}
               onChange={e => updateTest('title', e.target.value)}
             />
             <textarea
               className="input-field resize-none text-sm py-2"
               rows="2"
-              placeholder="Описание теста (необязательно)..."
+              placeholder={t('testDescPlaceholder')}
               value={test.description}
               onChange={e => updateTest('description', e.target.value)}
             />
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t('contextTextLabel')} {t('contextTextOptional')}:
-                </label>
-                {test.contextText && (
-                  <button
-                    onClick={() => {
-                      const updated = test.questions.map(q => ({
-                        ...q,
-                        questionText: q.questionText || test.contextText
-                      }));
-                      setTest(prev => ({ ...prev, questions: updated }));
-                      toast.success('Текст добавлен во все вопросы');
-                    }}
-                    className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
-                  >
-                    <Plus size={12} /> {t('insertToAllQuestions')}
-                  </button>
-                )}
-              </div>
-              <textarea
-                className="input-field resize-none text-sm py-2"
-                rows="4"
-                placeholder="Например, текст для чтения, к которому относятся все вопросы..."
-                value={test.contextText}
-                onChange={e => updateTest('contextText', e.target.value)}
-              />
-            </div>
             <div className="flex flex-wrap items-center gap-2">
               {test.tags.map((tag, i) => (
                 <span key={i} className="badge-info flex items-center gap-1 text-xs">
@@ -627,13 +597,13 @@ export default function CreateTest() {
           {/* Mobile Quick Actions */}
           <div className="lg:hidden flex gap-2 mb-4 overflow-x-auto pb-2">
             <button onClick={loadBankQuestions} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
-              <Database size={12} /> Из банка
+              <Database size={12} /> {t('fromQuestionBank')}
             </button>
             <button onClick={() => setShowImportModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
-              <FileSpreadsheet size={12} /> Импорт CSV
+              <FileSpreadsheet size={12} /> {t('importCSV')}
             </button>
             <button onClick={saveToBank} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
-              <Save size={12} /> В банк
+              <Save size={12} /> {t('saveToBank')}
             </button>
           </div>
 
@@ -660,7 +630,7 @@ export default function CreateTest() {
                       </span>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-dark truncate">
-                          {question.questionText || 'Новый вопрос...'}
+                          {question.questionText || t('newQuestion')}
                         </p>
                         <p className="text-[10px] text-gray-400">
                           {questionTypes.find(t => t.value === question.type)?.label} • {question.points} б.
@@ -718,10 +688,44 @@ export default function CreateTest() {
                       <textarea
                         className="input-field resize-none text-sm py-2"
                         rows="2"
-                        placeholder="Текст вопроса..."
+                        placeholder={t('questionTextPlaceholder')}
                         value={question.questionText}
                         onChange={e => updateQuestion(qIndex, 'questionText', e.target.value)}
                       />
+
+                      {/* Optional passage / reading text */}
+                      <div>
+                        {!question.passage ? (
+                          <button
+                            onClick={() => updateQuestion(qIndex, 'passage', ' ')}
+                            className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium"
+                          >
+                            <FileText size={12} />
+                            {t('addPassage')}
+                          </button>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                                <FileText size={12} /> {t('passage')}
+                              </span>
+                              <button
+                                onClick={() => updateQuestion(qIndex, 'passage', '')}
+                                className="text-xs text-red-500 hover:text-red-600"
+                              >
+                                {t('delete')}
+                              </button>
+                            </div>
+                            <textarea
+                              className="input-field resize-none text-sm py-2"
+                              rows="4"
+                              placeholder={t('passagePlaceholder')}
+                              value={question.passage.trim() === '' ? '' : question.passage}
+                              onChange={e => updateQuestion(qIndex, 'passage', e.target.value || ' ')}
+                            />
+                          </>
+                        )}
+                      </div>
 
                       {/* Media upload */}
                       <div>
@@ -754,7 +758,7 @@ export default function CreateTest() {
                           <label className="flex items-center gap-2 p-2.5 border-2 border-dashed border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer 
                             hover:border-primary-300 hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-all text-xs text-gray-500 dark:text-gray-400">
                             <Upload size={14} />
-                            Добавить медиа (фото, видео, аудио)
+                            {t('addMedia')}
                             <input type="file" className="hidden" accept="image/*,video/*,audio/*"
                               onChange={e => e.target.files[0] && handleMediaUpload(qIndex, e.target.files[0])} />
                           </label>
@@ -773,7 +777,7 @@ export default function CreateTest() {
                               >
                                 {opt.isCorrect && <Check size={10} className="text-white" />}
                               </button>
-                              <input className="input-field py-1.5 text-sm" placeholder={`Вариант ${oIndex + 1}`}
+                              <input className="input-field py-1.5 text-sm" placeholder={`${t('optionPlaceholder')} ${oIndex + 1}`}
                                 value={opt.text} onChange={e => updateOption(qIndex, oIndex, 'text', e.target.value)} />
                               {question.options.length > 2 && (
                                 <button onClick={() => removeOption(qIndex, oIndex)}
@@ -783,7 +787,7 @@ export default function CreateTest() {
                           ))}
                           <button onClick={() => addOption(qIndex)}
                             className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium">
-                            <Plus size={12} /> Добавить вариант
+                            <Plus size={12} /> {t('addOption')}
                           </button>
                         </div>
                       )}
@@ -806,13 +810,13 @@ export default function CreateTest() {
 
                       {question.type === 'essay' && (
                         <div className="p-3 bg-gray-50 dark:bg-slate-700 rounded-lg text-xs text-gray-500 dark:text-gray-400 italic">
-                          Студент напишет развёрнутый ответ. Проверка преподавателем вручную.
+                          {t('essayHint')}
                         </div>
                       )}
 
                       {question.type === 'fill-blank' && (
                         <div>
-                          <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Правильный ответ</label>
+                          <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('correctAnswer')}</label>
                           <input className="input-field text-sm py-2" placeholder={t('enterCorrectAnswer')}
                             value={question.correctAnswer} onChange={e => updateQuestion(qIndex, 'correctAnswer', e.target.value)} />
                         </div>
@@ -821,15 +825,15 @@ export default function CreateTest() {
                       {question.type === 'matching' && (
                         <div className="space-y-2">
                           <div className="grid grid-cols-2 gap-3 mb-1">
-                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Элемент</span>
-                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Пара</span>
+                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">{t('element')}</span>
+                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">{t('pair')}</span>
                           </div>
                           {question.options.map((opt, oIndex) => (
                             <div key={opt.id} className="grid grid-cols-2 gap-2 items-center">
-                              <input className="input-field py-1.5 text-sm" placeholder={`Элемент ${oIndex + 1}`}
+                              <input className="input-field py-1.5 text-sm" placeholder={`${t('element')} ${oIndex + 1}`}
                                 value={opt.text} onChange={e => updateOption(qIndex, oIndex, 'text', e.target.value)} />
                               <div className="flex items-center gap-1.5">
-                                <input className="input-field py-1.5 text-sm" placeholder={`Пара ${oIndex + 1}`}
+                                <input className="input-field py-1.5 text-sm" placeholder={`${t('pair')} ${oIndex + 1}`}
                                   value={opt.matchPair || ''} onChange={e => updateOption(qIndex, oIndex, 'matchPair', e.target.value)} />
                                 {question.options.length > 2 && (
                                   <button onClick={() => removeOption(qIndex, oIndex)}
@@ -840,14 +844,14 @@ export default function CreateTest() {
                           ))}
                           <button onClick={() => addOption(qIndex)}
                             className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium">
-                            <Plus size={12} /> Добавить пару
+                            <Plus size={12} /> {t('addPair')}
                           </button>
                         </div>
                       )}
 
                       {/* Explanation */}
                       <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
-                        <input className="input-field py-1.5 text-xs" placeholder="Пояснение к ответу (необязательно)..."
+                        <input className="input-field py-1.5 text-xs" placeholder={t('explanationPlaceholder')}
                           value={question.explanation} onChange={e => updateQuestion(qIndex, 'explanation', e.target.value)} />
                       </div>
                     </div>
@@ -891,7 +895,7 @@ export default function CreateTest() {
                 className="w-full btn-primary flex items-center justify-center gap-2 py-3 text-sm shadow-xl"
               >
                 <Plus size={18} />
-                Добавить вопрос
+                {t('addQuestion')}
               </button>
 
               {/* Bottom save button */}
@@ -903,7 +907,7 @@ export default function CreateTest() {
                 className="w-full btn-primary flex items-center justify-center gap-2 py-3 text-sm mt-3 bg-emerald-600 hover:bg-emerald-700 shadow-xl"
               >
                 {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={16} />}
-                {editId ? 'Обновить тест' : 'Сохранить тест'}
+                {editId ? t('updateTest') : t('saveTest')}
               </motion.button>
             </div>
           </div>
@@ -918,7 +922,7 @@ export default function CreateTest() {
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
               onClick={e => e.stopPropagation()} className="relative w-full max-w-md glass-card-solid p-6">
-              <h3 className="text-lg font-bold text-dark mb-2">Импорт из CSV</h3>
+              <h3 className="text-lg font-bold text-dark mb-2">{t('importFromCSV')}</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                 Формат: <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">Вопрос, тип, правильный, вариант1, вариант2, ...</code><br/>
                 ???: single-choice, multiple-choice, true-false, essay, fill-blank, matching.<br/>
@@ -927,13 +931,13 @@ export default function CreateTest() {
               <label className="flex flex-col items-center gap-2 p-8 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl cursor-pointer
                 hover:border-primary-400 hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-all">
                 <FileSpreadsheet size={32} className="text-gray-400" />
-                <span className="text-sm text-gray-500 dark:text-gray-400">Нажмите, чтобы выбрать файл</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{t('clickToSelectFile')}</span>
                 <span className="text-xs text-gray-400">.csv, .txt</span>
                 <input type="file" className="hidden" accept=".csv,.txt,.tsv"
                   onChange={e => e.target.files[0] && handleFileImport(e.target.files[0])} />
               </label>
               <button onClick={() => setShowImportModal(false)}
-                className="w-full btn-secondary mt-3 text-sm py-2">Отмена</button>
+                className="w-full btn-secondary mt-3 text-sm py-2">{t('cancel')}</button>
             </motion.div>
           </motion.div>
         )}
@@ -947,9 +951,9 @@ export default function CreateTest() {
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
               onClick={e => e.stopPropagation()} className="relative w-full max-w-lg glass-card-solid p-6 max-h-[80vh] overflow-y-auto">
-              <h3 className="text-lg font-bold text-dark mb-4">Банк вопросов</h3>
+              <h3 className="text-lg font-bold text-dark mb-4">{t('questionBankTitle')}</h3>
               {bankQuestions.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-8">Банк пуст. Сохраните вопросы из теста, чтобы они появились здесь.</p>
+                <p className="text-sm text-gray-500 text-center py-8">{t('bankEmpty')}</p>
               ) : (
                 <>
                   <div className="space-y-2 mb-4">
@@ -970,11 +974,11 @@ export default function CreateTest() {
                     if (selected.length) addFromBank(selected);
                     else toast.error(t('selectQuestions'));
                   }} className="w-full btn-primary text-sm py-2">
-                    Добавить выбранные
+                    {t('addSelected')}
                   </button>
                 </>
               )}
-              <button onClick={() => setShowBankModal(false)} className="w-full btn-secondary mt-2 text-sm py-2">Закрыть</button>
+              <button onClick={() => setShowBankModal(false)} className="w-full btn-secondary mt-2 text-sm py-2">{t('close')}</button>
             </motion.div>
           </motion.div>
         )}

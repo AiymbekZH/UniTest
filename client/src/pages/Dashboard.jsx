@@ -52,7 +52,7 @@ export default function Dashboard() {
       setTotalPages(Math.ceil(allTests.length / testsPerPage) || 1);
       setTests(allTests);
     } catch (err) {
-      toast.error('Ошибка загрузки тестов');
+      toast.error(t('errorLoadingTests'));
     } finally {
       setLoading(false);
     }
@@ -67,15 +67,15 @@ export default function Dashboard() {
     try {
       await api.delete(`/tests/${id}`);
       setTests(prev => prev.filter(t => t._id !== id));
-      toast.success('Тест удалён');
+      toast.success(t('testDeleted'));
     } catch (err) {
-      toast.error('Ошибка удаления');
+      toast.error(t('errorDeleting'));
     }
   };
 
   const copyShareLink = (shareLink) => {
     navigator.clipboard.writeText(`${window.location.origin}/test/${shareLink}`);
-    toast.success('Ссылка скопирована!');
+    toast.success(t('linkCopied'));
   };
 
   const renderStars = (rating) => (
@@ -98,9 +98,9 @@ export default function Dashboard() {
         isOpen={deleteConfirm.open}
         onClose={() => setDeleteConfirm({ open: false, id: null })}
         onConfirm={() => deleteTest(deleteConfirm.id)}
-        title="Удалить тест"
-        message="Удалить этот тест? Все результаты также будут удалены."
-        confirmText="Удалить"
+        title={t('deleteTestTitle')}
+        message={t('deleteTestMsg')}
+        confirmText={t('delete')}
         variant="danger"
       />
 
@@ -219,13 +219,13 @@ export default function Dashboard() {
                             onClick={(e) => { e.stopPropagation(); navigate(`/edit-test/${test._id}`); setMenuOpen(null); }}
                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
                           >
-                            <Edit3 size={14} /> Редактировать
+                            <Edit3 size={14} /> {t('edit')}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/results/${test._id}`); setMenuOpen(null); }}
                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
                           >
-                            <Users size={14} /> Результаты
+                            <Users size={14} /> {t('viewResults')}
                           </button>
                           <hr className="my-1 border-gray-100 dark:border-slate-700" />
                         </>
@@ -234,14 +234,14 @@ export default function Dashboard() {
                         onClick={(e) => { e.stopPropagation(); copyShareLink(test.shareLink); setMenuOpen(null); }}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg"
                       >
-                        <Copy size={14} /> Скопировать ссылку
+                        <Copy size={14} /> {t('copyLink')}
                       </button>
                       {test.creator?._id === user?.id && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ open: true, id: test._id }); setMenuOpen(null); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                         >
-                          <Trash2 size={14} /> Удалить
+                          <Trash2 size={14} /> {t('delete')}
                         </button>
                       )}
                     </motion.div>
@@ -252,12 +252,12 @@ export default function Dashboard() {
                   {/* Status badge */}
                   <div className="flex items-center gap-2 mb-3">
                     {test.settings?.isPublic ? (
-                      <span className="badge-info flex items-center gap-1"><Eye size={10} /> Публичный</span>
+                      <span className="badge-info flex items-center gap-1"><Eye size={10} /> {t('publicTest')}</span>
                     ) : (
-                      <span className="badge-warning flex items-center gap-1"><EyeOff size={10} /> Приватный</span>
+                      <span className="badge-warning flex items-center gap-1"><EyeOff size={10} /> {t('privateTest')}</span>
                     )}
                     <span className="text-[10px] text-gray-400">
-                      {test.questions?.length || 0} вопросов
+                      {test.questions?.length || 0} {t('questions')}
                     </span>
                   </div>
 
@@ -268,7 +268,7 @@ export default function Dashboard() {
 
                   {/* Description */}
                   <p className="text-sm text-gray-500 mb-4 line-clamp-2">
-                    {test.description || 'Без описания'}
+                    {test.description || t('noDescription')}
                   </p>
 
                   {/* Tags */}

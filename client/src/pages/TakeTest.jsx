@@ -80,7 +80,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
           <span className="text-white text-xs font-bold">?</span>
         </div>
         <p className="text-xs text-primary-700 dark:text-primary-300">
-          {t('matchingInstruction')}
+          Нажмите на элемент слева, затем на его пару справа. Совпавшие пары будут выделены одним цветом.
         </p>
       </div>
 
@@ -102,7 +102,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-primary-500" />
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('elements')}</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Элементы</p>
           </div>
           {question.options.map(opt => {
             const matched = getMatchedRight(opt.id);
@@ -154,7 +154,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('pairs')}</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Пары</p>
           </div>
           {rightSide.map((text, idx) => {
             const used = isRightUsed(text);
@@ -207,7 +207,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
           animate={{ opacity: 1, y: 0 }}
           className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700"
         >
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">{t('yourPairs')}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Ваши пары:</p>
           <div className="flex flex-wrap gap-1.5">
             {pairs.map((p, i) => {
               const leftText = question.options.find(o => o.id === p.left)?.text || p.left;
@@ -264,7 +264,7 @@ export default function TakeTest() {
     if (test?.settings?.antiCheat?.maxViolations && count >= test.settings.antiCheat.maxViolations) {
       setTimeout(() => {
         setShowViolationWarning(false);
-        toast.error(t('violationsLimit'), { duration: 5000 });
+        toast.error(t('violationLimitExceeded'), { duration: 5000 });
         handleSubmit(true);
       }, 1500);
     }
@@ -390,7 +390,7 @@ export default function TakeTest() {
         [questionId]: { ...res.data, checked: true }
       }));
     } catch (err) {
-      toast.error(t('checkAnswerError'));
+      toast.error(t('errorCheckingAnswer'));
     } finally {
       setCheckingAnswer(false);
     }
@@ -435,7 +435,7 @@ export default function TakeTest() {
 
       navigate(`/result/${res.data._id}`);
     } catch (err) {
-      toast.error(t('submitError'));
+      toast.error(t('errorSubmitting'));
     } finally {
       setSubmitting(false);
     }
@@ -495,7 +495,7 @@ export default function TakeTest() {
             <span className="badge-info">{test.questions.length} {t('questions')}</span>
             {test.settings?.timeLimit > 0 && (
               <span className="badge-warning flex items-center gap-1">
-                <Clock size={12} /> {test.settings.timeLimit} {t('minutes')}
+                <Clock size={12} /> {test.settings.timeLimit} {t('min')}
               </span>
             )}
             {test.settings?.maxAttempts > 0 && (
@@ -522,9 +522,9 @@ export default function TakeTest() {
                 <Shield size={16} /> {t('testRules')}
               </h3>
               <ul className="text-xs text-red-600 dark:text-red-300 space-y-1.5">
-                <li>{t('rule1')}</li>
-                <li>{t('rule2')}</li>
-                <li>-- {t('maxViolations')}: <strong>{test.settings.antiCheat.maxViolations}</strong> {t('autoTerminate')}</li>
+                <li>-- {t('ruleNoLeave')}</li>
+                <li>-- {t('ruleViolationsTracked')}</li>
+                <li>-- {t('ruleMaxViolations', { max: test.settings.antiCheat.maxViolations })}</li>
               </ul>
             </div>
           )}
@@ -533,7 +533,7 @@ export default function TakeTest() {
           {test.settings?.instantFeedback && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 text-left">
               <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-2">
-                <Check size={16} /> {t('instantFeedbackMode')}
+                <Check size={16} /> {t('modeInstantFeedback')}
               </h3>
               <p className="text-xs text-blue-600 dark:text-blue-300">
                 {t('instantFeedbackInfo')}
@@ -586,9 +586,9 @@ export default function TakeTest() {
           dialogOpenRef.current = false;
           handleSubmit(true);
         }}
-        title={t('finishTest')}
-        message={`${t('answeredQuestions')} ${answeredCount} ${t('outOfQuestions')} ${test.questions.length} ${t('questionsText')}. ${t('finishAndSubmit')}`}
-        confirmText={t('finish')}
+        title={t('finishTestTitle')}
+        message={t('finishTestMessage', { answered: answeredCount, total: test.questions.length })}
+        confirmText={t('finishBtn')}
         cancelText={t('continueTest')}
         variant="warning"
       />
@@ -648,7 +648,7 @@ export default function TakeTest() {
               </span>
               {question.type === 'multiple-choice' && (
                 <span className="text-[10px] sm:text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-md font-medium">
-                  {t('multipleAnswers')}
+                  {t('multipleChoice')}
                 </span>
               )}
               {currentFeedback?.checked && (
@@ -662,22 +662,14 @@ export default function TakeTest() {
               )}
             </div>
 
-            {/* Context text (reading comprehension) */}
-            {test.contextText && (
-              <div className="mb-4 sm:mb-6 p-4 sm:p-5 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl">
-                <div className="flex items-start gap-2 sm:gap-3">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                  <div className="flex-1">
-                    <h4 className="text-xs sm:text-sm font-bold text-blue-700 dark:text-blue-400 mb-1 sm:mb-2">
-                      {t('contextTextLabel')}
-                    </h4>
-                    <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                      {test.contextText}
-                    </p>
-                  </div>
-                </div>
+            {/* Passage / Reading text */}
+            {question.passage && question.passage.trim() && (
+              <div className="mb-4 sm:mb-5 p-3 sm:p-4 bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl">
+                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+                  <span className="w-4 h-4 bg-amber-500 rounded flex items-center justify-center text-white text-[8px]">T</span>
+                  Текст
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{question.passage}</p>
               </div>
             )}
 
@@ -797,7 +789,7 @@ export default function TakeTest() {
                 })}
                 {!currentFeedback?.checked && (
                   <>
-                    <p className="text-[10px] sm:text-xs text-gray-400 mt-1">Можно выбрать несколько вариантов</p>
+                    <p className="text-[10px] sm:text-xs text-gray-400 mt-1">{t('multipleAnswersHint')}</p>
                     {isInstantFeedback && currentAnswer?.selectedOptions?.length > 0 && (
                       <motion.button
                         initial={{ opacity: 0, y: 5 }}
@@ -807,7 +799,7 @@ export default function TakeTest() {
                         disabled={checkingAnswer}
                         className="w-full mt-2 py-2.5 rounded-xl bg-primary-600 text-white font-medium text-sm hover:bg-primary-700 transition-colors disabled:opacity-50"
                       >
-                        {checkingAnswer ? 'Проверяю...' : 'Проверить ответ'}
+                        {checkingAnswer ? t('checking') : t('checkAnswer')}
                       </motion.button>
                     )}
                   </>
@@ -821,14 +813,14 @@ export default function TakeTest() {
                 <textarea
                   className="input-field resize-none text-sm"
                   rows="5"
-                  placeholder="Напишите ваш ответ..."
+                  placeholder={t('writeYourAnswer')}
                   value={currentAnswer?.textAnswer || ''}
                   onChange={e => handleAnswer(question.id, 'text', e.target.value)}
                   style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
                   disabled={currentFeedback?.checked}
                 />
                 {isInstantFeedback && !currentFeedback?.checked && (
-                  <p className="text-[10px] sm:text-xs text-gray-400 mt-1">Эссе проверяется преподавателем после завершения</p>
+                  <p className="text-[10px] sm:text-xs text-gray-400 mt-1">{t('essayCheckedByTeacher')}</p>
                 )}
               </div>
             )}
@@ -868,7 +860,7 @@ export default function TakeTest() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium"
                   >
-                    Правильный ответ: {currentFeedback.correctText}
+                    {t('correctAnswerIs')}: {currentFeedback.correctText}
                   </motion.p>
                 )}
               </div>
@@ -900,7 +892,7 @@ export default function TakeTest() {
                     disabled={checkingAnswer}
                     className="w-full mt-3 py-2.5 rounded-xl bg-primary-600 text-white font-medium text-sm hover:bg-primary-700 transition-colors disabled:opacity-50"
                   >
-                    {checkingAnswer ? 'Проверяю...' : 'Проверить ответ'}
+                    {checkingAnswer ? t('checking') : t('checkAnswer')}
                   </motion.button>
                 )}
               </div>
@@ -914,7 +906,7 @@ export default function TakeTest() {
                 transition={{ delay: 0.3 }}
                 className="mt-4 p-3 sm:p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
               >
-                <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">Пояснение:</p>
+                <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">{t('explanationLabel')}</p>
                 <p className="text-sm text-blue-600 dark:text-blue-300">{currentFeedback.explanation}</p>
               </motion.div>
             )}
@@ -941,10 +933,10 @@ export default function TakeTest() {
                 </div>
                 <div>
                   <p className={`text-sm font-bold ${currentFeedback.isCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
-                    {currentFeedback.isCorrect ? `${t('correct')}!` : t('incorrect')}
+                    {currentFeedback.isCorrect ? t('correctBanner') : t('incorrectBanner')}
                   </p>
                   <p className={`text-xs ${currentFeedback.isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    +{currentFeedback.isCorrect ? currentFeedback.points : 0} {t('outOfQuestions')} {currentFeedback.points} {t('points')}
+                    +{currentFeedback.isCorrect ? currentFeedback.points : 0} {t('outOfPoints')} {currentFeedback.points} {t('points')}
                   </p>
                 </div>
                 {currentQ < test.questions.length - 1 && (
@@ -956,7 +948,7 @@ export default function TakeTest() {
                     onClick={() => setCurrentQ(prev => prev + 1)}
                     className="ml-auto px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 text-xs font-medium text-dark hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
                   >
-                    Далее <ChevronRight size={12} />
+                    {t('next')} <ChevronRight size={12} />
                   </motion.button>
                 )}
               </motion.div>
@@ -1015,7 +1007,7 @@ export default function TakeTest() {
               className="flex items-center gap-1 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-30 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600 active:scale-95"
             >
               <ChevronLeft size={16} />
-              <span>{t('previous')}</span>
+              <span>{t('prev')}</span>
             </button>
 
             <div className="text-[10px] sm:text-xs text-gray-400 font-medium text-center">
@@ -1040,7 +1032,7 @@ export default function TakeTest() {
                 {submitting ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <><Send size={14} /> <span>{t('finish')}</span></>
+                  <><Send size={14} /> <span>{t('finishTest')}</span></>
                 )}
               </motion.button>
             )}
@@ -1069,10 +1061,10 @@ export default function TakeTest() {
               >
                 <AlertTriangle className="w-20 h-20 sm:w-24 sm:h-24 text-red-300 mx-auto mb-6" />
               </motion.div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Нарушение!</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">{t('violation')}</h2>
               <p className="text-red-200 text-base sm:text-lg mb-2">{lastViolationText}</p>
               <p className="text-red-300 text-sm mb-8">
-                Нарушение {violations.length} из {test?.settings?.antiCheat?.maxViolations || '---'}
+                {t('violationCount', { current: violations.length, max: test?.settings?.antiCheat?.maxViolations || '---' })}
               </p>
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -1080,7 +1072,7 @@ export default function TakeTest() {
                 onClick={() => setShowViolationWarning(false)}
                 className="bg-white text-red-600 font-bold py-3 px-8 rounded-xl text-lg hover:bg-red-50 transition-colors shadow-xl"
               >
-                Понятно
+                {t('understood')}
               </motion.button>
             </motion.div>
           </motion.div>
