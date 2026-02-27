@@ -117,10 +117,11 @@ router.post('/', optionalAuth, async (req, res) => {
 
     // Update test stats
     test.attemptCount += 1;
-    const allResults = await Result.find({ test: testId, status: 'completed' });
-    test.averageScore = Math.round(
-      allResults.reduce((sum, r) => sum + r.percentage, 0) / allResults.length
-    );
+    const aggResult = await Result.aggregate([
+      { $match: { test: test._id, status: 'completed' } },
+      { $group: { _id: null, avg: { $avg: '$percentage' } } }
+    ]);
+    test.averageScore = Math.round(aggResult[0]?.avg || 0);
     await test.save();
 
     // Email notification to test creator (non-blocking)
@@ -227,10 +228,11 @@ router.put('/:resultId/grade-essay', auth, async (req, res) => {
     await result.save();
 
     // Update test average
-    const allResults = await Result.find({ test: result.test, status: 'completed' });
-    test.averageScore = Math.round(
-      allResults.reduce((sum, r) => sum + r.percentage, 0) / allResults.length
-    );
+    const aggResult = await Result.aggregate([
+      { $match: { test: result.test, status: 'completed' } },
+      { $group: { _id: null, avg: { $avg: '$percentage' } } }
+    ]);
+    test.averageScore = Math.round(aggResult[0]?.avg || 0);
     await test.save();
 
     res.json(result);
@@ -299,6 +301,56 @@ router.get('/my-attempts/:testId', optionalAuth, async (req, res) => {
       status: 'completed'
     });
     res.json({ attempts: count });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка', error: error.message });
+  }
+});
+
+// Question analytics for test creator
+router.get('/analytics/:testId', auth, async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.testId);
+    if (!test) return res.status(404).json({ message: 'Тест не найден' });
+    if (test.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Доступ запрещён' });
+    }
+
+    const results = await Result.find({ test: req.params.testId, status: 'completed' });
+    const totalResponses = results.length;
+    if (totalResponses === 0) return res.json({ totalResponses: 0, questions: [] });
+
+    const analytics = test.questions.map(q => {
+      let correctCount = 0;
+      const optionCounts = {};
+      q.options.forEach(o => { optionCounts[o.id] = 0; });
+
+      results.forEach(r => {
+        const answer = r.answers.find(a => a.questionId === q.id);
+        if (!answer) return;
+        if (answer.isCorrect) correctCount++;
+        (answer.selectedOptions || []).forEach(optId => {
+          if (optionCounts[optId] !== undefined) optionCounts[optId]++;
+        });
+      });
+
+      return {
+        questionId: q.id,
+        questionText: q.questionText,
+        type: q.type,
+        correctCount,
+        totalResponses,
+        correctPercent: Math.round((correctCount / totalResponses) * 100),
+        options: q.options.map(o => ({
+          id: o.id,
+          text: o.text,
+          isCorrect: o.isCorrect,
+          selectedCount: optionCounts[o.id] || 0,
+          selectedPercent: Math.round(((optionCounts[o.id] || 0) / totalResponses) * 100)
+        }))
+      };
+    });
+
+    res.json({ totalResponses, questions: analytics });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка', error: error.message });
   }

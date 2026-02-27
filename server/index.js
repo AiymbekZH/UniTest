@@ -14,6 +14,7 @@ const profileRoutes = require('./routes/profile');
 const commentRoutes = require('./routes/comments');
 const notificationRoutes = require('./routes/notifications');
 const reportRoutes = require('./routes/reports');
+const groupRoutes = require('./routes/groups');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Serve frontend build
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist');

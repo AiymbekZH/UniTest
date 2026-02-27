@@ -1,17 +1,17 @@
-﻿import { useState } from 'react';
+﻿import { useState, memo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap, Plus, LogOut, Menu, X,
   LayoutDashboard, FileText, BarChart3, Database, Sun, Moon,
-  User, Shield, Globe
+  User, Shield, Globe, Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import NotificationBell from './NotificationBell';
 
-export default function Navbar() {
+export default memo(function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const { dark, toggleTheme } = useTheme();
   const { t, lang, setLanguage } = useLanguage();
@@ -30,6 +30,7 @@ export default function Navbar() {
     { to: '/dashboard', label: t('home'), icon: LayoutDashboard },
     { to: '/my-tests', label: t('myTests'), icon: FileText },
     { to: '/my-results', label: t('results'), icon: BarChart3 },
+    { to: '/groups', label: t('groups'), icon: Users },
     { to: '/question-bank', label: t('questionBank'), icon: Database },
   ];
 
@@ -272,4 +273,4 @@ export default function Navbar() {
       </div>
     </nav>
   );
-}
+})

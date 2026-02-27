@@ -53,4 +53,9 @@ resultSchema.pre('save', function(next) {
   next();
 });
 
+// Indexes for common queries
+resultSchema.index({ test: 1, status: 1 });
+resultSchema.index({ user: 1, status: 1 });
+resultSchema.index({ test: 1, user: 1, status: 1 });
+
 module.exports = mongoose.model('Result', resultSchema);

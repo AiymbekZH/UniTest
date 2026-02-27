@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Trophy, Clock, AlertTriangle, CheckCircle, XCircle,
   ArrowLeft, Share2, Star, BarChart3, Users, FileText, HelpCircle,
-  ChevronDown, ChevronUp, Award
+  ChevronDown, ChevronUp, Award, Download
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -80,6 +80,155 @@ export default function ResultPage() {
         .catch(() => {});
     }
   }, [result, user]);
+
+  const downloadCertificate = () => {
+    if (!result) return;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const W = 1200, H = 850;
+    canvas.width = W;
+    canvas.height = H;
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // Border
+    ctx.strokeStyle = '#6366f1';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(20, 20, W - 40, H - 40);
+    ctx.strokeStyle = '#c7d2fe';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(30, 30, W - 60, H - 60);
+
+    // Decorative corners
+    const drawCorner = (x, y, dx, dy) => {
+      ctx.beginPath();
+      ctx.moveTo(x, y + dy * 40);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + dx * 40, y);
+      ctx.strokeStyle = '#6366f1';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    };
+    drawCorner(35, 35, 1, 1);
+    drawCorner(W - 35, 35, -1, 1);
+    drawCorner(35, H - 35, 1, -1);
+    drawCorner(W - 35, H - 35, -1, -1);
+
+    // Title
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#6366f1';
+    ctx.font = '600 14px Inter, sans-serif';
+    ctx.letterSpacing = '4px';
+    ctx.fillText('CERTIFICATE OF COMPLETION', W / 2, 100);
+
+    // Divider line
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 80, 115);
+    ctx.lineTo(W / 2 + 80, 115);
+    ctx.strokeStyle = '#c7d2fe';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // "This certifies that"
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '400 16px Inter, sans-serif';
+    ctx.fillText('This certifies that', W / 2, 160);
+
+    // Name
+    const studentName = result.user
+      ? `${result.user.lastName} ${result.user.firstName}`
+      : result.guestName || 'Student';
+    ctx.fillStyle = '#1f2937';
+    ctx.font = '700 36px Inter, sans-serif';
+    ctx.fillText(studentName, W / 2, 220);
+
+    // Underline name
+    const nameWidth = ctx.measureText(studentName).width;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - nameWidth / 2 - 20, 232);
+    ctx.lineTo(W / 2 + nameWidth / 2 + 20, 232);
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // "has successfully completed the test"
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '400 16px Inter, sans-serif';
+    ctx.fillText('has successfully completed the test', W / 2, 275);
+
+    // Test title
+    const testTitle = result.test?.title || 'Test';
+    ctx.fillStyle = '#4f46e5';
+    ctx.font = '600 28px Inter, sans-serif';
+    // Truncate if too long
+    let displayTitle = testTitle;
+    if (ctx.measureText(testTitle).width > W - 200) {
+      while (ctx.measureText(displayTitle + '...').width > W - 200 && displayTitle.length > 0) {
+        displayTitle = displayTitle.slice(0, -1);
+      }
+      displayTitle += '...';
+    }
+    ctx.fillText(displayTitle, W / 2, 325);
+
+    // Score section
+    ctx.fillStyle = '#1f2937';
+    ctx.font = '700 64px Inter, sans-serif';
+    ctx.fillText(`${result.percentage}%`, W / 2, 430);
+
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '400 16px Inter, sans-serif';
+    ctx.fillText(`${result.score} / ${result.totalPoints} points`, W / 2, 465);
+
+    // Grade
+    const gradeLabel = getGradeInfo(result.percentage).label;
+    const gradeColor = result.percentage >= 75 ? '#10b981' : result.percentage >= 50 ? '#f59e0b' : '#ef4444';
+    ctx.fillStyle = gradeColor;
+    ctx.font = '600 20px Inter, sans-serif';
+    ctx.fillText(gradeLabel, W / 2, 505);
+
+    // Stats
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '400 13px Inter, sans-serif';
+    ctx.fillText(
+      `${correct} correct  |  ${wrong} incorrect  |  Time: ${formatTime(result.timeSpent)}`,
+      W / 2, 545
+    );
+
+    // Divider
+    ctx.beginPath();
+    ctx.moveTo(200, 580);
+    ctx.lineTo(W - 200, 580);
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Date
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '400 14px Inter, sans-serif';
+    const dateStr = new Date(result.completedAt || result.createdAt).toLocaleDateString('ru-RU', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    ctx.fillText(dateStr, W / 2, 620);
+
+    // Platform
+    ctx.fillStyle = '#c7d2fe';
+    ctx.font = '600 12px Inter, sans-serif';
+    ctx.fillText('UniTest Platform', W / 2, 780);
+
+    // ID
+    ctx.fillStyle = '#d1d5db';
+    ctx.font = '400 10px Inter, sans-serif';
+    ctx.fillText(`ID: ${result._id}`, W / 2, 800);
+
+    // Download
+    const link = document.createElement('a');
+    link.download = `certificate_${result._id.slice(-6)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    toast.success('Сертификат скачан!');
+  };
 
   if (loading) {
     return (
@@ -183,6 +332,23 @@ export default function ResultPage() {
               <p className="text-xs text-amber-600">Нарушения</p>
             </div>
           </motion.div>
+
+          {/* Certificate download button */}
+          {result.percentage >= 50 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.52 }}
+              className="mt-6"
+            >
+              <button
+                onClick={downloadCertificate}
+                className="flex items-center justify-center gap-2 mx-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-primary-500 to-purple-500 text-white text-sm font-medium hover:from-primary-600 hover:to-purple-600 transition-all shadow-lg shadow-primary-500/20"
+              >
+                <Download size={16} /> Скачать сертификат
+              </button>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Star Rating */}

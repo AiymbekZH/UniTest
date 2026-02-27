@@ -371,6 +371,65 @@ export default function TakeTest() {
     }
   }, [currentQ]);
 
+  // Keyboard shortcuts: 1-9 for options, ←/→ for nav, Enter for next/submit
+  useEffect(() => {
+    if (!started || !test) return;
+    const handler = (e) => {
+      // Skip if typing in input/textarea
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      // Skip if dialog is open
+      if (showSubmitConfirm || showViolationWarning || showInactivityWarning) return;
+
+      const q = test.questions[currentQ];
+      if (!q) return;
+      const isLocked = feedback[q.id]?.checked;
+
+      // 1-9: select option
+      if (e.key >= '1' && e.key <= '9' && !isLocked) {
+        const idx = parseInt(e.key) - 1;
+        if (q.type === 'single-choice' || q.type === 'true-false') {
+          if (q.options[idx]) {
+            e.preventDefault();
+            handleAnswer(q.id, 'single', q.options[idx].id);
+          }
+        } else if (q.type === 'multiple-choice') {
+          if (q.options[idx]) {
+            e.preventDefault();
+            handleAnswer(q.id, 'multiple', q.options[idx].id);
+          }
+        }
+      }
+
+      // ArrowLeft: prev question
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentQ(prev => Math.max(0, prev - 1));
+      }
+
+      // ArrowRight: next question
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (currentQ < test.questions.length - 1) {
+          setCurrentQ(prev => prev + 1);
+        }
+      }
+
+      // Enter: next question or submit
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentQ < test.questions.length - 1) {
+          setCurrentQ(prev => prev + 1);
+        } else {
+          handleSubmit();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [started, test, currentQ, feedback, showSubmitConfirm, showViolationWarning, showInactivityWarning]);
+
   const fetchTest = async (variantNum) => {
     try {
       const url = variantNum
@@ -952,9 +1011,10 @@ export default function TakeTest() {
             )}
 
             {/* Question text */}
-            <h3 className="text-base sm:text-lg font-semibold text-dark mb-4 sm:mb-6 leading-relaxed">
-              {question.questionText}
-            </h3>
+            <div
+              className="text-base sm:text-lg font-semibold text-dark mb-4 sm:mb-6 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: question.questionText }}
+            />
 
             {/* Media */}
             {question.media?.url && (
@@ -1275,6 +1335,13 @@ export default function TakeTest() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Keyboard shortcuts hint (desktop only) */}
+          <div className="hidden sm:flex items-center justify-center gap-4 px-4 pt-1 text-[10px] text-gray-400">
+            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">1-9</kbd> {t('selectOption') || 'select'}</span>
+            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">&larr; &rarr;</kbd> {t('navigation') || 'navigate'}</span>
+            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">Enter</kbd> {t('next')}</span>
           </div>
 
           {/* Action buttons */}

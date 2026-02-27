@@ -11,6 +11,8 @@ import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { lazy, Suspense } from 'react';
+const RichTextEditor = lazy(() => import('../components/RichTextEditor'));
 import { useLanguage } from '../context/LanguageContext';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -243,9 +245,11 @@ export default function CreateTest() {
     }
   };
 
+  const stripHtml = (html) => html?.replace(/<[^>]*>/g, '').trim() || '';
+
   const handleSave = async () => {
     if (!test.title.trim()) { toast.error(t('enterTestTitle')); return; }
-    if (test.questions.some(q => !q.questionText.trim())) { toast.error(t('fillAllQuestions')); return; }
+    if (test.questions.some(q => !stripHtml(q.questionText))) { toast.error(t('fillAllQuestions')); return; }
 
     // Validation: check for correct answers and empty options
     for (let i = 0; i < test.questions.length; i++) {
@@ -435,8 +439,8 @@ export default function CreateTest() {
                         ${activeQuestion === i ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-slate-600 text-gray-500 dark:text-gray-300'}`}>
                         {i + 1}
                       </span>
-                      <span className="truncate flex-1">{q.questionText || typeInfo?.label || t('question')}</span>
-                      {!q.questionText.trim() && <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />}
+                      <span className="truncate flex-1">{stripHtml(q.questionText) || typeInfo?.label || t('question')}</span>
+                      {!stripHtml(q.questionText) && <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />}
                     </button>
                   );
                 })}
@@ -752,13 +756,13 @@ export default function CreateTest() {
                       </div>
 
                       {/* Question text */}
-                      <textarea
-                        className="input-field resize-none text-sm py-2"
-                        rows="2"
-                        placeholder={t('questionTextPlaceholder')}
-                        value={question.questionText}
-                        onChange={e => updateQuestion(qIndex, 'questionText', e.target.value)}
-                      />
+                      <Suspense fallback={<div className="input-field animate-pulse h-20" />}>
+                        <RichTextEditor
+                          content={question.questionText}
+                          onChange={val => updateQuestion(qIndex, 'questionText', val)}
+                          placeholder={t('questionTextPlaceholder')}
+                        />
+                      </Suspense>
 
                       {/* Optional passage / reading text */}
                       <div>

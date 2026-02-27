@@ -91,5 +91,6 @@ testSchema.pre('save', function(next) {
 
 // Index for search
 testSchema.index({ title: 'text', description: 'text', tags: 'text' });
+testSchema.index({ creator: 1 });
 
 module.exports = mongoose.model('Test', testSchema);

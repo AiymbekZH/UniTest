@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Trophy, Clock, AlertTriangle, Users,
   Medal, TrendingUp, Eye, Download, ExternalLink, FileText, Check, X,
-  ChevronDown, ChevronUp, FileJson, Printer
+  ChevronDown, ChevronUp, FileJson, Printer, BarChart3
 } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -21,6 +21,9 @@ export default function TestResults() {
   const [expandedResult, setExpandedResult] = useState(null);
   const [gradingLoading, setGradingLoading] = useState({});
   const [bestOnly, setBestOnly] = useState(true);
+  const [activeTab, setActiveTab] = useState('results'); // 'results' | 'analytics'
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const resultsPerPage = 15;
 
   useEffect(() => {
@@ -35,6 +38,19 @@ export default function TestResults() {
       toast.error('Ошибка загрузки результатов');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    if (analytics) return; // already fetched
+    setAnalyticsLoading(true);
+    try {
+      const res = await api.get(`/results/analytics/${testId}`);
+      setAnalytics(res.data);
+    } catch (err) {
+      toast.error('Ошибка загрузки аналитики');
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -218,6 +234,119 @@ export default function TestResults() {
           </div>
         </motion.div>
 
+        {/* Tabs: Results / Analytics */}
+        <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-slate-800 rounded-xl p-1">
+          <button
+            onClick={() => setActiveTab('results')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'results'
+                ? 'bg-white dark:bg-slate-700 text-dark shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <Trophy size={16} /> Результаты
+          </button>
+          <button
+            onClick={() => { setActiveTab('analytics'); fetchAnalytics(); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'analytics'
+                ? 'bg-white dark:bg-slate-700 text-dark shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <BarChart3 size={16} /> Аналитика
+          </button>
+        </div>
+
+        {activeTab === 'analytics' ? (
+          /* Analytics View */
+          analyticsLoading ? (
+            <div className="p-12 text-center"><div className="w-8 h-8 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" /></div>
+          ) : !analytics || analytics.totalResponses === 0 ? (
+            <div className="glass-card-solid p-12 text-center text-gray-500">Нет данных для аналитики</div>
+          ) : (
+            <div className="space-y-4">
+              <div className="glass-card-solid p-4">
+                <p className="text-sm text-gray-500">Всего ответов: <span className="font-bold text-dark">{analytics.totalResponses}</span></p>
+              </div>
+              {analytics.questions.map((q, qi) => {
+                const isHard = q.correctPercent < 40;
+                const isEasy = q.correctPercent >= 80;
+                return (
+                  <motion.div
+                    key={q.questionId}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: qi * 0.03 }}
+                    className={`glass-card-solid p-4 sm:p-5 ${isHard ? 'border-l-4 border-red-400' : isEasy ? 'border-l-4 border-emerald-400' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                        <span className="w-7 h-7 bg-gray-100 dark:bg-slate-700 text-gray-500 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0">
+                          {qi + 1}
+                        </span>
+                        <p className="text-sm font-medium text-dark leading-relaxed">{q.questionText}</p>
+                      </div>
+                      <span className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        isHard ? 'bg-red-100 dark:bg-red-900/30 text-red-600' :
+                        isEasy ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' :
+                        'bg-amber-100 dark:bg-amber-900/30 text-amber-600'
+                      }`}>
+                        {q.correctPercent}%
+                      </span>
+                    </div>
+
+                    {/* Correct/incorrect bar */}
+                    <div className="h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden mb-3">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          isHard ? 'bg-red-500' : isEasy ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`}
+                        style={{ width: `${q.correctPercent}%` }}
+                      />
+                    </div>
+
+                    <p className="text-xs text-gray-400 mb-3">
+                      {q.correctCount} из {q.totalResponses} ответили правильно
+                    </p>
+
+                    {/* Option breakdown (for choice questions) */}
+                    {(q.type === 'single-choice' || q.type === 'multiple-choice' || q.type === 'true-false') && q.options.length > 0 && (
+                      <div className="space-y-1.5">
+                        {q.options.map(opt => (
+                          <div key={opt.id} className="flex items-center gap-2">
+                            <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${
+                              opt.isCorrect ? 'bg-emerald-500 text-white' : 'bg-gray-200 dark:bg-slate-600'
+                            }`}>
+                              {opt.isCorrect && <Check size={10} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-xs text-dark truncate flex-1">{opt.text}</span>
+                                <span className="text-[10px] font-bold text-gray-400 flex-shrink-0">{opt.selectedPercent}%</span>
+                              </div>
+                              <div className="h-1 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${opt.isCorrect ? 'bg-emerald-400' : opt.selectedPercent > 20 ? 'bg-red-300' : 'bg-gray-300 dark:bg-slate-500'}`}
+                                  style={{ width: `${opt.selectedPercent}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {isHard && (
+                      <p className="text-[10px] text-red-500 mt-2 font-medium">Сложный вопрос - большинство ответили неправильно</p>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+        <>
         {/* Summary stats */}
         {displayResults.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -423,6 +552,8 @@ export default function TestResults() {
         </motion.div>
 
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
+        )}
       </main>
     </div>
   );

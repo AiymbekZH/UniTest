@@ -2,8 +2,8 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Search, Plus, Star, Users, Clock, Eye, EyeOff,
-  Trash2, Edit3, Share2, MoreVertical, Tag, Copy, Trophy
+  Search, Plus, Star, Users, Eye, EyeOff,
+  Trash2, Edit3, MoreVertical, Tag, Copy, Trophy
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
