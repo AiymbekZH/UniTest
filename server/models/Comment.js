@@ -6,7 +6,9 @@ const commentSchema = new mongoose.Schema({
   text: { type: String, required: true, trim: true, maxlength: 1000 },
   replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
   isDeleted: { type: Boolean, default: false },
-  isEdited: { type: Boolean, default: false }
+  isEdited: { type: Boolean, default: false },
+  upvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  downvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, { timestamps: true });
 
 commentSchema.index({ test: 1, createdAt: -1 });

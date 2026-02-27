@@ -118,4 +118,44 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// Vote on a comment (upvote / downvote)
+router.post('/:id/vote', auth, async (req, res) => {
+  try {
+    const { type } = req.body; // 'up' or 'down'
+    if (!['up', 'down'].includes(type)) return res.status(400).json({ message: 'Invalid vote type' });
+
+    const comment = await Comment.findById(req.params.id);
+    if (!comment || comment.isDeleted) return res.status(404).json({ message: 'Комментарий не найден' });
+
+    const userId = req.user._id.toString();
+    const hasUp = comment.upvotes.some(id => id.toString() === userId);
+    const hasDown = comment.downvotes.some(id => id.toString() === userId);
+
+    if (type === 'up') {
+      if (hasUp) {
+        // Remove upvote (toggle off)
+        comment.upvotes = comment.upvotes.filter(id => id.toString() !== userId);
+      } else {
+        // Add upvote, remove downvote if exists
+        comment.upvotes.push(req.user._id);
+        if (hasDown) comment.downvotes = comment.downvotes.filter(id => id.toString() !== userId);
+      }
+    } else {
+      if (hasDown) {
+        // Remove downvote (toggle off)
+        comment.downvotes = comment.downvotes.filter(id => id.toString() !== userId);
+      } else {
+        // Add downvote, remove upvote if exists
+        comment.downvotes.push(req.user._id);
+        if (hasUp) comment.upvotes = comment.upvotes.filter(id => id.toString() !== userId);
+      }
+    }
+
+    await comment.save();
+    res.json({ upvotes: comment.upvotes.length, downvotes: comment.downvotes.length });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+  }
+});
+
 module.exports = router;

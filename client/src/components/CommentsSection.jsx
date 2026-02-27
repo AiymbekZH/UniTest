@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Reply, Trash2, MessageSquareOff, Edit3, Flag, Check, X, Crown } from 'lucide-react';
+import { Send, Trash2, MessageSquareOff, Flag, X, Crown, ChevronUp, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -33,6 +33,7 @@ export default function CommentsSection({ testId }) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [expandedReplies, setExpandedReplies] = useState({});
   const [reportModal, setReportModal] = useState(null);
   const [reportReason, setReportReason] = useState('');
   const inputRef = useRef(null);
@@ -56,12 +57,16 @@ export default function CommentsSection({ testId }) {
     if (!text.trim() || sending) return;
     setSending(true);
     try {
-      const res = await api.post(`/comments/${testId}`, { 
-        text: text.trim(), 
-        replyTo: replyTo ? (replyTo.replyTo || replyTo._id) : null 
+      const res = await api.post(`/comments/${testId}`, {
+        text: text.trim(),
+        replyTo: replyTo ? (replyTo.replyTo || replyTo._id) : null
       });
       setComments(prev => [res.data.comment, ...prev]);
       setText('');
+      if (replyTo) {
+        const rootId = replyTo.replyTo || replyTo._id;
+        setExpandedReplies(prev => ({ ...prev, [rootId]: true }));
+      }
       setReplyTo(null);
       setInputFocused(false);
     } catch (err) {
@@ -94,6 +99,37 @@ export default function CommentsSection({ testId }) {
     }
   };
 
+  const handleVote = async (commentId, type) => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await api.post(`/comments/${commentId}/vote`, { type });
+      setComments(prev => prev.map(c => {
+        if (c._id !== commentId) return c;
+        const userId = user.id;
+        let upvotes = [...(c.upvotes || [])];
+        let downvotes = [...(c.downvotes || [])];
+        if (type === 'up') {
+          if (upvotes.includes(userId)) {
+            upvotes = upvotes.filter(id => id !== userId);
+          } else {
+            upvotes.push(userId);
+            downvotes = downvotes.filter(id => id !== userId);
+          }
+        } else {
+          if (downvotes.includes(userId)) {
+            downvotes = downvotes.filter(id => id !== userId);
+          } else {
+            downvotes.push(userId);
+            upvotes = upvotes.filter(id => id !== userId);
+          }
+        }
+        return { ...c, upvotes, downvotes };
+      }));
+    } catch (err) {
+      toast.error('Error');
+    }
+  };
+
   const handleReport = async () => {
     if (!reportReason.trim()) return;
     try {
@@ -118,7 +154,7 @@ export default function CommentsSection({ testId }) {
 
   if (disabled) {
     return (
-      <div className="py-6 mt-6">
+      <div className="py-6">
         <div className="flex items-center gap-2 text-gray-400 text-sm">
           <MessageSquareOff size={16} />
           {t('commentsDisabled')}
@@ -143,6 +179,10 @@ export default function CommentsSection({ testId }) {
     return false;
   });
 
+  const toggleReplies = (commentId) => {
+    setExpandedReplies(prev => ({ ...prev, [commentId]: !prev[commentId] }));
+  };
+
   const Avatar = ({ u, size = 36 }) => (
     <button
       onClick={() => u?._id && navigate(`/user/${u._id}`)}
@@ -161,7 +201,49 @@ export default function CommentsSection({ testId }) {
     </button>
   );
 
-  const CommentItem = ({ comment, isReply = false }) => {
+  const VoteButtons = ({ comment }) => {
+    const ups = comment.upvotes?.length || 0;
+    const downs = comment.downvotes?.length || 0;
+    const score = ups - downs;
+    const myVote = user ? (
+      comment.upvotes?.includes(user.id) ? 'up' :
+      comment.downvotes?.includes(user.id) ? 'down' : null
+    ) : null;
+
+    return (
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={() => handleVote(comment._id, 'up')}
+          className={`p-1 rounded-full transition ${
+            myVote === 'up'
+              ? 'text-primary-600 bg-primary-50 dark:bg-primary-900/20'
+              : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-600'
+          }`}
+          disabled={!isAuthenticated}
+        >
+          <ChevronUp size={16} strokeWidth={2.5} />
+        </button>
+        <span className={`text-xs font-semibold min-w-[16px] text-center tabular-nums ${
+          score > 0 ? 'text-primary-600' : score < 0 ? 'text-red-500' : 'text-gray-400'
+        }`}>
+          {score !== 0 ? score : ''}
+        </span>
+        <button
+          onClick={() => handleVote(comment._id, 'down')}
+          className={`p-1 rounded-full transition ${
+            myVote === 'down'
+              ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
+              : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-600'
+          }`}
+          disabled={!isAuthenticated}
+        >
+          <ChevronDown size={16} strokeWidth={2.5} />
+        </button>
+      </div>
+    );
+  };
+
+  const CommentItem = ({ comment, isReply = false, replyToUser = null }) => {
     const isEditing = editingComment === comment._id;
     const avatarSize = isReply ? 28 : 36;
 
@@ -187,6 +269,16 @@ export default function CommentsSection({ testId }) {
               {comment.isEdited && <span className="ml-1 italic">({t('edited')})</span>}
             </span>
           </div>
+
+          {/* Reply mention */}
+          {isReply && replyToUser && (
+            <button
+              onClick={() => replyToUser._id && navigate(`/user/${replyToUser._id}`)}
+              className="text-xs text-primary-500 hover:text-primary-600 font-medium mt-0.5 transition"
+            >
+              @{replyToUser.firstName}{replyToUser.lastName ? ` ${replyToUser.lastName}` : ''}
+            </button>
+          )}
 
           {/* Content */}
           {isEditing ? (
@@ -221,12 +313,14 @@ export default function CommentsSection({ testId }) {
                 {comment.text}
               </p>
 
-              {/* Actions */}
-              <div className="flex items-center gap-1 mt-1 -ml-2">
+              {/* Actions row: votes + text buttons */}
+              <div className="flex items-center gap-1 mt-1.5 -ml-1">
+                <VoteButtons comment={comment} />
+
                 {isAuthenticated && (
                   <button
                     onClick={() => { setReplyTo(comment); setInputFocused(true); setTimeout(() => inputRef.current?.focus(), 100); }}
-                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2 py-1 rounded-full transition"
+                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2.5 py-1 rounded-full transition ml-1"
                   >
                     {t('reply')}
                   </button>
@@ -234,7 +328,7 @@ export default function CommentsSection({ testId }) {
                 {user?.id === comment.user?._id && (
                   <button
                     onClick={() => { setEditingComment(comment._id); setEditText(comment.text); }}
-                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2 py-1 rounded-full transition opacity-0 group-hover:opacity-100"
+                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 px-2.5 py-1 rounded-full transition opacity-0 group-hover:opacity-100"
                   >
                     {t('editComment')}
                   </button>
@@ -242,7 +336,7 @@ export default function CommentsSection({ testId }) {
                 {(user?.id === comment.user?._id || user?.role === 'admin') && (
                   <button
                     onClick={() => handleDelete(comment._id)}
-                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 px-2 py-1 rounded-full transition opacity-0 group-hover:opacity-100"
+                    className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 px-2.5 py-1 rounded-full transition opacity-0 group-hover:opacity-100"
                   >
                     {t('deleteComment')}
                   </button>
@@ -264,7 +358,7 @@ export default function CommentsSection({ testId }) {
   };
 
   return (
-    <div className="mt-8">
+    <div>
       {/* Header */}
       <h3 className="text-base font-semibold text-dark mb-6">
         {comments.length} {t('comments').toLowerCase()}
@@ -276,7 +370,7 @@ export default function CommentsSection({ testId }) {
           {replyTo && (
             <div className="flex items-center gap-2 mb-3 ml-12">
               <span className="text-xs text-gray-500 dark:text-gray-400">{t('reply')}</span>
-              <span className="text-xs font-medium text-dark">@{replyTo.user?.firstName} {replyTo.user?.lastName}</span>
+              <span className="text-xs font-medium text-primary-600">@{replyTo.user?.firstName} {replyTo.user?.lastName}</span>
               <button onClick={() => setReplyTo(null)} className="ml-auto text-gray-400 hover:text-gray-600 transition">
                 <X size={14} />
               </button>
@@ -325,27 +419,64 @@ export default function CommentsSection({ testId }) {
       {/* Comments list */}
       <div className="space-y-5">
         <AnimatePresence>
-          {rootComments.map(comment => (
-            <motion.div key={comment._id}
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            >
-              <CommentItem comment={comment} />
+          {rootComments.map(comment => {
+            const commentReplies = getReplies(comment._id);
+            const repliesExpanded = expandedReplies[comment._id];
+            return (
+              <motion.div key={comment._id}
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              >
+                <CommentItem comment={comment} />
 
-              {/* Replies */}
-              {getReplies(comment._id).length > 0 && (
-                <div className="ml-12 mt-3 space-y-4">
-                  {getReplies(comment._id).map(reply => (
-                    <CommentItem key={reply._id} comment={reply} isReply />
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          ))}
+                {/* Replies toggle + list (YouTube style) */}
+                {commentReplies.length > 0 && (
+                  <div className="ml-12 mt-2">
+                    <button
+                      onClick={() => toggleReplies(comment._id)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 px-2.5 py-1.5 rounded-full transition -ml-2.5"
+                    >
+                      {repliesExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      {commentReplies.length} {commentReplies.length === 1
+                        ? (t('reply') || 'reply').toLowerCase()
+                        : (t('comments') || 'replies').toLowerCase()}
+                    </button>
+
+                    <AnimatePresence>
+                      {repliesExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-4 mt-2 overflow-hidden"
+                        >
+                          {commentReplies.map(reply => {
+                            // Find who this reply is directed at
+                            const replyTarget = reply.replyTo?._id || reply.replyTo;
+                            let replyToUser = null;
+                            if (replyTarget !== comment._id) {
+                              // Reply to another reply, find that user
+                              const targetComment = comments.find(c => c._id === replyTarget);
+                              if (targetComment) replyToUser = targetComment.user;
+                            } else {
+                              replyToUser = comment.user;
+                            }
+                            return (
+                              <CommentItem key={reply._id} comment={reply} isReply replyToUser={replyToUser} />
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {comments.length === 0 && (
           <p className="text-center py-8 text-sm text-gray-400 dark:text-gray-500">
-            {t('noOneCompleted').includes('test') ? t('writeComment') : t('comments')}: 0
+            {t('writeComment')}
           </p>
         )}
       </div>

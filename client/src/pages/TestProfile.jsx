@@ -273,8 +273,6 @@ export default function TestProfile() {
               </motion.div>
             )}
 
-            {/* Comments Section */}
-            {test._id && <CommentsSection testId={test._id} />}
           </div>
 
           {/* Sidebar */}
@@ -329,7 +327,7 @@ export default function TestProfile() {
                   }}
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
                 >
-                  <Share2 size={14} /> {t('copyLink')}
+                  <Share2 size={16} /> {t('copyLink')}
                 </button>
                 <button
                   onClick={() => setShowQRModal(true)}
@@ -410,7 +408,12 @@ export default function TestProfile() {
             </motion.div>
           </div>
         </div>
-
+        {/* Comments Section - always at the bottom */}
+        {test._id && (
+          <div className="mt-8">
+            <CommentsSection testId={test._id} />
+          </div>
+        )}
         {/* QR Code Modal */}
         <AnimatePresence>
           {showQRModal && (
