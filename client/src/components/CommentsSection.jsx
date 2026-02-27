@@ -63,7 +63,7 @@ export default function CommentsSection({ testId }) {
       setComments(prev => prev.map(c => c._id === commentId ? res.data.comment : c));
       setEditingComment(null);
       setEditText('');
-      toast.success('✓');
+      toast.success('OK');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error');
     }
@@ -73,7 +73,7 @@ export default function CommentsSection({ testId }) {
     try {
       await api.delete(`/comments/${commentId}`);
       setComments(prev => prev.filter(c => c._id !== commentId));
-      toast.success(t('deleteComment') + ' ✓');
+      toast.success(t('deleteComment'));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error');
     }

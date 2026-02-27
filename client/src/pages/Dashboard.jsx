@@ -112,7 +112,7 @@ export default function Dashboard() {
           className="mb-8"
         >
           <h1 className="text-2xl sm:text-3xl font-bold text-dark">
-            {t('welcome')}, {user?.firstName || 'Guest'}! 👋
+            {t('welcome')}, {user?.firstName || 'Guest'}!
           </h1>
           <p className="text-gray-500 mt-1">{t('dashboardSubtitle')}</p>
         </motion.div>

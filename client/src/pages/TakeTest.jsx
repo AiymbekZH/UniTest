@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, AlertTriangle, ChevronLeft, ChevronRight, Send,
-  Image, Video, Music, Shield, User, Check, X, Eye, Ticket, Loader2
+  Image, Video, Music, Shield, User, Check, X, Eye, Ticket, Loader2, Dumbbell
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -714,7 +714,7 @@ export default function TakeTest() {
           {isPractice && (
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4 text-center">
               <h3 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-1 flex items-center justify-center gap-2">
-                🏋️ {t('practiceMode')}
+                <Dumbbell size={14} className="inline" /> {t('practiceMode')}
               </h3>
               <p className="text-xs text-green-600 dark:text-green-300">
                 {t('practiceModeDesc')}

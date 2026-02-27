@@ -1,1590 +1,1016 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UniTest — Redesign Reference</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniTest — TestProfile Redesign Reference</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg-primary: #0a0a0f;
-      --bg-secondary: #12121a;
-      --bg-card: #16161f;
-      --bg-card-hover: #1c1c28;
-      --bg-elevated: #1e1e2a;
-      --bg-input: #1a1a25;
-      --border: #252530;
-      --border-hover: #35354a;
-      --text-primary: #f0f0f5;
-      --text-secondary: #8888a0;
-      --text-muted: #55556a;
-      --accent: #6c5ce7;
-      --accent-hover: #7d6ff0;
-      --accent-glow: rgba(108, 92, 231, 0.15);
-      --accent-subtle: rgba(108, 92, 231, 0.08);
-      --green: #00c853;
-      --green-subtle: rgba(0, 200, 83, 0.1);
-      --orange: #ff9100;
-      --orange-subtle: rgba(255, 145, 0, 0.1);
-      --red: #ff5252;
-      --blue: #448aff;
-      --blue-subtle: rgba(68, 138, 255, 0.1);
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-xl: 20px;
-      --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px var(--border);
-      --shadow-hover: 0 8px 30px rgba(0,0,0,0.4), 0 0 0 1px var(--border-hover);
-      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --bg: #F5F5F7;
+      --card: #FFFFFF;
+      --text: #1D1D1F;
+      --text-secondary: #86868B;
+      --text-tertiary: #AEAEB2;
+      --border: rgba(0,0,0,0.06);
+      --primary: #0071E3;
+      --primary-hover: #0077ED;
+      --primary-bg: #EBF5FF;
+      --green: #34C759;
+      --green-bg: #F0FDF4;
+      --orange: #FF9500;
+      --orange-bg: #FFFBEB;
+      --red: #FF3B30;
+      --red-bg: #FEF2F2;
+      --purple: #AF52DE;
+      --purple-bg: #FAF5FF;
+      --amber: #FFCC00;
+      --radius: 16px;
+      --radius-sm: 12px;
+      --radius-xs: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+      --shadow-lg: 0 4px 24px rgba(0,0,0,0.06);
+      --nav-blur: saturate(180%) blur(20px);
     }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      line-height: 1.5;
+      background: var(--bg);
+      color: var(--text);
       -webkit-font-smoothing: antialiased;
-      min-height: 100vh;
+      line-height: 1.5;
     }
 
-    /* ============= SIDEBAR ============= */
-    .layout {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      width: 240px;
-      background: var(--bg-secondary);
-      border-right: 1px solid var(--border);
-      padding: 16px 12px;
-      display: flex;
-      flex-direction: column;
-      position: fixed;
+    /* ==================== Navbar ==================== */
+    nav {
+      position: sticky;
       top: 0;
-      left: 0;
-      bottom: 0;
       z-index: 100;
-      transition: transform var(--transition);
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: var(--nav-blur);
+      -webkit-backdrop-filter: var(--nav-blur);
+      border-bottom: 1px solid var(--border);
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
     }
-
-    .sidebar-logo {
+    .nav-inner {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+    }
+    .nav-brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 4px 8px;
-      margin-bottom: 24px;
-    }
-
-    .sidebar-logo .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: var(--accent);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 14px;
-      color: white;
-    }
-
-    .sidebar-logo span {
       font-weight: 700;
-      font-size: 17px;
-      letter-spacing: -0.02em;
-    }
-
-    .sidebar-nav { flex: 1; }
-
-    .nav-section-title {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      padding: 16px 12px 8px;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      color: var(--text-secondary);
+      font-size: 18px;
+      color: var(--text);
       text-decoration: none;
-      font-size: 13.5px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all var(--transition);
-      margin-bottom: 2px;
-    }
-
-    .nav-item:hover {
-      background: var(--accent-subtle);
-      color: var(--text-primary);
-    }
-
-    .nav-item.active {
-      background: var(--accent-glow);
-      color: var(--accent-hover);
-    }
-
-    .nav-item svg {
-      width: 18px;
-      height: 18px;
-      opacity: 0.7;
       flex-shrink: 0;
     }
-
-    .nav-item.active svg { opacity: 1; }
-
-    .nav-item .badge {
-      margin-left: auto;
-      background: var(--accent);
-      color: white;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 10px;
-      min-width: 18px;
-      text-align: center;
-    }
-
-    .sidebar-footer {
-      border-top: 1px solid var(--border);
-      padding-top: 12px;
-    }
-
-    .user-card {
+    .nav-brand svg { color: var(--primary); }
+    .nav-links {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: background var(--transition);
+      gap: 4px;
     }
-
-    .user-card:hover { background: var(--accent-subtle); }
-
-    .user-avatar {
+    .nav-links a {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-radius: 9999px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(0,0,0,0.04); }
+    .nav-links a.active { color: var(--primary); background: var(--primary-bg); }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .nav-icon-btn {
       width: 34px;
       height: 34px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), #a855f7);
+      border: none;
+      background: transparent;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 700;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .nav-icon-btn:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+    .nav-lang {
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-lang:hover { background: rgba(0,0,0,0.03); }
+    .nav-create-btn {
+      padding: 7px 16px;
       font-size: 13px;
-      color: white;
-      flex-shrink: 0;
-    }
-
-    .user-info { overflow: hidden; }
-    .user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-role { font-size: 11px; color: var(--text-muted); }
-
-    /* ============= MAIN CONTENT ============= */
-    .main {
-      flex: 1;
-      margin-left: 240px;
-      min-height: 100vh;
-    }
-
-    /* Top bar */
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background: rgba(10, 10, 15, 0.8);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 32px;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .breadcrumb {
+      font-weight: 600;
+      color: #fff;
+      background: var(--primary);
+      border: none;
+      border-radius: 9999px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 13px;
+      transition: all 0.2s;
     }
-
-    .breadcrumb-item { color: var(--text-muted); }
-    .breadcrumb-sep { color: var(--text-muted); opacity: 0.4; }
-    .breadcrumb-current { color: var(--text-primary); font-weight: 600; }
-
-    .topbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .topbar-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-secondary);
-      cursor: pointer;
+    .nav-create-btn:hover { background: var(--primary-hover); }
+    .nav-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #5856D6);
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all var(--transition);
-      position: relative;
-    }
-
-    .topbar-btn:hover {
-      background: var(--bg-elevated);
-      color: var(--text-primary);
-      border-color: var(--border-hover);
-    }
-
-    .topbar-btn svg { width: 16px; height: 16px; }
-
-    .topbar-btn .notif-dot {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 7px;
-      height: 7px;
-      background: var(--red);
-      border-radius: 50%;
-      border: 1.5px solid var(--bg-primary);
-    }
-
-    .search-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 0 12px;
-      height: 36px;
-      min-width: 220px;
-      cursor: text;
-      transition: border-color var(--transition);
-    }
-
-    .search-bar:focus-within { border-color: var(--accent); }
-
-    .search-bar svg { width: 15px; height: 15px; color: var(--text-muted); flex-shrink: 0; }
-
-    .search-bar input {
-      background: none;
-      border: none;
-      outline: none;
-      color: var(--text-primary);
-      font-size: 13px;
-      flex: 1;
-      font-family: inherit;
-    }
-
-    .search-bar input::placeholder { color: var(--text-muted); }
-
-    .search-bar kbd {
-      font-family: inherit;
-      font-size: 11px;
-      color: var(--text-muted);
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 5px;
-    }
-
-    .lang-switch {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-    }
-
-    .lang-switch button {
-      padding: 6px 10px;
-      font-size: 11px;
-      font-weight: 600;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all var(--transition);
-      font-family: inherit;
-    }
-
-    .lang-switch button.active {
-      background: var(--accent);
-      color: white;
-    }
-
-    /* ============= PAGE CONTENT ============= */
-    .page-content {
-      padding: 28px 32px;
-      max-width: 1200px;
-    }
-
-    .page-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 28px;
-    }
-
-    .page-title {
-      font-size: 24px;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
+      cursor: pointer;
     }
 
-    .page-subtitle {
-      font-size: 14px;
-      color: var(--text-secondary);
+    /* ==================== Page Layout ==================== */
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
     }
 
-    .btn-primary {
+    .back-btn {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 20px;
-      background: var(--accent);
-      color: white;
-      font-size: 13.5px;
-      font-weight: 600;
-      border: none;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: all var(--transition);
-      font-family: inherit;
-    }
-
-    .btn-primary:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3);
-    }
-
-    .btn-primary svg { width: 16px; height: 16px; }
-
-    /* Stats row */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-      margin-bottom: 28px;
-    }
-
-    .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 18px 20px;
-      transition: all var(--transition);
-    }
-
-    .stat-card:hover {
-      border-color: var(--border-hover);
-      background: var(--bg-card-hover);
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 500;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
       gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--primary);
+      text-decoration: none;
+      margin-bottom: 24px;
+      transition: opacity 0.2s;
+    }
+    .back-btn:hover { opacity: 0.7; }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      align-items: start;
     }
 
-    .stat-label svg { width: 14px; height: 14px; }
+    /* ==================== Cards ==================== */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-body { padding: 28px; }
+    .card + .card { margin-top: 20px; }
 
-    .stat-value {
+    /* ==================== Header Card ==================== */
+    .badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .badge-blue { background: var(--primary-bg); color: var(--primary); }
+    .badge-red { background: var(--red-bg); color: var(--red); }
+    .badge-green { background: var(--green-bg); color: var(--green); }
+
+    .test-title {
       font-size: 28px;
       font-weight: 700;
       letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 8px;
     }
 
-    .stat-change {
-      font-size: 12px;
-      font-weight: 600;
-      margin-top: 4px;
-    }
-
-    .stat-change.up { color: var(--green); }
-    .stat-change.down { color: var(--red); }
-
-    /* Filter bar */
-    .filter-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .test-description {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.6;
       margin-bottom: 20px;
     }
 
-    .filter-tabs {
+    .tags {
       display: flex;
-      gap: 2px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 3px;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
     }
-
-    .filter-tab {
-      padding: 6px 14px;
-      font-size: 12.5px;
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 12px;
+      font-size: 12px;
       font-weight: 500;
       color: var(--text-secondary);
-      border: none;
-      background: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all var(--transition);
-      font-family: inherit;
+      background: var(--bg);
+      border-radius: 9999px;
     }
 
-    .filter-tab:hover { color: var(--text-primary); }
-
-    .filter-tab.active {
-      background: var(--accent);
-      color: white;
+    /* ==================== Stats — 4 Metrics ==================== */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
     }
-
-    .filter-spacer { flex: 1; }
-
-    .view-toggle {
-      display: flex;
-      gap: 2px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
+    .stat-item {
+      text-align: center;
+      padding: 16px 8px;
       border-radius: var(--radius-sm);
-      padding: 3px;
     }
-
-    .view-btn {
-      width: 30px;
-      height: 28px;
-      border: none;
-      background: none;
-      border-radius: 5px;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
+    .stat-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: all var(--transition);
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
-    .view-btn:hover { color: var(--text-secondary); }
+    .stat-questions { background: #F0F5FF; }
+    .stat-questions .stat-icon { background: #DBEAFE; color: var(--primary); }
+    .stat-questions .stat-value { color: var(--primary); }
 
-    .view-btn.active {
-      background: var(--bg-elevated);
-      color: var(--text-primary);
-    }
+    .stat-time { background: #FFFBEB; }
+    .stat-time .stat-icon { background: #FEF3C7; color: #D97706; }
+    .stat-time .stat-value { color: #D97706; }
 
-    .view-btn svg { width: 14px; height: 14px; }
+    .stat-participants { background: var(--green-bg); }
+    .stat-participants .stat-icon { background: #DCFCE7; color: #16A34A; }
+    .stat-participants .stat-value { color: #16A34A; }
 
-    /* ============= TEST CARDS GRID ============= */
-    .tests-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 14px;
-    }
+    .stat-rating { background: var(--purple-bg); }
+    .stat-rating .stat-icon { background: #F3E8FF; color: var(--purple); }
+    .stat-rating .stat-value { color: var(--purple); }
 
-    .test-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      cursor: pointer;
-      transition: all var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .test-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: var(--accent);
-      opacity: 0;
-      transition: opacity var(--transition);
-    }
-
-    .test-card:hover {
-      border-color: var(--border-hover);
-      background: var(--bg-card-hover);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-hover);
-    }
-
-    .test-card:hover::before { opacity: 1; }
-
-    .test-card-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .test-card-badges {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .badge-sm {
-      font-size: 10.5px;
+    /* ==================== Question Types ==================== */
+    .section-title {
+      font-size: 13px;
       font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 20px;
+      color: var(--text);
+      margin-bottom: 10px;
       letter-spacing: 0.01em;
     }
-
-    .badge-public { background: var(--green-subtle); color: var(--green); }
-    .badge-private { background: var(--orange-subtle); color: var(--orange); }
-    .badge-tag { background: var(--blue-subtle); color: var(--blue); }
-
-    .test-card-menu {
-      width: 28px;
-      height: 28px;
-      border: none;
-      background: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      border-radius: 6px;
+    .type-chips {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all var(--transition);
-      flex-shrink: 0;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .type-chip {
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--bg);
+      border: 1px solid var(--border);
     }
 
-    .test-card-menu:hover {
-      background: var(--bg-elevated);
-      color: var(--text-primary);
-    }
-
-    .test-card-title {
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 4px;
-      letter-spacing: -0.01em;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .test-card-desc {
-      font-size: 12.5px;
-      color: var(--text-muted);
-      margin-bottom: 16px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      line-height: 1.5;
-    }
-
-    .test-card-meta {
+    /* ==================== Creator ==================== */
+    .creator-row {
       display: flex;
       align-items: center;
       gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    .meta-item svg { width: 13px; height: 13px; opacity: 0.6; }
-
-    .test-card-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 16px;
-      padding-top: 14px;
+      padding-top: 20px;
       border-top: 1px solid var(--border);
     }
-
-    .test-author {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .test-author-avatar {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #6c5ce7, #a855f7);
+    .creator-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), #5856D6);
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 13px;
       font-weight: 700;
-      color: white;
+      flex-shrink: 0;
     }
-
-    .test-author-name {
-      font-size: 12px;
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-
-    .stars-row {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-    }
-
-    .star {
-      width: 13px;
-      height: 13px;
-      color: #f59e0b;
-    }
-
-    .star.empty { color: var(--text-muted); opacity: 0.3; }
-
-    .rating-num {
-      font-size: 12px;
+    .creator-name {
+      font-size: 14px;
       font-weight: 600;
-      color: var(--text-secondary);
-      margin-left: 4px;
+      color: var(--text);
     }
-
-    /* ============= TEST CARD — LIST VIEW ============= */
-    .tests-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .test-row {
-      display: grid;
-      grid-template-columns: 1fr 120px 100px 80px 100px 36px;
-      align-items: center;
-      gap: 16px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      cursor: pointer;
-      transition: all var(--transition);
-    }
-
-    .test-row:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--border-hover);
-    }
-
-    .test-row-title { font-size: 13.5px; font-weight: 600; }
-
-    .test-row-author {
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    .creator-role {
       font-size: 12px;
-      color: var(--text-secondary);
+      color: var(--text-tertiary);
     }
-
-    .test-row-count { font-size: 12px; color: var(--text-secondary); text-align: center; }
-    .test-row-rating { font-size: 12px; color: var(--text-secondary); text-align: center; }
-    .test-row-date { font-size: 12px; color: var(--text-muted); text-align: right; }
-
-    /* ============= MOBILE ============= */
-    .mobile-header {
-      display: none;
-      position: sticky;
-      top: 0;
-      z-index: 101;
-      background: rgba(10, 10, 15, 0.95);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 12px 16px;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .mobile-header .logo-icon {
+    .creator-row .spacer { flex: 1; }
+    .report-btn {
       width: 32px;
       height: 32px;
-      background: var(--accent);
       border-radius: 8px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--text-tertiary);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
-      font-size: 14px;
-      color: white;
+      transition: all 0.2s;
+    }
+    .report-btn:hover { background: var(--orange-bg); color: var(--orange); }
+
+    /* ==================== Rating Card ==================== */
+    .rating-section {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .star-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px;
+      transition: transform 0.15s;
+    }
+    .star-btn:hover { transform: scale(1.2); }
+    .star-btn svg { display: block; }
+    .rating-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-left: 12px;
     }
 
-    .hamburger {
-      width: 36px;
-      height: 36px;
-      border: 1px solid var(--border);
+    /* ==================== Sidebar ==================== */
+    .sidebar { position: sticky; top: 72px; }
+
+    .anticheat-banner {
+      background: var(--red-bg);
+      border: 1px solid #FECACA;
       border-radius: var(--radius-sm);
-      background: none;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+    .anticheat-banner .label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--red);
+      margin-bottom: 4px;
+    }
+    .anticheat-banner .desc {
+      font-size: 12px;
+      color: #DC2626;
+      line-height: 1.4;
+    }
+
+    .attempts-text {
+      font-size: 13px;
       color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    .attempts-text strong { color: var(--text); }
+
+    .start-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--primary);
+      border: none;
+      border-radius: var(--radius-sm);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      letter-spacing: -0.01em;
     }
+    .start-btn:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,113,227,0.25); }
+    .start-btn:active { transform: translateY(0); }
 
-    .hamburger svg { width: 18px; height: 18px; }
-
-    .overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 99;
-    }
-
-    .overlay.show { display: block; }
-
-    @media (max-width: 768px) {
-      .sidebar {
-        transform: translateX(-100%);
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-
-      .mobile-header { display: flex; }
-      .main { margin-left: 0; }
-      .topbar { display: none; }
-      .page-content { padding: 20px 16px; }
-      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .tests-grid { grid-template-columns: 1fr; }
-
-      .page-header {
-        flex-direction: column;
-        gap: 16px;
-      }
-
-      .filter-bar {
-        overflow-x: auto;
-        padding-bottom: 4px;
-      }
-    }
-
-    /* ============= CREATE TEST PAGE ============= */
-    .create-test-layout {
-      display: none;
-      padding: 28px 32px;
-      max-width: 900px;
-    }
-
-    .create-test-layout.active { display: block; }
-    .page-content.hidden { display: none; }
-
-    .form-section {
-      background: var(--bg-card);
+    .action-btn {
+      width: 100%;
+      padding: 11px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      background: transparent;
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 24px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+    .action-btn:hover { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.12); }
+
+    .action-btn.practice { border-color: #BBF7D0; color: #16A34A; }
+    .action-btn.practice:hover { background: var(--green-bg); }
+
+    .action-btn.preview { border-color: #FDE68A; color: #D97706; }
+    .action-btn.preview:hover { background: var(--orange-bg); }
+
+    .share-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    /* ==================== Leaderboard ==================== */
+    .lb-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 16px;
     }
-
-    .form-section-title {
+    .lb-header h3 {
       font-size: 14px;
       font-weight: 600;
-      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .lb-header a {
+      font-size: 12px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .lb-header a:hover { text-decoration: underline; }
+
+    .lb-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+    }
+    .lb-item + .lb-item { border-top: 1px solid var(--border); }
+    .lb-rank {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .lb-rank.gold { background: #FEF3C7; color: #B45309; }
+    .lb-rank.silver { background: #F1F5F9; color: #64748B; }
+    .lb-rank.bronze { background: #FFEDD5; color: #C2410C; }
+    .lb-rank.default { background: var(--bg); color: var(--text-tertiary); }
+    .lb-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lb-score {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .lb-score.high { color: #16A34A; }
+    .lb-score.mid { color: #D97706; }
+    .lb-score.low { color: var(--red); }
+
+    /* ==================== Comments ==================== */
+    .comments-card .card-body { padding: 24px 28px; }
+
+    .comments-header {
       display: flex;
       align-items: center;
       gap: 8px;
+      margin-bottom: 20px;
+    }
+    .comments-header h3 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .comment-count {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+      background: var(--primary-bg);
+      padding: 2px 8px;
+      border-radius: 9999px;
     }
 
-    .form-section-title svg { width: 16px; height: 16px; color: var(--accent); }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-group:last-child { margin-bottom: 0; }
-
-    .form-label {
-      display: block;
-      font-size: 12.5px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
-    }
-
-    .form-input {
-      width: 100%;
-      height: 40px;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 0 12px;
-      color: var(--text-primary);
-      font-size: 13.5px;
-      font-family: inherit;
-      transition: border-color var(--transition);
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    .form-textarea {
-      width: 100%;
-      min-height: 80px;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 12px;
-      color: var(--text-primary);
-      font-size: 13.5px;
-      font-family: inherit;
-      resize: vertical;
-      transition: border-color var(--transition);
-    }
-
-    .form-textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .form-row-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 14px;
-    }
-
-    .toggle-row {
+    .comment-input-row {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
+      gap: 12px;
+      margin-bottom: 24px;
     }
-
-    .toggle-row:last-child { border-bottom: none; }
-
-    .toggle-label {
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .toggle-desc {
-      font-size: 11.5px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    .toggle {
-      width: 40px;
-      height: 22px;
-      background: var(--border);
-      border-radius: 11px;
-      border: none;
-      cursor: pointer;
-      position: relative;
-      transition: background var(--transition);
-      flex-shrink: 0;
-    }
-
-    .toggle::after {
-      content: '';
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      background: white;
+    .comment-avatar {
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      top: 3px;
-      left: 3px;
-      transition: transform var(--transition);
-    }
-
-    .toggle.active { background: var(--accent); }
-    .toggle.active::after { transform: translateX(18px); }
-
-    /* Question card */
-    .question-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-
-    .question-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      background: var(--bg-elevated);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .question-number {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .question-num-badge {
-      width: 28px;
-      height: 28px;
-      background: var(--accent);
-      border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), #5856D6);
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 12px;
       font-weight: 700;
-      color: white;
+      flex-shrink: 0;
     }
-
-    .question-type {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 500;
+    .comment-input-wrap {
+      flex: 1;
+      position: relative;
     }
-
-    .question-actions {
-      display: flex;
-      gap: 4px;
+    .comment-input {
+      width: 100%;
+      padding: 10px 44px 10px 14px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s;
+      resize: none;
+      line-height: 1.5;
     }
-
-    .question-action-btn {
+    .comment-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,113,227,0.08); }
+    .comment-send-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
       width: 30px;
       height: 30px;
-      border: 1px solid var(--border);
-      background: none;
-      color: var(--text-muted);
-      border-radius: 6px;
+      border-radius: 50%;
+      border: none;
+      background: var(--primary);
+      color: #fff;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all var(--transition);
+      transition: all 0.15s;
     }
+    .comment-send-btn:hover { background: var(--primary-hover); }
 
-    .question-action-btn:hover {
-      background: var(--bg-card);
-      color: var(--text-primary);
-      border-color: var(--border-hover);
+    .comment-item {
+      display: flex;
+      gap: 12px;
+      padding: 16px 0;
     }
-
-    .question-action-btn svg { width: 14px; height: 14px; }
-
-    .question-card-body { padding: 18px; }
-
-    .option-row {
+    .comment-item + .comment-item { border-top: 1px solid var(--border); }
+    .comment-item .comment-avatar { width: 32px; height: 32px; font-size: 11px; }
+    .comment-body { flex: 1; min-width: 0; }
+    .comment-meta {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      margin-bottom: 6px;
-      transition: all var(--transition);
+      gap: 8px;
+      margin-bottom: 4px;
     }
-
-    .option-row:hover { border-color: var(--border-hover); }
-
-    .option-radio {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      flex-shrink: 0;
-      transition: all var(--transition);
+    .comment-author {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
     }
-
-    .option-row.correct .option-radio {
-      border-color: var(--green);
-      background: var(--green);
-      box-shadow: inset 0 0 0 3px var(--bg-card);
+    .comment-author-badge {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--primary-bg);
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
     }
-
-    .option-text {
-      flex: 1;
+    .comment-time {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .comment-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .comment-actions {
+      display: flex;
+      gap: 16px;
+      margin-top: 6px;
+    }
+    .comment-actions button {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
       background: none;
       border: none;
-      color: var(--text-primary);
-      font-size: 13px;
-      font-family: inherit;
-      outline: none;
+      cursor: pointer;
+      transition: color 0.2s;
     }
+    .comment-actions button:hover { color: var(--primary); }
 
-    .option-text::placeholder { color: var(--text-muted); }
-
-    /* ============= SCROLLBAR ============= */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
-
-    /* ============= ANIMATIONS ============= */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    .anim { animation: fadeUp 0.4s ease-out both; }
+    .anim-1 { animation-delay: 0.05s; }
+    .anim-2 { animation-delay: 0.1s; }
+    .anim-3 { animation-delay: 0.15s; }
+    .anim-4 { animation-delay: 0.2s; }
 
-    .animate-in {
-      animation: fadeIn 0.3s ease forwards;
+    /* ==================== Responsive ==================== */
+    @media (max-width: 860px) {
+      .grid-layout { grid-template-columns: 1fr; }
+      .sidebar .card { position: static; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
     }
-
-    .test-card:nth-child(1) { animation-delay: 0.02s; }
-    .test-card:nth-child(2) { animation-delay: 0.06s; }
-    .test-card:nth-child(3) { animation-delay: 0.1s; }
-    .test-card:nth-child(4) { animation-delay: 0.14s; }
-    .test-card:nth-child(5) { animation-delay: 0.18s; }
-    .test-card:nth-child(6) { animation-delay: 0.22s; }
   </style>
 </head>
 <body>
 
-  <!-- Mobile header -->
-  <div class="mobile-header">
-    <div class="logo-icon">U</div>
-    <button class="hamburger" onclick="toggleSidebar()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
-  </div>
+  <!-- ============ NAVBAR ============ -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-brand">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="8" fill="#0071E3"/>
+          <path d="M8 14L12 18L20 10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        UniTest
+      </a>
 
-  <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-
-  <div class="layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <div class="logo-icon">U</div>
-        <span>UniTest</span>
-      </div>
-
-      <nav class="sidebar-nav">
-        <a class="nav-item active" onclick="showPage('dashboard')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <div class="nav-links">
+        <a href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           Главная
         </a>
-        <a class="nav-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <a href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Мои тесты
-          <span class="badge">5</span>
         </a>
-        <a class="nav-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <a href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Результаты
         </a>
-        <a class="nav-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-          Лидерборд
-        </a>
-
-        <div class="nav-section-title">Инструменты</div>
-        <a class="nav-item" onclick="showPage('create')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          Создать тест
-        </a>
-        <a class="nav-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/><polyline points="14 2 14 8 20 8"/><line x1="2" y1="15" x2="12" y2="15"/><polyline points="9 12 12 15 9 18"/></svg>
+        <a href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
           Банк вопросов
         </a>
-
-        <div class="nav-section-title">Управление</div>
-        <a class="nav-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <a href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
           Админ
         </a>
-        <a class="nav-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          Настройки
-        </a>
-      </nav>
+      </div>
 
-      <div class="sidebar-footer">
-        <div class="user-card">
-          <div class="user-avatar">А</div>
-          <div class="user-info">
-            <div class="user-name">Жангарашов А.</div>
-            <div class="user-role">Преподаватель</div>
+      <div class="nav-right">
+        <button class="nav-lang">RU</button>
+        <button class="nav-icon-btn" title="Тема">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+        <button class="nav-icon-btn" title="Уведомления">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </button>
+        <button class="nav-create-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Создать тест
+        </button>
+        <div class="nav-avatar">АЖ</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============ PAGE ============ -->
+  <div class="page">
+
+    <a href="#" class="back-btn anim">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Назад
+    </a>
+
+    <div class="grid-layout">
+      <!-- ========= LEFT COLUMN ========= -->
+      <div>
+        <!-- Header Card -->
+        <div class="card anim anim-1">
+          <div class="card-body">
+            <div class="badges">
+              <span class="badge badge-blue">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Публичный
+              </span>
+              <span class="badge badge-red">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Anti-cheat
+              </span>
+              <span class="badge badge-green">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                с 01.03.2026
+              </span>
+            </div>
+
+            <h1 class="test-title">The best medicine</h1>
+            <p class="test-description">This quiz covers key medical terminology, first-aid protocols and health science fundamentals.</p>
+
+            <div class="tags">
+              <span class="tag">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                English
+              </span>
+              <span class="tag">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                Medicine
+              </span>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+              <div class="stat-item stat-questions">
+                <div class="stat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+                <div class="stat-value">9</div>
+                <div class="stat-label">Вопросов</div>
+              </div>
+              <div class="stat-item stat-time">
+                <div class="stat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="stat-value">∞</div>
+                <div class="stat-label">Минут</div>
+              </div>
+              <div class="stat-item stat-participants">
+                <div class="stat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
+                <div class="stat-value">8</div>
+                <div class="stat-label">Участников</div>
+              </div>
+              <div class="stat-item stat-rating">
+                <div class="stat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </div>
+                <div class="stat-value">5.0</div>
+                <div class="stat-label">Рейтинг</div>
+              </div>
+            </div>
+
+            <!-- Question types -->
+            <div class="section-title">Типы вопросов</div>
+            <div class="type-chips">
+              <span class="type-chip">Один ответ: 9</span>
+            </div>
+
+            <!-- Creator -->
+            <div class="creator-row">
+              <div class="creator-avatar">АЖ</div>
+              <div>
+                <div class="creator-name">Жангарашов Айымбек</div>
+                <div class="creator-role">Админ</div>
+              </div>
+              <div class="spacer"></div>
+              <button class="report-btn" title="Пожаловаться">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rating Card -->
+        <div class="card anim anim-2">
+          <div class="card-body" style="padding: 20px 28px;">
+            <div class="section-title" style="margin-bottom: 12px;">Оцените тест</div>
+            <div class="rating-section">
+              <button class="star-btn">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#FFCC00" stroke="#FFCC00" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </button>
+              <button class="star-btn">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#FFCC00" stroke="#FFCC00" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </button>
+              <button class="star-btn">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#FFCC00" stroke="#FFCC00" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </button>
+              <button class="star-btn">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#FFCC00" stroke="#FFCC00" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </button>
+              <button class="star-btn">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#FFCC00" stroke="#FFCC00" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </button>
+              <span class="rating-text">Ваша оценка: 5/5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comments Card -->
+        <div class="card comments-card anim anim-3">
+          <div class="card-body">
+            <div class="comments-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              <h3>Комментарии</h3>
+              <span class="comment-count">2</span>
+            </div>
+
+            <!-- Input -->
+            <div class="comment-input-row">
+              <div class="comment-avatar">АЖ</div>
+              <div class="comment-input-wrap">
+                <input type="text" class="comment-input" placeholder="Написать комментарий..." />
+                <button class="comment-send-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Comments -->
+            <div class="comment-item">
+              <div class="comment-avatar" style="background: linear-gradient(135deg, #34C759, #30D158);">АА</div>
+              <div class="comment-body">
+                <div class="comment-meta">
+                  <span class="comment-author">Аралбек</span>
+                  <span class="comment-time">2 часа назад</span>
+                </div>
+                <p class="comment-text">Очень интересный тест! Некоторые вопросы реально сложные 🤔</p>
+                <div class="comment-actions">
+                  <button>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="14 9 20 9 20 15"/><path d="M20 9l-7 7-4-4-6 6"/></svg>
+                    Ответить
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="comment-item">
+              <div class="comment-avatar" style="background: linear-gradient(135deg, #FF9500, #FF6B00);">VL</div>
+              <div class="comment-body">
+                <div class="comment-meta">
+                  <span class="comment-author">Vlad</span>
+                  <span class="comment-author-badge">Автор</span>
+                  <span class="comment-time">5 часов назад</span>
+                </div>
+                <p class="comment-text">Спасибо за тест! Очень полезный для подготовки к экзамену.</p>
+                <div class="comment-actions">
+                  <button>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="14 9 20 9 20 15"/><path d="M20 9l-7 7-4-4-6 6"/></svg>
+                    Ответить
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </aside>
 
-    <!-- Main -->
-    <main class="main">
-      <!-- Top bar -->
-      <div class="topbar">
-        <div class="topbar-left">
-          <div class="breadcrumb">
-            <span class="breadcrumb-item">UniTest</span>
-            <span class="breadcrumb-sep">/</span>
-            <span class="breadcrumb-current" id="breadcrumb-page">Главная</span>
-          </div>
-        </div>
-        <div class="topbar-actions">
-          <div class="search-bar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Поиск тестов...">
-            <kbd>⌘K</kbd>
-          </div>
-          <div class="lang-switch">
-            <button class="active">RU</button>
-            <button>EN</button>
-            <button>KZ</button>
-          </div>
-          <button class="topbar-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span class="notif-dot"></span>
-          </button>
-          <button class="topbar-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </button>
-        </div>
-      </div>
+      <!-- ========= RIGHT COLUMN (SIDEBAR) ========= -->
+      <div class="sidebar">
+        <!-- Start Test Card -->
+        <div class="card anim anim-2">
+          <div class="card-body">
+            <div class="anticheat-banner">
+              <div class="label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Anti-cheat
+              </div>
+              <div class="desc">Переключение вкладок запрещено. Макс. нарушений: 8</div>
+            </div>
 
-      <!-- ===== DASHBOARD PAGE ===== -->
-      <div class="page-content" id="page-dashboard">
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Добро пожаловать, Айымбек 👋</h1>
-            <p class="page-subtitle">Ваши тесты и аналитика</p>
-          </div>
-          <button class="btn-primary" onclick="showPage('create')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Создать тест
-          </button>
-        </div>
+            <div class="attempts-text">
+              Попытки: <strong>2</strong> / 10
+            </div>
 
-        <!-- Stats -->
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              Мои тесты
-            </div>
-            <div class="stat-value">5</div>
-            <div class="stat-change up">↑ 2 за неделю</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-              Прошли тесты
-            </div>
-            <div class="stat-value">26</div>
-            <div class="stat-change up">↑ 8 новых</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-              Средний балл
-            </div>
-            <div class="stat-value">78%</div>
-            <div class="stat-change up">↑ 3%</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              Рейтинг
-            </div>
-            <div class="stat-value">5.0</div>
-            <div class="stat-change" style="color: var(--text-muted)">Все тесты</div>
-          </div>
-        </div>
-
-        <!-- Filters -->
-        <div class="filter-bar">
-          <div class="filter-tabs">
-            <button class="filter-tab active">Новые</button>
-            <button class="filter-tab">Популярные</button>
-            <button class="filter-tab">Рейтинг</button>
-            <button class="filter-tab">Мои</button>
-          </div>
-          <div class="filter-spacer"></div>
-          <div class="view-toggle">
-            <button class="view-btn active" onclick="setView('grid')" id="view-grid">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <button class="start-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Начать тест
             </button>
-            <button class="view-btn" onclick="setView('list')" id="view-list">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+
+            <div class="share-row">
+              <button class="action-btn" style="margin-top: 0;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Ссылка
+              </button>
+              <button class="action-btn" style="margin-top: 0;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><rect x="6" y="6" width="4" height="4" rx="1"/><rect x="14" y="6" width="4" height="4" rx="1"/><rect x="6" y="14" width="4" height="4" rx="1"/><rect x="14" y="14" width="2.5" height="2.5" rx="0.5"/><rect x="17.5" y="14" width="2.5" height="2.5" rx="0.5"/><rect x="14" y="17.5" width="2.5" height="2.5" rx="0.5"/></svg>
+                QR-код
+              </button>
+            </div>
+
+            <button class="action-btn preview">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Режим предпросмотра
+            </button>
+
+            <button class="action-btn practice">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+              Тренировка
             </button>
           </div>
         </div>
 
-        <!-- Grid View -->
-        <div class="tests-grid" id="tests-grid">
-          <!-- Cards filled by JS -->
-        </div>
+        <!-- Leaderboard Card -->
+        <div class="card anim anim-3" style="margin-top: 20px;">
+          <div class="card-body">
+            <div class="lb-header">
+              <h3>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071E3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>
+                Рейтинг
+              </h3>
+              <a href="#">Все →</a>
+            </div>
 
-        <!-- List View -->
-        <div class="tests-list" id="tests-list" style="display:none">
-          <!-- Rows filled by JS -->
-        </div>
-      </div>
-
-      <!-- ===== CREATE TEST PAGE ===== -->
-      <div class="create-test-layout" id="page-create">
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Создать тест</h1>
-            <p class="page-subtitle">Настройте информацию и добавьте вопросы</p>
-          </div>
-          <button class="btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            Опубликовать
-          </button>
-        </div>
-
-        <!-- Basic info -->
-        <div class="form-section">
-          <div class="form-section-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Основная информация
-          </div>
-          <div class="form-group">
-            <label class="form-label">Название теста</label>
-            <input type="text" class="form-input" placeholder="Например: История Казахстана — Глава 5" value="The best medicine">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Описание</label>
-            <textarea class="form-textarea" placeholder="Краткое описание теста...">Тест по английскому языку для 9 класса</textarea>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Категория / Тег</label>
-              <input type="text" class="form-input" placeholder="English, Biology...">
+            <div class="lb-item">
+              <span class="lb-rank gold">1</span>
+              <span class="lb-name">Айымбек Жанга…</span>
+              <span class="lb-score high">100%</span>
             </div>
-            <div class="form-group">
-              <label class="form-label">Видимость</label>
-              <input type="text" class="form-input" value="Публичный" readonly>
+            <div class="lb-item">
+              <span class="lb-rank silver">2</span>
+              <span class="lb-name">Аралбек</span>
+              <span class="lb-score high">90%</span>
             </div>
-          </div>
-        </div>
-
-        <!-- Settings -->
-        <div class="form-section">
-          <div class="form-section-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42"/></svg>
-            Настройки
-          </div>
-          <div class="form-row-3">
-            <div class="form-group">
-              <label class="form-label">Лимит времени (мин)</label>
-              <input type="number" class="form-input" value="30">
+            <div class="lb-item">
+              <span class="lb-rank bronze">3</span>
+              <span class="lb-name">Cool</span>
+              <span class="lb-score high">90%</span>
             </div>
-            <div class="form-group">
-              <label class="form-label">Макс. попыток</label>
-              <input type="number" class="form-input" value="3">
+            <div class="lb-item">
+              <span class="lb-rank default">4</span>
+              <span class="lb-name">Vlad</span>
+              <span class="lb-score mid">80%</span>
             </div>
-            <div class="form-group">
-              <label class="form-label">Кол-во вариантов</label>
-              <input type="number" class="form-input" value="4">
-            </div>
-          </div>
-          <div style="margin-top: 16px;">
-            <div class="toggle-row">
-              <div>
-                <div class="toggle-label">Перемешивать вопросы</div>
-                <div class="toggle-desc">Вопросы будут показаны в случайном порядке</div>
-              </div>
-              <button class="toggle active" onclick="this.classList.toggle('active')"></button>
-            </div>
-            <div class="toggle-row">
-              <div>
-                <div class="toggle-label">Анти-чит (блокировка вкладок)</div>
-                <div class="toggle-desc">Студент не сможет переключить вкладку</div>
-              </div>
-              <button class="toggle active" onclick="this.classList.toggle('active')"></button>
-            </div>
-            <div class="toggle-row">
-              <div>
-                <div class="toggle-label">Мгновенная обратная связь</div>
-                <div class="toggle-desc">Показывать правильный ответ после каждого вопроса</div>
-              </div>
-              <button class="toggle" onclick="this.classList.toggle('active')"></button>
-            </div>
-            <div class="toggle-row">
-              <div>
-                <div class="toggle-label">Система билетов</div>
-                <div class="toggle-desc">Каждый студент получает уникальный вариант</div>
-              </div>
-              <button class="toggle" onclick="this.classList.toggle('active')"></button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Questions -->
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px;">
-          <h2 style="font-size:16px; font-weight:600;">Вопросы (9)</h2>
-          <button class="btn-primary" style="padding:8px 16px; font-size:12.5px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Добавить вопрос
-          </button>
-        </div>
-
-        <div class="question-card animate-in">
-          <div class="question-card-header">
-            <div class="question-number">
-              <div class="question-num-badge">1</div>
-              <span class="question-type">Один правильный ответ</span>
-            </div>
-            <div class="question-actions">
-              <button class="question-action-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
-              </button>
-              <button class="question-action-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <button class="question-action-btn" style="color: var(--red);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              </button>
-            </div>
-          </div>
-          <div class="question-card-body">
-            <input type="text" class="form-input" value="What is the best medicine?" style="margin-bottom:14px; font-weight:500;">
-            <div class="option-row correct">
-              <div class="option-radio"></div>
-              <input type="text" class="option-text" value="Laughter">
-            </div>
-            <div class="option-row">
-              <div class="option-radio"></div>
-              <input type="text" class="option-text" value="Aspirin">
-            </div>
-            <div class="option-row">
-              <div class="option-radio"></div>
-              <input type="text" class="option-text" value="Sleep">
-            </div>
-            <div class="option-row">
-              <div class="option-radio"></div>
-              <input type="text" class="option-text" value="Exercise">
-            </div>
-          </div>
-        </div>
-
-        <div class="question-card animate-in">
-          <div class="question-card-header">
-            <div class="question-number">
-              <div class="question-num-badge">2</div>
-              <span class="question-type">Несколько правильных</span>
-            </div>
-            <div class="question-actions">
-              <button class="question-action-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
-              </button>
-              <button class="question-action-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <button class="question-action-btn" style="color: var(--red);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              </button>
-            </div>
-          </div>
-          <div class="question-card-body">
-            <input type="text" class="form-input" value="Which are programming languages?" style="margin-bottom:14px; font-weight:500;">
-            <div class="option-row correct">
-              <div class="option-radio" style="border-radius:4px;"></div>
-              <input type="text" class="option-text" value="Python">
-            </div>
-            <div class="option-row">
-              <div class="option-radio" style="border-radius:4px;"></div>
-              <input type="text" class="option-text" value="HTML">
-            </div>
-            <div class="option-row correct">
-              <div class="option-radio" style="border-radius:4px;"></div>
-              <input type="text" class="option-text" value="JavaScript">
-            </div>
-            <div class="option-row">
-              <div class="option-radio" style="border-radius:4px;"></div>
-              <input type="text" class="option-text" value="Photoshop">
+            <div class="lb-item">
+              <span class="lb-rank default">5</span>
+              <span class="lb-name">Динара К.</span>
+              <span class="lb-score mid">70%</span>
             </div>
           </div>
         </div>
       </div>
-    </main>
+    </div>
   </div>
 
-  <script>
-    const tests = [
-      { title: 'The best medicine', desc: 'Тест по английскому языку', questions: 9, tag: 'English', public: true, author: 'Жангарашов А.', rating: 5.0, students: 8, date: '25 фев' },
-      { title: 'Қазақстан Тарихы (Каз)', desc: 'Қазақстан тарихынан тест.', questions: 30, tag: 'Тарих', public: true, author: 'Aiymbek Z.', rating: 5.0, students: 3, date: '22 фев' },
-      { title: 'History of Kazakhstan', desc: 'Test on the history of Kazakhstan (EN)', questions: 30, tag: 'History', public: true, author: 'Aiymbek Z.', rating: 5.0, students: 0, date: '22 фев' },
-      { title: 'История Казахстана (рус)', desc: 'Тест по истории Казахстана.', questions: 30, tag: 'История', public: true, author: 'Жангарашов А.', rating: 5.0, students: 1, date: '20 фев' },
-      { title: 'English test #1', desc: 'Hello, these are simple English tests.', questions: 10, tag: 'English', public: true, author: 'Aiymbek Z.', rating: 5.0, students: 14, date: '18 фев' },
-      { title: 'Математика — ЕНТ 2026', desc: 'Подготовка к ЕНТ, блок математики', questions: 25, tag: 'Математика', public: false, author: 'Aiymbek Z.', rating: 4.8, students: 42, date: '15 фев' },
-    ];
-
-    const gradients = [
-      'linear-gradient(135deg, #6c5ce7, #a855f7)',
-      'linear-gradient(135deg, #00b894, #00cec9)',
-      'linear-gradient(135deg, #e17055, #fdcb6e)',
-      'linear-gradient(135deg, #0984e3, #74b9ff)',
-      'linear-gradient(135deg, #d63031, #e17055)',
-      'linear-gradient(135deg, #6c5ce7, #0984e3)',
-    ];
-
-    function starsSvg(rating) {
-      let s = '';
-      for (let i = 1; i <= 5; i++) {
-        s += `<svg class="star ${i <= rating ? '' : 'empty'}" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
-      }
-      return s;
-    }
-
-    function renderGrid() {
-      const grid = document.getElementById('tests-grid');
-      grid.innerHTML = tests.map((t, i) => `
-        <div class="test-card animate-in">
-          <div class="test-card-header">
-            <div class="test-card-badges">
-              <span class="badge-sm ${t.public ? 'badge-public' : 'badge-private'}">${t.public ? '● Публичный' : '● Приватный'}</span>
-              <span class="badge-sm badge-tag">${t.tag}</span>
-            </div>
-            <button class="test-card-menu">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-            </button>
-          </div>
-          <div class="test-card-title">${t.title}</div>
-          <div class="test-card-desc">${t.desc}</div>
-          <div class="test-card-meta">
-            <span class="meta-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              ${t.questions} вопросов
-            </span>
-            <span class="meta-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-              ${t.students} прошли
-            </span>
-          </div>
-          <div class="test-card-footer">
-            <div class="test-author">
-              <div class="test-author-avatar" style="background:${gradients[i % gradients.length]}">${t.author[0]}</div>
-              <span class="test-author-name">${t.author}</span>
-            </div>
-            <div class="stars-row">
-              ${starsSvg(Math.round(t.rating))}
-              <span class="rating-num">${t.rating}</span>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function renderList() {
-      const list = document.getElementById('tests-list');
-      list.innerHTML = `
-        <div class="test-row" style="background:none;border:none;padding:4px 18px;cursor:default;">
-          <span style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Название</span>
-          <span style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Автор</span>
-          <span style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Вопросов</span>
-          <span style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;text-align:center;">Рейтинг</span>
-          <span style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;text-align:right;">Дата</span>
-          <span></span>
-        </div>
-      ` + tests.map((t, i) => `
-        <div class="test-row">
-          <div>
-            <div class="test-row-title">${t.title}</div>
-            <div style="display:flex;gap:4px;margin-top:3px;">
-              <span class="badge-sm ${t.public ? 'badge-public' : 'badge-private'}" style="font-size:9.5px;">${t.public ? 'Публичный' : 'Приватный'}</span>
-              <span class="badge-sm badge-tag" style="font-size:9.5px;">${t.tag}</span>
-            </div>
-          </div>
-          <div class="test-row-author">
-            <div class="test-author-avatar" style="width:20px;height:20px;font-size:9px;background:${gradients[i % gradients.length]}">${t.author[0]}</div>
-            ${t.author}
-          </div>
-          <div class="test-row-count">${t.questions}</div>
-          <div class="test-row-rating">⭐ ${t.rating}</div>
-          <div class="test-row-date">${t.date}</div>
-          <button class="test-card-menu" style="width:24px;height:24px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-          </button>
-        </div>
-      `).join('');
-    }
-
-    function setView(type) {
-      document.getElementById('tests-grid').style.display = type === 'grid' ? 'grid' : 'none';
-      document.getElementById('tests-list').style.display = type === 'list' ? 'flex' : 'none';
-      document.getElementById('view-grid').classList.toggle('active', type === 'grid');
-      document.getElementById('view-list').classList.toggle('active', type === 'list');
-    }
-
-    function showPage(page) {
-      document.getElementById('page-dashboard').classList.toggle('hidden', page !== 'dashboard');
-      document.getElementById('page-create').classList.toggle('active', page === 'create');
-      document.getElementById('page-create').classList.toggle('hidden', page !== 'create');
-      document.getElementById('breadcrumb-page').textContent = page === 'create' ? 'Создать тест' : 'Главная';
-
-      // Update active nav
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-      if (page === 'dashboard') document.querySelector('.nav-item').classList.add('active');
-
-      // Close sidebar on mobile
-      document.getElementById('sidebar').classList.remove('open');
-      document.getElementById('overlay').classList.remove('show');
-    }
-
-    function toggleSidebar() {
-      document.getElementById('sidebar').classList.toggle('open');
-      document.getElementById('overlay').classList.toggle('show');
-    }
-
-    // Filter tab click
-    document.querySelectorAll('.filter-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-      });
-    });
-
-    // Lang switch
-    document.querySelectorAll('.lang-switch button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.lang-switch button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
-
-    // Init
-    renderGrid();
-    renderList();
-  </script>
 </body>
 </html>

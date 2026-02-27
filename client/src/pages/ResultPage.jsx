@@ -50,10 +50,10 @@ export default function ResultPage() {
   };
 
   const getGradeInfo = (pct) => {
-    if (pct >= 90) return { label: 'Отлично', color: 'text-emerald-600', bg: 'bg-emerald-50', emoji: '🏆' };
-    if (pct >= 75) return { label: 'Хорошо', color: 'text-blue-600', bg: 'bg-blue-50', emoji: '👍' };
-    if (pct >= 50) return { label: 'Удовлетворительно', color: 'text-amber-600', bg: 'bg-amber-50', emoji: '📝' };
-    return { label: 'Неудовлетворительно', color: 'text-red-600', bg: 'bg-red-50', emoji: '📚' };
+    if (pct >= 90) return { label: 'Отлично', color: 'text-emerald-600', bg: 'bg-emerald-50', icon: 'trophy' };
+    if (pct >= 75) return { label: 'Хорошо', color: 'text-blue-600', bg: 'bg-blue-50', icon: 'award' };
+    if (pct >= 50) return { label: 'Удовлетворительно', color: 'text-amber-600', bg: 'bg-amber-50', icon: 'filetext' };
+    return { label: 'Неудовлетворительно', color: 'text-red-600', bg: 'bg-red-50', icon: 'alert' };
   };
 
   const submitRating = async (rating) => {
@@ -133,9 +133,12 @@ export default function ResultPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
-            className="text-6xl mb-4"
+            className="mb-4 flex justify-center"
           >
-            {grade.emoji}
+            {grade.icon === 'trophy' && <Trophy size={56} className="text-emerald-500" />}
+            {grade.icon === 'award' && <Award size={56} className="text-blue-500" />}
+            {grade.icon === 'filetext' && <FileText size={56} className="text-amber-500" />}
+            {grade.icon === 'alert' && <AlertTriangle size={56} className="text-red-500" />}
           </motion.div>
 
           <motion.div
@@ -223,7 +226,7 @@ export default function ResultPage() {
                 animate={{ opacity: 1 }}
                 className="text-sm text-emerald-600 dark:text-emerald-400 mt-2 font-medium"
               >
-                {userRating > 0 ? `Ваша оценка: ${userRating} ★` : 'Спасибо за оценку! ✓'}
+                {userRating > 0 ? `Ваша оценка: ${userRating}/5` : 'Спасибо за оценку!'}
               </motion.p>
             )}
           </motion.div>

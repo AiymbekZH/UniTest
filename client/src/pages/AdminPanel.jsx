@@ -358,7 +358,7 @@ export default function AdminPanel() {
                     </div>
                     <p className="text-xs text-gray-400">{u.email}</p>
                     {u.warnings?.length > 0 && (
-                      <p className="text-[10px] text-amber-500 mt-0.5">⚠️ {u.warnings.length} {t('warnings').toLowerCase()}</p>
+                      <p className="text-[10px] text-amber-500 mt-0.5 flex items-center gap-1"><AlertTriangle size={10} /> {u.warnings.length} {t('warnings').toLowerCase()}</p>
                     )}
                   </div>
                   <div className="flex gap-1.5 flex-wrap">
@@ -743,7 +743,7 @@ export default function AdminPanel() {
                             <div className="space-y-1">
                               {q.options.map((opt, oi) => (
                                 <div key={oi} className={`text-xs px-2 py-1 rounded-md ${opt.isCorrect ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-medium' : 'text-gray-500'}`}>
-                                  {opt.text} {opt.matchPair ? `→ ${opt.matchPair}` : ''} {opt.isCorrect ? '✓' : ''}
+                                  {opt.text} {opt.matchPair ? `→ ${opt.matchPair}` : ''} {opt.isCorrect && <CheckCircle size={10} className="inline text-emerald-500" />}
                                 </div>
                               ))}
                             </div>

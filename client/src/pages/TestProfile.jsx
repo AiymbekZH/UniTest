@@ -355,7 +355,7 @@ export default function TestProfile() {
                   onClick={() => navigate(`/test/${shareLink}?practice=true`)}
                   className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-200 dark:border-green-700 text-sm font-medium text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition"
                 >
-                  🏋️ {t('practiceModeLabel') || 'Тренировка'}
+                  <Play size={14} /> {t('practiceModeLabel') || 'Тренировка'}
                 </button>
               )}
             </motion.div>

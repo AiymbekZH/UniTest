@@ -53,7 +53,7 @@ export default function Profile() {
     try {
       const res = await api.put('/profile/me', { firstName, lastName, middleName, language: lang });
       updateUser(res.data.user);
-      toast.success(t('save') + ' ✓');
+      toast.success(t('save'));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error');
     } finally {
@@ -89,7 +89,7 @@ export default function Profile() {
     }
     try {
       await api.put('/profile/password', { currentPassword, newPassword });
-      toast.success(t('changePassword') + ' ✓');
+      toast.success(t('changePassword'));
       setCurrentPassword('');
       setNewPassword('');
     } catch (err) {

@@ -5,7 +5,7 @@ import {
   Plus, Trash2, Save, ArrowLeft, Image, Video, Music,
   Check, X, Type, ListChecks, ToggleLeft,
   FileText, Link2, Settings, Upload, ChevronUp, ChevronDown,
-  Database, FileSpreadsheet, Eye, EyeOff
+  Database, FileSpreadsheet, Eye, EyeOff, Ticket
 } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -145,7 +145,7 @@ export default function CreateTest() {
       const draft = JSON.parse(localStorage.getItem('unitest_draft'));
       if (draft) {
         setTest({ ...draft, tagInput: '' });
-        toast.success(t('restore') + ' ✓');
+        toast.success(t('restore'));
       }
     } catch {}
     setShowDraftDialog(false);
@@ -574,7 +574,7 @@ export default function CreateTest() {
                           ${test.settings.variants?.enabled ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 dark:border-slate-500'}`}>
                           {test.settings.variants?.enabled && <Check size={8} className="text-white" />}
                         </div>
-                        🎫 {t('variantsEnabled') || 'Система билетов'}
+                        <Ticket size={12} className="inline -mt-0.5" /> {t('variantsEnabled') || 'Система билетов'}
                       </button>
                       {test.settings.variants?.enabled && (
                         <div className="flex items-center gap-2">
