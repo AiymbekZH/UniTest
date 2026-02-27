@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, AlertTriangle, ChevronLeft, ChevronRight, Send,
-  Image, Video, Music, Shield, User, Check, X, Eye
+  Image, Video, Music, Shield, User, Check, X, Eye, Ticket, Loader2
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -731,6 +731,62 @@ export default function TakeTest() {
             </div>
           )}
 
+          {/* Ticket/Variant picker */}
+          {test.settings?.variants?.enabled && !isPreview && !isPractice && (
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 mb-4">
+              {selectedVariant ? (
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-lg mb-2">
+                    <Ticket size={20} />
+                    {t('ticketN', { n: selectedVariant })}
+                  </div>
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400">{t('ticketReady')}</p>
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-400 mb-3 flex items-center justify-center gap-2">
+                    <Ticket size={16} />
+                    {t('chooseTicket')}
+                  </h3>
+                  <div className="grid grid-cols-5 gap-2">
+                    {ticketState?.variants?.map((v) => (
+                      <motion.button
+                        key={v.number}
+                        whileHover={!v.claimed ? { scale: 1.1 } : {}}
+                        whileTap={!v.claimed ? { scale: 0.95 } : {}}
+                        onClick={() => !v.claimed && !ticketLoading && claimTicket(v.number)}
+                        disabled={v.claimed || ticketLoading}
+                        className={`relative aspect-square rounded-lg font-bold text-sm flex items-center justify-center transition-all ${
+                          v.claimed
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-400 dark:text-red-500 cursor-not-allowed border border-red-200 dark:border-red-800'
+                            : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 cursor-pointer border border-indigo-200 dark:border-indigo-700 shadow-sm hover:shadow-md'
+                        }`}
+                      >
+                        {v.number}
+                        {v.claimed && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <X size={24} className="text-red-400/50" />
+                          </div>
+                        )}
+                      </motion.button>
+                    ))}
+                  </div>
+                  {ticketLoading && (
+                    <div className="mt-3 text-center">
+                      <div className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-sm">
+                        <Loader2 size={14} className="animate-spin" />
+                        {t('claimingTicket')}
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-3 text-center">
+                    {t('ticketHint')}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Attempt limit exceeded */}
           {!isPractice && !isPreview && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 text-center">
@@ -751,7 +807,10 @@ export default function TakeTest() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={startTest}
-            disabled={!isPractice && !isPreview && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts}
+            disabled={
+              (!isPractice && !isPreview && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts) ||
+              (test.settings?.variants?.enabled && !isPreview && !isPractice && !selectedVariant)
+            }
             className="btn-primary w-full text-lg py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('startTestBtn')}
@@ -809,7 +868,14 @@ export default function TakeTest() {
       <div className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-gray-100 dark:border-slate-700 safe-area-top">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-xs sm:text-sm font-semibold text-dark truncate max-w-[40%] sm:max-w-none">{test.title}</h2>
+            <h2 className="text-xs sm:text-sm font-semibold text-dark truncate max-w-[40%] sm:max-w-none">
+              {test.title}
+              {selectedVariant > 0 && (
+                <span className="ml-2 inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                  <Ticket size={10} />#{selectedVariant}
+                </span>
+              )}
+            </h2>
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               {violations.length > 0 && (
                 <span className="badge-danger flex items-center gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">

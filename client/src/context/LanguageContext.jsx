@@ -250,6 +250,15 @@ const translations = {
     imHere: "I'm here!",
     category: 'Category',
     allCategories: 'All categories',
+    // Ticket system
+    ticketN: 'Ticket #{{n}}',
+    chooseTicket: 'Choose your ticket',
+    ticketReady: 'Your ticket is locked in. Press Start!',
+    claimingTicket: 'Claiming ticket...',
+    ticketHint: 'Green — available, Red — taken. Choose quickly!',
+    variantsEnabled: 'Ticket/Variant System',
+    variantCount: 'Number of variants',
+    variantsHint: 'Each student gets a unique ticket with shuffled questions',
     // TakeTest
     matchingHint: 'Click an item on the left, then its pair on the right. Matched pairs are highlighted.',
     elements: 'Elements',
@@ -549,6 +558,15 @@ const translations = {
     imHere: 'Я здесь!',
     category: 'Категория',
     allCategories: 'Все категории',
+    // Ticket system
+    ticketN: 'Билет #{{n}}',
+    chooseTicket: 'Выберите билет',
+    ticketReady: 'Билет закреплён за вами. Нажмите Начать!',
+    claimingTicket: 'Выбираем билет...',
+    ticketHint: 'Зелёный — свободен, Красный — занят. Выбирайте быстрее!',
+    variantsEnabled: 'Система билетов/вариантов',
+    variantCount: 'Количество вариантов',
+    variantsHint: 'Каждый ученик получает уникальный билет с перемешанными вопросами',
     // TakeTest
     matchingHint: 'Нажмите на элемент слева, затем на его пару справа. Совпавшие пары будут выделены одним цветом.',
     elements: 'Элементы',
@@ -848,6 +866,15 @@ const translations = {
     imHere: 'Мен мұндамын!',
     category: 'Санат',
     allCategories: 'Барлық санаттар',
+    // Ticket system
+    ticketN: 'Билет #{{n}}',
+    chooseTicket: 'Билетті таңдаңыз',
+    ticketReady: 'Билет сіздікі. Бастау батырмасын басыңыз!',
+    claimingTicket: 'Билет таңдалуда...',
+    ticketHint: 'Жасыл — бос, Қызыл — бос емес. Тезірек таңдаңыз!',
+    variantsEnabled: 'Билет/вариант жүйесі',
+    variantCount: 'Вариант саны',
+    variantsHint: 'Әр оқушы бірегей билет алады, сұрақтар аралас болады',
     // TakeTest
     matchingHint: 'Сол жақтағы элементті, содан кейін оң жақтағы жұбын басыңыз. Сәйкес жұптар бірдей түспен ерекшеленеді.',
     elements: 'Элементтер',
