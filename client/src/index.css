@@ -178,3 +178,4 @@ html {
 /* Rendered rich text (in TakeTest, ResultPage etc.) */
 .prose mark { border-radius: 2px; padding: 0.1em 0; }
 .prose span[style*="color"] { font-weight: inherit; }
+.prose a { color: #6366f1; text-decoration: underline; cursor: pointer; }

@@ -998,6 +998,13 @@ export default function TakeTest() {
             <div
               className="text-base sm:text-lg font-semibold text-dark mb-4 sm:mb-6 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: question.questionText }}
+              onClick={(e) => {
+                const link = e.target.closest('a');
+                if (!link) return;
+                e.preventDefault();
+                if (test?.settings?.antiCheat?.blockTabSwitch) return;
+                window.open(link.href, '_blank', 'noopener,noreferrer');
+              }}
             />
 
             {/* Media */}
