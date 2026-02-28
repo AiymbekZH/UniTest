@@ -63,11 +63,12 @@ const MenuBar = ({ editor, disableLinks }) => {
         editor.chain().focus().extendMarkRange('link').unsetLink().run();
       }
     } else {
+      // Auto-add https:// if no protocol
+      const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
       if (existingLink) {
-        editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
+        editor.chain().focus().extendMarkRange('link').setLink({ href, target: '_blank' }).run();
       } else {
-        // Restore selection lost during prompt, then apply link
-        editor.chain().focus().setTextSelection({ from, to }).setLink({ href: url, target: '_blank' }).run();
+        editor.chain().focus().setTextSelection({ from, to }).setLink({ href, target: '_blank' }).run();
       }
     }
   };
