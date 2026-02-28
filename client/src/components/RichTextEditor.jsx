@@ -50,6 +50,10 @@ const MenuBar = ({ editor, disableLinks }) => {
     const { from, to } = editor.state.selection;
     const hasSelection = from !== to;
     const existingLink = editor.isActive('link');
+
+    // If no text selected and no existing link — do nothing
+    if (!hasSelection && !existingLink) return;
+
     const prev = editor.getAttributes('link').href || '';
     const url = window.prompt('URL:', prev);
     if (url === null) return; // cancelled
@@ -61,12 +65,9 @@ const MenuBar = ({ editor, disableLinks }) => {
     } else {
       if (existingLink) {
         editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
-      } else if (hasSelection) {
+      } else {
         // Restore selection lost during prompt, then apply link
         editor.chain().focus().setTextSelection({ from, to }).setLink({ href: url, target: '_blank' }).run();
-      } else {
-        // No selection — insert the URL as linked text
-        editor.chain().focus().insertContent(`<a href="${url}" target="_blank">${url}</a>`).run();
       }
     }
   };
@@ -160,8 +161,10 @@ export default function RichTextEditor({ content, onChange, placeholder = '', cl
       Highlight.configure({ multicolor: true }),
       Link.configure({
         openOnClick: false,
+        autolink: true,
         HTMLAttributes: {
-          class: 'text-primary-500 underline',
+          class: 'text-blue-500 underline cursor-pointer',
+          rel: 'noopener noreferrer',
         },
       }),
       Placeholder.configure({
