@@ -78,8 +78,12 @@ export default function Leaderboard() {
                 {/* 2nd place */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                   className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center text-lg font-bold text-white mb-2">
-                    {data.leaderboard[1].userName?.charAt(0) || '?'}
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center text-lg font-bold text-white mb-2 overflow-hidden">
+                    {data.leaderboard[1].avatar ? (
+                      <img src={data.leaderboard[1].avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      data.leaderboard[1].userName?.charAt(0) || '?'
+                    )}
                   </div>
                   <p className="text-xs font-medium text-dark truncate max-w-[80px]">{data.leaderboard[1].userName}</p>
                   <p className="text-xs text-gray-500">{data.leaderboard[1].percentage}%</p>
@@ -91,8 +95,12 @@ export default function Leaderboard() {
                 {/* 1st place */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
                   className="flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-xl font-bold text-white mb-2 ring-3 ring-yellow-300/50">
-                    {data.leaderboard[0].userName?.charAt(0) || '?'}
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-xl font-bold text-white mb-2 ring-3 ring-yellow-300/50 overflow-hidden">
+                    {data.leaderboard[0].avatar ? (
+                      <img src={data.leaderboard[0].avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      data.leaderboard[0].userName?.charAt(0) || '?'
+                    )}
                   </div>
                   <p className="text-sm font-semibold text-dark truncate max-w-[100px]">{data.leaderboard[0].userName}</p>
                   <p className="text-xs text-primary-600 font-medium">{data.leaderboard[0].percentage}%</p>
@@ -104,8 +112,12 @@ export default function Leaderboard() {
                 {/* 3rd place */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
                   className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-300 to-orange-400 flex items-center justify-center text-lg font-bold text-white mb-2">
-                    {data.leaderboard[2].userName?.charAt(0) || '?'}
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-300 to-orange-400 flex items-center justify-center text-lg font-bold text-white mb-2 overflow-hidden">
+                    {data.leaderboard[2].avatar ? (
+                      <img src={data.leaderboard[2].avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      data.leaderboard[2].userName?.charAt(0) || '?'
+                    )}
                   </div>
                   <p className="text-xs font-medium text-dark truncate max-w-[80px]">{data.leaderboard[2].userName}</p>
                   <p className="text-xs text-gray-500">{data.leaderboard[2].percentage}%</p>
