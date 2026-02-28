@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, AlertTriangle, ChevronLeft, ChevronRight, Send,
-  Image, Video, Music, Shield, User, Check, X, Eye, Ticket, Loader2, Dumbbell
+  Image, Video, Music, Shield, User, Check, X, Eye, Ticket, Loader2
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -229,7 +229,7 @@ export default function TakeTest() {
   const { shareLink } = useParams();
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get('preview') === 'true';
-  const isPractice = searchParams.get('practice') === 'true';
+  const isPractice = false; // Practice mode removed
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -599,13 +599,6 @@ export default function TakeTest() {
       return;
     }
 
-    // Practice mode: don't save results, show score locally
-    if (isPractice) {
-      toast.success(t('practiceModeDesc') || 'Тренировка завершена — результат не сохраняется');
-      navigate(`/test-profile/${shareLink}`);
-      return;
-    }
-
     setSubmitting(true);
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
 
@@ -769,17 +762,6 @@ export default function TakeTest() {
             </div>
           )}
 
-          {/* Practice mode info */}
-          {isPractice && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4 text-center">
-              <h3 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-1 flex items-center justify-center gap-2">
-                <Dumbbell size={14} className="inline" /> {t('practiceMode')}
-              </h3>
-              <p className="text-xs text-green-600 dark:text-green-300">
-                {t('practiceModeDesc')}
-              </p>
-            </div>
-          )}
 
           {/* Preview mode info */}
           {isPreview && (

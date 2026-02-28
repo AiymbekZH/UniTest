@@ -173,3 +173,8 @@ html {
 .tiptap ol { list-style-type: decimal; padding-left: 1.2em; }
 .tiptap a { color: #6366f1; text-decoration: underline; }
 .tiptap code { background: #f3f4f6; padding: 0.1em 0.3em; border-radius: 4px; font-size: 0.9em; }
+.tiptap mark { border-radius: 2px; padding: 0.1em 0; }
+
+/* Rendered rich text (in TakeTest, ResultPage etc.) */
+.prose mark { border-radius: 2px; padding: 0.1em 0; }
+.prose span[style*="color"] { font-weight: inherit; }

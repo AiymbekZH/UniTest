@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, Users, Star, Trophy, Play, ArrowLeft,
   Eye, EyeOff, Shield, AlertTriangle, Tag, User,
-  BarChart3, MessageSquare, Flag, Share2, Copy, QrCode
+  BarChart3, MessageSquare, Flag, Copy, QrCode
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -126,9 +126,9 @@ export default function TestProfile() {
           <ArrowLeft size={16} /> {t('back')}
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
           {/* Main info */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6">
             {/* Header card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -318,22 +318,22 @@ export default function TestProfile() {
                 {t('startTest')}
               </motion.button>
 
-              {/* Share & QR buttons in grid */}
-              <div className="grid grid-cols-2 gap-2.5 mt-3">
+              {/* Share & QR buttons */}
+              <div className="flex gap-2 mt-3">
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(`${window.location.origin}/test-profile/${shareLink}`);
                     toast.success(t('linkCopied'));
                   }}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-[13px] font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
                 >
-                  <Share2 size={16} /> {t('copyLink')}
+                  <Copy size={14} className="flex-shrink-0" /> <span className="truncate">{t('copyLink')}</span>
                 </button>
                 <button
                   onClick={() => setShowQRModal(true)}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+                  className="flex-shrink-0 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-gray-200 dark:border-slate-600 text-[13px] font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
                 >
-                  <QrCode size={14} /> QR-код
+                  <QrCode size={14} /> QR
                 </button>
               </div>
 
@@ -341,21 +341,13 @@ export default function TestProfile() {
               {user && test.creator?._id === user?.id && (
                 <button
                   onClick={() => navigate(`/test/${shareLink}?preview=true`)}
-                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-200 dark:border-amber-700 text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
+                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 text-[13px] font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
                 >
-                  <Eye size={16} /> {t('previewMode') || 'Превью'}
+                  <Eye size={14} /> {t('preview')}
                 </button>
               )}
 
-              {/* Practice mode button */}
-              {test.settings?.practiceMode && (
-                <button
-                  onClick={() => navigate(`/test/${shareLink}?practice=true`)}
-                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-200 dark:border-green-700 text-sm font-medium text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition"
-                >
-                  <Play size={14} /> {t('practiceModeLabel') || 'Тренировка'}
-                </button>
-              )}
+
             </motion.div>
 
             {/* Leaderboard preview */}
