@@ -760,6 +760,7 @@ export default function CreateTest() {
                           content={question.questionText}
                           onChange={val => updateQuestion(qIndex, 'questionText', val)}
                           placeholder={t('questionTextPlaceholder')}
+                          disableLinks={test.settings.antiCheat.blockTabSwitch}
                         />
                       </Suspense>
 

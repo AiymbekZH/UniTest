@@ -23,7 +23,7 @@ const HIGHLIGHTS = [
   { color: '#fed7aa', label: 'Orange' },
 ];
 
-const MenuBar = ({ editor }) => {
+const MenuBar = ({ editor, disableLinks }) => {
   const [showColors, setShowColors] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
 
@@ -45,9 +45,14 @@ const MenuBar = ({ editor }) => {
   );
 
   const addLink = () => {
-    const url = window.prompt('URL:');
-    if (url) {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    if (disableLinks) return;
+    const prev = editor.getAttributes('link').href || '';
+    const url = window.prompt('URL:', prev);
+    if (url === null) return; // cancelled
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    } else {
+      editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
     }
   };
 
@@ -60,7 +65,7 @@ const MenuBar = ({ editor }) => {
       {btn(editor.isActive('bulletList'), () => editor.chain().focus().toggleBulletList().run(), List, 'Bullet list')}
       {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), ListOrdered, 'Ordered list')}
       <div className="w-px h-5 bg-gray-200 dark:bg-slate-600 mx-0.5" />
-      {btn(editor.isActive('link'), addLink, Link2, 'Link')}
+      {!disableLinks && btn(editor.isActive('link'), addLink, Link2, 'Link')}
       {btn(editor.isActive('code'), () => editor.chain().focus().toggleCode().run(), Code, 'Code')}
       <div className="w-px h-5 bg-gray-200 dark:bg-slate-600 mx-0.5" />
       {/* Text color */}
@@ -128,7 +133,7 @@ const MenuBar = ({ editor }) => {
   );
 };
 
-export default function RichTextEditor({ content, onChange, placeholder = '', className = '' }) {
+export default function RichTextEditor({ content, onChange, placeholder = '', className = '', disableLinks = false }) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -163,7 +168,7 @@ export default function RichTextEditor({ content, onChange, placeholder = '', cl
 
   return (
     <div className={`border border-gray-200 dark:border-slate-600 rounded-xl overflow-hidden bg-white dark:bg-slate-800 focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-300 dark:focus-within:border-primary-600 transition-all ${className}`}>
-      <MenuBar editor={editor} />
+      <MenuBar editor={editor} disableLinks={disableLinks} />
       <EditorContent editor={editor} />
     </div>
   );

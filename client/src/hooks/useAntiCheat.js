@@ -2,12 +2,18 @@
 
 export default function useAntiCheat({ enabled, onViolation }) {
   const violationsRef = useRef([]);
+  const onViolationRef = useRef(onViolation);
+
+  // Keep the callback ref always in sync without re-running effects
+  useEffect(() => {
+    onViolationRef.current = onViolation;
+  }, [onViolation]);
 
   const addViolation = useCallback((type, details = '') => {
     const violation = { type, timestamp: new Date().toISOString(), details };
     violationsRef.current.push(violation);
-    if (onViolation) onViolation(violation, violationsRef.current.length);
-  }, [onViolation]);
+    if (onViolationRef.current) onViolationRef.current(violation, violationsRef.current.length);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
