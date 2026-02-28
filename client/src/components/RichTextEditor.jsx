@@ -46,6 +46,7 @@ const MenuBar = ({ editor, disableLinks }) => {
 
   const addLink = () => {
     if (disableLinks) return;
+    // Save selection BEFORE prompt steals focus
     const { from, to } = editor.state.selection;
     const hasSelection = from !== to;
     const existingLink = editor.isActive('link');
@@ -61,7 +62,8 @@ const MenuBar = ({ editor, disableLinks }) => {
       if (existingLink) {
         editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
       } else if (hasSelection) {
-        editor.chain().focus().setLink({ href: url, target: '_blank' }).run();
+        // Restore selection lost during prompt, then apply link
+        editor.chain().focus().setTextSelection({ from, to }).setLink({ href: url, target: '_blank' }).run();
       } else {
         // No selection — insert the URL as linked text
         editor.chain().focus().insertContent(`<a href="${url}" target="_blank">${url}</a>`).run();

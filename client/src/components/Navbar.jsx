@@ -136,7 +136,7 @@ export default memo(function Navbar() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => navigate('/create-test')}
-                  className="btn-primary hidden sm:flex items-center gap-2 py-2 px-4 text-sm"
+                  className="btn-primary hidden sm:flex items-center gap-2 py-2 px-4 text-sm whitespace-nowrap"
                 >
                   <Plus size={16} />
                   {t('createTest')}

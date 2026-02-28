@@ -285,7 +285,7 @@ export default function TestResults() {
                         <span className="w-7 h-7 bg-gray-100 dark:bg-slate-700 text-gray-500 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0">
                           {qi + 1}
                         </span>
-                        <p className="text-sm font-medium text-dark leading-relaxed">{q.questionText}</p>
+                        <p className="text-sm font-medium text-dark leading-relaxed prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: q.questionText }} />
                       </div>
                       <span className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-bold ${
                         isHard ? 'bg-red-100 dark:bg-red-900/30 text-red-600' :
@@ -487,7 +487,7 @@ export default function TestResults() {
                             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Эссе-ответы</h4>
                             {essayAnswers.map((answer, ai) => (
                               <div key={ai} className="glass-card-solid p-4 space-y-2">
-                                <p className="text-sm font-medium text-dark">{answer.questionText || `Вопрос ${ai + 1}`}</p>
+                                <p className="text-sm font-medium text-dark prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: answer.questionText || `Вопрос ${ai + 1}` }} />
                                 <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                                   {answer.userAnswer || answer.textAnswer || <span className="italic text-gray-400">Нет ответа</span>}
                                 </div>

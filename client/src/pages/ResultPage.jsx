@@ -584,7 +584,7 @@ export default function ResultPage() {
                         }`}>
                           {i + 1}
                         </span>
-                        <p className="text-sm font-medium text-dark leading-relaxed">{qText}</p>
+                        <p className="text-sm font-medium text-dark leading-relaxed prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: qText }} />
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                         {answer.isCorrect ? (
