@@ -603,6 +603,7 @@ export default function CreateTest() {
                       { key: 'shuffleOptions', label: t('shuffleOptions'), update: updateSettings },
                       { key: 'showResults', label: t('showResults'), update: updateSettings },
                       { key: 'instantFeedback', label: t('instantFeedback'), update: updateSettings },
+                      { key: 'practiceMode', label: t('practiceModeLabel'), update: updateSettings },
                       { key: 'blockTabSwitch', label: t('blockTabSwitch'), update: updateAntiCheat, isAntiCheat: true },
                       { key: 'blockCopyPaste', label: t('blockCopyPaste'), update: updateAntiCheat, isAntiCheat: true },
                       { key: 'blockScreenshot', label: t('blockScreenshot'), update: updateAntiCheat, isAntiCheat: true },

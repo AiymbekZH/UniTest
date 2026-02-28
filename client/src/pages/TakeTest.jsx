@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, AlertTriangle, ChevronLeft, ChevronRight, Send,
-  Image, Video, Music, Shield, User, Check, X, Eye, Ticket, Loader2
+  Image, Video, Music, Shield, User, Check, X, Ticket, Loader2, Dumbbell
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -228,8 +228,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
 export default function TakeTest() {
   const { shareLink } = useParams();
   const [searchParams] = useSearchParams();
-  const isPreview = searchParams.get('preview') === 'true';
-  const isPractice = false; // Practice mode removed
+  const isPractice = searchParams.get('practice') === 'true';
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -439,7 +438,7 @@ export default function TakeTest() {
       setTest(res.data);
 
       // Check if test has variant system enabled
-      if (res.data.settings?.variants?.enabled && !isPreview && !isPractice) {
+      if (res.data.settings?.variants?.enabled && !isPractice) {
         // Fetch ticket status
         try {
           const ticketRes = await api.get(`/tests/${res.data._id}/tickets`);
@@ -469,7 +468,7 @@ export default function TakeTest() {
 
   // Ticket polling: refresh every 2 seconds when ticket picker is open
   useEffect(() => {
-    if (!test?.settings?.variants?.enabled || selectedVariant || started || isPreview || isPractice) return;
+    if (!test?.settings?.variants?.enabled || selectedVariant || started || isPractice) return;
     const interval = setInterval(async () => {
       try {
         const res = await api.get(`/tests/${test._id}/tickets`);
@@ -478,7 +477,7 @@ export default function TakeTest() {
       } catch (_) {}
     }, 2000);
     return () => clearInterval(interval);
-  }, [test, selectedVariant, started, isPreview, isPractice]);
+  }, [test, selectedVariant, started, isPractice]);
 
   const claimTicket = async (variantNumber) => {
     setTicketLoading(true);
@@ -592,10 +591,10 @@ export default function TakeTest() {
       return;
     }
 
-    // Preview mode: don't save results, just navigate back
-    if (isPreview) {
-      toast.success(t('previewMode') || 'Превью завершен — результат не сохраняется');
-      navigate(-1);
+    // Practice mode: don't save results, show score locally
+    if (isPractice) {
+      toast.success(t('practiceModeDesc') || 'Тренировка завершена — результат не сохраняется');
+      navigate(`/test-profile/${shareLink}`);
       return;
     }
 
@@ -699,11 +698,11 @@ export default function TakeTest() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full glass-card p-8 text-center"
         >
-          {/* Preview mode banner */}
-          {isPreview && (
-            <div className="flex items-center justify-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5 mb-5 text-amber-700 dark:text-amber-400">
-              <Eye size={15} />
-              <span className="text-sm font-semibold">Режим превью — результаты не сохраняются</span>
+          {/* Practice mode banner */}
+          {isPractice && (
+            <div className="flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-4 py-2.5 mb-5 text-green-700 dark:text-green-400">
+              <Dumbbell size={15} />
+              <span className="text-sm font-semibold">{t('practiceMode')}</span>
             </div>
           )}
           <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary-600/30">
@@ -763,17 +762,20 @@ export default function TakeTest() {
           )}
 
 
-          {/* Preview mode info */}
-          {isPreview && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4 text-center">
-              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-                👁️ {t('previewMode')}
+          {/* Practice mode info */}
+          {isPractice && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4 text-center">
+              <h3 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-1 flex items-center justify-center gap-2">
+                <Dumbbell size={14} /> {t('practiceMode')}
+              </h3>
+              <p className="text-xs text-green-600 dark:text-green-300">
+                {t('practiceModeDesc')}
               </p>
             </div>
           )}
 
           {/* Ticket/Variant picker */}
-          {test.settings?.variants?.enabled && !isPreview && !isPractice && (
+          {test.settings?.variants?.enabled && !isPractice && (
             <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 mb-4">
               {selectedVariant ? (
                 <div className="text-center">
@@ -829,7 +831,7 @@ export default function TakeTest() {
           )}
 
           {/* Attempt limit exceeded */}
-          {!isPractice && !isPreview && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts && (
+          {!isPractice && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 text-center">
               <p className="text-sm font-semibold text-red-600">{t('allAttemptsUsed')} ({attemptInfo.maxAttempts})</p>
             </div>
@@ -849,8 +851,8 @@ export default function TakeTest() {
             whileTap={{ scale: 0.98 }}
             onClick={startTest}
             disabled={
-              (!isPractice && !isPreview && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts) ||
-              (test.settings?.variants?.enabled && !isPreview && !isPractice && !selectedVariant)
+              (!isPractice && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts) ||
+              (test.settings?.variants?.enabled && !isPractice && !selectedVariant)
             }
             className="btn-primary w-full text-lg py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >

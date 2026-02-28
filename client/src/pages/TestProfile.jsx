@@ -337,13 +337,13 @@ export default function TestProfile() {
                 </button>
               </div>
 
-              {/* Preview button for creator */}
-              {user && test.creator?._id === user?.id && (
+              {/* Practice mode button */}
+              {test.settings?.practiceMode && (
                 <button
-                  onClick={() => navigate(`/test/${shareLink}?preview=true`)}
-                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 text-[13px] font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition"
+                  onClick={() => navigate(`/test/${shareLink}?practice=true`)}
+                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-200 dark:border-green-700 text-[13px] font-medium text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition"
                 >
-                  <Eye size={14} /> {t('preview')}
+                  <Play size={14} /> {t('practiceModeLabel')}
                 </button>
               )}
 
