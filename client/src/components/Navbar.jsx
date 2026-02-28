@@ -148,9 +148,9 @@ export default memo(function Navbar() {
                     onClick={() => setShowMenu(!showMenu)}
                     className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all"
                   >
-                    <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/50 text-primary-600 rounded-lg flex items-center justify-center font-semibold text-xs overflow-hidden">
+                    <div className="w-8 h-8 min-w-[32px] bg-primary-100 dark:bg-primary-900/50 text-primary-600 rounded-lg flex items-center justify-center font-semibold text-xs overflow-hidden flex-shrink-0">
                       {user?.avatar ? (
-                        <img src={user.avatar} alt="" className="w-full h-full object-cover rounded-lg" />
+                        <img src={user.avatar} alt="" className="w-8 h-8 object-cover rounded-lg" />
                       ) : (
                         <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
                       )}
