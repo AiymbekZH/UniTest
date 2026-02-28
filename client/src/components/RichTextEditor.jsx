@@ -46,13 +46,26 @@ const MenuBar = ({ editor, disableLinks }) => {
 
   const addLink = () => {
     if (disableLinks) return;
+    const { from, to } = editor.state.selection;
+    const hasSelection = from !== to;
+    const existingLink = editor.isActive('link');
     const prev = editor.getAttributes('link').href || '';
     const url = window.prompt('URL:', prev);
     if (url === null) return; // cancelled
     if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      // Remove link
+      if (existingLink) {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      }
     } else {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
+      if (existingLink) {
+        editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).run();
+      } else if (hasSelection) {
+        editor.chain().focus().setLink({ href: url, target: '_blank' }).run();
+      } else {
+        // No selection — insert the URL as linked text
+        editor.chain().focus().insertContent(`<a href="${url}" target="_blank">${url}</a>`).run();
+      }
     }
   };
 

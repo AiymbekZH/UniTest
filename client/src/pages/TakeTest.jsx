@@ -327,7 +327,8 @@ export default function TakeTest() {
   }, [test]);
 
   useAntiCheat({
-    enabled: started && test?.settings?.antiCheat?.blockTabSwitch,
+    enabled: started && (test?.settings?.antiCheat?.blockTabSwitch || test?.settings?.antiCheat?.blockCopyPaste || test?.settings?.antiCheat?.blockScreenshot),
+    settings: test?.settings?.antiCheat,
     onViolation: handleViolation
   });
 
