@@ -125,7 +125,6 @@ Rules:
         { role: 'user', content: userContent },
       ],
       max_completion_tokens: 8192,
-      temperature: 0.7,
     });
 
     const raw = completion.choices[0]?.message?.content || '[]';
