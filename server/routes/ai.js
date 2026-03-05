@@ -128,19 +128,46 @@ Rules:
     });
 
     const raw = completion.choices[0]?.message?.content || '[]';
+    console.log('AI raw response (first 500 chars):', raw.substring(0, 500));
 
-    // Parse JSON — strip markdown code blocks if present
+    // Parse JSON — aggressive cleanup
     let cleaned = raw.trim();
+    
+    // Strip markdown code blocks
     if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
+    }
+    
+    // Try to find JSON array in the response
+    if (!cleaned.startsWith('[')) {
+      const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        cleaned = arrayMatch[0];
+      }
+    }
+    
+    // Try to find JSON object if no array
+    if (!cleaned.startsWith('[') && !cleaned.startsWith('{')) {
+      const objMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (objMatch) {
+        cleaned = objMatch[0];
+      }
     }
 
     let questions;
     try {
       questions = JSON.parse(cleaned);
     } catch (parseErr) {
-      console.error('AI response parse error:', parseErr.message, '\nRaw:', raw);
-      return res.status(500).json({ error: 'Failed to parse AI response. Try again.' });
+      // Try fixing common issues: trailing commas, etc
+      try {
+        const fixed = cleaned
+          .replace(/,\s*([}\]])/g, '$1')  // trailing commas
+          .replace(/[\x00-\x1f]/g, ' ');  // control chars
+        questions = JSON.parse(fixed);
+      } catch (e) {
+        console.error('AI response parse error:', parseErr.message, '\nRaw response:', raw);
+        return res.status(500).json({ error: 'Failed to parse AI response. Try again.' });
+      }
     }
 
     if (!Array.isArray(questions)) {
