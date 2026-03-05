@@ -28,6 +28,8 @@ const resultSchema = new mongoose.Schema({
   test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   guestName: { type: String, default: '' }, // For unregistered users
+  guestId: { type: String, default: '' }, // Persistent guest browser ID for attempt tracking
+  variantNumber: { type: Number, default: 0 }, // Which ticket/variant was used (0 = none)
   answers: [answerSchema],
   score: { type: Number, default: 0 },
   totalPoints: { type: Number, default: 0 },

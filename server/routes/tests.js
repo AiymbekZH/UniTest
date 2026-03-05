@@ -303,6 +303,9 @@ router.post('/:id/check-answer', optionalAuth, async (req, res) => {
     let correctOptionIds = [];
     let correctText = '';
     let correctPairs = {};
+    let partialRatio = 0; // For partial credit
+
+    const usePartialCredit = test.settings?.partialCredit === true;
 
     switch (question.type) {
       case 'single-choice':
@@ -318,6 +321,13 @@ router.post('/:id/check-answer', optionalAuth, async (req, res) => {
         const selectedIds = (selectedOptions || []).sort();
         isCorrect = correctIds.length === selectedIds.length &&
           correctIds.every((id, i) => id === selectedIds[i]);
+        
+        // Partial credit calculation
+        if (!isCorrect && usePartialCredit && correctIds.length > 0) {
+          const correctSelected = selectedIds.filter(id => correctIds.includes(id)).length;
+          const wrongSelected = selectedIds.filter(id => !correctIds.includes(id)).length;
+          partialRatio = Math.max(0, (correctSelected - wrongSelected) / correctIds.length);
+        }
         break;
       }
       case 'fill-blank': {
@@ -337,6 +347,12 @@ router.post('/:id/check-answer', optionalAuth, async (req, res) => {
         }, {});
         isCorrect = Object.keys(cPairs).length === Object.keys(uPairs).length &&
           Object.entries(cPairs).every(([k, v]) => uPairs[k] === v);
+        
+        // Partial credit for matching
+        if (!isCorrect && usePartialCredit && Object.keys(cPairs).length > 0) {
+          const correctCount = Object.entries(cPairs).filter(([k, v]) => uPairs[k] === v).length;
+          partialRatio = correctCount / Object.keys(cPairs).length;
+        }
         break;
       }
       case 'essay': {
@@ -345,13 +361,18 @@ router.post('/:id/check-answer', optionalAuth, async (req, res) => {
       }
     }
 
+    const partialPoints = partialRatio > 0 ? Math.round(question.points * partialRatio * 100) / 100 : 0;
+
     res.json({
       isCorrect,
       correctOptionIds,
       correctText,
       correctPairs,
       explanation: question.explanation || '',
-      points: question.points
+      points: question.points,
+      partialCredit: usePartialCredit,
+      partialPoints,
+      partialRatio
     });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка проверки ответа', error: error.message });
@@ -404,12 +425,13 @@ router.get('/:id/my-rating', auth, async (req, res) => {
 // Get ticket status for a test (which variants are available)
 router.get('/:id/tickets', optionalAuth, async (req, res) => {
   try {
-    const test = await Test.findById(req.params.id).select('settings.variants');
+    const test = await Test.findById(req.params.id).select('settings.variants settings.isPublic');
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
     if (!test.settings?.variants?.enabled || !test.settings.variants.count) {
       return res.status(400).json({ message: 'Варианты не включены для этого теста' });
     }
     const variantCount = test.settings.variants.count;
+    const isPublic = test.settings?.isPublic === true;
     const claims = await TicketClaim.find({ test: req.params.id })
       .populate('user', 'firstName lastName')
       .lean();
@@ -420,8 +442,9 @@ router.get('/:id/tickets', optionalAuth, async (req, res) => {
       const claim = claims.find(c => c.variantNumber === i);
       variants.push({
         number: i,
-        claimed: !!claim,
-        claimedBy: claim ? (claim.user ? `${claim.user.firstName} ${claim.user.lastName}` : claim.guestName) : null,
+        // For public tests, tickets are always available
+        claimed: isPublic ? false : !!claim,
+        claimedBy: (!isPublic && claim) ? (claim.user ? `${claim.user.firstName} ${claim.user.lastName}` : claim.guestName) : null,
         isMe: claim ? (req.user ? claim.user?._id?.toString() === req.user._id.toString() : false) : false
       });
     }
@@ -433,7 +456,7 @@ router.get('/:id/tickets', optionalAuth, async (req, res) => {
       if (myClaim) myVariant = myClaim.variantNumber;
     }
 
-    res.json({ variants, myVariant, variantCount });
+    res.json({ variants, myVariant, variantCount, isPublic });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка', error: error.message });
   }
@@ -443,7 +466,7 @@ router.get('/:id/tickets', optionalAuth, async (req, res) => {
 router.post('/:id/tickets/claim', optionalAuth, async (req, res) => {
   try {
     const { variantNumber, guestName } = req.body;
-    const test = await Test.findById(req.params.id).select('settings.variants');
+    const test = await Test.findById(req.params.id).select('settings.variants settings.isPublic');
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
     if (!test.settings?.variants?.enabled) {
       return res.status(400).json({ message: 'Варианты не включены' });
@@ -452,6 +475,14 @@ router.post('/:id/tickets/claim', optionalAuth, async (req, res) => {
       return res.status(400).json({ message: 'Неверный номер варианта' });
     }
 
+    const isPublic = test.settings?.isPublic === true;
+
+    // For PUBLIC tests: don't create a claim, just return the variant (anyone can take any)
+    if (isPublic) {
+      return res.json({ variantNumber, alreadyClaimed: false });
+    }
+
+    // For PRIVATE tests: exclusive ticket system (current behavior)
     // Check if user already has a ticket for this test
     if (req.user) {
       const existing = await TicketClaim.findOne({ test: req.params.id, user: req.user._id });

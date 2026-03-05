@@ -10,7 +10,7 @@ const router = express.Router();
 // Submit test result
 router.post('/', optionalAuth, async (req, res) => {
   try {
-    const { testId, answers, guestName, violations, timeSpent } = req.body;
+    const { testId, answers, guestName, guestId, violations, timeSpent, variantNumber } = req.body;
 
     const test = await Test.findById(testId);
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
@@ -18,19 +18,29 @@ router.post('/', optionalAuth, async (req, res) => {
     // Check attempt limit
     if (test.settings?.maxAttempts > 0) {
       const query = { test: testId, status: 'completed' };
-      if (req.user?._id) query.user = req.user._id;
-      else if (guestName) query.guestName = guestName;
+      if (req.user?._id) {
+        query.user = req.user._id;
+      } else if (guestId) {
+        query.guestId = guestId;
+      } else if (guestName) {
+        query.guestName = guestName;
+      }
       const existingAttempts = await Result.countDocuments(query);
       if (existingAttempts >= test.settings.maxAttempts) {
         return res.status(400).json({ message: `Превышен лимит попыток (${test.settings.maxAttempts})` });
       }
     }
 
+    const usePartialCredit = test.settings?.partialCredit === true;
+
     // Grade answers
     let score = 0;
+    let variantTotalPoints = 0;
     const gradedAnswers = answers.map(answer => {
       const question = test.questions.find(q => q.id === answer.questionId);
       if (!question) return { ...answer, isCorrect: false, pointsEarned: 0 };
+
+      variantTotalPoints += question.points;
 
       let isCorrect = false;
       let pointsEarned = 0;
@@ -59,6 +69,19 @@ router.post('/', optionalAuth, async (req, res) => {
           const selectedIds = (answer.selectedOptions || []).sort();
           isCorrect = correctIds.length === selectedIds.length &&
             correctIds.every((id, i) => id === selectedIds[i]);
+
+          // Partial credit: award proportional points for partially correct answers
+          if (!isCorrect && usePartialCredit && correctIds.length > 0) {
+            const correctSelected = selectedIds.filter(id => correctIds.includes(id)).length;
+            const wrongSelected = selectedIds.filter(id => !correctIds.includes(id)).length;
+            // Formula: (correct_selected - wrong_selected) / total_correct, minimum 0
+            const ratio = Math.max(0, (correctSelected - wrongSelected) / correctIds.length);
+            if (ratio > 0) {
+              pointsEarned = Math.round(question.points * ratio * 100) / 100;
+              score += pointsEarned;
+              return { ...baseAnswer, isCorrect: false, pointsEarned };
+            }
+          }
           break;
         }
         case 'true-false': {
@@ -77,6 +100,18 @@ router.post('/', optionalAuth, async (req, res) => {
           }, {});
           isCorrect = Object.keys(correctPairs).length === Object.keys(userPairs).length &&
             Object.entries(correctPairs).every(([k, v]) => userPairs[k] === v);
+
+          // Partial credit for matching
+          if (!isCorrect && usePartialCredit && Object.keys(correctPairs).length > 0) {
+            const totalPairs = Object.keys(correctPairs).length;
+            const correctCount = Object.entries(correctPairs).filter(([k, v]) => userPairs[k] === v).length;
+            const ratio = correctCount / totalPairs;
+            if (ratio > 0) {
+              pointsEarned = Math.round(question.points * ratio * 100) / 100;
+              score += pointsEarned;
+              return { ...baseAnswer, isCorrect: false, pointsEarned };
+            }
+          }
           break;
         }
         case 'fill-blank': {
@@ -104,9 +139,11 @@ router.post('/', optionalAuth, async (req, res) => {
       test: testId,
       user: req.user?._id || null,
       guestName: !req.user ? guestName : '',
+      guestId: !req.user ? (guestId || '') : '',
+      variantNumber: variantNumber || 0,
       answers: gradedAnswers,
       score,
-      totalPoints: test.totalPoints,
+      totalPoints: variantTotalPoints > 0 ? variantTotalPoints : test.totalPoints,
       violations: violations || [],
       timeSpent: timeSpent || 0,
       completedAt: new Date(),
@@ -294,7 +331,17 @@ router.get('/leaderboard/:testId', async (req, res) => {
 // Get user's attempt count for a test
 router.get('/my-attempts/:testId', optionalAuth, async (req, res) => {
   try {
-    if (!req.user) return res.json({ attempts: 0 });
+    if (!req.user) {
+      // For guests, check by guestId query param
+      const guestId = req.query.guestId;
+      if (!guestId) return res.json({ attempts: 0 });
+      const count = await Result.countDocuments({
+        test: req.params.testId,
+        guestId: guestId,
+        status: 'completed'
+      });
+      return res.json({ attempts: count });
+    }
     const count = await Result.countDocuments({
       test: req.params.testId,
       user: req.user._id,

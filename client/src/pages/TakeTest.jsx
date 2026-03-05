@@ -248,9 +248,21 @@ export default function TakeTest() {
   const [showViolationWarning, setShowViolationWarning] = useState(false);
   const [lastViolationText, setLastViolationText] = useState('');
   const [attemptInfo, setAttemptInfo] = useState({ attempts: 0, maxAttempts: 0 });
+  const [isPublicTest, setIsPublicTest] = useState(false);
   const startTimeRef = useRef(null);
   const dialogOpenRef = useRef(false);
   const navScrollRef = useRef(null);
+
+  // Persistent guest ID for attempt tracking (browser fingerprint)
+  const getGuestId = () => {
+    const storageKey = 'unitest_guest_id';
+    let id = localStorage.getItem(storageKey);
+    if (!id) {
+      id = 'guest_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(storageKey, id);
+    }
+    return id;
+  };
 
   // Ticket/Variant system
   const [ticketState, setTicketState] = useState(null); // null = not loaded, { variants, myVariant }
@@ -437,6 +449,7 @@ export default function TakeTest() {
         : `/tests/share/${shareLink}`;
       const res = await api.get(url);
       setTest(res.data);
+      setIsPublicTest(res.data.settings?.isPublic === true);
 
       // Check if test has variant system enabled
       if (res.data.settings?.variants?.enabled && !isPractice) {
@@ -444,7 +457,8 @@ export default function TakeTest() {
         try {
           const ticketRes = await api.get(`/tests/${res.data._id}/tickets`);
           setTicketState(ticketRes.data);
-          if (ticketRes.data.myVariant) {
+          // For private tests, restore saved variant
+          if (ticketRes.data.myVariant && !ticketRes.data.isPublic) {
             setSelectedVariant(ticketRes.data.myVariant);
           }
         } catch (_) {}
@@ -452,7 +466,9 @@ export default function TakeTest() {
 
       if (!user) setShowGuestForm(true);
       try {
-        const attRes = await api.get(`/results/my-attempts/${res.data._id}`);
+        const guestId = !user ? getGuestId() : '';
+        const attUrl = `/results/my-attempts/${res.data._id}${guestId ? `?guestId=${guestId}` : ''}`;
+        const attRes = await api.get(attUrl);
         setAttemptInfo({ attempts: attRes.data.attempts, maxAttempts: res.data.settings?.maxAttempts || 0 });
       } catch (_) {}
     } catch (err) {
@@ -612,6 +628,8 @@ export default function TakeTest() {
         testId: test._id,
         answers: formattedAnswers,
         guestName: !user ? guestName : '',
+        guestId: !user ? getGuestId() : '',
+        variantNumber: selectedVariant || 0,
         violations,
         timeSpent
       });
@@ -785,6 +803,15 @@ export default function TakeTest() {
                     {t('ticketN', { n: selectedVariant })}
                   </div>
                   <p className="text-xs text-indigo-600 dark:text-indigo-400">{t('ticketReady')}</p>
+                  {/* For public tests, allow changing ticket */}
+                  {isPublicTest && (
+                    <button
+                      onClick={() => setSelectedVariant(null)}
+                      className="mt-2 text-xs text-indigo-500 hover:text-indigo-700 underline"
+                    >
+                      {t('changeTicket') || 'Сменить билет'}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <>
@@ -793,27 +820,30 @@ export default function TakeTest() {
                     {t('chooseTicket')}
                   </h3>
                   <div className="grid grid-cols-5 gap-2">
-                    {ticketState?.variants?.map((v) => (
-                      <motion.button
-                        key={v.number}
-                        whileHover={!v.claimed ? { scale: 1.1 } : {}}
-                        whileTap={!v.claimed ? { scale: 0.95 } : {}}
-                        onClick={() => !v.claimed && !ticketLoading && claimTicket(v.number)}
-                        disabled={v.claimed || ticketLoading}
-                        className={`relative aspect-square rounded-lg font-bold text-sm flex items-center justify-center transition-all ${
-                          v.claimed
-                            ? 'bg-red-100 dark:bg-red-900/30 text-red-400 dark:text-red-500 cursor-not-allowed border border-red-200 dark:border-red-800'
-                            : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 cursor-pointer border border-indigo-200 dark:border-indigo-700 shadow-sm hover:shadow-md'
-                        }`}
-                      >
-                        {v.number}
-                        {v.claimed && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <X size={24} className="text-red-400/50" />
-                          </div>
-                        )}
-                      </motion.button>
-                    ))}
+                    {ticketState?.variants?.map((v) => {
+                      const isDisabled = !isPublicTest && v.claimed;
+                      return (
+                        <motion.button
+                          key={v.number}
+                          whileHover={!isDisabled ? { scale: 1.1 } : {}}
+                          whileTap={!isDisabled ? { scale: 0.95 } : {}}
+                          onClick={() => !isDisabled && !ticketLoading && claimTicket(v.number)}
+                          disabled={isDisabled || ticketLoading}
+                          className={`relative aspect-square rounded-lg font-bold text-sm flex items-center justify-center transition-all ${
+                            isDisabled
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-400 dark:text-red-500 cursor-not-allowed border border-red-200 dark:border-red-800'
+                              : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 cursor-pointer border border-indigo-200 dark:border-indigo-700 shadow-sm hover:shadow-md'
+                          }`}
+                        >
+                          {v.number}
+                          {isDisabled && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <X size={24} className="text-red-400/50" />
+                            </div>
+                          )}
+                        </motion.button>
+                      );
+                    })}
                   </div>
                   {ticketLoading && (
                     <div className="mt-3 text-center">
@@ -824,7 +854,10 @@ export default function TakeTest() {
                     </div>
                   )}
                   <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-3 text-center">
-                    {t('ticketHint')}
+                    {isPublicTest 
+                      ? (t('ticketHintPublic') || 'Выберите любой билет. Каждый билет доступен для всех.')
+                      : t('ticketHint')
+                    }
                   </p>
                 </>
               )}
@@ -1266,7 +1299,10 @@ export default function TakeTest() {
                     {currentFeedback.isCorrect ? t('correctBanner') : t('incorrectBanner')}
                   </p>
                   <p className={`text-xs ${currentFeedback.isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    +{currentFeedback.isCorrect ? currentFeedback.points : 0} {t('outOfPoints')} {currentFeedback.points} {t('points')}
+                    +{currentFeedback.isCorrect ? currentFeedback.points : (currentFeedback.partialPoints || 0)} {t('outOfPoints')} {currentFeedback.points} {t('points')}
+                    {!currentFeedback.isCorrect && currentFeedback.partialPoints > 0 && (
+                      <span className="ml-1 text-amber-600 dark:text-amber-400">({t('partialCredit') || 'частичный балл'})</span>
+                    )}
                   </p>
                 </div>
                 {currentQ < test.questions.length - 1 && (

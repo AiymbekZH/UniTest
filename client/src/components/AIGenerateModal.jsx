@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Upload, FileText, Image, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, File } from 'lucide-react';
+import { X, Sparkles, Upload, FileText, Image, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, File, History, Trash2, Clock } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
@@ -13,6 +13,18 @@ const QUESTION_TYPES = [
 ];
 
 const FILE_ACCEPT = '.pdf,.docx,.doc,.txt,image/jpeg,image/png,image/gif,image/webp';
+const AI_HISTORY_KEY = 'unitest_ai_history';
+const MAX_HISTORY = 15;
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || '[]');
+  } catch { return []; }
+}
+
+function saveHistory(history) {
+  localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
+}
 
 export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentLanguage = 'ru' }) {
   const { t } = useLanguage();
@@ -27,12 +39,21 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
   const [error, setError] = useState('');
   
   // Step 2: Preview state
-  const [step, setStep] = useState('input'); // 'input' | 'preview'
+  const [step, setStep] = useState('input'); // 'input' | 'preview' | 'history'
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [selectedQuestions, setSelectedQuestions] = useState(new Set());
   const [expandedQuestion, setExpandedQuestion] = useState(null);
   
+  // History
+  const [history, setHistory] = useState([]);
+  
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setHistory(loadHistory());
+    }
+  }, [isOpen]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -106,6 +127,18 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
       setGeneratedQuestions(data.questions);
       setSelectedQuestions(new Set(data.questions.map((_, i) => i)));
       setStep('preview');
+
+      // Save to history
+      const entry = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        prompt: text?.slice(0, 100) || (uploadedFile?.name || 'File'),
+        questions: data.questions,
+        count: data.questions.length,
+      };
+      const updated = [entry, ...loadHistory()].slice(0, MAX_HISTORY);
+      saveHistory(updated);
+      setHistory(updated);
     } catch (err) {
       setError(err.response?.data?.error || 'AI generation failed');
     } finally {
@@ -139,6 +172,13 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
   };
 
   const handleClose = () => {
+    // Keep text/file state so user doesn't lose work on accidental close
+    setError('');
+    setLoading(false);
+    onClose();
+  };
+
+  const handleFullReset = () => {
     setText('');
     setUploadedFile(null);
     setFilePreview(null);
@@ -150,12 +190,29 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
     setSelectedQuestions(new Set());
     setExpandedQuestion(null);
     setLoading(false);
-    onClose();
   };
 
   const goBack = () => {
     setStep('input');
     setExpandedQuestion(null);
+  };
+
+  const loadFromHistory = (entry) => {
+    setGeneratedQuestions(entry.questions);
+    setSelectedQuestions(new Set(entry.questions.map((_, i) => i)));
+    setExpandedQuestion(null);
+    setStep('preview');
+  };
+
+  const deleteHistoryEntry = (id) => {
+    const updated = history.filter(h => h.id !== id);
+    saveHistory(updated);
+    setHistory(updated);
+  };
+
+  const clearHistory = () => {
+    saveHistory([]);
+    setHistory([]);
   };
 
   const typeLabels = {
@@ -197,19 +254,77 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {step === 'input' 
                     ? (t('aiGenerateDesc') || 'Create questions from text or image')
+                    : step === 'history'
+                    ? (t('aiHistory') || 'Generation history')
                     : `${generatedQuestions.length} ${t('questionsGenerated') || 'questions generated'} • ${selectedQuestions.size} ${t('selected') || 'selected'}`
                   }
                 </p>
               </div>
             </div>
-            <button onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
-              <X size={20} className="text-gray-500" />
-            </button>
+            <div className="flex items-center gap-1">
+              {step === 'input' && history.length > 0 && (
+                <button
+                  onClick={() => setStep('history')}
+                  className="p-2 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-xl transition-colors relative"
+                  title={t('aiHistory') || 'History'}
+                >
+                  <History size={18} className="text-purple-500" />
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-purple-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{history.length}</span>
+                </button>
+              )}
+              <button onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {step === 'input' ? (
+            {step === 'history' ? (
+              /* HISTORY STEP */
+              <>
+                {history.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <History size={40} className="mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">{t('aiNoHistory') || 'No generation history yet'}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {history.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="group flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50/30 dark:hover:bg-purple-900/10 transition-all cursor-pointer"
+                        onClick={() => loadFromHistory(entry)}
+                      >
+                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Sparkles size={16} className="text-purple-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                            {entry.prompt.length > 60 ? entry.prompt.slice(0, 60) + '...' : entry.prompt}
+                          </p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                              <Clock size={10} />
+                              {new Date(entry.timestamp).toLocaleString()}
+                            </span>
+                            <span className="text-[10px] bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded font-medium">
+                              {entry.count} {t('questions') || 'questions'}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteHistoryEntry(entry.id); }}
+                          className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-400 rounded-lg transition-all"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : step === 'input' ? (
               <>
                 {/* Text Input */}
                 <div>
@@ -443,7 +558,26 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-            {step === 'input' ? (
+            {step === 'history' ? (
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setStep('input')}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors flex items-center gap-2"
+                >
+                  <RotateCcw size={14} />
+                  {t('back') || 'Back'}
+                </button>
+                {history.length > 0 && (
+                  <button
+                    onClick={clearHistory}
+                    className="px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors flex items-center gap-2"
+                  >
+                    <Trash2 size={14} />
+                    {t('clearAll') || 'Clear all'}
+                  </button>
+                )}
+              </div>
+            ) : step === 'input' ? (
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-gray-400 flex items-center gap-1">
                   <Sparkles size={10} />

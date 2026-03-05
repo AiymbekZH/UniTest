@@ -59,6 +59,7 @@ const testSchema = new mongoose.Schema({
     questionPoolSize: { type: Number, default: 0 }, // 0 = all questions, N = pick random N from pool
     inactivityTimeout: { type: Number, default: 0 }, // in minutes, 0 = disabled
     practiceMode: { type: Boolean, default: false }, // Training mode — unlimited attempts, no saved results
+    partialCredit: { type: Boolean, default: false }, // Award partial points for partially correct multiple-choice/matching
     variants: {
       enabled: { type: Boolean, default: false },
       count: { type: Number, default: 0 } // Number of ticket variants (0 = disabled)
