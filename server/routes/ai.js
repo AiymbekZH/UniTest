@@ -124,7 +124,7 @@ Rules:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
-      max_tokens: 8192,
+      max_completion_tokens: 8192,
       temperature: 0.7,
     });
 
