@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Upload, FileText, Image, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, Eye, Trash2 } from 'lucide-react';
+import { X, Sparkles, Upload, FileText, Image, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, File } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
@@ -12,13 +12,15 @@ const QUESTION_TYPES = [
   { value: 'matching', icon: '↔', label: 'Matching' },
 ];
 
+const FILE_ACCEPT = '.pdf,.docx,.doc,.txt,image/jpeg,image/png,image/gif,image/webp';
+
 export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentLanguage = 'ru' }) {
   const { t } = useLanguage();
   
   // Step 1: Input state
   const [text, setText] = useState('');
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null); // for image preview
   const [questionCount, setQuestionCount] = useState(5);
   const [selectedTypes, setSelectedTypes] = useState(['single-choice']);
   const [loading, setLoading] = useState(false);
@@ -32,25 +34,39 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
   
   const fileRef = useRef(null);
 
-  const handleImageUpload = (e) => {
+  const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      setError(t('aiFileTooLarge') || 'File too large (max 10MB)');
+    if (file.size > 20 * 1024 * 1024) {
+      setError(t('aiFileTooLarge') || 'File too large (max 20MB)');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImage(reader.result);
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+    setUploadedFile(file);
+    setError('');
+    
+    // Show preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => setFilePreview(reader.result);
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
+    }
   };
 
-  const removeImage = () => {
-    setImage(null);
-    setImagePreview(null);
+  const removeFile = () => {
+    setUploadedFile(null);
+    setFilePreview(null);
     if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const getFileIcon = () => {
+    if (!uploadedFile) return null;
+    const ext = uploadedFile.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') return '📄';
+    if (['doc', 'docx'].includes(ext)) return '📝';
+    if (ext === 'txt') return '📃';
+    return '🖼️';
   };
 
   const toggleType = (type) => {
@@ -63,19 +79,24 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
   };
 
   const handleGenerate = async () => {
-    if (!text && !image) {
-      setError(t('aiProvideContent') || 'Provide text or upload an image');
+    if (!text && !uploadedFile) {
+      setError(t('aiProvideContent') || 'Provide text, file, or image');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.post('/ai/generate', {
-        text,
-        image,
-        questionCount,
-        questionTypes: selectedTypes,
-        language: currentLanguage,
+      // Use FormData to support file uploads
+      const formData = new FormData();
+      if (text) formData.append('text', text);
+      if (uploadedFile) formData.append('file', uploadedFile);
+      formData.append('questionCount', questionCount);
+      formData.append('questionTypes', JSON.stringify(selectedTypes));
+      formData.append('language', currentLanguage);
+
+      const { data } = await api.post('/ai/generate', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000, // 2 min timeout for AI
       });
       if (!data.questions || data.questions.length === 0) {
         setError(t('aiNoQuestions') || 'AI returned no questions. Try again.');
@@ -83,7 +104,6 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
         return;
       }
       setGeneratedQuestions(data.questions);
-      // Select all by default
       setSelectedQuestions(new Set(data.questions.map((_, i) => i)));
       setStep('preview');
     } catch (err) {
@@ -120,8 +140,8 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
 
   const handleClose = () => {
     setText('');
-    setImage(null);
-    setImagePreview(null);
+    setUploadedFile(null);
+    setFilePreview(null);
     setQuestionCount(5);
     setSelectedTypes(['single-choice']);
     setError('');
@@ -205,18 +225,26 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                   />
                 </div>
 
-                {/* Image Upload */}
+                {/* File Upload (PDF, DOCX, TXT, Image) */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Image size={16} />
-                    {t('aiImageInput') || 'Image'}
+                    <Upload size={16} />
+                    {t('aiFileInput') || 'File (PDF, DOCX, TXT, Image)'}
                   </label>
-                  {imagePreview ? (
-                    <div className="relative inline-block">
-                      <img src={imagePreview} alt="Preview" className="max-h-40 rounded-xl border border-gray-200 dark:border-gray-700" />
+                  {uploadedFile ? (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl">
+                      {filePreview ? (
+                        <img src={filePreview} alt="Preview" className="h-16 rounded-lg border border-gray-200 dark:border-gray-700 object-cover" />
+                      ) : (
+                        <span className="text-2xl">{getFileIcon()}</span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{uploadedFile.name}</p>
+                        <p className="text-xs text-gray-400">{(uploadedFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                      </div>
                       <button
-                        onClick={removeImage}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        onClick={removeFile}
+                        className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
                       >
                         <X size={14} />
                       </button>
@@ -224,13 +252,14 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                   ) : (
                     <button
                       onClick={() => fileRef.current?.click()}
-                      className="w-full py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-purple-400 transition-colors flex flex-col items-center gap-2 text-gray-400"
+                      className="w-full py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-purple-400 transition-colors flex flex-col items-center gap-2 text-gray-400"
                     >
                       <Upload size={24} />
-                      <span className="text-sm">{t('aiUploadImage') || 'Upload image'}</span>
+                      <span className="text-sm">{t('aiUploadFile') || 'Upload PDF, DOCX, TXT, or Image'}</span>
+                      <span className="text-[10px] opacity-60">max 20MB</span>
                     </button>
                   )}
-                  <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  <input ref={fileRef} type="file" accept={FILE_ACCEPT} onChange={handleFileUpload} className="hidden" />
                 </div>
 
                 {/* Question Count */}
@@ -429,7 +458,7 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                   </button>
                   <button
                     onClick={handleGenerate}
-                    disabled={loading || (!text && !image)}
+                    disabled={loading || (!text && !uploadedFile)}
                     className="px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl text-sm font-medium hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
                   >
                     {loading ? (

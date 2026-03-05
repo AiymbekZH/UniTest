@@ -3,6 +3,43 @@ const router = express.Router();
 const { auth } = require('../middleware/auth');
 const OpenAI = require('openai');
 const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+
+// Multer for file uploads (PDF, DOCX, TXT, images) — max 20MB
+const fileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'text/plain',
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    ];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Unsupported file type. Use PDF, DOCX, TXT, or images.'));
+  },
+});
+
+// Extract text from uploaded file
+async function extractText(file) {
+  const mime = file.mimetype;
+  if (mime === 'application/pdf') {
+    const data = await pdfParse(file.buffer);
+    return data.text;
+  }
+  if (mime.includes('wordprocessingml') || mime === 'application/msword') {
+    const result = await mammoth.extractRawText({ buffer: file.buffer });
+    return result.value;
+  }
+  if (mime === 'text/plain') {
+    return file.buffer.toString('utf-8');
+  }
+  return null; // images handled separately
+}
 
 // Initialize OpenAI client — supports both direct OpenAI API and Azure
 const getClient = () => {
@@ -32,13 +69,34 @@ const getClient = () => {
   throw new Error('AI not configured. Set OPENAI_API_KEY (or AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY) in .env');
 };
 
-// POST /api/ai/generate — Generate test questions from text/image
-router.post('/generate', auth, async (req, res) => {
+// POST /api/ai/generate — Generate test questions from text/file/image
+router.post('/generate', auth, fileUpload.single('file'), async (req, res) => {
   try {
-    const { text, image, questionCount = 5, questionTypes = ['single-choice'], language = 'ru' } = req.body;
+    const { text, image, questionCount = 5, questionTypes = '["single-choice"]', language = 'ru' } = req.body;
+    
+    // Parse questionTypes (could be JSON string from FormData)
+    let parsedTypes;
+    try {
+      parsedTypes = typeof questionTypes === 'string' ? JSON.parse(questionTypes) : questionTypes;
+    } catch { parsedTypes = ['single-choice']; }
 
-    if (!text && !image) {
-      return res.status(400).json({ error: 'Provide text or image' });
+    // Extract text from uploaded file
+    let fileText = '';
+    let fileImageBase64 = null;
+    
+    if (req.file) {
+      if (req.file.mimetype.startsWith('image/')) {
+        fileImageBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      } else {
+        fileText = await extractText(req.file) || '';
+      }
+    }
+
+    const combinedText = [text, fileText].filter(Boolean).join('\n\n');
+    const hasImage = image || fileImageBase64;
+
+    if (!combinedText && !hasImage) {
+      return res.status(400).json({ error: 'Provide text, file, or image' });
     }
 
     const { client, model } = getClient();
@@ -54,11 +112,11 @@ router.post('/generate', auth, async (req, res) => {
       'matching': 'Matching pairs (4-5 pairs of left-right items)',
     };
 
-    const requestedTypes = questionTypes
+    const requestedTypes = parsedTypes
       .map(t => typeDescriptions[t] || t)
       .join('; ');
 
-    const systemPrompt = `You are a professional test/quiz generator for an educational platform. 
+    const systemPrompt = `You are a professional test/quiz generator for an educational platform.
 Generate exactly ${questionCount} questions based on the provided content.
 
 QUESTION TYPES to use: ${requestedTypes}
@@ -66,7 +124,7 @@ Distribute question types evenly across the requested types.
 
 LANGUAGE: All question text, options, and answers MUST be in ${langName}.
 
-RESPOND ONLY with a valid JSON array. No markdown, no code blocks, no explanation.
+You MUST respond with a JSON object: {"questions": [...]}
 Each question object must follow this EXACT structure:
 
 For single-choice:
@@ -96,24 +154,24 @@ Rules:
     // Build message content
     const userContent = [];
 
-    if (text) {
+    if (combinedText) {
       userContent.push({
         type: 'text',
-        text: `Generate ${questionCount} test questions based on this content:\n\n${text}`,
+        text: `Generate ${questionCount} test questions based on this content:\n\n${combinedText.substring(0, 15000)}`,
       });
     }
 
-    if (image) {
-      // image is base64 data URL (data:image/...;base64,...)
-      const imageUrl = image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`;
+    const imageData = image || fileImageBase64;
+    if (imageData) {
+      const imageUrl = imageData.startsWith('data:') ? imageData : `data:image/jpeg;base64,${imageData}`;
       userContent.push({
         type: 'image_url',
         image_url: { url: imageUrl, detail: 'high' },
       });
-      if (!text) {
+      if (!combinedText) {
         userContent.push({
           type: 'text',
-          text: `Generate ${questionCount} test questions based on this image. Extract all relevant educational content from the image and create questions.`,
+          text: `Generate ${questionCount} test questions based on this image.`,
         });
       }
     }
@@ -124,61 +182,44 @@ Rules:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
-      max_completion_tokens: 8192,
+      max_completion_tokens: 16384,
+      response_format: { type: 'json_object' },
     });
 
-    const raw = completion.choices[0]?.message?.content || '[]';
+    const raw = completion.choices[0]?.message?.content || '{}';
     console.log('AI raw response (first 500 chars):', raw.substring(0, 500));
 
-    // Parse JSON — aggressive cleanup
-    let cleaned = raw.trim();
-    
-    // Strip markdown code blocks
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
-    }
-    
-    // Try to find JSON array in the response
-    if (!cleaned.startsWith('[')) {
-      const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
-      if (arrayMatch) {
-        cleaned = arrayMatch[0];
-      }
-    }
-    
-    // Try to find JSON object if no array
-    if (!cleaned.startsWith('[') && !cleaned.startsWith('{')) {
-      const objMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (objMatch) {
-        cleaned = objMatch[0];
-      }
-    }
-
-    let questions;
+    // Parse JSON (response_format guarantees valid JSON)
+    let parsed;
     try {
-      questions = JSON.parse(cleaned);
+      parsed = JSON.parse(raw);
     } catch (parseErr) {
-      // Try fixing common issues: trailing commas, etc
-      try {
-        const fixed = cleaned
-          .replace(/,\s*([}\]])/g, '$1')  // trailing commas
-          .replace(/[\x00-\x1f]/g, ' ');  // control chars
-        questions = JSON.parse(fixed);
-      } catch (e) {
-        console.error('AI response parse error:', parseErr.message, '\nRaw response:', raw);
+      // Fallback: extract JSON from response
+      let cleaned = raw.trim().replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) {
+        try { parsed = JSON.parse(match[0]); } catch {
+          console.error('Parse error:', parseErr.message, '\nRaw:', raw.substring(0, 1000));
+          return res.status(500).json({ error: 'Failed to parse AI response. Try again.' });
+        }
+      } else {
+        console.error('Parse error:', parseErr.message, '\nRaw:', raw.substring(0, 1000));
         return res.status(500).json({ error: 'Failed to parse AI response. Try again.' });
       }
     }
 
-    if (!Array.isArray(questions)) {
-      questions = [questions];
+    // Extract questions array from various response shapes
+    let questions = parsed.questions || parsed.data || (Array.isArray(parsed) ? parsed : []);
+    if (!Array.isArray(questions)) questions = [questions];
+    if (questions.length === 0) {
+      return res.status(500).json({ error: 'AI returned no questions. Try again.' });
     }
 
     // Add IDs and clean up
     const formatted = questions.map((q, i) => ({
       id: uuidv4(),
       type: q.type || 'single-choice',
-      questionText: q.questionText || '',
+      questionText: q.questionText || q.question || '',
       passage: q.passage || '',
       points: q.points || 1,
       options: (q.options || []).map(o => ({
@@ -195,11 +236,14 @@ Rules:
 
     res.json({ questions: formatted });
   } catch (err) {
-    console.error('AI generate error:', err.message);
-    if (err.message.includes('not configured')) {
+    console.error('AI generate error:', err);
+    if (err.message?.includes('not configured')) {
       return res.status(503).json({ error: err.message });
     }
-    res.status(500).json({ error: 'AI generation failed: ' + err.message });
+    if (err.message?.includes('Unsupported file type')) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: 'AI generation failed: ' + (err.message || 'Unknown error') });
   }
 });
 
