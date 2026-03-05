@@ -5,7 +5,7 @@ import {
   Plus, Trash2, Save, ArrowLeft, Image, Video, Music,
   Check, X, Type, ListChecks, ToggleLeft,
   FileText, Link2, Settings, Upload, ChevronUp, ChevronDown,
-  Database, FileSpreadsheet, Eye, EyeOff, Ticket
+  Database, FileSpreadsheet, Eye, EyeOff, Ticket, Sparkles
 } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -15,6 +15,7 @@ import { lazy, Suspense } from 'react';
 const RichTextEditor = lazy(() => import('../components/RichTextEditor'));
 import { useLanguage } from '../context/LanguageContext';
 import { v4 as uuidv4 } from 'uuid';
+import AIGenerateModal from '../components/AIGenerateModal';
 
 const questionTypesData = [
   { value: 'single-choice', labelKey: 'singleChoice', icon: Check, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' },
@@ -62,12 +63,13 @@ export default function CreateTest() {
   const [showBankModal, setShowBankModal] = useState(false);
   const [bankQuestions, setBankQuestions] = useState([]);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, index: null });
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [draftStatus, setDraftStatus] = useState(''); // '' | 'saving' | 'saved'
   const questionRefs = useRef({});
   const autoSaveTimer = useRef(null);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const questionTypes = questionTypesData.map(qt => ({ ...qt, label: t(qt.labelKey) }));
 
@@ -461,6 +463,10 @@ export default function CreateTest() {
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 <FileSpreadsheet size={14} /> {t('importCSV')}
               </button>
+              <button onClick={() => setShowAIModal(true)}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
+                <Sparkles size={14} /> {t('aiGenerate') || 'AI Generate'}
+              </button>
               <button onClick={saveToBank}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 <Save size={14} /> {t('saveToBank')}
@@ -672,6 +678,9 @@ export default function CreateTest() {
             </button>
             <button onClick={() => setShowImportModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <FileSpreadsheet size={12} /> {t('importCSV')}
+            </button>
+            <button onClick={() => setShowAIModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800">
+              <Sparkles size={12} /> {t('aiGenerate') || 'AI Generate'}
             </button>
             <button onClick={saveToBank} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <Save size={12} /> {t('saveToBank')}
@@ -1071,6 +1080,21 @@ export default function CreateTest() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* AI Generate Modal */}
+      <AIGenerateModal
+        isOpen={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        currentLanguage={lang}
+        onGenerated={(questions) => {
+          setTest(prev => ({
+            ...prev,
+            questions: [...prev.questions, ...questions]
+          }));
+          setActiveQuestion(test.questions.length);
+          toast.success(t('aiQuestionsAdded')?.replace('{{count}}', questions.length) || `${questions.length} questions added!`);
+        }}
+      />
     </div>
   );
 }
