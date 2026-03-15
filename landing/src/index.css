@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #000000;
+  --color-surface-2: #0A0A0A;
+  --color-surface-3: #111111;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text-primary: #EDEDED;
+  --color-text-secondary: #888888;
+  --color-text-tertiary: #555555;
+  --color-accent: #FFFFFF;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: #000;
+  color: #ededed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
+
+/* Layout */
+.container-main {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.container-narrow {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============ BEAM LINE ============ */
+@keyframes beam {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.beam-line {
+  position: relative;
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+
+.beam-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  animation: beam 3s ease-in-out infinite;
+}
+
+/* ============ SPOTLIGHT CARD ============ */
+.spotlight-card {
+  position: relative;
+  background: #0a0a0a;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 16px;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255,255,255,0.03),
+    transparent 40%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.spotlight-card:hover {
+  border-color: rgba(255,255,255,0.12);
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+/* ============ ANIMATED GRADIENT BORDER ============ */
+@keyframes rotateBorder {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.gradient-border {
+  position: relative;
+  border-radius: 16px;
+  padding: 1px;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.15), transparent, rgba(255,255,255,0.15), transparent);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  animation: rotateBorder 8s linear infinite;
+}
+
+/* ============ SHINE TEXT ============ */
+@keyframes shine {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shine-text {
+  background: linear-gradient(90deg, #ededed 0%, #ededed 40%, #fff 50%, #ededed 60%, #ededed 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shine 4s linear infinite;
+}
+
+/* ============ GRID PATTERN ============ */
+.dot-grid {
+  background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ============ MARQUEE ============ */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  .container-main, .container-narrow {
+    padding: 0 16px;
+  }
+}

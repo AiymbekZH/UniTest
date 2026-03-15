@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Upload, FileText, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, History, Trash2, Clock } from 'lucide-react';
+import { X, Sparkles, Upload, FileText, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, File, History, Trash2, Clock } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
@@ -61,6 +61,7 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
     }
     setUploadedFile(file);
     setError('');
+    
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = () => setFilePreview(reader.result);
@@ -74,15 +75,6 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
     setUploadedFile(null);
     setFilePreview(null);
     if (fileRef.current) fileRef.current.value = '';
-  };
-
-  const getFileIcon = () => {
-    if (!uploadedFile) return null;
-    const ext = uploadedFile.name.split('.').pop().toLowerCase();
-    if (ext === 'pdf') return '📄';
-    if (['doc', 'docx'].includes(ext)) return '📝';
-    if (ext === 'txt') return '📃';
-    return '🖼️';
   };
 
   const toggleType = (type) => {
@@ -227,26 +219,26 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
         onClick={handleClose}
       >
         <motion.div
-          initial={{ scale: 0.95, opacity: 0, y: 10 }}
+          initial={{ scale: 0.96, opacity: 0, y: 8 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 10 }}
-          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+          exit={{ scale: 0.96, opacity: 0, y: 8 }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200/50 dark:border-slate-700/50 w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-200/60 dark:border-gray-700/60"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
-                <Sparkles className="text-primary-500" size={18} />
+              <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-sm">
+                <Sparkles className="text-white" size={17} />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
                   {t('aiGenerate') || 'AI Generate'}
                 </h2>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
                   {step === 'input' 
-                    ? (t('aiGenerateDesc') || 'Create questions from text or file')
+                    ? (t('aiGenerateDesc') || 'Create questions from text or image')
                     : step === 'history'
                     ? (t('aiHistory') || 'Generation history')
                     : `${selectedQuestions.size} / ${generatedQuestions.length} ${t('selected') || 'selected'}`
@@ -258,16 +250,14 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
               {step === 'input' && history.length > 0 && (
                 <button
                   onClick={() => setStep('history')}
-                  className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors relative group"
                   title={t('aiHistory') || 'History'}
                 >
-                  <History size={16} className="text-gray-400" />
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-primary-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
-                    {history.length}
-                  </span>
+                  <History size={16} className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-indigo-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{history.length}</span>
                 </button>
               )}
-              <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+              <button onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                 <X size={16} className="text-gray-400" />
               </button>
             </div>
@@ -276,42 +266,45 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-5">
             {step === 'history' ? (
+              /* ─── HISTORY ─── */
               <>
                 {history.length === 0 ? (
                   <div className="text-center py-16">
-                    <History size={32} className="mx-auto mb-3 text-gray-300 dark:text-slate-600" />
+                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <History size={20} className="text-gray-300 dark:text-gray-600" />
+                    </div>
                     <p className="text-sm text-gray-400">{t('aiNoHistory') || 'No generation history yet'}</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {history.map((entry) => (
                       <div
                         key={entry.id}
-                        className="group flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-slate-700 hover:border-primary-200 dark:hover:border-primary-800 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer"
+                        className="group flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
                         onClick={() => loadFromHistory(entry)}
                       >
-                        <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                          <Sparkles size={14} className="text-primary-400" />
+                        <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Sparkles size={13} className="text-indigo-500" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
                             {entry.prompt.length > 60 ? entry.prompt.slice(0, 60) + '...' : entry.prompt}
                           </p>
                           <div className="flex items-center gap-3 mt-0.5">
-                            <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                              <Clock size={10} />
-                              {new Date(entry.timestamp).toLocaleDateString()}
+                            <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                              <Clock size={9} />
+                              {new Date(entry.timestamp).toLocaleString()}
                             </span>
-                            <span className="text-[11px] text-primary-500 font-medium">
+                            <span className="text-[10px] text-indigo-500 dark:text-indigo-400 font-medium">
                               {entry.count} {t('questions') || 'questions'}
                             </span>
                           </div>
                         </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); deleteHistoryEntry(entry.id); }}
-                          className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 rounded-lg transition-all"
+                          className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 rounded-lg transition-all"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     ))}
@@ -319,34 +312,40 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                 )}
               </>
             ) : step === 'input' ? (
+              /* ─── INPUT ─── */
               <>
                 {/* Text Input */}
                 <div>
-                  <label className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                    <FileText size={14} />
+                  <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-wider">
+                    <FileText size={13} />
                     {t('aiTextInput') || 'Text content'}
                   </label>
-                  <textarea
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder={t('aiTextPlaceholder') || 'Paste text, lecture notes, or any content...'}
-                    className="w-full h-32 px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl resize-none text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/20 transition-all"
-                  />
+                  <div className="relative">
+                    <textarea
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      placeholder={t('aiTextPlaceholder') || 'Paste text, lecture notes...'}
+                      className="w-full h-40 px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl resize-none text-sm text-gray-800 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-600 focus:outline-none focus:border-indigo-300 dark:focus:border-indigo-600 focus:bg-white dark:focus:bg-gray-800 transition-all"
+                    />
+                    <span className="absolute bottom-3 right-3 text-[10px] text-gray-300 dark:text-gray-600 tabular-nums">
+                      {text.length}
+                    </span>
+                  </div>
                 </div>
 
                 {/* File Upload */}
                 <div>
-                  <label className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                    <Upload size={14} />
-                    {t('aiFileInput') || 'File upload'}
+                  <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-wider">
+                    <Upload size={13} />
+                    {t('aiFileInput') || 'File (PDF, DOCX, TXT, Image)'}
                   </label>
                   {uploadedFile ? (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl">
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl">
                       {filePreview ? (
-                        <img src={filePreview} alt="Preview" className="h-12 w-12 rounded-lg border border-gray-200 dark:border-slate-600 object-cover" />
+                        <img src={filePreview} alt="Preview" className="h-12 w-12 rounded-lg border border-gray-200 dark:border-gray-700 object-cover" />
                       ) : (
-                        <div className="h-12 w-12 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center text-lg">
-                          {getFileIcon()}
+                        <div className="h-12 w-12 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg flex items-center justify-center">
+                          <File size={18} className="text-indigo-400" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
@@ -355,21 +354,21 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                       </div>
                       <button
                         onClick={removeFile}
-                        className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                       >
-                        <X size={14} />
+                        <X size={15} />
                       </button>
                     </div>
                   ) : (
                     <button
                       onClick={() => fileRef.current?.click()}
-                      className="w-full py-8 border border-dashed border-gray-200 dark:border-slate-600 rounded-xl hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-all flex flex-col items-center gap-2"
+                      className="w-full py-7 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 transition-all flex flex-col items-center gap-2 group"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
-                        <Upload size={18} className="text-gray-400" />
+                      <div className="w-9 h-9 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center group-hover:bg-indigo-100 dark:group-hover:bg-indigo-950/50 transition-colors">
+                        <Upload size={16} className="text-gray-400 group-hover:text-indigo-500 transition-colors" />
                       </div>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">{t('aiUploadFile') || 'PDF, DOCX, TXT, or Image'}</span>
-                      <span className="text-[11px] text-gray-400">max 20MB</span>
+                      <span className="text-xs text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">{t('aiUploadFile') || 'Upload PDF, DOCX, TXT, or Image'}</span>
+                      <span className="text-[10px] text-gray-300 dark:text-gray-600">max 20MB</span>
                     </button>
                   )}
                   <input ref={fileRef} type="file" accept={FILE_ACCEPT} onChange={handleFileUpload} className="hidden" />
@@ -377,16 +376,15 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
 
                 {/* Question Count */}
                 <div>
-                  <label className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                    <span>{t('aiQuestionCount') || 'Number of questions'}</span>
-                    <span className="text-lg font-bold text-primary-600 dark:text-primary-400 normal-case tracking-normal">{questionCount}</span>
+                  <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 mb-3 uppercase tracking-wider">
+                    {t('aiQuestionCount') || 'Number of questions'}
                   </label>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setQuestionCount(Math.max(1, questionCount - 1))}
-                      className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 flex items-center justify-center transition-colors"
+                      className="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500"
                     >
-                      <Minus size={14} className="text-gray-500 dark:text-gray-400" />
+                      <Minus size={13} />
                     </button>
                     <div className="flex-1 relative">
                       <input
@@ -395,24 +393,24 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                         max={20}
                         value={questionCount}
                         onChange={(e) => setQuestionCount(Number(e.target.value))}
-                        className="w-full h-1.5 bg-gray-200 dark:bg-slate-600 rounded-full appearance-none cursor-pointer accent-primary-500
-                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
-                          [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md
-                          [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110"
+                        className="w-full accent-indigo-500 h-1.5"
                       />
                     </div>
                     <button
                       onClick={() => setQuestionCount(Math.min(20, questionCount + 1))}
-                      className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 flex items-center justify-center transition-colors"
+                      className="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500"
                     >
-                      <Plus size={14} className="text-gray-500 dark:text-gray-400" />
+                      <Plus size={13} />
                     </button>
+                    <span className="min-w-[2rem] h-8 flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-sm font-bold rounded-lg tabular-nums">
+                      {questionCount}
+                    </span>
                   </div>
                 </div>
 
                 {/* Question Types */}
                 <div>
-                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">
+                  <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 mb-3 uppercase tracking-wider">
                     {t('aiQuestionTypes') || 'Question types'}
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -420,13 +418,13 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                       <button
                         key={value}
                         onClick={() => toggleType(value)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                        className={`px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 ${
                           selectedTypes.includes(value)
-                            ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 ring-1 ring-primary-300 dark:ring-primary-700'
-                            : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 hover:bg-gray-150 dark:hover:bg-slate-600'
+                            ? 'bg-indigo-500 text-white shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                         }`}
                       >
-                        <span className="text-[11px] opacity-60 font-mono">{icon}</span>
+                        <span className={`font-mono text-[10px] ${selectedTypes.includes(value) ? 'text-indigo-200' : 'opacity-50'}`}>{icon}</span>
                         {typeLabels[value] || value}
                       </button>
                     ))}
@@ -435,33 +433,33 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
 
                 {/* Error */}
                 {error && (
-                  <div className="flex items-start gap-3 text-sm bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 px-4 py-3 rounded-xl">
-                    <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-red-600 dark:text-red-400">{error}</span>
+                  <div className="flex items-center gap-2.5 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/10 px-4 py-3 rounded-xl border border-red-100 dark:border-red-900/30">
+                    <AlertCircle size={15} className="flex-shrink-0" />
+                    {error}
                   </div>
                 )}
               </>
             ) : (
-              /* PREVIEW STEP */
+              /* ─── PREVIEW ─── */
               <>
                 {/* Select controls */}
-                <div className="flex items-center justify-between pb-1">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={selectAll}
-                      className="text-xs px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors font-medium"
+                      className="text-xs px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors font-medium"
                     >
-                      <CheckCheck size={13} className="inline mr-1 -mt-0.5" />
+                      <CheckCheck size={12} className="inline mr-1" />
                       {t('selectAll') || 'Select all'}
                     </button>
                     <button
                       onClick={deselectAll}
-                      className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors font-medium"
+                      className="text-xs px-3 py-1.5 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
                       {t('deselectAll') || 'Deselect all'}
                     </button>
                   </div>
-                  <span className="text-xs font-medium text-gray-400">
+                  <span className="text-xs text-gray-400 tabular-nums font-medium">
                     {selectedQuestions.size} / {generatedQuestions.length}
                   </span>
                 </div>
@@ -471,38 +469,37 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                   {generatedQuestions.map((q, i) => (
                     <div
                       key={q.id || i}
-                      className={`rounded-xl border transition-all ${
+                      className={`border rounded-xl transition-all ${
                         selectedQuestions.has(i)
-                          ? 'border-primary-200 dark:border-primary-800 bg-white dark:bg-slate-800'
-                          : 'border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 opacity-50'
+                          ? 'border-indigo-200 dark:border-indigo-800 bg-white dark:bg-gray-900'
+                          : 'border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 opacity-50'
                       }`}
                     >
-                      {/* Question header */}
                       <div className="flex items-start gap-3 px-4 py-3">
                         <button
                           onClick={() => toggleQuestion(i)}
                           className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
                             selectedQuestions.has(i)
-                              ? 'bg-primary-500 border-primary-500 text-white'
-                              : 'border-gray-300 dark:border-slate-600 hover:border-primary-400'
+                              ? 'bg-indigo-500 border-indigo-500 text-white'
+                              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
                           }`}
                         >
-                          {selectedQuestions.has(i) && <Check size={12} />}
+                          {selectedQuestions.has(i) && <Check size={11} />}
                         </button>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[11px] px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 rounded-full font-medium">
+                            <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded font-medium uppercase">
                               {typeLabels[q.type] || q.type}
                             </span>
-                            <span className="text-[11px] text-gray-400">{q.points} {t('points') || 'pts'}</span>
+                            <span className="text-[10px] text-gray-400 tabular-nums">{q.points} {t('points') || 'pts'}</span>
                           </div>
-                          <p className="text-sm text-gray-700 dark:text-gray-200 line-clamp-2" dangerouslySetInnerHTML={{ __html: q.questionText }} />
+                          <p className="text-sm text-gray-700 dark:text-gray-200 line-clamp-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: q.questionText }} />
                         </div>
                         <button
                           onClick={() => setExpandedQuestion(expandedQuestion === i ? null : i)}
-                          className="flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          className="flex-shrink-0 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                         >
-                          <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expandedQuestion === i ? 'rotate-180' : ''}`} />
+                          <ChevronDown size={13} className={`text-gray-400 transition-transform duration-200 ${expandedQuestion === i ? 'rotate-180' : ''}`} />
                         </button>
                       </div>
 
@@ -516,7 +513,7 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <div className="px-4 pb-3 border-t border-gray-100 dark:border-slate-700">
+                            <div className="px-4 pb-3 border-t border-gray-100 dark:border-gray-800">
                               <div className="pt-3 space-y-1.5">
                                 {q.options && q.options.length > 0 && (
                                   <div className="space-y-1">
@@ -526,10 +523,10 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                                         className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
                                           opt.isCorrect
                                             ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
-                                            : 'bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400'
+                                            : 'bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400'
                                         }`}
                                       >
-                                        {opt.isCorrect && <Check size={12} className="flex-shrink-0" />}
+                                        {opt.isCorrect && <Check size={11} className="flex-shrink-0" />}
                                         <span>{q.type === 'matching' ? `${opt.text} → ${opt.matchPair}` : opt.text}</span>
                                       </div>
                                     ))}
@@ -537,14 +534,14 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                                 )}
                                 {q.type === 'fill-blank' && q.correctAnswer && (
                                   <div className="text-xs px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg flex items-center gap-1.5">
-                                    <Check size={12} className="flex-shrink-0" />
+                                    <Check size={11} className="flex-shrink-0" />
                                     {q.correctAnswer}
                                   </div>
                                 )}
                                 {q.explanation && (
-                                  <p className="text-xs text-gray-400 dark:text-gray-500 italic px-1 pt-1">
+                                  <div className="text-xs text-gray-400 dark:text-gray-500 italic px-1 pt-1.5">
                                     {q.explanation}
-                                  </p>
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -559,43 +556,43 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/30">
+          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
             {step === 'history' ? (
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => setStep('input')}
-                  className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium flex items-center gap-1.5 transition-colors"
+                  className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center gap-2 font-medium"
                 >
-                  <RotateCcw size={14} />
+                  <RotateCcw size={13} />
                   {t('back') || 'Back'}
                 </button>
                 {history.length > 0 && (
                   <button
                     onClick={clearHistory}
-                    className="text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1.5 transition-colors"
+                    className="px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors flex items-center gap-2 font-medium"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                     {t('clearAll') || 'Clear all'}
                   </button>
                 )}
               </div>
             ) : step === 'input' ? (
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
-                  <Sparkles size={10} />
-                  GPT-5.2 &middot; Azure OpenAI
+                <span className="text-[10px] text-gray-300 dark:text-gray-600 bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-md flex items-center gap-1.5 font-medium">
+                  <Sparkles size={9} />
+                  Gemini 2.5 Pro
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleClose}
-                    className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-medium transition-colors"
+                    className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium"
                   >
                     {t('cancel') || 'Cancel'}
                   </button>
                   <button
                     onClick={handleGenerate}
                     disabled={loading || (!text && !uploadedFile)}
-                    className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm hover:shadow-md"
+                    className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-colors shadow-sm"
                   >
                     {loading ? (
                       <>
@@ -615,22 +612,22 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
               <div className="flex items-center justify-between">
                 <button
                   onClick={goBack}
-                  className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium flex items-center gap-1.5 transition-colors"
+                  className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center gap-2 font-medium"
                 >
-                  <RotateCcw size={14} />
+                  <RotateCcw size={13} />
                   {t('regenerate') || 'Regenerate'}
                 </button>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleClose}
-                    className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-medium transition-colors"
+                    className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium"
                   >
                     {t('cancel') || 'Cancel'}
                   </button>
                   <button
                     onClick={handleAddSelected}
                     disabled={selectedQuestions.size === 0}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm hover:shadow-md"
+                    className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-colors shadow-sm"
                   >
                     <Plus size={15} />
                     {t('addQuestions') || 'Add'} ({selectedQuestions.size})

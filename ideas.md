@@ -1,75 +1,75 @@
-# UniTest — Ideas & Improvements
+# UniTest — Идеи и улучшения
 
 ## UX / UI
 
-1. **i18n for all pages** — Login, Register, MyTests, MyResults, Groups, and many modals still have hardcoded Russian strings. Migrate everything to `LanguageContext` with `t()` keys for EN/RU/KZ consistency.
+1. **i18n для всех страниц** — Login, Register, MyTests, MyResults, Groups и многие модалки до сих пор содержат захардкоженные русские строки. Перенести всё в `LanguageContext` с ключами `t()` для полной поддержки EN/RU/KZ.
 
-2. **Dark mode audit** — Some pages (Dashboard menu button, certain hover states) have subtle dark mode gaps. Run through every page in dark mode and fix mismatches.
+2. **Аудит тёмной темы** — На некоторых страницах (кнопка меню Dashboard, отдельные hover-состояния) есть косяки в тёмной теме. Пройтись по всем страницам в dark mode и пофиксить.
 
-3. **Skeleton loading consistency** — Skeleton loaders on groups list and test list cards use different padding/radius than the actual cards. Unify them.
+3. **Единообразие скелетон-загрузок** — Скелетоны на списке групп и карточках тестов используют другие отступы/радиусы, чем сами карточки. Привести к единому виду.
 
-4. **Mobile navigation** — The Navbar hamburger menu could benefit from a slide-in drawer instead of a dropdown, especially on smaller screens.
+4. **Мобильная навигация** — Гамбургер-меню в Navbar лучше заменить на выезжающую панель (drawer) вместо выпадающего списка, особенно на маленьких экранах.
 
-5. **Toast positioning** — Some pages use `top-right`, some use `top-center`. Standardize across the app.
+5. **Позиция тостов** — На одних страницах тосты показываются `top-right`, на других `top-center`. Стандартизировать по всему приложению.
 
-6. **Empty states** — Add illustrated empty states (SVG illustrations) instead of just icons + text for empty groups, empty tests, no results, etc.
+6. **Пустые состояния** — Добавить красивые иллюстрации (SVG) вместо просто иконка + текст для пустых групп, пустых тестов, отсутствия результатов и т.д.
 
-7. **Keyboard shortcuts** — Add Ctrl+K / Cmd+K command palette for power users (navigate to create test, groups, profile, etc.).
+7. **Горячие клавиши** — Добавить Ctrl+K / Cmd+K палитру команд для быстрой навигации (создать тест, группы, профиль и т.д.).
 
-## Features
+## Фичи
 
-8. **Group chat improvements**:
-   - Read receipts / "seen by" indicator
-   - Typing indicator (would need WebSocket or more frequent polling)
-   - File/image sharing in chat
-   - Message reactions (like, thumbs up)
-   - Pin important messages
-   - Unread message count badge on group cards
+8. **Улучшения группового чата**:
+   - Индикатор "прочитано" / "видели"
+   - Индикатор "печатает..." (нужен WebSocket или более частый polling)
+   - Отправка файлов/картинок в чате
+   - Реакции на сообщения (лайк, палец вверх)
+   - Закрепление важных сообщений
+   - Бейдж с количеством непрочитанных на карточках групп
 
-9. **Test analytics dashboard** — For test creators: show aggregate stats, score distribution histogram, average time per question, hardest questions, drop-off points.
+9. **Аналитика по тестам (для преподавателей)** — Агрегированная статистика: гистограмма распределения баллов, среднее время на вопрос, самые сложные вопросы, точки отсева.
 
-10. **Student dashboard** — Personal learning analytics: tests taken over time, average scores by category, improvement trends, weak areas.
+10. **Дашборд студента** — Персональная аналитика обучения: тесты за период, средние баллы по категориям, тренды улучшений, слабые места.
 
-11. **Notifications system** — Real-time (or polled) notifications for: new test assigned to group, new chat messages, test graded (essay), group invite received.
+11. **Система уведомлений** — Реальное время (или polling) уведомления: новый тест назначен группе, новые сообщения в чате, тест проверен (эссе), приглашение в группу.
 
-12. **Question bank categories** — Allow teachers to organize saved questions into folders/tags for easier reuse.
+12. **Категории в банке вопросов** — Дать преподавателям возможность организовать сохранённые вопросы по папкам/тегам для удобного повторного использования.
 
-13. **Test scheduling** — Let teachers schedule tests to auto-open and auto-close at specific times (start/end date is already in the model but not enforced client-side).
+13. **Расписание тестов** — Дать преподавателям возможность планировать тесты с автоматическим открытием/закрытием по дате и времени (start/end date уже есть в модели, но не применяется на клиенте).
 
-14. **CSV/Excel export of results** — For teachers: export all results of a test to CSV with student name, score, time, individual question answers.
+14. **Экспорт результатов в CSV/Excel** — Для преподавателей: выгрузить все результаты теста в CSV с именем студента, баллом, временем, ответами на каждый вопрос.
 
-15. **Plagiarism detection** — For essay questions: compare student answers against each other and flag similar submissions.
+15. **Обнаружение плагиата** — Для эссе-вопросов: сравнивать ответы студентов между собой и отмечать подозрительно похожие.
 
-16. **Collaborative test creation** — Allow multiple teachers to co-edit a test simultaneously (would need conflict resolution).
+16. **Совместное создание тестов** — Позволить нескольким преподавателям одновременно редактировать тест (нужна обработка конфликтов).
 
-## Technical / Infrastructure
+## Техническое / Инфраструктура
 
-17. **WebSocket migration** — Replace polling for chat with Socket.io for real-time messages. Could also use for notifications and live test monitoring.
+17. **Миграция на WebSocket** — Заменить polling в чате на Socket.io для мгновенных сообщений. Можно также использовать для уведомлений и мониторинга тестов в реальном времени.
 
-18. **Image optimization** — User avatars and media in questions are stored as-is. Add server-side image resizing/compression (sharp) and serve via CDN.
+18. **Оптимизация изображений** — Аватарки и медиа в вопросах хранятся как есть. Добавить серверное сжатие/ресайз (sharp) и раздавать через CDN.
 
-19. **Rate limiting** — Add express-rate-limit to critical endpoints (login, register, AI generate, chat messages) to prevent abuse.
+19. **Rate limiting** — Добавить express-rate-limit на критические эндпоинты (login, register, AI generate, сообщения чата) для защиты от злоупотреблений.
 
-20. **Caching** — Add Redis caching for frequently accessed data: test metadata, leaderboard, user profiles.
+20. **Кэширование** — Добавить Redis-кэширование для часто запрашиваемых данных: метаданные тестов, лидерборд, профили пользователей.
 
-21. **Error tracking** — Integrate Sentry or similar for frontend/backend error tracking in production.
+21. **Трекинг ошибок** — Подключить Sentry или аналог для отслеживания ошибок фронтенда/бэкенда в продакшене.
 
-22. **E2E testing** — Add Cypress or Playwright tests for critical flows: login, create test, take test, view results.
+22. **E2E тестирование** — Добавить Cypress или Playwright тесты для критических флоу: логин, создание теста, прохождение теста, просмотр результатов.
 
-23. **API documentation** — Generate Swagger/OpenAPI docs from the Express routes for API consumers.
+23. **Документация API** — Сгенерировать Swagger/OpenAPI доки из Express-маршрутов для удобства работы с API.
 
-24. **Bundle analysis** — Run `vite-bundle-visualizer` to identify large dependencies. recharts, framer-motion, and tiptap are likely the biggest — consider lazy loading charts and the rich text editor.
+24. **Анализ бандла** — Запустить `vite-bundle-visualizer` чтобы найти тяжёлые зависимости. recharts, framer-motion и tiptap скорее всего самые большие — рассмотреть lazy loading для графиков и текстового редактора.
 
-25. **Environment variables** — Some config (like AI model name "GPT-5.2") is hardcoded in frontend. Move to `.env` for easier updates.
+25. **Переменные окружения** — Некоторые конфиги (например, название AI модели "GPT-5.2") захардкожены во фронтенде. Перенести в `.env` для простоты обновления.
 
-## Quick Wins
+## Быстрые победы
 
-26. **Favicon & meta tags** — Add proper Open Graph tags and a favicon for better social sharing.
+26. **Favicon и мета-теги** — Добавить правильные Open Graph теги и favicon для нормального отображения при шаринге ссылок.
 
-27. **404 page** — Currently SPA fallback shows blank for invalid routes. Add a styled 404 page.
+27. **Страница 404** — Сейчас при неправильном URL SPA показывает пустую страницу. Добавить стилизованную страницу 404.
 
-28. **Password strength meter** — On registration page, show password strength indicator.
+28. **Индикатор сложности пароля** — На странице регистрации показывать уровень надёжности пароля.
 
-29. **Test preview** — Allow teachers to preview the test-taking experience before publishing (partially exists but could be more prominent).
+29. **Предпросмотр теста** — Дать преподавателям возможность пройти тест как студент перед публикацией (частично есть, но можно сделать заметнее).
 
-30. **Copy test** — "Duplicate test" button for teachers to quickly create a variant from an existing test.
+30. **Копирование теста** — Кнопка "Дублировать тест" для быстрого создания варианта из существующего теста.

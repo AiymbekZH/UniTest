@@ -1,18 +1,16 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Copy, ExternalLink, ArrowLeft, X, Trash2,
-  BookOpen, UserPlus, LogOut, RefreshCw, Link2,
-  MessageCircle, Send, ChevronDown
+  BookOpen, UserPlus, LogOut, RefreshCw, Link2, MessageCircle,
+  Send, Crown, Settings2, MoreHorizontal, ChevronRight
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 import ConfirmDialog from '../components/ConfirmDialog';
-
-const POLL_INTERVAL = 10000;
 
 export default function Groups() {
   const { user } = useAuth();
@@ -28,16 +26,12 @@ export default function Groups() {
   const [showAssignTest, setShowAssignTest] = useState(false);
   const [myTests, setMyTests] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null);
-
-  // Chat state
-  const [showChat, setShowChat] = useState(false);
+  const [activeTab, setActiveTab] = useState('members'); // 'members' | 'tests' | 'chat'
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const pollRef = useRef(null);
   const chatEndRef = useRef(null);
-  const lastMessageTime = useRef(null);
+  const chatPollRef = useRef(null);
 
   useEffect(() => { fetchGroups(); }, []);
 
@@ -178,6 +172,41 @@ export default function Groups() {
     }
   };
 
+  // Chat functions
+  const fetchMessages = async (groupId) => {
+    try {
+      const res = await api.get(`/groups/${groupId}/messages`);
+      setMessages(res.data || []);
+    } catch {
+      // silently fail — feature may not be available yet
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!chatInput.trim() || !selectedGroup) return;
+    try {
+      await api.post(`/groups/${selectedGroup._id}/messages`, { text: chatInput.trim() });
+      setChatInput('');
+      fetchMessages(selectedGroup._id);
+    } catch {
+      toast.error('Ошибка отправки');
+    }
+  };
+
+  // Start / stop chat polling
+  useEffect(() => {
+    if (selectedGroup && activeTab === 'chat') {
+      fetchMessages(selectedGroup._id);
+      chatPollRef.current = setInterval(() => fetchMessages(selectedGroup._id), 5000);
+    }
+    return () => { if (chatPollRef.current) clearInterval(chatPollRef.current); };
+  }, [selectedGroup, activeTab]);
+
+  // Scroll chat to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   // Join by URL param
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -189,427 +218,354 @@ export default function Groups() {
     }
   }, []);
 
-  // ===== Chat functions =====
-
-  const fetchMessages = useCallback(async (groupId, since = null) => {
-    try {
-      const params = since ? `?since=${encodeURIComponent(since)}` : '?limit=50';
-      const res = await api.get(`/groups/${groupId}/messages${params}`);
-      return res.data;
-    } catch (err) {
-      return [];
-    }
-  }, []);
-
-  const openChat = useCallback(async (groupId) => {
-    setShowChat(true);
-    setChatLoading(true);
-    lastMessageTime.current = null;
-    const msgs = await fetchMessages(groupId);
-    setMessages(msgs);
-    if (msgs.length > 0) {
-      lastMessageTime.current = msgs[msgs.length - 1].createdAt;
-    }
-    setChatLoading(false);
-    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  }, [fetchMessages]);
-
-  const pollMessages = useCallback(async () => {
-    if (!selectedGroup?._id || !showChat) return;
-    const newMsgs = await fetchMessages(selectedGroup._id, lastMessageTime.current);
-    if (newMsgs.length > 0) {
-      setMessages(prev => [...prev, ...newMsgs]);
-      lastMessageTime.current = newMsgs[newMsgs.length - 1].createdAt;
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    }
-  }, [selectedGroup?._id, showChat, fetchMessages]);
-
-  // Start/stop polling
-  useEffect(() => {
-    if (showChat && selectedGroup?._id) {
-      pollRef.current = setInterval(pollMessages, POLL_INTERVAL);
-      return () => clearInterval(pollRef.current);
-    } else {
-      if (pollRef.current) clearInterval(pollRef.current);
-    }
-  }, [showChat, selectedGroup?._id, pollMessages]);
-
-  // Reset chat when leaving group detail
-  useEffect(() => {
-    if (!selectedGroup) {
-      setShowChat(false);
-      setMessages([]);
-      lastMessageTime.current = null;
-    }
-  }, [selectedGroup]);
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedGroup?._id || sendingMessage) return;
-    setSendingMessage(true);
-    try {
-      const res = await api.post(`/groups/${selectedGroup._id}/messages`, { text: newMessage.trim() });
-      setMessages(prev => [...prev, res.data]);
-      lastMessageTime.current = res.data.createdAt;
-      setNewMessage('');
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Ошибка отправки');
-    } finally {
-      setSendingMessage(false);
-    }
-  };
-
-  const deleteMessage = async (messageId) => {
-    try {
-      await api.delete(`/groups/${selectedGroup._id}/messages/${messageId}`);
-      setMessages(prev => prev.filter(m => m._id !== messageId));
-    } catch (err) {
-      toast.error('Ошибка удаления');
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
   const isCreator = (group) => group.creator?._id === user?._id;
 
-  const formatMsgTime = (dateStr) => {
-    const d = new Date(dateStr);
-    const now = new Date();
-    const isToday = d.toDateString() === now.toDateString();
-    if (isToday) return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const groupGradients = [
+    'from-indigo-500 to-purple-500',
+    'from-emerald-500 to-teal-500',
+    'from-amber-500 to-orange-500',
+    'from-rose-500 to-pink-500',
+    'from-cyan-500 to-blue-500',
+    'from-violet-500 to-fuchsia-500',
+  ];
+  const getGroupGradient = (name) => {
+    const idx = (name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % groupGradients.length;
+    return groupGradients[idx];
   };
+
+  const tabs = [
+    { key: 'members', label: 'Участники', icon: Users, count: selectedGroup?.members?.length },
+    { key: 'tests', label: 'Тесты', icon: BookOpen, count: selectedGroup?.assignedTests?.length },
+    { key: 'chat', label: 'Чат', icon: MessageCircle },
+  ];
 
   return (
     <div className="min-h-screen bg-surface">
       <Toaster position="top-right" />
       <Navbar />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition">
-              <ArrowLeft size={20} className="text-gray-500" />
+            <button onClick={() => selectedGroup ? setSelectedGroup(null) : navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition">
+              <ArrowLeft size={20} className="text-gray-400" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-dark">Группы</h1>
-              <p className="text-sm text-gray-500">{groups.length} групп</p>
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+                {selectedGroup ? selectedGroup.name : 'Группы'}
+              </h1>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {selectedGroup
+                  ? `${selectedGroup.members?.length || 0} участников`
+                  : `${groups.length} групп`
+                }
+              </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => setShowJoin(true)} className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs">
-              <UserPlus size={14} /> Присоединиться
-            </button>
-            <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-1.5 py-2 px-3 text-xs">
-              <Plus size={14} /> Создать
-            </button>
-          </div>
+          {!selectedGroup && (
+            <div className="flex gap-2">
+              <button onClick={() => setShowJoin(true)} className="btn-secondary flex items-center gap-1.5 py-2 px-4 text-xs">
+                <UserPlus size={14} /> Присоединиться
+              </button>
+              <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-1.5 py-2 px-4 text-xs">
+                <Plus size={14} /> Создать
+              </button>
+            </div>
+          )}
+          {selectedGroup && isCreator(selectedGroup) && (
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => copyInviteCode(selectedGroup.inviteCode)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition" title="Копировать код">
+                <Copy size={16} />
+              </button>
+              <button onClick={() => copyInviteLink(selectedGroup.inviteCode)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition" title="Копировать ссылку">
+                <ExternalLink size={16} />
+              </button>
+            </div>
+          )}
         </motion.div>
 
         {/* Content */}
         {selectedGroup ? (
-          /* Group detail view */
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="flex items-center gap-2">
-              <button onClick={() => setSelectedGroup(null)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition">
-                <ArrowLeft size={16} className="text-gray-500" />
-              </button>
-              <h2 className="text-xl font-bold text-dark">{selectedGroup.name}</h2>
-              {isCreator(selectedGroup) && (
-                <span className="text-[10px] bg-primary-100 dark:bg-primary-900/30 text-primary-600 px-2 py-0.5 rounded-md font-medium ml-2">admin</span>
-              )}
-            </div>
-
-            {selectedGroup.description && (
-              <p className="text-sm text-gray-500">{selectedGroup.description}</p>
-            )}
-
-            {/* Invite section (admin only) */}
+          /* ─── GROUP DETAIL ─── */
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-0">
+            {/* Invite code banner (admin) */}
             {isCreator(selectedGroup) && (
-              <div className="glass-card-solid p-4">
-                <h3 className="text-sm font-semibold text-dark mb-3 flex items-center gap-2">
-                  <Link2 size={16} className="text-primary-500" /> Приглашение
-                </h3>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <code className="bg-gray-100 dark:bg-slate-700 px-3 py-1.5 rounded-lg text-sm font-mono text-dark">
-                    {selectedGroup.inviteCode}
-                  </code>
-                  <button onClick={() => copyInviteCode(selectedGroup.inviteCode)}
-                    className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1">
-                    <Copy size={12} /> Код
-                  </button>
-                  <button onClick={() => copyInviteLink(selectedGroup.inviteCode)}
-                    className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1">
-                    <ExternalLink size={12} /> Ссылка
-                  </button>
-                  <button onClick={() => regenerateCode(selectedGroup._id)}
-                    className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1 text-amber-600">
-                    <RefreshCw size={12} /> Обновить код
-                  </button>
+              <div className="flex items-center gap-3 mb-5 p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-900/40">
+                <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0">
+                  <Link2 size={16} className="text-indigo-500" />
                 </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Код приглашения</p>
+                  <p className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">{selectedGroup.inviteCode}</p>
+                </div>
+                <button onClick={() => regenerateCode(selectedGroup._id)}
+                  className="p-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-400 hover:text-indigo-600 transition" title="Обновить код">
+                  <RefreshCw size={15} />
+                </button>
               </div>
             )}
 
-            {/* Members */}
-            <div className="glass-card-solid p-4">
-              <h3 className="text-sm font-semibold text-dark mb-3 flex items-center gap-2">
-                <Users size={16} className="text-emerald-500" /> Участники ({selectedGroup.members?.length || 0})
-              </h3>
-              <div className="space-y-2">
-                {selectedGroup.members?.map(m => (
-                  <div key={m.user._id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                    <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 font-bold text-xs flex-shrink-0">
-                      {m.user.avatar ? (
-                        <img src={m.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        (m.user.firstName?.[0] || '?').toUpperCase()
-                      )}
+            {/* Tab bar */}
+            <div className="flex items-center gap-1 mb-5 border-b border-gray-100 dark:border-slate-800">
+              {tabs.map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                    activeTab === tab.key
+                      ? 'text-indigo-600 dark:text-indigo-400'
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <tab.icon size={15} />
+                  <span>{tab.label}</span>
+                  {tab.count != null && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                      activeTab === tab.key
+                        ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                        : 'bg-gray-100 dark:bg-slate-700 text-gray-500'
+                    }`}>{tab.count}</span>
+                  )}
+                  {activeTab === tab.key && (
+                    <motion.div layoutId="activeGroupTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 rounded-full" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <AnimatePresence mode="wait">
+              {activeTab === 'members' && (
+                <motion.div key="members" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
+                  <div className="glass-card-solid overflow-hidden">
+                    <div className="divide-y divide-gray-50 dark:divide-slate-700/50">
+                      {selectedGroup.members?.map(m => (
+                        <div key={m.user._id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/60 dark:hover:bg-slate-700/30 transition-colors">
+                          <div className="w-9 h-9 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-sm flex-shrink-0 overflow-hidden">
+                            {m.user.avatar ? (
+                              <img src={m.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                            ) : (
+                              (m.user.firstName?.[0] || '?').toUpperCase()
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
+                              {m.user.lastName} {m.user.firstName}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">{m.user.email}</p>
+                          </div>
+                          {m.role === 'admin' && (
+                            <span className="flex items-center gap-1 text-[10px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+                              <Crown size={10} /> admin
+                            </span>
+                          )}
+                          {isCreator(selectedGroup) && m.user._id !== user._id && (
+                            <button onClick={() => removeMember(selectedGroup._id, m.user._id)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition flex-shrink-0 opacity-0 group-hover:opacity-100">
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-dark truncate">
-                        {m.user.lastName} {m.user.firstName}
-                        {m.role === 'admin' && <span className="text-[10px] text-primary-500 ml-1">(admin)</span>}
-                      </p>
-                      <p className="text-[11px] text-gray-400">{m.user.email}</p>
-                    </div>
-                    {isCreator(selectedGroup) && m.user._id !== user._id && (
-                      <button onClick={() => removeMember(selectedGroup._id, m.user._id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition">
-                        <X size={14} />
+                  </div>
+
+                  {/* Group actions */}
+                  <div className="flex gap-3 mt-5">
+                    {!isCreator(selectedGroup) && (
+                      <button onClick={() => leaveGroup(selectedGroup._id)}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-red-500 border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl px-4 py-2.5 transition-colors">
+                        <LogOut size={15} /> Покинуть группу
+                      </button>
+                    )}
+                    {isCreator(selectedGroup) && (
+                      <button onClick={() => setConfirmDelete(selectedGroup._id)}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-red-500 border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl px-4 py-2.5 transition-colors">
+                        <Trash2 size={15} /> Удалить группу
                       </button>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
+                </motion.div>
+              )}
 
-            {/* Assigned tests */}
-            <div className="glass-card-solid p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-dark flex items-center gap-2">
-                  <BookOpen size={16} className="text-amber-500" /> Назначенные тесты ({selectedGroup.assignedTests?.length || 0})
-                </h3>
-                {isCreator(selectedGroup) && (
-                  <button onClick={openAssignTest} className="btn-primary py-1 px-3 text-xs flex items-center gap-1">
-                    <Plus size={12} /> Назначить
-                  </button>
-                )}
-              </div>
-              {selectedGroup.assignedTests?.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">Нет назначенных тестов</p>
-              ) : (
-                <div className="space-y-2">
-                  {selectedGroup.assignedTests?.map(at => (
-                    <div key={at.test?._id || at._id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-dark truncate">{at.test?.title || 'Удалённый тест'}</p>
-                        <p className="text-[11px] text-gray-400">{at.test?.totalPoints || 0} баллов</p>
-                      </div>
-                      <button
-                        onClick={() => at.test?.shareLink && navigate(`/test-profile/${at.test.shareLink}`)}
-                        className="btn-secondary py-1 px-2.5 text-xs flex items-center gap-1"
-                      >
-                        <ExternalLink size={12} /> Открыть
+              {activeTab === 'tests' && (
+                <motion.div key="tests" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
+                  {isCreator(selectedGroup) && (
+                    <div className="flex justify-end mb-4">
+                      <button onClick={openAssignTest} className="btn-primary py-2 px-4 text-xs flex items-center gap-1.5">
+                        <Plus size={13} /> Назначить тест
                       </button>
+                    </div>
+                  )}
+                  {selectedGroup.assignedTests?.length === 0 ? (
+                    <div className="text-center py-16">
+                      <div className="w-14 h-14 bg-gray-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <BookOpen size={24} className="text-gray-300 dark:text-gray-600" />
+                      </div>
+                      <p className="text-sm text-gray-400 mb-1">Нет назначенных тестов</p>
                       {isCreator(selectedGroup) && (
-                        <button onClick={() => removeAssignedTest(at.test?._id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition">
-                          <X size={14} />
-                        </button>
+                        <p className="text-xs text-gray-300 dark:text-gray-500">Назначьте тест из вашей библиотеки</p>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* ===== Group Chat ===== */}
-            <div className="glass-card-solid overflow-hidden">
-              <button
-                onClick={() => {
-                  if (!showChat) openChat(selectedGroup._id);
-                  else setShowChat(false);
-                }}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
-              >
-                <h3 className="text-sm font-semibold text-dark flex items-center gap-2">
-                  <MessageCircle size={16} className="text-primary-500" /> Чат группы
-                </h3>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${showChat ? 'rotate-180' : ''}`} />
-              </button>
-
-              <AnimatePresence>
-                {showChat && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="border-t border-gray-100 dark:border-slate-700">
-                      {/* Messages area */}
-                      <div className="h-80 overflow-y-auto p-4 space-y-3 bg-gray-50/50 dark:bg-slate-900/30">
-                        {chatLoading ? (
-                          <div className="flex items-center justify-center h-full">
-                            <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedGroup.assignedTests?.map(at => (
+                        <div key={at.test?._id || at._id} className="glass-card-solid p-4 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
+                            <BookOpen size={18} className="text-amber-500" />
                           </div>
-                        ) : messages.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                            <MessageCircle size={32} className="mb-2 opacity-40" />
-                            <p className="text-sm">Пока нет сообщений</p>
-                            <p className="text-xs mt-1">Начните общение!</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{at.test?.title || 'Удалённый тест'}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{at.test?.questions?.length || 0} вопросов &middot; {at.test?.totalPoints || 0} баллов</p>
                           </div>
-                        ) : (
-                          <>
-                            {messages.map((msg) => {
-                              const isOwn = msg.user?._id === user?._id;
-                              const canDelete = isOwn || isCreator(selectedGroup);
-                              return (
-                                <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                                  <div className="group max-w-[75%]">
-                                    {!isOwn && (
-                                      <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-0.5 ml-1 font-medium">
-                                        {msg.user?.firstName} {msg.user?.lastName}
-                                      </p>
-                                    )}
-                                    <div className={`relative px-3.5 py-2 rounded-2xl text-sm leading-relaxed ${
-                                      isOwn
-                                        ? 'bg-primary-600 text-white rounded-br-md'
-                                        : 'bg-white dark:bg-slate-700 text-dark border border-gray-100 dark:border-slate-600 rounded-bl-md'
-                                    }`}>
-                                      <p className="whitespace-pre-wrap break-words">{msg.text}</p>
-                                      <div className={`flex items-center gap-2 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                                        <span className={`text-[10px] ${isOwn ? 'text-primary-200' : 'text-gray-400'}`}>
-                                          {formatMsgTime(msg.createdAt)}
-                                        </span>
-                                        {canDelete && (
-                                          <button
-                                            onClick={() => deleteMessage(msg._id)}
-                                            className={`opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded ${
-                                              isOwn ? 'hover:bg-primary-500 text-primary-200' : 'hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-400'
-                                            }`}
-                                          >
-                                            <Trash2 size={10} />
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            <div ref={chatEndRef} />
-                          </>
-                        )}
-                      </div>
-
-                      {/* Message input */}
-                      <div className="p-3 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
-                        <div className="flex items-end gap-2">
-                          <textarea
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Напишите сообщение..."
-                            rows={1}
-                            className="flex-1 px-3.5 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl resize-none text-sm text-dark placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-primary-400 transition-colors"
-                            style={{ maxHeight: '100px' }}
-                            onInput={(e) => {
-                              e.target.style.height = 'auto';
-                              e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
-                            }}
-                          />
                           <button
-                            onClick={sendMessage}
-                            disabled={!newMessage.trim() || sendingMessage}
-                            className="p-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 flex-shrink-0"
+                            onClick={() => at.test?.shareLink && navigate(`/test-profile/${at.test.shareLink}`)}
+                            className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                           >
-                            <Send size={16} />
+                            Открыть <ChevronRight size={13} />
                           </button>
+                          {isCreator(selectedGroup) && (
+                            <button onClick={() => removeAssignedTest(at.test?._id)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition flex-shrink-0">
+                              <X size={14} />
+                            </button>
+                          )}
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                  )}
+                </motion.div>
+              )}
 
-            {/* Leave / Delete */}
-            <div className="flex gap-2">
-              {!isCreator(selectedGroup) && (
-                <button onClick={() => leaveGroup(selectedGroup._id)}
-                  className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 transition px-3 py-2">
-                  <LogOut size={14} /> Покинуть группу
-                </button>
+              {activeTab === 'chat' && (
+                <motion.div key="chat" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
+                  <div className="glass-card-solid overflow-hidden flex flex-col" style={{ height: '420px' }}>
+                    {/* Messages area */}
+                    <div className="flex-1 overflow-y-auto p-5 space-y-3">
+                      {messages.length === 0 ? (
+                        <div className="text-center py-16">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <MessageCircle size={20} className="text-gray-300 dark:text-gray-600" />
+                          </div>
+                          <p className="text-sm text-gray-400">Начните обсуждение</p>
+                          <p className="text-xs text-gray-300 dark:text-gray-500 mt-1">Сообщения видны всем участникам группы</p>
+                        </div>
+                      ) : (
+                        messages.map((msg, i) => {
+                          const isMe = msg.user?._id === user?._id;
+                          return (
+                            <div key={msg._id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[75%] ${isMe ? 'order-2' : ''}`}>
+                                {!isMe && (
+                                  <p className="text-[10px] text-gray-400 mb-0.5 ml-1 font-medium">
+                                    {msg.user?.firstName} {msg.user?.lastName}
+                                  </p>
+                                )}
+                                <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                                  isMe
+                                    ? 'bg-indigo-500 text-white rounded-br-md'
+                                    : 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 rounded-bl-md'
+                                }`}>
+                                  {msg.text}
+                                </div>
+                                <p className={`text-[10px] text-gray-300 dark:text-gray-600 mt-0.5 ${isMe ? 'text-right mr-1' : 'ml-1'}`}>
+                                  {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                      <div ref={chatEndRef} />
+                    </div>
+
+                    {/* Input */}
+                    <div className="border-t border-gray-100 dark:border-slate-700 px-4 py-3 flex items-center gap-2">
+                      <input
+                        type="text"
+                        className="flex-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
+                        placeholder="Написать сообщение..."
+                        value={chatInput}
+                        onChange={e => setChatInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                      />
+                      <button
+                        onClick={sendMessage}
+                        disabled={!chatInput.trim()}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                      >
+                        <Send size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
               )}
-              {isCreator(selectedGroup) && (
-                <button onClick={() => setConfirmDelete(selectedGroup._id)}
-                  className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 transition px-3 py-2">
-                  <Trash2 size={14} /> Удалить группу
-                </button>
-              )}
-            </div>
+            </AnimatePresence>
           </motion.div>
         ) : (
-          /* Groups list */
+          /* ─── GROUPS LIST ─── */
           loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
                 <div key={i} className="glass-card-solid p-5 animate-pulse">
-                  <div className="h-5 bg-gray-200 dark:bg-slate-700 rounded w-1/3 mb-2" />
-                  <div className="h-4 bg-gray-100 dark:bg-slate-700/50 rounded w-1/2" />
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-slate-700" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-1/3 mb-2" />
+                      <div className="h-3 bg-gray-100 dark:bg-slate-700 rounded w-1/4" />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : groups.length === 0 ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
-              <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-primary-400" />
+              <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-7 h-7 text-primary-400" />
               </div>
-              <h3 className="text-lg font-semibold text-dark mb-2">Нет групп</h3>
-              <p className="text-gray-500 text-sm mb-6">Создайте группу или присоединитесь по коду</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Нет групп</h3>
+              <p className="text-gray-400 text-sm mb-6">Создайте группу или присоединитесь по коду</p>
               <div className="flex gap-2 justify-center">
-                <button onClick={() => setShowJoin(true)} className="btn-secondary py-2 px-4 text-sm">
-                  <UserPlus size={14} className="inline mr-1" /> Присоединиться
+                <button onClick={() => setShowJoin(true)} className="btn-secondary py-2.5 px-5 text-sm flex items-center gap-2">
+                  <UserPlus size={15} /> Присоединиться
                 </button>
-                <button onClick={() => setShowCreate(true)} className="btn-primary py-2 px-4 text-sm">
-                  <Plus size={14} className="inline mr-1" /> Создать
+                <button onClick={() => setShowCreate(true)} className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2">
+                  <Plus size={15} /> Создать
                 </button>
               </div>
             </motion.div>
           ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
               {groups.map((group, i) => (
                 <motion.div
                   key={group._id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => setSelectedGroup(group)}
-                  className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer hover:shadow-glass transition-all"
+                  transition={{ delay: i * 0.04 }}
+                  onClick={() => { setSelectedGroup(group); setActiveTab('members'); }}
+                  className="glass-card-solid px-5 py-4 flex items-center gap-4 cursor-pointer group"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
-                    <Users size={22} className="text-primary-500" />
+                  <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${getGroupGradient(group.name)} flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-sm`}>
+                    {(group.name?.[0] || 'G').toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-dark truncate">{group.name}</h3>
+                      <h3 className="font-semibold text-gray-800 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors text-sm">{group.name}</h3>
                       {isCreator(group) && (
-                        <span className="text-[10px] bg-primary-100 dark:bg-primary-900/30 text-primary-600 px-1.5 py-0.5 rounded font-medium flex-shrink-0">admin</span>
+                        <span className="flex items-center gap-0.5 text-[10px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
+                          <Crown size={9} /> admin
+                        </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                      <span className="flex items-center gap-1"><Users size={11} /> {group.members?.length || 0}</span>
-                      <span className="flex items-center gap-1"><BookOpen size={11} /> {group.assignedTests?.length || 0} тестов</span>
+                    <div className="flex items-center gap-4 mt-0.5 text-xs text-gray-400">
+                      <span className="flex items-center gap-1"><Users size={12} /> {group.members?.length || 0}</span>
+                      <span className="flex items-center gap-1"><BookOpen size={12} /> {group.assignedTests?.length || 0} тестов</span>
                     </div>
                   </div>
+                  <ChevronRight size={16} className="text-gray-300 dark:text-gray-600 group-hover:text-gray-400 transition-colors flex-shrink-0" />
                 </motion.div>
               ))}
             </motion.div>
@@ -620,32 +576,49 @@ export default function Groups() {
         <AnimatePresence>
           {showCreate && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
               onClick={() => setShowCreate(false)}
             >
-              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200/50 dark:border-slate-700/50 p-6 w-full max-w-md"
+              <motion.div initial={{ opacity: 0, scale: 0.96, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 8 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-card border border-gray-200/60 dark:border-gray-700/60 p-6 w-full max-w-md"
                 onClick={e => e.stopPropagation()}
               >
-                <h3 className="text-lg font-bold text-dark mb-4">Создать группу</h3>
-                <input
-                  type="text"
-                  className="input-field mb-3"
-                  placeholder="Название группы"
-                  value={createForm.name}
-                  onChange={e => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
-                  autoFocus
-                />
-                <textarea
-                  className="input-field resize-none mb-4"
-                  rows="2"
-                  placeholder="Описание (необязательно)"
-                  value={createForm.description}
-                  onChange={e => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
-                />
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center">
+                    <Plus size={20} className="text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Создать группу</h3>
+                    <p className="text-xs text-gray-400">Объедините участников вместе</p>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-5">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Название</label>
+                    <input
+                      type="text"
+                      className="input-field text-sm"
+                      placeholder="Например: Математика 101"
+                      value={createForm.name}
+                      onChange={e => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Описание</label>
+                    <textarea
+                      className="input-field resize-none text-sm"
+                      rows="2"
+                      placeholder="Необязательно"
+                      value={createForm.description}
+                      onChange={e => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                  </div>
+                </div>
                 <div className="flex gap-2 justify-end">
-                  <button onClick={() => setShowCreate(false)} className="btn-secondary py-2 px-4 text-sm">Отмена</button>
-                  <button onClick={createGroup} disabled={submitting} className="btn-primary py-2 px-4 text-sm">
+                  <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium">Отмена</button>
+                  <button onClick={createGroup} disabled={submitting} className="btn-primary py-2 px-5 text-sm">
                     {submitting ? 'Создание...' : 'Создать'}
                   </button>
                 </div>
@@ -658,25 +631,37 @@ export default function Groups() {
         <AnimatePresence>
           {showJoin && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
               onClick={() => setShowJoin(false)}
             >
-              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200/50 dark:border-slate-700/50 p-6 w-full max-w-md"
+              <motion.div initial={{ opacity: 0, scale: 0.96, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 8 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-card border border-gray-200/60 dark:border-gray-700/60 p-6 w-full max-w-md"
                 onClick={e => e.stopPropagation()}
               >
-                <h3 className="text-lg font-bold text-dark mb-4">Присоединиться к группе</h3>
-                <input
-                  type="text"
-                  className="input-field mb-4"
-                  placeholder="Код приглашения"
-                  value={joinCode}
-                  onChange={e => setJoinCode(e.target.value)}
-                  autoFocus
-                />
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                    <UserPlus size={20} className="text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Присоединиться</h3>
+                    <p className="text-xs text-gray-400">Введите код приглашения группы</p>
+                  </div>
+                </div>
+                <div className="mb-5">
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block uppercase tracking-wide">Код приглашения</label>
+                  <input
+                    type="text"
+                    className="input-field text-sm font-mono tracking-wider"
+                    placeholder="Например: abc123"
+                    value={joinCode}
+                    onChange={e => setJoinCode(e.target.value)}
+                    autoFocus
+                  />
+                </div>
                 <div className="flex gap-2 justify-end">
-                  <button onClick={() => setShowJoin(false)} className="btn-secondary py-2 px-4 text-sm">Отмена</button>
-                  <button onClick={joinGroup} disabled={submitting} className="btn-primary py-2 px-4 text-sm">
+                  <button onClick={() => setShowJoin(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium">Отмена</button>
+                  <button onClick={joinGroup} disabled={submitting} className="btn-primary py-2 px-5 text-sm">
                     {submitting ? 'Вход...' : 'Присоединиться'}
                   </button>
                 </div>
@@ -689,18 +674,30 @@ export default function Groups() {
         <AnimatePresence>
           {showAssignTest && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
               onClick={() => setShowAssignTest(false)}
             >
-              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-200/50 dark:border-slate-700/50 p-6 w-full max-w-md max-h-[70vh] overflow-y-auto"
+              <motion.div initial={{ opacity: 0, scale: 0.96, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 8 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-card border border-gray-200/60 dark:border-gray-700/60 p-6 w-full max-w-md max-h-[70vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}
               >
-                <h3 className="text-lg font-bold text-dark mb-4">Назначить тест группе</h3>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                    <BookOpen size={20} className="text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Назначить тест</h3>
+                    <p className="text-xs text-gray-400">Выберите тест для группы</p>
+                  </div>
+                </div>
                 {myTests.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-8">У вас нет тестов</p>
+                  <div className="text-center py-10">
+                    <BookOpen size={28} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <p className="text-sm text-gray-400">У вас нет тестов</p>
+                  </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {myTests.map(test => {
                       const alreadyAssigned = selectedGroup?.assignedTests?.some(at => at.test?._id === test._id);
                       return (
@@ -708,23 +705,23 @@ export default function Groups() {
                           key={test._id}
                           onClick={() => !alreadyAssigned && assignTest(test._id)}
                           disabled={alreadyAssigned}
-                          className={`w-full text-left p-3 rounded-xl border transition ${
+                          className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
                             alreadyAssigned
-                              ? 'border-gray-200 dark:border-slate-600 opacity-50 cursor-default'
-                              : 'border-gray-200 dark:border-slate-600 hover:border-primary-300 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 cursor-pointer'
+                              ? 'opacity-40 cursor-default bg-gray-50 dark:bg-slate-800/50'
+                              : 'hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 cursor-pointer'
                           }`}
                         >
-                          <p className="text-sm font-medium text-dark truncate">{test.title}</p>
-                          <p className="text-[11px] text-gray-400">
-                            {test.questions?.length || 0} вопросов | {test.totalPoints} баллов
-                            {alreadyAssigned && ' | Уже назначен'}
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{test.title}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {test.questions?.length || 0} вопросов &middot; {test.totalPoints} баллов
+                            {alreadyAssigned && <span className="text-indigo-500 ml-1">&middot; Назначен</span>}
                           </p>
                         </button>
                       );
                     })}
                   </div>
                 )}
-                <button onClick={() => setShowAssignTest(false)} className="btn-secondary w-full py-2 text-sm mt-4">Закрыть</button>
+                <button onClick={() => setShowAssignTest(false)} className="w-full mt-4 px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium">Закрыть</button>
               </motion.div>
             </motion.div>
           )}

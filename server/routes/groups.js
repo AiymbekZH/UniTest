@@ -1,6 +1,5 @@
 const express = require('express');
 const Group = require('../models/Group');
-const GroupMessage = require('../models/GroupMessage');
 const Test = require('../models/Test');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
@@ -225,46 +224,35 @@ router.post('/:id/regenerate-code', auth, async (req, res) => {
   }
 });
 
-// ===== Group Chat Messages =====
+// ─── Group Chat Messages ───
 
-// Get messages for a group (with optional since timestamp for polling)
+// Get messages for a group (last 100)
 router.get('/:id/messages', auth, async (req, res) => {
   try {
+    const GroupMessage = require('../models/GroupMessage');
     const group = await Group.findById(req.params.id);
     if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
 
     const isMember = group.members.some(m => m.user.toString() === req.user._id.toString());
     if (!isMember) return res.status(403).json({ message: 'Вы не являетесь участником группы' });
 
-    const query = { group: req.params.id, isDeleted: false };
-    
-    // If 'since' param provided, only return messages after that timestamp (for polling)
-    if (req.query.since) {
-      query.createdAt = { $gt: new Date(req.query.since) };
-    }
-
-    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-
-    const messages = await GroupMessage.find(query)
+    const messages = await GroupMessage.find({ group: req.params.id, isDeleted: false })
       .populate('user', 'firstName lastName avatar')
-      .sort({ createdAt: req.query.since ? 1 : -1 })
-      .limit(limit);
+      .sort({ createdAt: -1 })
+      .limit(100);
 
-    // If fetching initial messages (no since), reverse to get chronological order
-    const result = req.query.since ? messages : messages.reverse();
-
-    res.json(result);
+    res.json(messages.reverse());
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка загрузки сообщений', error: error.message });
+    res.status(500).json({ message: 'Ошибка', error: error.message });
   }
 });
 
-// Send a message in a group
+// Send message to group
 router.post('/:id/messages', auth, async (req, res) => {
   try {
+    const GroupMessage = require('../models/GroupMessage');
     const { text } = req.body;
-    if (!text?.trim()) return res.status(400).json({ message: 'Сообщение не может быть пустым' });
-    if (text.trim().length > 2000) return res.status(400).json({ message: 'Сообщение слишком длинное (макс. 2000 символов)' });
+    if (!text?.trim()) return res.status(400).json({ message: 'Текст обязателен' });
 
     const group = await Group.findById(req.params.id);
     if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
@@ -277,36 +265,12 @@ router.post('/:id/messages', auth, async (req, res) => {
       user: req.user._id,
       text: text.trim()
     });
-
     await message.save();
     await message.populate('user', 'firstName lastName avatar');
 
     res.status(201).json(message);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка отправки сообщения', error: error.message });
-  }
-});
-
-// Delete a message (author or group creator)
-router.delete('/:id/messages/:messageId', auth, async (req, res) => {
-  try {
-    const message = await GroupMessage.findById(req.params.messageId);
-    if (!message || message.isDeleted) return res.status(404).json({ message: 'Сообщение не найдено' });
-    if (message.group.toString() !== req.params.id) return res.status(400).json({ message: 'Сообщение не из этой группы' });
-
-    const group = await Group.findById(req.params.id);
-    const isAuthor = message.user.toString() === req.user._id.toString();
-    const isGroupCreator = group && group.creator.toString() === req.user._id.toString();
-
-    if (!isAuthor && !isGroupCreator) {
-      return res.status(403).json({ message: 'Нет прав для удаления сообщения' });
-    }
-
-    message.isDeleted = true;
-    await message.save();
-    res.json({ message: 'Сообщение удалено' });
-  } catch (error) {
-    res.status(500).json({ message: 'Ошибка удаления сообщения', error: error.message });
+    res.status(500).json({ message: 'Ошибка', error: error.message });
   }
 });
 
