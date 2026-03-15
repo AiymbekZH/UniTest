@@ -35,16 +35,17 @@
   }
   
   .glass-card-solid {
-    @apply bg-white rounded-2xl shadow-card border border-gray-100/50;
+    @apply bg-white rounded-2xl shadow-card border border-gray-200/60
+           transition-shadow duration-300 hover:shadow-card-hover;
   }
   .dark .glass-card-solid {
-    @apply bg-slate-800 border-slate-700/50 shadow-none;
+    @apply bg-slate-800 border-slate-700/50 shadow-none hover:shadow-none;
   }
 
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-6 
-           rounded-xl transition-all duration-300 ease-out
-           hover:shadow-lg hover:shadow-primary-600/25 
+           rounded-xl transition-all duration-200 ease-out
+           hover:shadow-btn-glow
            active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
@@ -66,11 +67,12 @@
   .input-field {
     @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-xl
            text-dark placeholder-gray-400
-           focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500
-           transition-all duration-300;
+           focus:outline-none focus:border-primary-500 focus:shadow-input-focus
+           transition-all duration-200;
   }
   .dark .input-field {
-    @apply bg-slate-700 border-slate-600 text-gray-100 placeholder-gray-500;
+    @apply bg-slate-700 border-slate-600 text-gray-100 placeholder-gray-500
+           focus:border-primary-400 focus:shadow-none;
   }
 
   .badge {
@@ -104,6 +106,109 @@
   .dark .badge-info {
     @apply bg-primary-900/30 text-primary-400;
   }
+
+  /* ---- New Design System Utilities ---- */
+
+  .card {
+    @apply bg-white rounded-2xl border border-gray-200/60 shadow-card
+           transition-all duration-200;
+  }
+  .dark .card {
+    @apply bg-slate-800 border-slate-700/50 shadow-none;
+  }
+
+  .card-interactive {
+    @apply card hover:shadow-card-hover cursor-pointer;
+  }
+  .dark .card-interactive {
+    @apply hover:bg-slate-800 hover:border-slate-600 hover:shadow-none;
+  }
+
+  .section-title {
+    @apply text-xs font-semibold uppercase tracking-wider text-gray-400;
+  }
+  .dark .section-title {
+    @apply text-gray-500;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold tracking-tight text-gray-900;
+  }
+  .dark .stat-value {
+    @apply text-gray-100;
+  }
+
+  .stat-label {
+    @apply text-sm text-gray-500 font-medium;
+  }
+  .dark .stat-label {
+    @apply text-gray-400;
+  }
+
+  .divider {
+    @apply border-t border-gray-100;
+  }
+  .dark .divider {
+    @apply border-slate-700;
+  }
+
+  .divider-vertical {
+    @apply w-px bg-gray-200 self-stretch;
+  }
+  .dark .divider-vertical {
+    @apply bg-slate-700;
+  }
+
+  .tab-underline {
+    @apply relative pb-3 text-sm font-medium text-gray-500 
+           transition-colors duration-200 cursor-pointer
+           hover:text-gray-700;
+  }
+  .dark .tab-underline {
+    @apply text-gray-400 hover:text-gray-200;
+  }
+
+  .tab-underline.active {
+    @apply text-primary-600;
+  }
+  .dark .tab-underline.active {
+    @apply text-primary-400;
+  }
+
+  .tab-underline.active::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full;
+  }
+  .dark .tab-underline.active::after {
+    @apply bg-primary-400;
+  }
+
+  /* Toggle switch */
+  .toggle-switch {
+    @apply relative inline-flex h-6 w-11 items-center rounded-full
+           bg-gray-200 transition-colors duration-200 cursor-pointer;
+  }
+  .toggle-switch.active {
+    @apply bg-primary-600;
+  }
+  .dark .toggle-switch {
+    @apply bg-slate-600;
+  }
+  .dark .toggle-switch.active {
+    @apply bg-primary-500;
+  }
+  .toggle-switch-thumb {
+    @apply inline-block h-4 w-4 transform rounded-full bg-white 
+           shadow-sm transition-transform duration-200;
+  }
+  .toggle-switch.active .toggle-switch-thumb {
+    @apply translate-x-6;
+  }
+  .toggle-switch:not(.active) .toggle-switch-thumb {
+    @apply translate-x-1;
+  }
+
+  /* ---- End New Design System Utilities ---- */
 
   /* Dark mode page backgrounds */
   .dark .bg-surface {

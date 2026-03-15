@@ -90,9 +90,22 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
       <Toaster position="top-right" />
       <Navbar />
+
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-28 -left-24 h-80 w-80 rounded-full bg-cyan-400/15 blur-3xl" />
+        <div className="absolute top-1/3 -right-20 h-96 w-96 rounded-full bg-primary-500/20 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.7) 1px, transparent 1px)',
+            backgroundSize: '26px 26px'
+          }}
+        />
+      </div>
 
       <ConfirmDialog
         isOpen={deleteConfirm.open}
@@ -104,17 +117,17 @@ export default function Dashboard() {
         variant="danger"
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 rounded-2xl border border-white/15 bg-slate-900/45 p-5 shadow-glass backdrop-blur-xl"
         >
-          <h1 className="text-2xl sm:text-3xl font-bold text-dark">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-100">
             {t('welcome')}, {user?.firstName || 'Guest'}!
           </h1>
-          <p className="text-gray-500 mt-1">{t('dashboardSubtitle')}</p>
+          <p className="text-slate-300/80 mt-1">{t('dashboardSubtitle')}</p>
         </motion.div>
 
         {/* Search & Filters */}
@@ -122,20 +135,20 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex items-center gap-3 mb-8 flex-wrap"
+          className="mb-8 flex items-center gap-3 flex-wrap rounded-2xl border border-white/15 bg-slate-900/45 p-3 shadow-glass backdrop-blur-xl"
         >
           <form onSubmit={handleSearch} className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200/80 dark:border-slate-600 rounded-full text-sm text-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:bg-white dark:focus:bg-slate-700 transition-all duration-200"
+              className="w-full pl-10 pr-4 py-2 bg-slate-100/95 border border-white/30 rounded-full text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25 focus:border-primary-500 transition-all duration-200"
               placeholder={t('searchTests')}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </form>
 
-          <div className="flex gap-1 bg-gray-100/80 dark:bg-slate-800 rounded-full p-1 border border-gray-200/50 dark:border-slate-700">
+          <div className="flex gap-1 bg-slate-800/70 rounded-full p-1 border border-white/15">
             {[
               { key: 'latest', label: t('newest') },
               { key: 'popular', label: t('popular') },
@@ -146,8 +159,8 @@ export default function Dashboard() {
                 onClick={() => setSort(s.key)}
                 className={`px-4 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-all duration-200
                   ${sort === s.key
-                    ? 'bg-white dark:bg-slate-700 text-dark shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-dark dark:hover:text-gray-200'}`}
+                    ? 'bg-slate-100 text-slate-900 shadow-sm'
+                    : 'text-slate-300 hover:text-white'}`}
               >
                 {s.label}
               </button>
@@ -159,7 +172,7 @@ export default function Dashboard() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="glass-card-solid p-6 animate-pulse">
+              <div key={i} className="glass-card p-6 animate-pulse dark:border-slate-700/50 dark:bg-slate-900/65">
                 <div className="h-5 bg-gray-200 rounded w-3/4 mb-3" />
                 <div className="h-4 bg-gray-100 rounded w-full mb-2" />
                 <div className="h-4 bg-gray-100 rounded w-1/2 mb-4" />
@@ -176,11 +189,11 @@ export default function Dashboard() {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center py-20"
           >
-            <div className="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-20 h-20 bg-white/80 dark:bg-slate-800/80 border border-white/20 dark:border-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Plus className="w-8 h-8 text-primary-400" />
             </div>
-            <h3 className="text-lg font-semibold text-dark mb-2">{t('noTests')}</h3>
-            <p className="text-gray-500 mb-6">{t('createFirst')}</p>
+            <h3 className="text-lg font-semibold text-slate-100 mb-2">{t('noTests')}</h3>
+            <p className="text-slate-300/80 mb-6">{t('createFirst')}</p>
             <button onClick={() => navigate('/create-test')} className="btn-primary">
               {t('createTest')}
             </button>
@@ -197,13 +210,13 @@ export default function Dashboard() {
                 key={test._id}
                 variants={cardVariants}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="glass-card-solid p-5 cursor-pointer group relative flex flex-col"
+                className="glass-card p-5 cursor-pointer group relative flex flex-col border border-white/30 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/65"
               >
                 {/* Menu */}
                 <div className="absolute top-4 right-4">
                   <button
                     onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === test._id ? null : test._id); }}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                   >
                     <MoreVertical size={16} className="text-gray-400" />
                   </button>
@@ -262,12 +275,12 @@ export default function Dashboard() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-[15px] font-semibold text-dark mb-1 group-hover:text-primary-600 transition-colors line-clamp-1 pr-8">
+                  <h3 className="text-[15px] font-semibold text-dark dark:text-slate-100 mb-1 group-hover:text-primary-600 transition-colors line-clamp-1 pr-8">
                     {test.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-[13px] text-gray-500 mb-3 line-clamp-1">
+                  <p className="text-[13px] text-gray-500 dark:text-slate-400 mb-3 line-clamp-1">
                     {test.description || t('noDescription')}
                   </p>
 
@@ -286,7 +299,7 @@ export default function Dashboard() {
                   <div className="flex-1" />
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-700">
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-200/70 dark:border-slate-700">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-6 h-6 bg-primary-100 text-primary-600 rounded-md flex items-center justify-center text-[10px] font-semibold overflow-hidden flex-shrink-0">
                         {test.creator?.avatar ? (

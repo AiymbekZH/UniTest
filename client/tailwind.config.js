@@ -34,7 +34,10 @@ export default {
         'glass': '0 8px 32px rgba(0, 0, 0, 0.08)',
         'glass-lg': '0 16px 48px rgba(0, 0, 0, 0.12)',
         'soft': '0 2px 15px rgba(0, 0, 0, 0.05)',
-        'card': '0 4px 24px rgba(0, 0, 0, 0.06)',
+        'card': '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
+        'card-hover': '0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06)',
+        'input-focus': '0 0 0 3px rgba(99, 102, 241, 0.1)',
+        'btn-glow': '0 1px 2px rgba(0, 0, 0, 0.05), 0 0 12px rgba(99, 102, 241, 0.15)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',

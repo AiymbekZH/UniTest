@@ -5,7 +5,8 @@ import {
   Plus, Trash2, Save, ArrowLeft, Image, Video, Music,
   Check, X, Type, ListChecks, ToggleLeft,
   FileText, Link2, Settings, Upload, ChevronUp, ChevronDown,
-  Database, FileSpreadsheet, Eye, EyeOff, Ticket, Sparkles
+  Database, FileSpreadsheet, Eye, EyeOff, Ticket, Sparkles,
+  Clock, Repeat, Calendar, Shield, Hash, Shuffle, Layers, Zap, Lock, Copy, Camera, Globe, GraduationCap
 } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -520,118 +521,199 @@ export default function CreateTest() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 className="overflow-hidden mb-5"
               >
-                <div className="glass-card-solid p-5 space-y-4">
-                  <h3 className="font-semibold text-dark flex items-center gap-2 text-sm"><Settings size={16} /> {t('testSettings')}</h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('timeLimitMin')}</label>
-                      <input type="number" className="input-field text-sm py-2" min="0" value={test.settings.timeLimit}
-                        onChange={e => updateSettings('timeLimit', parseInt(e.target.value) || 0)} placeholder={t('noLimitPlaceholder')} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('maxAttempts')}</label>
-                      <input type="number" className="input-field text-sm py-2" min="1" value={test.settings.maxAttempts}
-                        onChange={e => updateSettings('maxAttempts', parseInt(e.target.value) || 1)} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('maxViolations')}</label>
-                      <input type="number" className="input-field text-sm py-2" min="1" value={test.settings.antiCheat.maxViolations}
-                        onChange={e => updateAntiCheat('maxViolations', parseInt(e.target.value) || 5)} />
-                    </div>
-                  </div>
-
-                  {/* Deadline */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('startDate')}</label>
-                      <input type="datetime-local" className="input-field text-sm py-2" value={test.settings.startDate || ''}
-                        onChange={e => updateSettings('startDate', e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('endDate')}</label>
-                      <input type="datetime-local" className="input-field text-sm py-2" value={test.settings.endDate || ''}
-                        onChange={e => updateSettings('endDate', e.target.value)} />
-                    </div>
-                  </div>
-
-                  {/* Pool + Inactivity */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('questionPoolSize')}</label>
-                      <input type="number" className="input-field text-sm py-2" min="0" value={test.settings.questionPoolSize || 0}
-                        onChange={e => updateSettings('questionPoolSize', parseInt(e.target.value) || 0)} placeholder={t('poolSizeHint')} />
-                      <p className="text-[10px] text-gray-400 mt-0.5">{t('poolSizeHint')}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('inactivityTimeout')}</label>
-                      <input type="number" className="input-field text-sm py-2" min="0" value={test.settings.inactivityTimeout || 0}
-                        onChange={e => updateSettings('inactivityTimeout', parseInt(e.target.value) || 0)} placeholder={t('inactivityHint')} />
-                      <p className="text-[10px] text-gray-400 mt-0.5">{t('inactivityHint')}</p>
-                    </div>
-                  </div>
-
-                  {/* Variant/Ticket system */}
-                  <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-3">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => updateSettings('variants', { ...test.settings.variants, enabled: !test.settings.variants?.enabled })}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all
-                          ${test.settings.variants?.enabled ? 'bg-indigo-100 dark:bg-indigo-900/40 border-indigo-300 dark:border-indigo-600 text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-500'}`}
-                      >
-                        <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center transition-all
-                          ${test.settings.variants?.enabled ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 dark:border-slate-500'}`}>
-                          {test.settings.variants?.enabled && <Check size={8} className="text-white" />}
+                <div className="glass-card-solid p-6 space-y-6">
+                  {/* Section: Basic */}
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <Settings size={13} />
+                      {t('testSettings')}
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('timeLimitMin')}</label>
+                        <div className="relative">
+                          <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
+                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="0" value={test.settings.timeLimit}
+                            onChange={e => updateSettings('timeLimit', parseInt(e.target.value) || 0)} placeholder={t('noLimitPlaceholder')} />
                         </div>
-                        <Ticket size={12} className="inline -mt-0.5" /> {t('variantsEnabled') || 'Система билетов'}
-                      </button>
-                      {test.settings.variants?.enabled && (
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-indigo-600 dark:text-indigo-400">{t('variantCount') || 'Кол-во вариантов'}:</label>
-                          <input type="number" className="input-field text-sm py-1.5 w-20" min="2" max="100"
-                            value={test.settings.variants?.count || 0}
-                            onChange={e => updateSettings('variants', { ...test.settings.variants, count: parseInt(e.target.value) || 0 })} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('maxAttempts')}</label>
+                        <div className="relative">
+                          <Repeat size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
+                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="1" value={test.settings.maxAttempts}
+                            onChange={e => updateSettings('maxAttempts', parseInt(e.target.value) || 1)} />
                         </div>
-                      )}
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('inactivityTimeout')}</label>
+                        <div className="relative">
+                          <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
+                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="0" value={test.settings.inactivityTimeout || 0}
+                            onChange={e => updateSettings('inactivityTimeout', parseInt(e.target.value) || 0)} placeholder={t('inactivityHint')} />
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">{t('inactivityHint')}</p>
+                      </div>
                     </div>
-                    {test.settings.variants?.enabled && (
-                      <p className="text-[10px] text-indigo-500 dark:text-indigo-400 mt-2">
-                        {t('variantsHint') || 'Студенты выбирают билет при входе. Каждый билет = уникальный порядок вопросов. Один билет на одного студента.'}
-                      </p>
-                    )}
+                    {/* Dates */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('startDate')}</label>
+                        <div className="relative">
+                          <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
+                          <input type="datetime-local" className="input-field text-sm py-2.5 pl-9" value={test.settings.startDate || ''}
+                            onChange={e => updateSettings('startDate', e.target.value)} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('endDate')}</label>
+                        <div className="relative">
+                          <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
+                          <input type="datetime-local" className="input-field text-sm py-2.5 pl-9" value={test.settings.endDate || ''}
+                            onChange={e => updateSettings('endDate', e.target.value)} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { key: 'isPublic', label: t('isPublic'), update: updateSettings },
-                      { key: 'shuffleQuestions', label: t('shuffleQuestions'), update: updateSettings },
-                      { key: 'shuffleOptions', label: t('shuffleOptions'), update: updateSettings },
-                      { key: 'showResults', label: t('showResults'), update: updateSettings },
-                      { key: 'instantFeedback', label: t('instantFeedback'), update: updateSettings },
-                      { key: 'practiceMode', label: t('practiceModeLabel'), update: updateSettings },
-                      { key: 'partialCredit', label: t('partialCredit') || 'Частичные баллы', update: updateSettings },
-                      { key: 'blockTabSwitch', label: t('blockTabSwitch'), update: updateAntiCheat, isAntiCheat: true },
-                      { key: 'blockCopyPaste', label: t('blockCopyPaste'), update: updateAntiCheat, isAntiCheat: true },
-                      { key: 'blockScreenshot', label: t('blockScreenshot'), update: updateAntiCheat, isAntiCheat: true },
-                    ].map(opt => {
-                      const val = opt.isAntiCheat ? test.settings.antiCheat[opt.key] : test.settings[opt.key];
-                      return (
-                        <button
-                          key={opt.key}
-                          onClick={() => opt.update(opt.key, !val)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all
-                            ${val ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-200 dark:border-primary-700 text-primary-600' : 'bg-white dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50'}`}
-                        >
-                          <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center transition-all
-                            ${val ? 'bg-primary-600 border-primary-600' : 'border-gray-300 dark:border-slate-500'}`}>
-                            {val && <Check size={8} className="text-white" />}
+                  <div className="divider" />
+
+                  {/* Section: Questions */}
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <Layers size={13} />
+                      {t('questionsLabel') || 'Questions'}
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('questionPoolSize')}</label>
+                        <div className="relative">
+                          <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
+                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="0" value={test.settings.questionPoolSize || 0}
+                            onChange={e => updateSettings('questionPoolSize', parseInt(e.target.value) || 0)} placeholder={t('poolSizeHint')} />
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">{t('poolSizeHint')}</p>
+                      </div>
+                      {/* Variant/Ticket system — integrated */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                            <Ticket size={13} />
+                            {t('variantsEnabled') || 'Ticket system'}
+                          </label>
+                          <button
+                            onClick={() => updateSettings('variants', { ...test.settings.variants, enabled: !test.settings.variants?.enabled })}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                              test.settings.variants?.enabled ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'
+                            }`}
+                          >
+                            <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                              test.settings.variants?.enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                            }`} />
+                          </button>
+                        </div>
+                        {test.settings.variants?.enabled ? (
+                          <div>
+                            <div className="relative">
+                              <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
+                              <input type="number" className="input-field text-sm py-2.5 pl-9" min="2" max="100"
+                                value={test.settings.variants?.count || 0}
+                                onChange={e => updateSettings('variants', { ...test.settings.variants, count: parseInt(e.target.value) || 0 })}
+                                placeholder={t('variantCount') || 'Number of variants'} />
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-1">
+                              {t('variantsHint') || 'Each student gets a unique ticket with shuffled questions.'}
+                            </p>
                           </div>
-                          {opt.label}
-                        </button>
-                      );
-                    })}
+                        ) : (
+                          <div className="input-field text-sm py-2.5 pl-3 text-gray-300 dark:text-gray-600 cursor-not-allowed">
+                            {t('variantsDisabled') || 'Disabled'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Question toggles */}
+                    <div className="space-y-2">
+                      {[
+                        { key: 'shuffleQuestions', label: t('shuffleQuestions'), icon: Shuffle, update: updateSettings },
+                        { key: 'shuffleOptions', label: t('shuffleOptions'), icon: Shuffle, update: updateSettings },
+                        { key: 'partialCredit', label: t('partialCredit') || 'Partial credit', icon: Zap, update: updateSettings },
+                        { key: 'showResults', label: t('showResults'), icon: Eye, update: updateSettings },
+                        { key: 'instantFeedback', label: t('instantFeedback'), icon: Zap, update: updateSettings },
+                        { key: 'practiceMode', label: t('practiceModeLabel'), icon: GraduationCap, update: updateSettings },
+                        { key: 'isPublic', label: t('isPublic'), icon: Globe, update: updateSettings },
+                      ].map(opt => {
+                        const val = test.settings[opt.key];
+                        const Icon = opt.icon;
+                        return (
+                          <div key={opt.key} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <span className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                              <Icon size={14} className="text-gray-400 dark:text-gray-500" />
+                              {opt.label}
+                            </span>
+                            <button
+                              onClick={() => opt.update(opt.key, !val)}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                                val ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'
+                              }`}
+                            >
+                              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                                val ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                              }`} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="divider" />
+
+                  {/* Section: Security */}
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <Shield size={13} />
+                      {t('securityLabel') || 'Security'}
+                    </h4>
+                    <div className="mb-3">
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('maxViolations')}</label>
+                      <div className="relative max-w-[200px]">
+                        <Shield size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
+                        <input type="number" className="input-field text-sm py-2.5 pl-9" min="1" value={test.settings.antiCheat.maxViolations}
+                          onChange={e => updateAntiCheat('maxViolations', parseInt(e.target.value) || 5)} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        { key: 'blockTabSwitch', label: t('blockTabSwitch'), icon: Lock },
+                        { key: 'blockCopyPaste', label: t('blockCopyPaste'), icon: Copy },
+                        { key: 'blockScreenshot', label: t('blockScreenshot'), icon: Camera },
+                      ].map(opt => {
+                        const val = test.settings.antiCheat[opt.key];
+                        const Icon = opt.icon;
+                        return (
+                          <div key={opt.key} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <span className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                              <Icon size={14} className="text-gray-400 dark:text-gray-500" />
+                              {opt.label}
+                            </span>
+                            <button
+                              onClick={() => updateAntiCheat(opt.key, !val)}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                                val ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'
+                              }`}
+                            >
+                              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                                val ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                              }`} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </motion.div>

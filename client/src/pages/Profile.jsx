@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Camera, Save, Lock, Globe, AlertTriangle, Calendar, Copy, Check, MessageSquare, Trash2,
-  FileText, BarChart3, Shield, ChevronRight
+  ChevronRight
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -126,84 +126,80 @@ export default function Profile() {
       <Toaster position="top-right" />
       <Navbar />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
 
-          {/* Profile Hero */}
-          <div className="glass-card-solid overflow-hidden mb-6">
-            <div className="h-24 bg-gradient-to-r from-primary-600 via-primary-500 to-indigo-500" />
-            <div className="px-6 pb-6 -mt-12">
-              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4">
-                <div className="relative group flex-shrink-0">
-                  <div className="w-24 h-24 rounded-2xl bg-white dark:bg-slate-800 border-4 border-white dark:border-slate-800 flex items-center justify-center text-2xl font-bold text-primary-600 overflow-hidden shadow-lg">
-                    {avatar ? (
-                      <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
-                    )}
-                  </div>
-                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition cursor-pointer">
-                    <Camera size={20} className="text-white" />
-                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                  </label>
+          {/* Profile Hero — clean white card, no gradient */}
+          <div className="glass-card-solid p-6 mb-6">
+            <div className="flex items-center gap-5">
+              {/* Avatar — circle 80px */}
+              <div className="relative group flex-shrink-0">
+                <div className="w-20 h-20 rounded-full bg-primary-50 dark:bg-primary-900/30 border-2 border-white dark:border-slate-700 flex items-center justify-center text-xl font-bold text-primary-600 dark:text-primary-400 overflow-hidden shadow-card">
+                  {avatar ? (
+                    <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
+                  )}
                 </div>
-                <div className="flex-1 text-center sm:text-left pb-1">
-                  <div className="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
-                    <h2 className="text-xl font-bold text-dark">{user?.firstName} {user?.lastName}</h2>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${user?.role === 'admin' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : user?.role === 'teacher' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
-                      {roleLabel}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500">{user?.email}</p>
-                  <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1 justify-center sm:justify-start">
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer">
+                  <Camera size={18} className="text-white" />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                </label>
+              </div>
+              {/* Name + role + email */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight">{user?.firstName} {user?.lastName}</h2>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${user?.role === 'admin' ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : user?.role === 'teacher' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                    {roleLabel}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{user?.email}</p>
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="text-[11px] text-gray-400 flex items-center gap-1">
                     <Calendar size={11} /> {t('memberSince')} {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
-                  </p>
+                  </span>
+                  {/* Inline ID badge */}
+                  <button onClick={copyIdToClipboard} className="inline-flex items-center gap-1 text-[11px] font-mono text-primary-500 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 transition">
+                    <span className="bg-primary-50 dark:bg-primary-900/30 px-2 py-0.5 rounded-md">
+                      {user?.uniqueId || 'N/A'}
+                    </span>
+                    {copiedId ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="glass-card-solid p-4 text-center cursor-pointer hover:border-primary-400 transition" onClick={() => navigate('/my-tests')}>
-              <FileText size={18} className="text-primary-600 mx-auto mb-1.5" />
-              <p className="text-xl font-bold text-dark">{stats.testsCreated}</p>
-              <p className="text-[10px] text-gray-500">{t('testsCreated')}</p>
-            </div>
-            <div className="glass-card-solid p-4 text-center cursor-pointer hover:border-primary-400 transition" onClick={() => navigate('/my-results')}>
-              <BarChart3 size={18} className="text-emerald-600 mx-auto mb-1.5" />
-              <p className="text-xl font-bold text-dark">{stats.testsTaken}</p>
-              <p className="text-[10px] text-gray-500">{t('testsTaken')}</p>
-            </div>
-            <div className="glass-card-solid p-4 text-center">
-              <Shield size={18} className="text-amber-600 mx-auto mb-1.5" />
-              <p className="text-xl font-bold text-dark">{stats.totalScore}%</p>
-              <p className="text-[10px] text-gray-500">Средний балл</p>
+          {/* Stats — single card with 3 columns separated by vertical dividers */}
+          <div className="glass-card-solid p-5 mb-8">
+            <div className="flex items-center">
+              <div className="flex-1 text-center cursor-pointer group" onClick={() => navigate('/my-tests')}>
+                <p className="stat-value group-hover:text-primary-600 transition-colors">{stats.testsCreated}</p>
+                <p className="stat-label mt-1">{t('testsCreated')}</p>
+              </div>
+              <div className="divider-vertical h-10" />
+              <div className="flex-1 text-center cursor-pointer group" onClick={() => navigate('/my-results')}>
+                <p className="stat-value group-hover:text-primary-600 transition-colors">{stats.testsTaken}</p>
+                <p className="stat-label mt-1">{t('testsTaken')}</p>
+              </div>
+              <div className="divider-vertical h-10" />
+              <div className="flex-1 text-center">
+                <p className="stat-value">{stats.totalScore}<span className="text-lg text-gray-400 ml-0.5">%</span></p>
+                <p className="stat-label mt-1">Средний балл</p>
+              </div>
             </div>
           </div>
 
-          {/* Unique ID */}
-          <div className="glass-card-solid p-4 mb-6 flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">ID</p>
-              <code className="font-mono text-sm font-bold text-primary-600 dark:text-primary-400">
-                {user?.uniqueId || 'N/A'}
-              </code>
-            </div>
-            <button onClick={copyIdToClipboard} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition" title="Скопировать">
-              {copiedId ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} className="text-gray-400" />}
-            </button>
-          </div>
-
-          {/* Profile Tabs */}
-          <div className="flex gap-1 mb-4 bg-gray-100 dark:bg-slate-800 p-1 rounded-xl">
+          {/* Underline Tabs */}
+          <div className="flex gap-6 mb-6 border-b border-gray-200 dark:border-slate-700">
             {[
               { key: 'info', label: t('editProfile'), icon: User },
               { key: 'security', label: t('changePassword'), icon: Lock },
               { key: 'comments', label: t('comments'), icon: MessageSquare },
             ].map(tb => (
               <button key={tb.key} onClick={() => setProfileTab(tb.key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${profileTab === tb.key ? 'bg-white dark:bg-slate-700 text-dark shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`tab-underline flex items-center gap-1.5 ${profileTab === tb.key ? 'active' : ''}`}>
                 <tb.icon size={14} /> {tb.label}
               </button>
             ))}
@@ -212,62 +208,82 @@ export default function Profile() {
           {/* Tab: Edit Profile */}
           <AnimatePresence mode="wait">
             {profileTab === 'info' && (
-              <motion.div key="info" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <div className="glass-card-solid p-6 mb-4">
+              <motion.div key="info" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                <div className="glass-card-solid p-6 mb-5">
+                  <p className="section-title mb-4">{t('editProfile')}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">{t('firstName')}</label>
-                      <input type="text" className="input-field text-sm" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('firstName')}</label>
+                      <div className="relative">
+                        <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input type="text" className="input-field text-sm pl-10" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                      </div>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">{t('lastName')}</label>
-                      <input type="text" className="input-field text-sm" value={lastName} onChange={e => setLastName(e.target.value)} />
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('lastName')}</label>
+                      <div className="relative">
+                        <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input type="text" className="input-field text-sm pl-10" value={lastName} onChange={e => setLastName(e.target.value)} />
+                      </div>
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="text-xs text-gray-500 mb-1 block">{t('middleName')}</label>
-                      <input type="text" className="input-field text-sm" value={middleName} onChange={e => setMiddleName(e.target.value)} />
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('middleName')}</label>
+                      <div className="relative">
+                        <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input type="text" className="input-field text-sm pl-10" value={middleName} onChange={e => setMiddleName(e.target.value)} />
+                      </div>
                     </div>
                   </div>
-                  <button onClick={handleSave} disabled={saving}
-                    className="btn-primary mt-4 py-2.5 px-5 text-sm flex items-center gap-2">
-                    <Save size={14} /> {saving ? '...' : t('save')}
-                  </button>
+                  <div className="flex justify-end mt-5">
+                    <button onClick={handleSave} disabled={saving}
+                      className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2">
+                      <Save size={14} /> {saving ? '...' : t('save')}
+                    </button>
+                  </div>
                 </div>
 
-                {/* Language */}
-                <div className="glass-card-solid p-6 mb-4">
-                  <h3 className="font-semibold text-dark mb-3 flex items-center gap-2 text-sm">
-                    <Globe size={16} /> {t('language')}
-                  </h3>
+                {/* Language — pill radio buttons */}
+                <div className="glass-card-solid p-6 mb-5">
+                  <p className="section-title mb-3">{t('language')}</p>
                   <div className="flex gap-2 flex-wrap">
                     {[
-                      { code: 'en', label: 'EN English' },
-                      { code: 'ru', label: '🇷🇺 Русский' },
-                      { code: 'kz', label: '🇰🇿 Қазақша' }
+                      { code: 'en', label: 'English', flag: '🇬🇧' },
+                      { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+                      { code: 'kz', label: 'Қазақша', flag: '🇰🇿' }
                     ].map(l => (
                       <button key={l.code} onClick={() => handleLanguageChange(l.code)}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all
-                          ${lang === l.code ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/25' : 'bg-white dark:bg-slate-800 text-gray-500 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                          ${lang === l.code
+                            ? 'bg-primary-600 text-white shadow-btn-glow'
+                            : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500'}`}
                       >
-                        {l.label}
+                        <span className="text-base leading-none">{l.flag}</span> {l.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Warnings */}
+                {/* Warnings — timeline style */}
                 {warnings.length > 0 && (
-                  <div className="glass-card-solid p-6 mb-4">
-                    <h3 className="font-semibold text-dark mb-3 flex items-center gap-2 text-sm">
-                      <AlertTriangle size={16} className="text-amber-500" /> {t('warnings')} ({warnings.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {warnings.map((w, i) => (
-                        <div key={i} className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
-                          <p className="text-sm text-dark">{w.message}</p>
-                          <p className="text-[10px] text-gray-400 mt-1">{new Date(w.createdAt).toLocaleString()}</p>
-                        </div>
-                      ))}
+                  <div className="glass-card-solid p-6 mb-5">
+                    <p className="section-title mb-4 flex items-center gap-2">
+                      <AlertTriangle size={14} className="text-amber-500" /> {t('warnings')} ({warnings.length})
+                    </p>
+                    <div className="relative pl-6">
+                      {/* Vertical timeline line */}
+                      <div className="absolute left-[7px] top-2 bottom-2 w-px bg-amber-200 dark:bg-amber-800" />
+                      <div className="space-y-4">
+                        {warnings.map((w, i) => (
+                          <div key={i} className="relative">
+                            {/* Timeline dot */}
+                            <div className="absolute -left-6 top-1.5 w-3.5 h-3.5 rounded-full bg-amber-100 dark:bg-amber-900/40 border-2 border-amber-400 dark:border-amber-600" />
+                            <div>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{w.message}</p>
+                              <p className="text-[11px] text-gray-400 mt-1">{new Date(w.createdAt).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -276,19 +292,31 @@ export default function Profile() {
 
             {/* Tab: Security */}
             {profileTab === 'security' && (
-              <motion.div key="security" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <motion.div key="security" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
                 <div className="glass-card-solid p-6">
-                  <h3 className="font-semibold text-dark mb-4 flex items-center gap-2 text-sm">
-                    <Lock size={16} /> {t('changePassword')}
-                  </h3>
-                  <div className="space-y-3">
-                    <input type="password" className="input-field text-sm" placeholder={t('currentPassword')}
-                      value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
-                    <input type="password" className="input-field text-sm" placeholder={t('newPassword')}
-                      value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                    <button onClick={handlePasswordChange} className="btn-primary py-2.5 px-5 text-sm">
-                      {t('save')}
-                    </button>
+                  <p className="section-title mb-5">{t('changePassword')}</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('currentPassword')}</label>
+                      <div className="relative">
+                        <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input type="password" className="input-field text-sm pl-10" placeholder="••••••••"
+                          value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('newPassword')}</label>
+                      <div className="relative">
+                        <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input type="password" className="input-field text-sm pl-10" placeholder="••••••••"
+                          value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="flex justify-end pt-1">
+                      <button onClick={handlePasswordChange} className="btn-primary py-2.5 px-6 text-sm">
+                        {t('save')}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -296,25 +324,26 @@ export default function Profile() {
 
             {/* Tab: Comments */}
             {profileTab === 'comments' && (
-              <motion.div key="comments" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <motion.div key="comments" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
                 <div className="glass-card-solid p-6">
-                  <h3 className="font-semibold text-dark mb-4 flex items-center gap-2 text-sm">
-                    <MessageSquare size={16} /> {t('comments')} ({myComments.length})
-                  </h3>
+                  <p className="section-title mb-4">{t('comments')} ({myComments.length})</p>
                   {myComments.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-6">Комментариев пока нет</p>
+                    <div className="text-center py-10">
+                      <MessageSquare size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                      <p className="text-sm text-gray-400">Комментариев пока нет</p>
+                    </div>
                   ) : (
                     <div className="space-y-3 max-h-[500px] overflow-y-auto">
                       {myComments.map(c => (
-                        <div key={c._id} className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
-                          <div className="flex items-start justify-between gap-2">
+                        <div key={c._id} className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600 hover:border-gray-200 dark:hover:border-slate-500 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-dark">{c.text}</p>
-                              <div className="flex items-center gap-2 mt-1.5">
-                                <span className="text-[10px] text-gray-400">{new Date(c.createdAt).toLocaleString()}</span>
+                              <p className="text-sm text-gray-700 dark:text-gray-200">{c.text}</p>
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="text-[11px] text-gray-400">{new Date(c.createdAt).toLocaleString()}</span>
                                 {c.test && (
                                   <button onClick={() => navigate(`/test-profile/${c.test.shareLink}`)}
-                                    className="text-[10px] text-primary-500 hover:text-primary-600 truncate max-w-[200px] flex items-center gap-0.5">
+                                    className="text-[11px] text-primary-500 hover:text-primary-600 truncate max-w-[200px] flex items-center gap-0.5 transition-colors">
                                     <ChevronRight size={10} /> {c.test.title}
                                   </button>
                                 )}
