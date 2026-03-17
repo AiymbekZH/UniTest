@@ -4,3 +4,6 @@ client/node_modules/
 .playwright-mcp/
 landing/
 client/nul
+*.png
+!client/dist/**
+!client/public/**
