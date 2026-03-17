@@ -1,4 +1,4 @@
-п»їimport { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, LogIn, GraduationCap } from 'lucide-react';
@@ -16,16 +16,16 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
-      toast.error('Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ');
+      toast.error('Заполните все поля');
       return;
     }
     setLoading(true);
     try {
       await login(email, password);
-      toast.success('Р’С…РѕРґ РІС‹РїРѕР»РЅРµРЅ!');
+      toast.success('Вход выполнен!');
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'РћС€РёР±РєР° РІС…РѕРґР°');
+      toast.error(err.response?.data?.message || 'Ошибка входа');
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ export default function Login() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-100/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-orange-100/20 rounded-full blur-3xl" />
       </div>
 
       <motion.div
@@ -60,7 +60,7 @@ export default function Login() {
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-dark">UniTest</h1>
-            <p className="text-gray-500 mt-1 text-sm">Р’РѕР№РґРёС‚Рµ РІ СЃРІРѕСЋ СѓС‡С‘С‚РЅСѓСЋ Р·Р°РїРёСЃСЊ</p>
+            <p className="text-gray-500 mt-1 text-sm">Войдите в свою учётную запись</p>
           </motion.div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -85,12 +85,12 @@ export default function Login() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">РџР°СЂРѕР»СЊ</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Пароль</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="input-field pr-12"
-                  placeholder="вЂўвЂўвЂўвЂўвЂўвЂўвЂўвЂў"
+                  placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   autoComplete="current-password"
@@ -120,7 +120,7 @@ export default function Login() {
               ) : (
                 <>
                   <LogIn size={18} />
-                  Р’РѕР№С‚Рё
+                  Войти
                 </>
               )}
             </motion.button>
@@ -132,9 +132,9 @@ export default function Login() {
             transition={{ delay: 0.6 }}
             className="text-center mt-6 text-sm text-gray-500"
           >
-            РќРµС‚ Р°РєРєР°СѓРЅС‚Р°?{' '}
+            Нет аккаунта?{' '}
             <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium transition-colors">
-              Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ
+              Зарегистрироваться
             </Link>
           </motion.p>
         </div>

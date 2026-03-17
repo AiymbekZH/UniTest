@@ -1,4 +1,4 @@
-ï»¿import { useState, memo } from 'react';
+import { useState, memo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -103,8 +103,8 @@ export default memo(function Navbar() {
                   >
                     {[
                       { code: 'en', label: 'EN English' },
-                      { code: 'ru', label: 'ðŸ‡·ðŸ‡º Ð ÑƒÑÑÐºÐ¸Ð¹' },
-                      { code: 'kz', label: 'ðŸ‡°ðŸ‡¿ ÒšÐ°Ð·Ð°Ò›ÑˆÐ°' }
+                      { code: 'ru', label: '???? Ðóññêèé' },
+                      { code: 'kz', label: '???? ?àçà?øà' }
                     ].map(l => (
                       <button key={l.code}
                         onClick={() => { setLanguage(l.code); setShowLang(false); }}

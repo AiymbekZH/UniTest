@@ -1,4 +1,4 @@
-п»їimport { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -21,12 +21,12 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
   // Color palette for matched pairs
   const pairColors = [
     { bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-400', text: 'text-blue-600 dark:text-blue-400', dot: 'bg-blue-500' },
-    { bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-400', text: 'text-purple-600 dark:text-purple-400', dot: 'bg-purple-500' },
+    { bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-400', text: 'text-orange-600 dark:text-orange-400', dot: 'bg-orange-500' },
     { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-400', text: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500' },
     { bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-400', text: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500' },
     { bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-400', text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500' },
     { bg: 'bg-cyan-50 dark:bg-cyan-900/20', border: 'border-cyan-400', text: 'text-cyan-600 dark:text-cyan-400', dot: 'bg-cyan-500' },
-    { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-400', text: 'text-indigo-600 dark:text-indigo-400', dot: 'bg-indigo-500' },
+    { bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-400', text: 'text-orange-600 dark:text-orange-400', dot: 'bg-orange-500' },
     { bg: 'bg-teal-50 dark:bg-teal-900/20', border: 'border-teal-400', text: 'text-teal-600 dark:text-teal-400', dot: 'bg-teal-500' },
   ];
 
@@ -80,7 +80,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
           <span className="text-white text-xs font-bold">?</span>
         </div>
         <p className="text-xs text-primary-700 dark:text-primary-300">
-          РќР°Р¶РјРёС‚Рµ РЅР° СЌР»РµРјРµРЅС‚ СЃР»РµРІР°, Р·Р°С‚РµРј РЅР° РµРіРѕ РїР°СЂСѓ СЃРїСЂР°РІР°. РЎРѕРІРїР°РІС€РёРµ РїР°СЂС‹ Р±СѓРґСѓС‚ РІС‹РґРµР»РµРЅС‹ РѕРґРЅРёРј С†РІРµС‚РѕРј.
+          Нажмите на элемент слева, затем на его пару справа. Совпавшие пары будут выделены одним цветом.
         </p>
       </div>
 
@@ -102,7 +102,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-primary-500" />
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Р­Р»РµРјРµРЅС‚С‹</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Элементы</p>
           </div>
           {question.options.map(opt => {
             const matched = getMatchedRight(opt.id);
@@ -130,7 +130,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                     matched ? `${color?.dot || 'bg-emerald-500'} text-white` : isSelected ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-500'
                   }`}>
-                    {matched ? 'вњ“' : (question.options.indexOf(opt) + 1)}
+                    {matched ? '?' : (question.options.indexOf(opt) + 1)}
                   </div>
                   <span className="flex-1">{opt.text}</span>
                 </div>
@@ -140,9 +140,9 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
                     animate={{ opacity: 1, height: 'auto' }}
                     className="mt-2 pt-2 border-t border-current/10 flex items-center gap-1.5"
                   >
-                    <span className="text-xs opacity-70">в†’</span>
+                    <span className="text-xs opacity-70">></span>
                     <span className="text-xs font-medium">{matched}</span>
-                    <span className="text-[10px] ml-auto opacity-50 hover:opacity-100">(Г—)</span>
+                    <span className="text-[10px] ml-auto opacity-50 hover:opacity-100">(?)</span>
                   </motion.div>
                 )}
               </motion.button>
@@ -154,7 +154,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">РџР°СЂС‹</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Пары</p>
           </div>
           {rightSide.map((text, idx) => {
             const used = isRightUsed(text);
@@ -181,7 +181,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
                   <span className="flex-1">{text}</span>
                   {used && color && (
                     <div className={`w-5 h-5 rounded-md ${color.dot} text-white flex items-center justify-center`}>
-                      <span className="text-[10px] font-bold">вњ“</span>
+                      <span className="text-[10px] font-bold">?</span>
                     </div>
                   )}
                   {selectedLeft && !used && (
@@ -207,14 +207,14 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
           animate={{ opacity: 1, y: 0 }}
           className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700"
         >
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Р’Р°С€Рё РїР°СЂС‹:</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Ваши пары:</p>
           <div className="flex flex-wrap gap-1.5">
             {pairs.map((p, i) => {
               const leftText = question.options.find(o => o.id === p.left)?.text || p.left;
               const color = pairColors[i % pairColors.length];
               return (
                 <span key={i} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${color.bg} ${color.text} border ${color.border}`}>
-                  {leftText} в†’ {p.right}
+                  {leftText} > {p.right}
                 </span>
               );
             })}
@@ -383,7 +383,7 @@ export default function TakeTest() {
     }
   }, [currentQ]);
 
-  // Keyboard shortcuts: 1-9 for options, в†ђ/в†’ for nav, Enter for next/submit
+  // Keyboard shortcuts: 1-9 for options, </> for nav, Enter for next/submit
   useEffect(() => {
     if (!started || !test) return;
     const handler = (e) => {
@@ -506,17 +506,17 @@ export default function TakeTest() {
       setSelectedVariant(res.data.variantNumber);
       // Re-fetch test with variant ordering
       await fetchTest(res.data.variantNumber);
-      toast.success(`рџЋ« Р‘РёР»РµС‚ #${res.data.variantNumber} РІС‹Р±СЂР°РЅ!`);
+      toast.success(`?? Билет #${res.data.variantNumber} выбран!`);
     } catch (err) {
       if (err.response?.status === 409) {
-        toast.error(err.response.data.message || 'Р‘РёР»РµС‚ СѓР¶Рµ Р·Р°РЅСЏС‚!');
+        toast.error(err.response.data.message || 'Билет уже занят!');
         // Refresh tickets
         try {
           const ticketRes = await api.get(`/tests/${test._id}/tickets`);
           setTicketState(ticketRes.data);
         } catch (_) {}
       } else {
-        toast.error('РћС€РёР±РєР° РїСЂРё РІС‹Р±РѕСЂРµ Р±РёР»РµС‚Р°');
+        toast.error('Ошибка при выборе билета');
       }
     } finally {
       setTicketLoading(false);
@@ -610,7 +610,7 @@ export default function TakeTest() {
 
     // Practice mode: don't save results, show score locally
     if (isPractice) {
-      toast.success(t('practiceModeDesc') || 'РўСЂРµРЅРёСЂРѕРІРєР° Р·Р°РІРµСЂС€РµРЅР° вЂ” СЂРµР·СѓР»СЊС‚Р°С‚ РЅРµ СЃРѕС…СЂР°РЅСЏРµС‚СЃСЏ');
+      toast.success(t('practiceModeDesc') || 'Тренировка завершена — результат не сохраняется');
       navigate(`/test-profile/${shareLink}`);
       return;
     }
@@ -674,16 +674,16 @@ export default function TakeTest() {
             <Clock className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-xl font-bold text-dark mb-2">
-            {isNotStarted ? 'РўРµСЃС‚ РµС‰С‘ РЅРµ РґРѕСЃС‚СѓРїРµРЅ' : 'РўРµСЃС‚ Р·Р°РІРµСЂС€С‘РЅ'}
+            {isNotStarted ? 'Тест ещё не доступен' : 'Тест завершён'}
           </h2>
           <p className="text-gray-500 text-sm mb-6">
             {isNotStarted
-              ? `РўРµСЃС‚ РѕС‚РєСЂРѕРµС‚СЃСЏ: ${dateStr}`
-              : `РўРµСЃС‚ Р±С‹Р» РґРѕСЃС‚СѓРїРµРЅ РґРѕ: ${dateStr}`
+              ? `Тест откроется: ${dateStr}`
+              : `Тест был доступен до: ${dateStr}`
             }
           </p>
           <button onClick={() => navigate('/')} className="btn-primary w-full py-3">
-            {t('back') || 'РќР°Р·Р°Рґ'}
+            {t('back') || 'Назад'}
           </button>
         </motion.div>
       </div>
@@ -795,27 +795,27 @@ export default function TakeTest() {
 
           {/* Ticket/Variant picker */}
           {test.settings?.variants?.enabled && !isPractice && (
-            <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 mb-4">
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 mb-4">
               {selectedVariant ? (
                 <div className="text-center">
-                  <div className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-lg mb-2">
+                  <div className="inline-flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg font-bold text-lg mb-2">
                     <Ticket size={20} />
                     {t('ticketN', { n: selectedVariant })}
                   </div>
-                  <p className="text-xs text-indigo-600 dark:text-indigo-400">{t('ticketReady')}</p>
+                  <p className="text-xs text-orange-600 dark:text-orange-400">{t('ticketReady')}</p>
                   {/* For public tests, allow changing ticket */}
                   {isPublicTest && (
                     <button
                       onClick={() => setSelectedVariant(null)}
-                      className="mt-2 text-xs text-indigo-500 hover:text-indigo-700 underline"
+                      className="mt-2 text-xs text-orange-500 hover:text-orange-700 underline"
                     >
-                      {t('changeTicket') || 'РЎРјРµРЅРёС‚СЊ Р±РёР»РµС‚'}
+                      {t('changeTicket') || 'Сменить билет'}
                     </button>
                   )}
                 </div>
               ) : (
                 <>
-                  <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-400 mb-3 flex items-center justify-center gap-2">
+                  <h3 className="text-sm font-semibold text-orange-700 dark:text-orange-400 mb-3 flex items-center justify-center gap-2">
                     <Ticket size={16} />
                     {t('chooseTicket')}
                   </h3>
@@ -832,7 +832,7 @@ export default function TakeTest() {
                           className={`relative aspect-square rounded-lg font-bold text-sm flex items-center justify-center transition-all ${
                             isDisabled
                               ? 'bg-red-100 dark:bg-red-900/30 text-red-400 dark:text-red-500 cursor-not-allowed border border-red-200 dark:border-red-800'
-                              : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 cursor-pointer border border-indigo-200 dark:border-indigo-700 shadow-sm hover:shadow-md'
+                              : 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-800/50 cursor-pointer border border-orange-200 dark:border-orange-700 shadow-sm hover:shadow-md'
                           }`}
                         >
                           {v.number}
@@ -847,15 +847,15 @@ export default function TakeTest() {
                   </div>
                   {ticketLoading && (
                     <div className="mt-3 text-center">
-                      <div className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-sm">
+                      <div className="inline-flex items-center gap-2 text-orange-600 dark:text-orange-400 text-sm">
                         <Loader2 size={14} className="animate-spin" />
                         {t('claimingTicket')}
                       </div>
                     </div>
                   )}
-                  <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-3 text-center">
+                  <p className="text-xs text-orange-500 dark:text-orange-400 mt-3 text-center">
                     {isPublicTest 
-                      ? (t('ticketHintPublic') || 'Р’С‹Р±РµСЂРёС‚Рµ Р»СЋР±РѕР№ Р±РёР»РµС‚. РљР°Р¶РґС‹Р№ Р±РёР»РµС‚ РґРѕСЃС‚СѓРїРµРЅ РґР»СЏ РІСЃРµС….')
+                      ? (t('ticketHintPublic') || 'Выберите любой билет. Каждый билет доступен для всех.')
                       : t('ticketHint')
                     }
                   </p>
@@ -948,7 +948,7 @@ export default function TakeTest() {
             <h2 className="text-xs sm:text-sm font-semibold text-dark truncate max-w-[40%] sm:max-w-none">
               {test.title}
               {selectedVariant > 0 && (
-                <span className="ml-2 inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                <span className="ml-2 inline-flex items-center gap-1 bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
                   <Ticket size={10} />#{selectedVariant}
                 </span>
               )}
@@ -974,7 +974,7 @@ export default function TakeTest() {
           <div className="h-1 sm:h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7)' }}
+              style={{ background: 'linear-gradient(90deg, #F97316, #FB923C, #FDBA74)' }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3 }}
             />
@@ -1002,7 +1002,7 @@ export default function TakeTest() {
                 {question.points} {question.points === 1 ? t('point') : t('points')}
               </span>
               {question.type === 'multiple-choice' && (
-                <span className="text-[10px] sm:text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-md font-medium">
+                <span className="text-[10px] sm:text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-md font-medium">
                   {t('multipleChoice')}
                 </span>
               )}
@@ -1022,7 +1022,7 @@ export default function TakeTest() {
               <div className="mb-4 sm:mb-5 p-3 sm:p-4 bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl">
                 <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
                   <span className="w-4 h-4 bg-amber-500 rounded flex items-center justify-center text-white text-[8px]">T</span>
-                  РўРµРєСЃС‚
+                  Текст
                 </p>
                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{question.passage}</p>
               </div>
@@ -1060,7 +1060,7 @@ export default function TakeTest() {
               </div>
             )}
 
-            {/* Answer options вЂ” Single choice / True-false */}
+            {/* Answer options — Single choice / True-false */}
             {(question.type === 'single-choice' || question.type === 'true-false') && (
               <div className="space-y-2 sm:space-y-3">
                 {question.options.map(opt => {
@@ -1301,7 +1301,7 @@ export default function TakeTest() {
                   <p className={`text-xs ${currentFeedback.isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                     +{currentFeedback.isCorrect ? currentFeedback.points : (currentFeedback.partialPoints || 0)} {t('outOfPoints')} {currentFeedback.points} {t('points')}
                     {!currentFeedback.isCorrect && currentFeedback.partialPoints > 0 && (
-                      <span className="ml-1 text-amber-600 dark:text-amber-400">({t('partialCredit') || 'С‡Р°СЃС‚РёС‡РЅС‹Р№ Р±Р°Р»Р»'})</span>
+                      <span className="ml-1 text-amber-600 dark:text-amber-400">({t('partialCredit') || 'частичный балл'})</span>
                     )}
                   </p>
                 </div>

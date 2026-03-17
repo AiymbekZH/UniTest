@@ -1,4 +1,4 @@
-п»їimport { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -35,7 +35,7 @@ export default function TestResults() {
       const res = await api.get(`/results/test/${testId}`);
       setResults(res.data);
     } catch (err) {
-      toast.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ');
+      toast.error('Ошибка загрузки результатов');
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ export default function TestResults() {
       const res = await api.get(`/results/analytics/${testId}`);
       setAnalytics(res.data);
     } catch (err) {
-      toast.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё Р°РЅР°Р»РёС‚РёРєРё');
+      toast.error('Ошибка загрузки аналитики');
     } finally {
       setAnalyticsLoading(false);
     }
@@ -78,10 +78,10 @@ export default function TestResults() {
         points: Number(points),
         feedback
       });
-      toast.success('РћС†РµРЅРєР° СЃРѕС…СЂР°РЅРµРЅР°');
+      toast.success('Оценка сохранена');
       fetchResults(); // Refresh to show updated score
     } catch (err) {
-      toast.error(err.response?.data?.message || 'РћС€РёР±РєР° РѕС†РµРЅРёРІР°РЅРёСЏ');
+      toast.error(err.response?.data?.message || 'Ошибка оценивания');
     } finally {
       setGradingLoading(prev => ({ ...prev, [`${resultId}_${questionId}`]: false }));
     }
@@ -91,9 +91,9 @@ export default function TestResults() {
   const exportToCSV = () => {
     if (results.length === 0) return;
     const sep = ';';
-    const headers = ['РРјСЏ', 'Р‘Р°Р»Р»С‹', 'РњР°РєСЃ. Р±Р°Р»Р»С‹', 'РџСЂРѕС†РµРЅС‚', 'Р’СЂРµРјСЏ', 'РќР°СЂСѓС€РµРЅРёСЏ', 'Р”Р°С‚Р°'];
+    const headers = ['Имя', 'Баллы', 'Макс. баллы', 'Процент', 'Время', 'Нарушения', 'Дата'];
     const rows = results.map(r => [
-      `"${(r.user ? `${r.user.lastName} ${r.user.firstName}` : r.guestName || 'Р“РѕСЃС‚СЊ').replace(/"/g, '""')}"`,
+      `"${(r.user ? `${r.user.lastName} ${r.user.firstName}` : r.guestName || 'Гость').replace(/"/g, '""')}"`,
       r.score,
       r.totalPoints,
       r.percentage + '%',
@@ -110,14 +110,14 @@ export default function TestResults() {
     a.download = `results_${testId}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('CSV СЃРєР°С‡Р°РЅ');
+    toast.success('CSV скачан');
   };
 
   // Export to JSON
   const exportToJSON = () => {
     if (results.length === 0) return;
     const data = results.map(r => ({
-      name: r.user ? `${r.user.lastName} ${r.user.firstName}` : r.guestName || 'Р“РѕСЃС‚СЊ',
+      name: r.user ? `${r.user.lastName} ${r.user.firstName}` : r.guestName || 'Гость',
       score: r.score,
       totalPoints: r.totalPoints,
       percentage: r.percentage,
@@ -133,7 +133,7 @@ export default function TestResults() {
     a.download = `results_${testId}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('JSON СЃРєР°С‡Р°РЅ');
+    toast.success('JSON скачан');
   };
 
   // Export to PDF (via print)
@@ -141,7 +141,7 @@ export default function TestResults() {
     if (results.length === 0) return;
     const rows = results.map((r, i) => `<tr>
       <td style="padding:6px;border:1px solid #ddd">${i + 1}</td>
-      <td style="padding:6px;border:1px solid #ddd">${r.user ? `${r.user.lastName} ${r.user.firstName}` : r.guestName || 'Р“РѕСЃС‚СЊ'}</td>
+      <td style="padding:6px;border:1px solid #ddd">${r.user ? `${r.user.lastName} ${r.user.firstName}` : r.guestName || 'Гость'}</td>
       <td style="padding:6px;border:1px solid #ddd">${r.score}/${r.totalPoints}</td>
       <td style="padding:6px;border:1px solid #ddd">${r.percentage}%</td>
       <td style="padding:6px;border:1px solid #ddd">${formatTime(r.timeSpent)}</td>
@@ -152,7 +152,7 @@ export default function TestResults() {
     const avg = Math.round(results.reduce((s, r) => s + r.percentage, 0) / results.length);
     const best = Math.max(...results.map(r => r.percentage));
 
-    const html = `<html><head><title>Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚РµСЃС‚Р°</title><style>
+    const html = `<html><head><title>Результаты теста</title><style>
       body{font-family:Arial,sans-serif;padding:20px}
       h1{font-size:18px;margin-bottom:10px}
       table{border-collapse:collapse;width:100%;font-size:13px}
@@ -160,14 +160,14 @@ export default function TestResults() {
       .stats{display:flex;gap:20px;margin-bottom:15px;font-size:14px}
       .stat{padding:8px 14px;background:#f0f0f0;border-radius:6px}
     </style></head><body>
-      <h1>Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚РµСЃС‚Р°</h1>
+      <h1>Результаты теста</h1>
       <div class="stats">
-        <div class="stat">РЈС‡Р°СЃС‚РЅРёРєРѕРІ: <b>${results.length}</b></div>
-        <div class="stat">РЎСЂРµРґРЅРёР№: <b>${avg}%</b></div>
-        <div class="stat">Р›СѓС‡С€РёР№: <b>${best}%</b></div>
+        <div class="stat">Участников: <b>${results.length}</b></div>
+        <div class="stat">Средний: <b>${avg}%</b></div>
+        <div class="stat">Лучший: <b>${best}%</b></div>
       </div>
       <table><thead><tr>
-        <th>в„–</th><th>РРјСЏ</th><th>Р‘Р°Р»Р»С‹</th><th>%</th><th>Р’СЂРµРјСЏ</th><th>РќР°СЂСѓС€РµРЅРёСЏ</th><th>Р”Р°С‚Р°</th>
+        <th>№</th><th>Имя</th><th>Баллы</th><th>%</th><th>Время</th><th>Нарушения</th><th>Дата</th>
       </tr></thead><tbody>${rows}</tbody></table>
     </body></html>`;
 
@@ -210,14 +210,14 @@ export default function TestResults() {
               <ArrowLeft size={20} className="text-dark" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-dark">Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚РµСЃС‚Р°</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{displayResults.length} СѓС‡Р°СЃС‚РЅРёРєРѕРІ{!bestOnly ? ` (${results.length} РїРѕРїС‹С‚РѕРє)` : ''}</p>
+              <h1 className="text-2xl font-bold text-dark">Результаты теста</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{displayResults.length} участников{!bestOnly ? ` (${results.length} попыток)` : ''}</p>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
             <button onClick={() => setBestOnly(!bestOnly)}
               className={`flex items-center gap-1.5 py-2 px-3 text-xs rounded-xl font-medium transition ${bestOnly ? 'bg-primary-600 text-white' : 'btn-secondary'}`}>
-              <Users size={14} /> {bestOnly ? 'Р›СѓС‡С€РёРµ' : 'Р’СЃРµ РїРѕРїС‹С‚РєРё'}
+              <Users size={14} /> {bestOnly ? 'Лучшие' : 'Все попытки'}
             </button>
             <button onClick={exportToCSV}
               className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs">
@@ -244,7 +244,7 @@ export default function TestResults() {
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
-            <Trophy size={16} /> Р РµР·СѓР»СЊС‚Р°С‚С‹
+            <Trophy size={16} /> Результаты
           </button>
           <button
             onClick={() => { setActiveTab('analytics'); fetchAnalytics(); }}
@@ -254,7 +254,7 @@ export default function TestResults() {
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
-            <BarChart3 size={16} /> РђРЅР°Р»РёС‚РёРєР°
+            <BarChart3 size={16} /> Аналитика
           </button>
         </div>
 
@@ -263,11 +263,11 @@ export default function TestResults() {
           analyticsLoading ? (
             <div className="p-12 text-center"><div className="w-8 h-8 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" /></div>
           ) : !analytics || analytics.totalResponses === 0 ? (
-            <div className="glass-card-solid p-12 text-center text-gray-500">РќРµС‚ РґР°РЅРЅС‹С… РґР»СЏ Р°РЅР°Р»РёС‚РёРєРё</div>
+            <div className="glass-card-solid p-12 text-center text-gray-500">Нет данных для аналитики</div>
           ) : (
             <div className="space-y-4">
               <div className="glass-card-solid p-4">
-                <p className="text-sm text-gray-500">Р’СЃРµРіРѕ РѕС‚РІРµС‚РѕРІ: <span className="font-bold text-dark">{analytics.totalResponses}</span></p>
+                <p className="text-sm text-gray-500">Всего ответов: <span className="font-bold text-dark">{analytics.totalResponses}</span></p>
               </div>
               {analytics.questions.map((q, qi) => {
                 const isHard = q.correctPercent < 40;
@@ -307,7 +307,7 @@ export default function TestResults() {
                     </div>
 
                     <p className="text-xs text-gray-400 mb-3">
-                      {q.correctCount} РёР· {q.totalResponses} РѕС‚РІРµС‚РёР»Рё РїСЂР°РІРёР»СЊРЅРѕ
+                      {q.correctCount} из {q.totalResponses} ответили правильно
                     </p>
 
                     {/* Option breakdown (for choice questions) */}
@@ -338,7 +338,7 @@ export default function TestResults() {
                     )}
 
                     {isHard && (
-                      <p className="text-[10px] text-red-500 mt-2 font-medium">РЎР»РѕР¶РЅС‹Р№ РІРѕРїСЂРѕСЃ - Р±РѕР»СЊС€РёРЅСЃС‚РІРѕ РѕС‚РІРµС‚РёР»Рё РЅРµРїСЂР°РІРёР»СЊРЅРѕ</p>
+                      <p className="text-[10px] text-red-500 mt-2 font-medium">Сложный вопрос - большинство ответили неправильно</p>
                     )}
                   </motion.div>
                 );
@@ -352,10 +352,10 @@ export default function TestResults() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
             {[
-              { icon: Users, label: 'РЈС‡Р°СЃС‚РЅРёРєРё', value: displayResults.length, color: 'text-primary-600' },
-              { icon: TrendingUp, label: 'РЎСЂРµРґРЅРёР№ %', value: `${Math.round(displayResults.reduce((s, r) => s + r.percentage, 0) / displayResults.length)}%`, color: 'text-emerald-600' },
-              { icon: Trophy, label: 'Р›СѓС‡С€РёР№ %', value: `${Math.max(...displayResults.map(r => r.percentage))}%`, color: 'text-amber-600' },
-              { icon: AlertTriangle, label: 'РќР°СЂСѓС€РµРЅРёСЏ', value: displayResults.reduce((s, r) => s + r.violationCount, 0), color: 'text-red-600' },
+              { icon: Users, label: 'Участники', value: displayResults.length, color: 'text-primary-600' },
+              { icon: TrendingUp, label: 'Средний %', value: `${Math.round(displayResults.reduce((s, r) => s + r.percentage, 0) / displayResults.length)}%`, color: 'text-emerald-600' },
+              { icon: Trophy, label: 'Лучший %', value: `${Math.max(...displayResults.map(r => r.percentage))}%`, color: 'text-amber-600' },
+              { icon: AlertTriangle, label: 'Нарушения', value: displayResults.reduce((s, r) => s + r.violationCount, 0), color: 'text-red-600' },
             ].map((stat, i) => (
               <div key={i} className="glass-card-solid p-4 text-center">
                 <stat.icon className={`w-5 h-5 mx-auto mb-2 ${stat.color}`} />
@@ -372,7 +372,7 @@ export default function TestResults() {
             className="glass-card-solid p-4 mb-6 border-l-4 border-amber-400">
             <p className="text-sm text-dark font-medium flex items-center gap-2">
               <FileText size={16} className="text-amber-500" />
-              Р­С‚РѕС‚ С‚РµСЃС‚ СЃРѕРґРµСЂР¶РёС‚ СЌСЃСЃРµ-РІРѕРїСЂРѕСЃС‹. РќР°Р¶РјРёС‚Рµ РЅР° СЂРµР·СѓР»СЊС‚Р°С‚, С‡С‚РѕР±С‹ РѕС†РµРЅРёС‚СЊ РёС… РІСЂСѓС‡РЅСѓСЋ.
+              Этот тест содержит эссе-вопросы. Нажмите на результат, чтобы оценить их вручную.
             </p>
           </motion.div>
         )}
@@ -382,14 +382,14 @@ export default function TestResults() {
           className="glass-card-solid overflow-hidden">
           <div className="p-4 border-b border-gray-100 dark:border-slate-700">
             <h3 className="font-semibold text-dark flex items-center gap-2">
-              <Trophy size={18} className="text-amber-500" /> РўР°Р±Р»РёС†Р° СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ
+              <Trophy size={18} className="text-amber-500" /> Таблица результатов
             </h3>
           </div>
 
           {loading ? (
             <div className="p-8 text-center"><div className="w-8 h-8 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" /></div>
           ) : results.length === 0 ? (
-            <div className="p-12 text-center text-gray-500 dark:text-gray-400">РџРѕРєР° РЅРµС‚ РѕС‚РІРµС‚РѕРІ</div>
+            <div className="p-12 text-center text-gray-500 dark:text-gray-400">Пока нет ответов</div>
           ) : (
             <div className="divide-y divide-gray-50 dark:divide-slate-700/50">
               {pagedResults.map((result, i) => {
@@ -426,7 +426,7 @@ export default function TestResults() {
                         <p className="font-medium text-dark text-sm truncate">
                           {result.user
                             ? `${result.user.lastName} ${result.user.firstName}`
-                            : result.guestName || 'Р“РѕСЃС‚СЊ'
+                            : result.guestName || 'Гость'
                           }
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -459,7 +459,7 @@ export default function TestResults() {
                             <AlertTriangle size={10} /> {result.violationCount}
                           </span>
                         ) : (
-                          <span className="badge-success">Р§РёСЃС‚Рѕ</span>
+                          <span className="badge-success">Чисто</span>
                         )}
                       </div>
 
@@ -484,15 +484,15 @@ export default function TestResults() {
                           className="overflow-hidden border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50"
                         >
                           <div className="p-4 space-y-4">
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Р­СЃСЃРµ-РѕС‚РІРµС‚С‹</h4>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Эссе-ответы</h4>
                             {essayAnswers.map((answer, ai) => (
                               <div key={ai} className="glass-card-solid p-4 space-y-2">
-                                <p className="text-sm font-medium text-dark prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: answer.questionText || `Р’РѕРїСЂРѕСЃ ${ai + 1}` }} />
+                                <p className="text-sm font-medium text-dark prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: answer.questionText || `Вопрос ${ai + 1}` }} />
                                 <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                  {answer.userAnswer || answer.textAnswer || <span className="italic text-gray-400">РќРµС‚ РѕС‚РІРµС‚Р°</span>}
+                                  {answer.userAnswer || answer.textAnswer || <span className="italic text-gray-400">Нет ответа</span>}
                                 </div>
                                 <div className="flex items-center gap-3 pt-2">
-                                  <label className="text-xs text-gray-500">Р‘Р°Р»Р»С‹ (РјР°РєСЃ. {answer.maxPoints || answer.points || '?'}):</label>
+                                  <label className="text-xs text-gray-500">Баллы (макс. {answer.maxPoints || answer.points || '?'}):</label>
                                   <input
                                     type="number"
                                     min="0"
@@ -516,10 +516,10 @@ export default function TestResults() {
                                     {gradingLoading[`${result._id}_${answer.questionId}`]
                                       ? <div className="w-3 h-3 border border-white/50 border-t-white rounded-full animate-spin" />
                                       : <Check size={12} />}
-                                    РћС†РµРЅРёС‚СЊ
+                                    Оценить
                                   </button>
                                   {answer.pointsEarned != null && (
-                                    <span className="text-xs text-emerald-600 font-medium">РћС†РµРЅРєР°: {answer.pointsEarned} Р±.</span>
+                                    <span className="text-xs text-emerald-600 font-medium">Оценка: {answer.pointsEarned} б.</span>
                                   )}
                                 </div>
                                 {/* Teacher feedback / comment */}
@@ -527,7 +527,7 @@ export default function TestResults() {
                                   <textarea
                                     className="input-field text-xs py-2 resize-none"
                                     rows="2"
-                                    placeholder="РљРѕРјРјРµРЅС‚Р°СЂРёР№ РґР»СЏ СЃС‚СѓРґРµРЅС‚Р° (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)..."
+                                    placeholder="Комментарий для студента (необязательно)..."
                                     value={essayGrades[`${result._id}_${answer.questionId}_feedback`] ?? answer.feedback ?? ''}
                                     onChange={e => setEssayGrades(prev => ({
                                       ...prev,
@@ -536,7 +536,7 @@ export default function TestResults() {
                                   />
                                 </div>
                                 {answer.feedback && (
-                                  <p className="text-xs text-gray-500 italic mt-1">РџСЂРµРґС‹РґСѓС‰РёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: {answer.feedback}</p>
+                                  <p className="text-xs text-gray-500 italic mt-1">Предыдущий комментарий: {answer.feedback}</p>
                                 )}
                               </div>
                             ))}

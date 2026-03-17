@@ -1,4 +1,4 @@
-ï»¿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -304,7 +304,7 @@ export default function Dashboard() {
                       <button
                         onClick={(e) => { e.stopPropagation(); navigate(`/leaderboard/${test._id}`); }}
                         className="flex items-center gap-1 text-[10px] text-primary-500 hover:text-primary-600 transition"
-                        title="Ð ÐµÐ¹Ñ‚Ð¸Ð½Ð³"
+                        title="Ðåéòèíã"
                       >
                         <Trophy size={12} />
                       </button>

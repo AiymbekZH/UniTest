@@ -221,7 +221,7 @@ export default function Groups() {
   const isCreator = (group) => group.creator?._id === user?._id;
 
   const groupGradients = [
-    'from-indigo-500 to-purple-500',
+    'from-orange-500 to-orange-500',
     'from-emerald-500 to-teal-500',
     'from-amber-500 to-orange-500',
     'from-rose-500 to-pink-500',
@@ -293,16 +293,16 @@ export default function Groups() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-0">
             {/* Invite code banner (admin) */}
             {isCreator(selectedGroup) && (
-              <div className="flex items-center gap-3 mb-5 p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-900/40">
-                <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0">
-                  <Link2 size={16} className="text-indigo-500" />
+              <div className="flex items-center gap-3 mb-5 p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-orange-50 dark:from-orange-950/30 dark:to-orange-950/30 border border-orange-100 dark:border-orange-900/40">
+                <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center flex-shrink-0">
+                  <Link2 size={16} className="text-orange-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-500 dark:text-gray-400">Код приглашения</p>
-                  <p className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">{selectedGroup.inviteCode}</p>
+                  <p className="text-sm font-mono font-bold text-orange-600 dark:text-orange-400 tracking-wider">{selectedGroup.inviteCode}</p>
                 </div>
                 <button onClick={() => regenerateCode(selectedGroup._id)}
-                  className="p-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-400 hover:text-indigo-600 transition" title="Обновить код">
+                  className="p-2 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/40 text-orange-400 hover:text-orange-600 transition" title="Обновить код">
                   <RefreshCw size={15} />
                 </button>
               </div>
@@ -316,7 +316,7 @@ export default function Groups() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
                     activeTab === tab.key
-                      ? 'text-indigo-600 dark:text-indigo-400'
+                      ? 'text-orange-600 dark:text-orange-400'
                       : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
                 >
@@ -325,12 +325,12 @@ export default function Groups() {
                   {tab.count != null && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                       activeTab === tab.key
-                        ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                        ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'
                         : 'bg-gray-100 dark:bg-slate-700 text-gray-500'
                     }`}>{tab.count}</span>
                   )}
                   {activeTab === tab.key && (
-                    <motion.div layoutId="activeGroupTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 rounded-full" />
+                    <motion.div layoutId="activeGroupTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full" />
                   )}
                 </button>
               ))}
@@ -423,7 +423,7 @@ export default function Groups() {
                           </div>
                           <button
                             onClick={() => at.test?.shareLink && navigate(`/test-profile/${at.test.shareLink}`)}
-                            className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                            className="flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20"
                           >
                             Открыть <ChevronRight size={13} />
                           </button>
@@ -466,7 +466,7 @@ export default function Groups() {
                                 )}
                                 <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
                                   isMe
-                                    ? 'bg-indigo-500 text-white rounded-br-md'
+                                    ? 'bg-orange-500 text-white rounded-br-md'
                                     : 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200 rounded-bl-md'
                                 }`}>
                                   {msg.text}
@@ -486,7 +486,7 @@ export default function Groups() {
                     <div className="border-t border-gray-100 dark:border-slate-700 px-4 py-3 flex items-center gap-2">
                       <input
                         type="text"
-                        className="flex-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
+                        className="flex-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-orange-300 dark:focus:border-orange-600 transition-colors"
                         placeholder="Написать сообщение..."
                         value={chatInput}
                         onChange={e => setChatInput(e.target.value)}
@@ -495,7 +495,7 @@ export default function Groups() {
                       <button
                         onClick={sendMessage}
                         disabled={!chatInput.trim()}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                       >
                         <Send size={16} />
                       </button>
@@ -708,13 +708,13 @@ export default function Groups() {
                           className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
                             alreadyAssigned
                               ? 'opacity-40 cursor-default bg-gray-50 dark:bg-slate-800/50'
-                              : 'hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 cursor-pointer'
+                              : 'hover:bg-orange-50/50 dark:hover:bg-orange-900/10 cursor-pointer'
                           }`}
                         >
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{test.title}</p>
                           <p className="text-xs text-gray-400 mt-0.5">
                             {test.questions?.length || 0} вопросов &middot; {test.totalPoints} баллов
-                            {alreadyAssigned && <span className="text-indigo-500 ml-1">&middot; Назначен</span>}
+                            {alreadyAssigned && <span className="text-orange-500 ml-1">&middot; Назначен</span>}
                           </p>
                         </button>
                       );

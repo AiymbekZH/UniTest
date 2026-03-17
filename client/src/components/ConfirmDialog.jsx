@@ -1,4 +1,4 @@
-п»їimport { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Trash2, Check, X, Info } from 'lucide-react';
 
 const icons = {
@@ -12,10 +12,10 @@ export default function ConfirmDialog({
   isOpen,
   onClose,
   onConfirm,
-  title = 'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ',
-  message = 'Р’С‹ СѓРІРµСЂРµРЅС‹?',
-  confirmText = 'РџРѕРґС‚РІРµСЂРґРёС‚СЊ',
-  cancelText = 'РћС‚РјРµРЅР°',
+  title = 'Подтверждение',
+  message = 'Вы уверены?',
+  confirmText = 'Подтвердить',
+  cancelText = 'Отмена',
   variant = 'danger', // danger | warning | success | info
 }) {
   if (!isOpen) return null;

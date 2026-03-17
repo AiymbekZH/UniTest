@@ -89,10 +89,10 @@ export default function ResultPage() {
 
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = '#6366f1';
+    ctx.strokeStyle = '#F97316';
     ctx.lineWidth = 4;
     ctx.strokeRect(20, 20, W - 40, H - 40);
-    ctx.strokeStyle = '#c7d2fe';
+    ctx.strokeStyle = '#FED7AA';
     ctx.lineWidth = 1;
     ctx.strokeRect(30, 30, W - 60, H - 60);
 
@@ -101,7 +101,7 @@ export default function ResultPage() {
       ctx.moveTo(x, y + dy * 40);
       ctx.lineTo(x, y);
       ctx.lineTo(x + dx * 40, y);
-      ctx.strokeStyle = '#6366f1';
+      ctx.strokeStyle = '#F97316';
       ctx.lineWidth = 3;
       ctx.stroke();
     };
@@ -111,14 +111,14 @@ export default function ResultPage() {
     drawCorner(W - 35, H - 35, -1, -1);
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#6366f1';
+    ctx.fillStyle = '#F97316';
     ctx.font = '600 14px Inter, sans-serif';
     ctx.fillText('CERTIFICATE OF COMPLETION', W / 2, 100);
 
     ctx.beginPath();
     ctx.moveTo(W / 2 - 80, 115);
     ctx.lineTo(W / 2 + 80, 115);
-    ctx.strokeStyle = '#c7d2fe';
+    ctx.strokeStyle = '#FED7AA';
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -146,7 +146,7 @@ export default function ResultPage() {
     ctx.fillText('has successfully completed the test', W / 2, 275);
 
     const testTitle = result.test?.title || 'Test';
-    ctx.fillStyle = '#4f46e5';
+    ctx.fillStyle = '#EA580C';
     ctx.font = '600 28px Inter, sans-serif';
     let displayTitle = testTitle;
     if (ctx.measureText(testTitle).width > W - 200) {
@@ -192,7 +192,7 @@ export default function ResultPage() {
     });
     ctx.fillText(dateStr, W / 2, 620);
 
-    ctx.fillStyle = '#c7d2fe';
+    ctx.fillStyle = '#FED7AA';
     ctx.font = '600 12px Inter, sans-serif';
     ctx.fillText('UniTest Platform', W / 2, 780);
 
@@ -429,8 +429,8 @@ export default function ResultPage() {
                 <Tooltip
                   contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: '12px' }}
                 />
-                <Bar dataKey="max" fill="#EEF2FF" radius={[6, 6, 6, 6]} name="Максимум" />
-                <Bar dataKey="earned" fill="#6366F1" radius={[6, 6, 6, 6]} name="Набрано" />
+                <Bar dataKey="max" fill="#FFF7ED" radius={[6, 6, 6, 6]} name="Максимум" />
+                <Bar dataKey="earned" fill="#F97316" radius={[6, 6, 6, 6]} name="Набрано" />
               </BarChart>
             </ResponsiveContainer>
           </motion.div>
@@ -472,8 +472,8 @@ export default function ResultPage() {
             className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl flex items-center justify-center">
-                <FileText size={16} className="text-indigo-500" />
+              <div className="w-9 h-9 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center">
+                <FileText size={16} className="text-orange-500" />
               </div>
               <div className="text-left">
                 <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 block">Разбор ответов</span>
@@ -605,9 +605,9 @@ export default function ResultPage() {
                       )}
 
                       {answer.feedback && (
-                        <div className="mt-2 p-2.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                          <span className="text-[10px] uppercase tracking-wider font-semibold text-purple-500">Комментарий преподавателя:</span>
-                          <p className="text-xs text-purple-700 dark:text-purple-300 mt-0.5">{answer.feedback}</p>
+                        <div className="mt-2 p-2.5 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                          <span className="text-[10px] uppercase tracking-wider font-semibold text-orange-500">Комментарий преподавателя:</span>
+                          <p className="text-xs text-orange-700 dark:text-orange-300 mt-0.5">{answer.feedback}</p>
                         </div>
                       )}
 
