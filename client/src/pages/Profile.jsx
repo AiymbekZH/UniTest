@@ -24,31 +24,39 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [copiedId, setCopiedId] = useState(false);
   const [myComments, setMyComments] = useState([]);
   const [profileTab, setProfileTab] = useState('info');
   const [stats, setStats] = useState({ testsCreated: 0, testsTaken: 0, totalScore: 0 });
 
   useEffect(() => {
-    api.get('/profile/me/warnings')
-      .then(res => setWarnings(res.data.warnings || []))
-      .catch(() => {});
-    api.get('/profile/me/comments')
-      .then(res => setMyComments(res.data.comments || []))
-      .catch(() => {});
-    // Load stats from backend efficiently
-    api.get('/profile/me/stats')
-      .then(res => {
+    const fetchProfileData = async () => {
+      try {
+        const [warn, comm, stat] = await Promise.all([
+          api.get('/profile/me/warnings'),
+          api.get('/profile/me/comments'),
+          api.get('/profile/me/stats')
+        ]);
+        setWarnings(warn.data.warnings || []);
+        setMyComments(comm.data.comments || []);
         setStats({
-          testsCreated: res.data.testsCreated || 0,
-          testsTaken: res.data.testsTaken || 0,
-          totalScore: res.data.totalScore || 0
+          testsCreated: stat.data.testsCreated || 0,
+          testsTaken: stat.data.testsTaken || 0,
+          totalScore: stat.data.totalScore || 0
         });
-      })
-      .catch(() => {});
+      } catch (err) {
+        toast.error('Не удалось загрузить данные профиля');
+      }
+    };
+    fetchProfileData();
   }, []);
 
   const handleSave = async () => {
+    if (!firstName?.trim() || !lastName?.trim()) {
+      toast.error('Имя и Фамилия обязательны к заполнению');
+      return;
+    }
     setSaving(true);
     try {
       const res = await api.put('/profile/me', { firstName, lastName, middleName, language: lang });
@@ -83,17 +91,26 @@ export default function Profile() {
   };
 
   const handlePasswordChange = async () => {
-    if (!currentPassword || !newPassword) {
-      toast.error(t('currentPassword') + ' & ' + t('newPassword'));
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Пожалуйста, заполните все поля пароля');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Новые пароли не совпадают');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('Новый пароль должен быть минимум 6 символов');
       return;
     }
     try {
       await api.put('/profile/password', { currentPassword, newPassword });
-      toast.success(t('changePassword'));
+      toast.success(t('changePassword') || 'Пароль успешно изменен');
       setCurrentPassword('');
       setNewPassword('');
+      setConfirmPassword('');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error');
+      toast.error(err.response?.data?.message || 'Ошибка при изменении пароля');
     }
   };
 
@@ -310,6 +327,14 @@ export default function Profile() {
                         <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input type="password" className="input-field text-sm pl-10" placeholder="••••••••"
                           value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Повторите новый пароль</label>
+                      <div className="relative">
+                        <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input type="password" className="input-field text-sm pl-10" placeholder="••••••••"
+                          value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                       </div>
                     </div>
                     <div className="flex justify-end pt-1">

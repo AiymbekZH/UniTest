@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
+const AiHistory = require('../models/AiHistory');
 
 // Multer for file uploads (PDF, DOCX, TXT, images) — max 20MB
 const fileUpload = multer({
@@ -234,6 +235,18 @@ Rules:
       order: i,
     }));
 
+    // Save history
+    try {
+      await AiHistory.create({
+        user: req.user._id,
+        prompt: combinedText ? combinedText.substring(0, 100) : (uploadedFile ? uploadedFile.name : 'Generated Test'),
+        questions: formatted,
+        count: formatted.length
+      });
+    } catch (dbErr) {
+      console.error('Failed to save AI history:', dbErr);
+    }
+
     res.json({ questions: formatted });
   } catch (err) {
     console.error('AI generate error:', err);
@@ -244,6 +257,38 @@ Rules:
       return res.status(400).json({ error: err.message });
     }
     res.status(500).json({ error: 'AI generation failed: ' + (err.message || 'Unknown error') });
+  }
+});
+
+// Get AI history
+router.get('/history', auth, async (req, res) => {
+  try {
+    const history = await AiHistory.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(15);
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка загрузки истории' });
+  }
+});
+
+// Delete history entry
+router.delete('/history/:id', auth, async (req, res) => {
+  try {
+    await AiHistory.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка при удалении' });
+  }
+});
+
+// Clear all history
+router.delete('/history', auth, async (req, res) => {
+  try {
+    await AiHistory.deleteMany({ user: req.user._id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка при очистке' });
   }
 });
 

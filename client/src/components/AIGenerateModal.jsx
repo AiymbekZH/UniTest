@@ -13,18 +13,6 @@ const QUESTION_TYPES = [
 ];
 
 const FILE_ACCEPT = '.pdf,.docx,.doc,.txt,image/jpeg,image/png,image/gif,image/webp';
-const AI_HISTORY_KEY = 'unitest_ai_history';
-const MAX_HISTORY = 15;
-
-function loadHistory() {
-  try {
-    return JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || '[]');
-  } catch { return []; }
-}
-
-function saveHistory(history) {
-  localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
-}
 
 export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentLanguage = 'ru' }) {
   const { t } = useLanguage();
@@ -51,7 +39,9 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
 
   useEffect(() => {
     if (isOpen) {
-      setHistory(loadHistory());
+      api.get('/ai/history')
+        .then(res => setHistory(res.data))
+        .catch(() => setHistory([]));
     }
   }, [isOpen]);
 
@@ -128,17 +118,8 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
       setSelectedQuestions(new Set(data.questions.map((_, i) => i)));
       setStep('preview');
 
-      // Save to history
-      const entry = {
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        prompt: text?.slice(0, 100) || (uploadedFile?.name || 'File'),
-        questions: data.questions,
-        count: data.questions.length,
-      };
-      const updated = [entry, ...loadHistory()].slice(0, MAX_HISTORY);
-      saveHistory(updated);
-      setHistory(updated);
+      // Refresh history from backend
+      api.get('/ai/history').then(res => setHistory(res.data)).catch(()=>{});
     } catch (err) {
       setError(err.response?.data?.error || 'AI generation failed');
     } finally {
@@ -204,15 +185,22 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
     setStep('preview');
   };
 
-  const deleteHistoryEntry = (id) => {
-    const updated = history.filter(h => h.id !== id);
-    saveHistory(updated);
-    setHistory(updated);
+  const deleteHistoryEntry = async (id) => {
+    try {
+      await api.delete(`/ai/history/${id}`);
+      setHistory(history.filter(h => h._id !== id));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const clearHistory = () => {
-    saveHistory([]);
-    setHistory([]);
+  const clearHistory = async () => {
+    try {
+      await api.delete('/ai/history');
+      setHistory([]);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const typeLabels = {
@@ -295,7 +283,7 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                   <div className="space-y-1.5">
                     {history.map((entry) => (
                       <div
-                        key={entry.id}
+                        key={entry._id}
                         className="group flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
                         onClick={() => loadFromHistory(entry)}
                       >
@@ -309,7 +297,7 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                           <div className="flex items-center gap-3 mt-0.5">
                             <span className="text-[11px] text-gray-400 flex items-center gap-1">
                               <Clock size={10} />
-                              {new Date(entry.timestamp).toLocaleString()}
+                              {new Date(entry.createdAt).toLocaleString()}
                             </span>
                             <span className="text-[11px] text-indigo-500 dark:text-indigo-400 font-medium">
                               {entry.count} {t('questions') || 'questions'}
@@ -317,7 +305,7 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                           </div>
                         </div>
                         <button
-                          onClick={(e) => { e.stopPropagation(); deleteHistoryEntry(entry.id); }}
+                          onClick={(e) => { e.stopPropagation(); deleteHistoryEntry(entry._id); }}
                           className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 rounded-lg transition-all"
                         >
                           <Trash2 size={14} />
