@@ -1,18 +1,21 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Clock, AlertTriangle, CheckCircle, XCircle,
-  ArrowLeft, Star, FileText, HelpCircle,
+  Trophy, Clock, AlertTriangle, CheckCircle, XCircle,
+  ArrowLeft, Share2, Star, BarChart3, Users, FileText, HelpCircle,
   ChevronDown, ChevronUp, Award, Download
 } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer
+  PieChart, Pie, Cell, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 import CommentsSection from '../components/CommentsSection';
+
+const COLORS = ['#10B981', '#EF4444', '#F59E0B'];
 
 export default function ResultPage() {
   const { id } = useParams();
@@ -242,6 +245,11 @@ export default function ResultPage() {
   const wrong = result.answers.filter(a => !a.isCorrect).length;
   const total = result.answers.length;
 
+  const pieData = [
+    { name: 'Верно', value: correct },
+    { name: 'Неверно', value: wrong },
+  ];
+
   const barData = result.answers.map((a, i) => ({
     name: `?${i + 1}`,
     earned: a.pointsEarned,
@@ -249,222 +257,211 @@ export default function ResultPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-surface p-4 sm:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-8">
       <Toaster position="top-right" />
 
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Back */}
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-6 transition-colors text-sm"
+          className="flex items-center gap-2 text-gray-500 hover:text-dark mb-6 transition-colors"
         >
-          <ArrowLeft size={16} /> На главную
+          <ArrowLeft size={18} /> На главную
         </motion.button>
 
-        {/* Score card with SVG ring */}
+        {/* Score card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="glass-card-solid p-8 sm:p-10 mb-6"
+          transition={{ duration: 0.6 }}
+          className="glass-card p-8 sm:p-10 text-center mb-6"
         >
-          <div className="flex flex-col sm:flex-row items-center gap-8">
-            {/* SVG Circular Progress Ring */}
-            <div className="relative flex-shrink-0">
-              <svg width="160" height="160" viewBox="0 0 160 160">
-                {/* Background circle */}
-                <circle
-                  cx="80" cy="80" r="68"
-                  fill="none"
-                  stroke="currentColor"
-                  className="text-gray-100 dark:text-slate-700"
-                  strokeWidth="10"
-                />
-                {/* Progress circle */}
-                <motion.circle
-                  cx="80" cy="80" r="68"
-                  fill="none"
-                  stroke={result.percentage >= 75 ? '#10B981' : result.percentage >= 50 ? '#F59E0B' : '#EF4444'}
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 68}
-                  strokeDashoffset={2 * Math.PI * 68}
-                  animate={{ strokeDashoffset: 2 * Math.PI * 68 * (1 - result.percentage / 100) }}
-                  transition={{ duration: 1.2, delay: 0.3, ease: 'easeOut' }}
-                  transform="rotate(-90 80 80)"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{result.percentage}%</span>
-                <span className={`text-xs font-semibold mt-0.5 ${grade.color}`}>{grade.label}</span>
-              </div>
-            </div>
-
-            {/* Info + stats */}
-            <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight mb-1">
-                {result.test?.title || 'Результат теста'}
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                {result.score} из {result.totalPoints} баллов
-              </p>
-
-              {/* Compact stat row with vertical dividers */}
-              <div className="flex items-center justify-center sm:justify-start gap-0">
-                <div className="flex items-center gap-2 px-4 first:pl-0">
-                  <CheckCircle size={15} className="text-emerald-500" />
-                  <div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{correct}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Верно</p>
-                  </div>
-                </div>
-                <div className="divider-vertical h-8" />
-                <div className="flex items-center gap-2 px-4">
-                  <XCircle size={15} className="text-red-500" />
-                  <div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{wrong}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Неверно</p>
-                  </div>
-                </div>
-                <div className="divider-vertical h-8" />
-                <div className="flex items-center gap-2 px-4">
-                  <Clock size={15} className="text-blue-500" />
-                  <div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{formatTime(result.timeSpent)}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Время</p>
-                  </div>
-                </div>
-                {result.violationCount > 0 && (
-                  <>
-                    <div className="divider-vertical h-8" />
-                    <div className="flex items-center gap-2 px-4">
-                      <AlertTriangle size={15} className="text-amber-500" />
-                      <div>
-                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{result.violationCount}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Нарушения</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Action buttons row: Certificate + Leaderboard */}
-          <div className="flex items-center justify-center sm:justify-start gap-3 mt-7 pt-6 border-t border-gray-100 dark:border-slate-700">
-            {result.percentage >= 50 && (
-              <button
-                onClick={downloadCertificate}
-                className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2"
-              >
-                <Download size={15} /> Сертификат
-              </button>
-            )}
-            {result.test?._id && (
-              <button
-                onClick={() => navigate(`/leaderboard/${result.test._id}`)}
-                className="btn-secondary py-2.5 px-5 text-sm flex items-center gap-2"
-              >
-                <Award size={15} className="text-amber-500" /> Лидеры
-              </button>
-            )}
-          </div>
-
-          {/* Inline rating */}
-          {result.test?._id && (
-            <div className="flex items-center justify-center sm:justify-start gap-3 mt-5 pt-5 border-t border-gray-100 dark:border-slate-700">
-              <span className="text-xs text-gray-400">Оцените тест:</span>
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    onClick={() => !ratingSubmitted && submitRating(star)}
-                    onMouseEnter={() => !ratingSubmitted && setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    disabled={ratingSubmitted}
-                    className="p-0.5 transition-transform hover:scale-110 disabled:cursor-default"
-                  >
-                    <Star
-                      size={22}
-                      className={`transition-colors ${
-                        (hoverRating || userRating) >= star
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'text-gray-300 dark:text-slate-600'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-              {ratingSubmitted && (
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                  {userRating}/5
-                </span>
-              )}
-            </div>
-          )}
-        </motion.div>
-
-        {/* Charts row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
-          {/* Horizontal stacked bar replacing pie chart */}
           <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="glass-card-solid p-5"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
+            className="mb-4 flex justify-center"
           >
-            <p className="section-title mb-4">Распределение ответов</p>
-            {/* Stacked bar */}
-            <div className="flex rounded-full overflow-hidden h-5 bg-gray-100 dark:bg-slate-700">
-              {correct > 0 && (
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(correct / total) * 100}%` }}
-                  transition={{ duration: 0.8, delay: 0.6 }}
-                  className="bg-emerald-500 h-full"
-                />
-              )}
-              {wrong > 0 && (
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(wrong / total) * 100}%` }}
-                  transition={{ duration: 0.8, delay: 0.7 }}
-                  className="bg-red-400 h-full"
-                />
-              )}
+            {grade.icon === 'trophy' && <Trophy size={56} className="text-emerald-500" />}
+            {grade.icon === 'award' && <Award size={56} className="text-blue-500" />}
+            {grade.icon === 'filetext' && <FileText size={56} className="text-amber-500" />}
+            {grade.icon === 'alert' && <AlertTriangle size={56} className="text-red-500" />}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h1 className="text-5xl sm:text-6xl font-extrabold text-dark mb-2">
+              {result.percentage}%
+            </h1>
+            <p className={`text-xl font-semibold ${grade.color} mb-1`}>{grade.label}</p>
+            <p className="text-gray-500 text-sm">
+              {result.score} из {result.totalPoints} баллов
+            </p>
+          </motion.div>
+
+          {/* Stats row */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8"
+          >
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <CheckCircle className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+              <p className="text-2xl font-bold text-emerald-700">{correct}</p>
+              <p className="text-xs text-emerald-600">Верно</p>
             </div>
-            <div className="flex items-center justify-between mt-3">
-              <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
-                Верно: {correct} ({total > 0 ? Math.round((correct / total) * 100) : 0}%)
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className="w-2.5 h-2.5 bg-red-400 rounded-full" />
-                Неверно: {wrong} ({total > 0 ? Math.round((wrong / total) * 100) : 0}%)
-              </span>
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl">
+              <XCircle className="w-6 h-6 text-red-600 mx-auto mb-1" />
+              <p className="text-2xl font-bold text-red-700">{wrong}</p>
+              <p className="text-xs text-red-600">Неверно</p>
+            </div>
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+              <Clock className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+              <p className="text-2xl font-bold text-blue-700">{formatTime(result.timeSpent)}</p>
+              <p className="text-xs text-blue-600">Время</p>
+            </div>
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
+              <AlertTriangle className="w-6 h-6 text-amber-600 mx-auto mb-1" />
+              <p className="text-2xl font-bold text-amber-700">{result.violationCount}</p>
+              <p className="text-xs text-amber-600">Нарушения</p>
             </div>
           </motion.div>
 
-          {/* Bar chart — improved */}
+          {/* Certificate download button */}
+          {result.percentage >= 50 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.52 }}
+              className="mt-6"
+            >
+              <button
+                onClick={downloadCertificate}
+                className="flex items-center justify-center gap-2 mx-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-primary-500 to-purple-500 text-white text-sm font-medium hover:from-primary-600 hover:to-purple-600 transition-all shadow-lg shadow-primary-500/20"
+              >
+                <Download size={16} /> Скачать сертификат
+              </button>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Star Rating */}
+        {result.test?._id && (
           <motion.div
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="glass-card-solid p-5"
+            transition={{ delay: 0.55 }}
+            className="glass-card-solid p-6 mb-6 text-center"
           >
-            <p className="section-title mb-4">Баллы по вопросам</p>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={barData} barGap={2}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                />
-                <Bar dataKey="max" fill="#EEF2FF" radius={[6, 6, 6, 6]} name="Максимум" />
-                <Bar dataKey="earned" fill="#6366F1" radius={[6, 6, 6, 6]} name="Набрано" />
+            <h3 className="font-semibold text-dark mb-2 flex items-center justify-center gap-2">
+              <Star size={18} className="text-amber-500" /> Оцените этот тест
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Ваша оценка поможет другим пользователям</p>
+            <div className="flex items-center justify-center gap-1">
+              {[1, 2, 3, 4, 5].map(star => (
+                <motion.button
+                  key={star}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => !ratingSubmitted && submitRating(star)}
+                  onMouseEnter={() => !ratingSubmitted && setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  disabled={ratingSubmitted}
+                  className="p-1 transition-colors disabled:cursor-default"
+                >
+                  <Star
+                    size={32}
+                    className={`transition-colors ${
+                      (hoverRating || userRating) >= star
+                        ? 'fill-amber-400 text-amber-400'
+                        : 'text-gray-300 dark:text-slate-600'
+                    }`}
+                  />
+                </motion.button>
+              ))}
+            </div>
+            {ratingSubmitted && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-sm text-emerald-600 dark:text-emerald-400 mt-2 font-medium"
+              >
+                {userRating > 0 ? `Ваша оценка: ${userRating}/5` : 'Спасибо за оценку!'}
+              </motion.p>
+            )}
+          </motion.div>
+        )}
+
+        {/* Leaderboard link */}
+        {result.test?._id && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.58 }}
+            className="glass-card-solid p-5 mb-6 text-center"
+          >
+            <button
+              onClick={() => navigate(`/leaderboard/${result.test._id}`)}
+              className="btn-secondary flex items-center justify-center gap-2 w-full py-3 text-sm"
+            >
+              <Award size={18} className="text-amber-500" />
+              Таблица лидеров
+            </button>
+          </motion.div>
+        )}
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+          {/* Pie chart */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6 }}
+            className="glass-card-solid p-6"
+          >
+            <h3 className="font-semibold text-dark mb-4 flex items-center gap-2">
+              <BarChart3 size={18} /> Распределение ответов
+            </h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value">
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex justify-center gap-4 mt-2">
+              <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 bg-emerald-500 rounded-full" /> Верно ({correct})</span>
+              <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 bg-red-500 rounded-full" /> Неверно ({wrong})</span>
+            </div>
+          </motion.div>
+
+          {/* Bar chart */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.7 }}
+            className="glass-card-solid p-6"
+          >
+            <h3 className="font-semibold text-dark mb-4 flex items-center gap-2">
+              <Trophy size={18} /> Баллы по вопросам
+            </h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={barData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="earned" fill="#4F46E5" radius={[4, 4, 0, 0]} name="Набрано" />
+                <Bar dataKey="max" fill="#E0E7FF" radius={[4, 4, 0, 0]} name="Максимум" />
               </BarChart>
             </ResponsiveContainer>
           </motion.div>
@@ -473,19 +470,20 @@ export default function ResultPage() {
         {/* Violations list */}
         {result.violations?.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="glass-card-solid p-5 mb-6"
+            transition={{ delay: 0.8 }}
+            className="glass-card-solid p-6 mb-6"
           >
-            <p className="section-title mb-3">Нарушения ({result.violations.length})</p>
+            <h3 className="font-semibold text-dark mb-4 flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber-500" /> Нарушения ({result.violations.length})
+            </h3>
             <div className="space-y-2">
               {result.violations.map((v, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 text-sm">
-                  <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
-                  <span className="badge-danger text-[10px]">{v.type}</span>
-                  <span className="text-gray-600 dark:text-gray-400 flex-1 text-xs">{v.details}</span>
-                  <span className="text-[10px] text-gray-400 flex-shrink-0">
+                <div key={i} className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-sm">
+                  <span className="badge-danger">{v.type}</span>
+                  <span className="text-gray-600 dark:text-gray-400 flex-1">{v.details}</span>
+                  <span className="text-xs text-gray-400">
                     {new Date(v.timestamp).toLocaleTimeString('ru-RU')}
                   </span>
                 </div>
@@ -496,37 +494,24 @@ export default function ResultPage() {
 
         {/* Detailed Answer Review */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.9 }}
           className="glass-card-solid overflow-hidden mb-6"
         >
           <button
             onClick={() => setShowReview(!showReview)}
-            className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
+            className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <FileText size={16} className="text-primary-600 dark:text-primary-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Разбор ответов</span>
-              <span className="text-xs text-gray-400">{correct} из {total} верно</span>
-            </div>
-            {showReview ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+            <h3 className="font-semibold text-dark flex items-center gap-2">
+              <FileText size={18} className="text-primary-600" />
+              Подробный разбор ответов ({correct} из {total} верно)
+            </h3>
+            {showReview ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
           </button>
 
-          {/* Progress bar showing correct/incorrect ratio */}
-          <div className="px-5">
-            <div className="flex rounded-full overflow-hidden h-1.5 bg-gray-100 dark:bg-slate-700">
-              {correct > 0 && (
-                <div className="bg-emerald-500 h-full" style={{ width: `${(correct / total) * 100}%` }} />
-              )}
-              {wrong > 0 && (
-                <div className="bg-red-400 h-full" style={{ width: `${(wrong / total) * 100}%` }} />
-              )}
-            </div>
-          </div>
-
           {showReview && (
-            <div className="border-t border-gray-100 dark:border-slate-700 mt-4 p-5 space-y-3">
+            <div className="border-t border-gray-100 dark:border-slate-700 p-6 space-y-4">
               {result.answers.map((answer, i) => {
                 const question = result.test?.questions?.find(q => q.id === answer.questionId);
                 const qText = answer.questionText || question?.questionText || `Вопрос ${i + 1}`;
@@ -566,6 +551,7 @@ export default function ResultPage() {
                     userAnswerText = answer.matchingPairs
                       .map(p => {
                         const left = question.options?.find(o => o.id === p.left)?.text || p.left;
+                        // p.right is text (not an option ID) for matching questions
                         const right = p.right || '';
                         return `${left} → ${right}`;
                       })
@@ -574,19 +560,22 @@ export default function ResultPage() {
                 }
 
                 return (
-                  <div
+                  <motion.div
                     key={i}
-                    className={`p-4 rounded-xl border ${
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className={`p-4 rounded-xl border-2 ${
                       answer.isCorrect
-                        ? 'border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-900/10'
+                        ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10'
                         : isEssay && answer.pointsEarned === 0
-                          ? 'border-amber-200 dark:border-amber-800/50 bg-amber-50/30 dark:bg-amber-900/10'
-                          : 'border-red-200 dark:border-red-800/50 bg-red-50/30 dark:bg-red-900/10'
+                          ? 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10'
+                          : 'border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-start gap-2.5 flex-1">
-                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5 ${
+                      <div className="flex items-start gap-2 flex-1">
+                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 ${
                           answer.isCorrect
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                             : isEssay && answer.pointsEarned === 0
@@ -595,28 +584,28 @@ export default function ResultPage() {
                         }`}>
                           {i + 1}
                         </span>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: qText }} />
+                        <p className="text-sm font-medium text-dark leading-relaxed prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: qText }} />
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                         {answer.isCorrect ? (
-                          <CheckCircle size={16} className="text-emerald-500" />
+                          <CheckCircle size={18} className="text-emerald-500" />
                         ) : isEssay && answer.pointsEarned === 0 ? (
-                          <HelpCircle size={16} className="text-amber-500" />
+                          <HelpCircle size={18} className="text-amber-500" />
                         ) : (
-                          <XCircle size={16} className="text-red-500" />
+                          <XCircle size={18} className="text-red-500" />
                         )}
-                        <span className="text-[11px] font-medium text-gray-400">
+                        <span className="text-xs font-medium text-gray-500">
                           {answer.pointsEarned}/{maxPts}
                         </span>
                       </div>
                     </div>
 
                     {/* User's answer */}
-                    <div className="ml-8.5 space-y-2 pl-[34px]">
+                    <div className="ml-9 space-y-2">
                       <div>
                         <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">Ваш ответ:</span>
                         <p className={`text-sm mt-0.5 ${
-                          answer.isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                          answer.isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'
                         }`}>
                           {userAnswerText || <span className="italic text-gray-400">Нет ответа</span>}
                         </p>
@@ -655,24 +644,17 @@ export default function ResultPage() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
           )}
-        </motion.div>
 
-        {/* Comments — separate card */}
-        {result?.test?._id && (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
-            className="glass-card-solid overflow-hidden mb-6"
-          >
+          {/* Comments */}
+          {result?.test?._id && (
             <CommentsSection testId={result.test._id} />
-          </motion.div>
-        )}
+          )}
+        </motion.div>
       </div>
     </div>
   );
