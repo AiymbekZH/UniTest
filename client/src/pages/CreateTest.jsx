@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+п»їimport { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,7 +20,7 @@ import AIGenerateModal from '../components/AIGenerateModal';
 
 const questionTypesData = [
   { value: 'single-choice', labelKey: 'singleChoice', icon: Check, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' },
-  { value: 'multiple-choice', labelKey: 'multipleChoice', icon: ListChecks, color: 'bg-orange-50 text-orange-600 dark:bg-orange-900/30' },
+  { value: 'multiple-choice', labelKey: 'multipleChoice', icon: ListChecks, color: 'bg-purple-50 text-purple-600 dark:bg-purple-900/30' },
   { value: 'true-false', labelKey: 'trueFalse', icon: ToggleLeft, color: 'bg-green-50 text-green-600 dark:bg-green-900/30' },
   { value: 'essay', labelKey: 'essay', icon: FileText, color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30' },
   { value: 'matching', labelKey: 'matching', icon: Link2, color: 'bg-rose-50 text-rose-600 dark:bg-rose-900/30' },
@@ -39,9 +39,9 @@ function createQuestion(type = 'single-choice') {
     ];
   } else if (type === 'true-false') {
     base.options = [
-      { id: uuidv4(), text: 'Верно', isCorrect: false },
-      { id: uuidv4(), text: 'Неверно', isCorrect: false },
-      { id: uuidv4(), text: 'Не уверен в ответе', isCorrect: false },
+      { id: uuidv4(), text: 'Р’РµСЂРЅРѕ', isCorrect: false },
+      { id: uuidv4(), text: 'РќРµРІРµСЂРЅРѕ', isCorrect: false },
+      { id: uuidv4(), text: 'РќРµ СѓРІРµСЂРµРЅ РІ РѕС‚РІРµС‚Рµ', isCorrect: false },
     ];
   } else if (type === 'matching') {
     base.options = [
@@ -466,7 +466,7 @@ export default function CreateTest() {
                 <FileSpreadsheet size={14} /> {t('importCSV')}
               </button>
               <button onClick={() => setShowAIModal(true)}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
                 <Sparkles size={14} /> {t('aiGenerate') || 'AI Generate'}
               </button>
               <button onClick={saveToBank}
@@ -488,7 +488,7 @@ export default function CreateTest() {
               <div>
                 <h1 className="text-xl font-bold text-dark">{editId ? t('editTest') : t('createTest')}</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {test.questions.length} {t('questions')} · {totalPoints} {t('points')}
+                  {test.questions.length} {t('questions')} В· {totalPoints} {t('points')}
                   {!editId && draftStatus && (
                     <span className={`ml-2 ${draftStatus === 'saved' ? 'text-emerald-500' : 'text-gray-400'}`}>
                       {draftStatus === 'saving' ? t('savingDraft') : t('draftSaved')}
@@ -597,7 +597,7 @@ export default function CreateTest() {
                         </div>
                         <p className="text-[10px] text-gray-400 mt-1">{t('poolSizeHint')}</p>
                       </div>
-                      {/* Variant/Ticket system — integrated */}
+                      {/* Variant/Ticket system вЂ” integrated */}
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
@@ -607,7 +607,7 @@ export default function CreateTest() {
                           <button
                             onClick={() => updateSettings('variants', { ...test.settings.variants, enabled: !test.settings.variants?.enabled })}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                              test.settings.variants?.enabled ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-700'
+                              test.settings.variants?.enabled ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'
                             }`}
                           >
                             <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
@@ -657,7 +657,7 @@ export default function CreateTest() {
                             <button
                               onClick={() => opt.update(opt.key, !val)}
                               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                                val ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-700'
+                                val ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'
                               }`}
                             >
                               <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
@@ -703,7 +703,7 @@ export default function CreateTest() {
                             <button
                               onClick={() => updateAntiCheat(opt.key, !val)}
                               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                                val ? 'bg-orange-500' : 'bg-gray-200 dark:bg-gray-700'
+                                val ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'
                               }`}
                             >
                               <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
@@ -747,7 +747,7 @@ export default function CreateTest() {
               ))}
               <input
                 className="text-xs bg-transparent outline-none placeholder-gray-400 dark:placeholder-gray-600 w-28 text-dark"
-                placeholder="+ тег"
+                placeholder="+ С‚РµРі"
                 value={test.tagInput}
                 onChange={e => updateTest('tagInput', e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
@@ -763,7 +763,7 @@ export default function CreateTest() {
             <button onClick={() => setShowImportModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <FileSpreadsheet size={12} /> {t('importCSV')}
             </button>
-            <button onClick={() => setShowAIModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800">
+            <button onClick={() => setShowAIModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800">
               <Sparkles size={12} /> {t('aiGenerate') || 'AI Generate'}
             </button>
             <button onClick={saveToBank} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
@@ -797,7 +797,7 @@ export default function CreateTest() {
                           {stripHtml(question.questionText) || t('newQuestion')}
                         </p>
                         <p className="text-[10px] text-gray-400">
-                          {questionTypes.find(t => t.value === question.type)?.label} • {question.points} б.
+                          {questionTypes.find(t => t.value === question.type)?.label} вЂў {question.points} Р±.
                         </p>
                       </div>
                     </div>
@@ -1089,9 +1089,9 @@ export default function CreateTest() {
               onClick={e => e.stopPropagation()} className="relative w-full max-w-md glass-card-solid p-6">
               <h3 className="text-lg font-bold text-dark mb-2">{t('importFromCSV')}</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                Формат: <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">Вопрос, тип, правильный, вариант1, вариант2, ...</code><br/>
+                Р¤РѕСЂРјР°С‚: <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">Р’РѕРїСЂРѕСЃ, С‚РёРї, РїСЂР°РІРёР»СЊРЅС‹Р№, РІР°СЂРёР°РЅС‚1, РІР°СЂРёР°РЅС‚2, ...</code><br/>
                 ???: single-choice, multiple-choice, true-false, essay, fill-blank, matching.<br/>
-                Первая строка — заголовок (пропускается).
+                РџРµСЂРІР°СЏ СЃС‚СЂРѕРєР° вЂ” Р·Р°РіРѕР»РѕРІРѕРє (РїСЂРѕРїСѓСЃРєР°РµС‚СЃСЏ).
               </p>
               <label className="flex flex-col items-center gap-2 p-8 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl cursor-pointer
                 hover:border-primary-400 hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-all">
@@ -1127,7 +1127,7 @@ export default function CreateTest() {
                         <input type="checkbox" className="mt-0.5 accent-primary-600" value={q._id} />
                         <div className="min-w-0">
                           <p className="text-sm text-dark truncate">{q.questionText}</p>
-                          <p className="text-[10px] text-gray-400">{questionTypes.find(t => t.value === q.type)?.label} • {q.points} б.</p>
+                          <p className="text-[10px] text-gray-400">{questionTypes.find(t => t.value === q.type)?.label} вЂў {q.points} Р±.</p>
                         </div>
                       </label>
                     ))}

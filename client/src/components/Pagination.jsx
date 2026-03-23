@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+ï»¿import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 export default function Pagination({ currentPage, totalPages, onPageChange }) {
   if (totalPages <= 1) return null;
@@ -26,7 +26,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
         disabled={currentPage === 1}
         className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 
           disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        title="Íà÷àëî"
+        title="ÐÐ°Ñ‡Ð°Ð»Ð¾"
       >
         <ChevronsLeft size={16} />
       </button>
@@ -37,7 +37,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
         disabled={currentPage === 1}
         className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 
           disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        title="Íàçàä"
+        title="ÐÐ°Ð·Ð°Ð´"
       >
         <ChevronLeft size={16} />
       </button>
@@ -66,7 +66,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
         disabled={currentPage === totalPages}
         className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 
           disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        title="Äàëåå"
+        title="Ð”Ð°Ð»ÐµÐµ"
       >
         <ChevronRight size={16} />
       </button>
@@ -77,7 +77,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
         disabled={currentPage === totalPages}
         className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 
           disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        title="Ïîñëåäíÿÿ"
+        title="ÐŸÐ¾ÑÐ»ÐµÐ´Ð½ÑÑ"
       >
         <ChevronsRight size={16} />
       </button>

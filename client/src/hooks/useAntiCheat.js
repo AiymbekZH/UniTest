@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+ï»¿import { useCallback, useEffect, useRef } from 'react';
 
 export default function useAntiCheat({ enabled, settings, onViolation }) {
   const violationsRef = useRef([]);
@@ -24,10 +24,10 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
     if (!enabled) return;
     const cleanup = [];
 
-    // === ÍÀÐÓØÅÍÈÅ: òîëüêî óõîä ñî ñòðàíèöû ===
+    // === ÐÐÐ Ð£Ð¨Ð•ÐÐ˜Ð•: Ñ‚Ð¾Ð»ÑŒÐºÐ¾ ÑƒÑ…Ð¾Ð´ ÑÐ¾ ÑÑ‚Ñ€Ð°Ð½Ð¸Ñ†Ñ‹ ===
     const handleVisibility = () => {
       if (document.hidden) {
-        addViolation('tab-switch', 'Ïîëüçîâàòåëü ïîêèíóë ñòðàíèöó òåñòà');
+        addViolation('tab-switch', 'ÐŸÐ¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÑŒ Ð¿Ð¾ÐºÐ¸Ð½ÑƒÐ» ÑÑ‚Ñ€Ð°Ð½Ð¸Ñ†Ñƒ Ñ‚ÐµÑÑ‚Ð°');
       }
     };
     if (settingsRef.current?.blockTabSwitch) {
@@ -35,7 +35,7 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
       cleanup.push(() => document.removeEventListener('visibilitychange', handleVisibility));
     }
 
-    // === ÁËÎÊÈÐÎÂÊÀ (áåç íàðóøåíèÿ): êîïèðîâàíèå/âñòàâêà/âûðåçêà ===
+    // === Ð‘Ð›ÐžÐšÐ˜Ð ÐžÐ’ÐšÐ (Ð±ÐµÐ· Ð½Ð°Ñ€ÑƒÑˆÐµÐ½Ð¸Ñ): ÐºÐ¾Ð¿Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ/Ð²ÑÑ‚Ð°Ð²ÐºÐ°/Ð²Ñ‹Ñ€ÐµÐ·ÐºÐ° ===
     if (settingsRef.current?.blockCopyPaste) {
       const blockCopy = (e) => e.preventDefault();
       const blockPaste = (e) => {
@@ -52,14 +52,14 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
       });
     }
 
-    // === ÁËÎÊÈÐÎÂÊÀ: ïðàâûé êëèê ===
+    // === Ð‘Ð›ÐžÐšÐ˜Ð ÐžÐ’ÐšÐ: Ð¿Ñ€Ð°Ð²Ñ‹Ð¹ ÐºÐ»Ð¸Ðº ===
     if (settingsRef.current?.blockCopyPaste) {
       const blockContext = (e) => e.preventDefault();
       document.addEventListener('contextmenu', blockContext, true);
       cleanup.push(() => document.removeEventListener('contextmenu', blockContext, true));
     }
 
-    // === ÁËÎÊÈÐÎÂÊÀ: âûäåëåíèå òåêñòà (CSS + JS + ìîáèëêà) ===
+    // === Ð‘Ð›ÐžÐšÐ˜Ð ÐžÐ’ÐšÐ: Ð²Ñ‹Ð´ÐµÐ»ÐµÐ½Ð¸Ðµ Ñ‚ÐµÐºÑÑ‚Ð° (CSS + JS + Ð¼Ð¾Ð±Ð¸Ð»ÐºÐ°) ===
     if (settingsRef.current?.blockCopyPaste) {
       const style = document.createElement('style');
       style.id = 'anti-cheat-styles';
@@ -78,7 +78,7 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
         @media print {
           body * { display: none !important; }
           body::after {
-            content: "Ïå÷àòü çàáëîêèðîâàíà";
+            content: "ÐŸÐµÑ‡Ð°Ñ‚ÑŒ Ð·Ð°Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²Ð°Ð½Ð°";
             display: block; font-size: 24px; text-align: center; padding: 50px;
           }
         }
@@ -87,7 +87,7 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
       cleanup.push(() => style.remove());
     }
 
-    // === ÁËÎÊÈÐÎÂÊÀ: selectstart (ïðåäîòâðàùàåò âûäåëåíèå íà ìîáèëêå) ===
+    // === Ð‘Ð›ÐžÐšÐ˜Ð ÐžÐ’ÐšÐ: selectstart (Ð¿Ñ€ÐµÐ´Ð¾Ñ‚Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ Ð²Ñ‹Ð´ÐµÐ»ÐµÐ½Ð¸Ðµ Ð½Ð° Ð¼Ð¾Ð±Ð¸Ð»ÐºÐµ) ===
     if (settingsRef.current?.blockCopyPaste) {
       const blockSelect = (e) => {
         if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
@@ -97,7 +97,7 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
       cleanup.push(() => document.removeEventListener('selectstart', blockSelect, true));
     }
 
-    // === ÁËÎÊÈÐÎÂÊÀ: äîëãîå íàæàòèå íà ìîáèëêå (ïðåäîòâðàùàåò êîíòåêñòíîå ìåíþ) ===
+    // === Ð‘Ð›ÐžÐšÐ˜Ð ÐžÐ’ÐšÐ: Ð´Ð¾Ð»Ð³Ð¾Ðµ Ð½Ð°Ð¶Ð°Ñ‚Ð¸Ðµ Ð½Ð° Ð¼Ð¾Ð±Ð¸Ð»ÐºÐµ (Ð¿Ñ€ÐµÐ´Ð¾Ñ‚Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ ÐºÐ¾Ð½Ñ‚ÐµÐºÑÑ‚Ð½Ð¾Ðµ Ð¼ÐµÐ½ÑŽ) ===
     if (settingsRef.current?.blockCopyPaste) {
       let touchTimer = null;
       const blockLongPress = (e) => {
@@ -120,19 +120,19 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
       });
     }
 
-    // === ÁËÎÊÈÐÎÂÊÀ: ãîðÿ÷èå êëàâèøè ===
+    // === Ð‘Ð›ÐžÐšÐ˜Ð ÐžÐ’ÐšÐ: Ð³Ð¾Ñ€ÑÑ‡Ð¸Ðµ ÐºÐ»Ð°Ð²Ð¸ÑˆÐ¸ ===
     const handleKeyDown = (e) => {
-      // Ctrl+C/V/X - áëîêèðîâêà êîïèðîâàíèÿ
+      // Ctrl+C/V/X - Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²ÐºÐ° ÐºÐ¾Ð¿Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ñ
       if (settingsRef.current?.blockCopyPaste && e.ctrlKey && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
         if (e.target.tagName === 'TEXTAREA' && e.key.toLowerCase() === 'v') return;
         e.preventDefault();
       }
-      // PrintScreen - áëîêèðîâêà ñêðèíøîòîâ
+      // PrintScreen - Ð±Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²ÐºÐ° ÑÐºÑ€Ð¸Ð½ÑˆÐ¾Ñ‚Ð¾Ð²
       if (settingsRef.current?.blockScreenshot && e.key === 'PrintScreen') {
         e.preventDefault();
         navigator.clipboard?.writeText?.('').catch(() => {});
       }
-      // Áëîêèðîâêà ñêðèíøîòîâ macOS
+      // Ð‘Ð»Ð¾ÐºÐ¸Ñ€Ð¾Ð²ÐºÐ° ÑÐºÑ€Ð¸Ð½ÑˆÐ¾Ñ‚Ð¾Ð² macOS
       if (settingsRef.current?.blockScreenshot && e.key === 's' && e.shiftKey && e.metaKey) {
         e.preventDefault();
       }
@@ -140,7 +140,7 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
       if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase()))) {
         e.preventDefault();
       }
-      // Ctrl+P ïå÷àòü
+      // Ctrl+P Ð¿ÐµÑ‡Ð°Ñ‚ÑŒ
       if (settingsRef.current?.blockScreenshot && e.ctrlKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
       }
@@ -148,7 +148,7 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
     document.addEventListener('keydown', handleKeyDown, true);
     cleanup.push(() => document.removeEventListener('keydown', handleKeyDown, true));
 
-    // === ÁËÎÊÈÐÎÂÊÀ: PrintScreen ÷åðåç keyup ===
+    // === Ð‘Ð›ÐžÐšÐ˜Ð ÐžÐ’ÐšÐ: PrintScreen Ñ‡ÐµÑ€ÐµÐ· keyup ===
     if (settingsRef.current?.blockScreenshot) {
       const handleKeyUp = (e) => {
         if (e.key === 'PrintScreen') {
@@ -159,7 +159,7 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
       cleanup.push(() => document.removeEventListener('keyup', handleKeyUp, true));
     }
 
-    // === ÁËÎÊÈÐÎÂÊÀ: ïå÷àòü ===
+    // === Ð‘Ð›ÐžÐšÐ˜Ð ÐžÐ’ÐšÐ: Ð¿ÐµÑ‡Ð°Ñ‚ÑŒ ===
     if (settingsRef.current?.blockScreenshot) {
       const handleBeforePrint = (e) => { e.preventDefault?.(); };
       window.addEventListener('beforeprint', handleBeforePrint);

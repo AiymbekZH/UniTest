@@ -240,7 +240,7 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
           exit={{ scale: 0.96, opacity: 0, y: 8 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-900 rounded-2xl shadow-card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-200/60 dark:border-gray-700/60 accent-line-top"
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-200/60 dark:border-gray-700/60"
         >
           {/* Header — clean white, no gradient */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800">
@@ -389,16 +389,15 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                   <input ref={fileRef} type="file" accept={FILE_ACCEPT} onChange={handleFileUpload} className="hidden" />
                 </div>
 
-                {/* Question Count — with styled slider */}
+                {/* Question Count — with badge */}
                 <div>
                   <label className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">
-                    {t('aiQuestionCount') || 'Questions'}:
-                    <span className="text-indigo-600 dark:text-indigo-400 font-bold text-sm normal-case">{questionCount}</span>
+                    {t('aiQuestionCount') || 'Questions'}
                   </label>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setQuestionCount(Math.max(1, questionCount - 1))}
-                      className="w-9 h-9 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all text-gray-500 hover:scale-105 active:scale-95"
+                      className="w-9 h-9 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500"
                     >
                       <Minus size={14} />
                     </button>
@@ -409,16 +408,18 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                         max={20}
                         value={questionCount}
                         onChange={(e) => setQuestionCount(Number(e.target.value))}
-                        className="range-custom"
-                        style={{ '--range-pct': `${((questionCount - 1) / 19) * 100}%` }}
+                        className="w-full accent-indigo-500 h-1.5"
                       />
                     </div>
                     <button
                       onClick={() => setQuestionCount(Math.min(20, questionCount + 1))}
-                      className="w-9 h-9 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all text-gray-500 hover:scale-105 active:scale-95"
+                      className="w-9 h-9 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500"
                     >
                       <Plus size={14} />
                     </button>
+                    <span className="min-w-[2.25rem] h-9 flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-sm font-semibold rounded-lg tabular-nums">
+                      {questionCount}
+                    </span>
                   </div>
                 </div>
 
@@ -432,10 +433,10 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                       <button
                         key={value}
                         onClick={() => toggleType(value)}
-                        className={`px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                        className={`px-3.5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
                           selectedTypes.includes(value)
-                            ? 'bg-indigo-500 text-white shadow-btn-glow scale-[1.02]'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:scale-[1.02]'
+                            ? 'bg-indigo-500 text-white shadow-btn-glow'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                         }`}
                       >
                         <span className={`text-xs font-mono ${selectedTypes.includes(value) ? 'text-indigo-200' : 'opacity-50'}`}>{icon}</span>

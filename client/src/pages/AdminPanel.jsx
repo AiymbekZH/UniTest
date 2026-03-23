@@ -280,7 +280,7 @@ export default function AdminPanel() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <StatCard icon={Users} label={t('totalUsers')} value={stats.userCount} color="bg-blue-500" onClick={() => setTab('users')} />
               <StatCard icon={FileText} label={t('totalTests')} value={stats.testCount} color="bg-emerald-500" onClick={() => setTab('tests')} />
-              <StatCard icon={BarChart3} label={t('totalResults')} value={stats.resultCount} color="bg-orange-500" />
+              <StatCard icon={BarChart3} label={t('totalResults')} value={stats.resultCount} color="bg-purple-500" />
               <StatCard icon={Ban} label={t('bannedUsers')} value={stats.bannedCount} color="bg-red-500" onClick={() => setTab('users')} />
             </div>
 
@@ -378,7 +378,7 @@ export default function AdminPanel() {
                     </button>
                     <button
                       onClick={() => { setActionModal({ type: 'message', userId: u._id, userName: `${u.firstName} ${u.lastName}` }); setActionInput(''); }}
-                      className="p-2 text-xs rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/40 transition"
+                      className="p-2 text-xs rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 transition"
                       title="Отправить сообщение"
                     >
                       <MessageSquare size={14} />
@@ -447,7 +447,7 @@ export default function AdminPanel() {
                   {!test.isDeleted && (
                     <div className="flex gap-1.5 flex-shrink-0">
                       <button onClick={() => handleViewLeaderboard(test._id, test.title)}
-                        className="p-2 text-xs rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/40 transition"
+                        className="p-2 text-xs rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 transition"
                         title="Рейтинг"
                       >
                         <Trophy size={14} />
@@ -519,18 +519,18 @@ export default function AdminPanel() {
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
                       report.targetType === 'user' ? 'bg-blue-100 dark:bg-blue-900/30' :
                       report.targetType === 'test' ? 'bg-emerald-100 dark:bg-emerald-900/30' :
-                      'bg-orange-100 dark:bg-orange-900/30'
+                      'bg-purple-100 dark:bg-purple-900/30'
                     }`}>
                       {report.targetType === 'user' ? <Users size={18} className="text-blue-600" /> :
                        report.targetType === 'test' ? <FileText size={18} className="text-emerald-600" /> :
-                       <MessageSquare size={18} className="text-orange-600" />}
+                       <MessageSquare size={18} className="text-purple-600" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                           report.targetType === 'user' ? 'bg-blue-100 text-blue-700' :
                           report.targetType === 'test' ? 'bg-emerald-100 text-emerald-700' :
-                          'bg-orange-100 text-orange-700'
+                          'bg-purple-100 text-purple-700'
                         }`}>
                           {report.targetType === 'user' ? 'Пользователь' : report.targetType === 'test' ? 'Тест' : 'Комментарий'}
                         </span>
@@ -655,7 +655,7 @@ export default function AdminPanel() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-dark flex items-center gap-2">
-                    <Trophy size={18} className="text-orange-500" /> Рейтинг
+                    <Trophy size={18} className="text-purple-500" /> Рейтинг
                   </h3>
                   <p className="text-xs text-gray-500">{leaderboardData.testTitle}</p>
                 </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ï»¿import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Crown, ArrowLeft, Clock, Star, User, Award } from 'lucide-react';
@@ -17,7 +17,7 @@ export default function Leaderboard() {
   useEffect(() => {
     api.get(`/results/leaderboard/${testId}`)
       .then(res => setData(res.data))
-      .catch(err => setError(err.response?.data?.message || 'Îøèáêà çàãðóçêè'))
+      .catch(err => setError(err.response?.data?.message || 'ÐžÑˆÐ¸Ð±ÐºÐ° Ð·Ð°Ð³Ñ€ÑƒÐ·ÐºÐ¸'))
       .finally(() => setLoading(false));
   }, [testId]);
 

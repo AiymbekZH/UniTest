@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+п»їimport { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -28,7 +28,7 @@ export default function MyTests() {
       const res = await api.get('/tests/my');
       setTests(res.data);
     } catch (err) {
-      toast.error('Ошибка загрузки');
+      toast.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё');
     } finally {
       setLoading(false);
     }
@@ -38,9 +38,9 @@ export default function MyTests() {
     try {
       await api.delete(`/tests/${id}`);
       setTests(prev => prev.filter(t => t._id !== id));
-      toast.success('Тест удалён');
+      toast.success('РўРµСЃС‚ СѓРґР°Р»С‘РЅ');
     } catch (err) {
-      toast.error('Ошибка удаления');
+      toast.error('РћС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ');
     }
   };
 
@@ -49,7 +49,7 @@ export default function MyTests() {
 
   const copyLink = (shareLink) => {
     navigator.clipboard.writeText(`${window.location.origin}/test/${shareLink}`);
-    toast.success('Ссылка скопирована!');
+    toast.success('РЎСЃС‹Р»РєР° СЃРєРѕРїРёСЂРѕРІР°РЅР°!');
   };
 
   const exportTest = async (testId) => {
@@ -69,12 +69,12 @@ export default function MyTests() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${data.title.replace(/[^a-zA-Z0-9а-яА-Я????і????\s-]/gi, '')}.json`;
+      a.download = `${data.title.replace(/[^a-zA-Z0-9Р°-СЏРђ-РЇУ™У©Т±Т›С–ТЈТ“ТЇТ»\s-]/gi, '')}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Тест экспортирован!');
+      toast.success('РўРµСЃС‚ СЌРєСЃРїРѕСЂС‚РёСЂРѕРІР°РЅ!');
     } catch {
-      toast.error('Ошибка экспорта');
+      toast.error('РћС€РёР±РєР° СЌРєСЃРїРѕСЂС‚Р°');
     }
   };
 
@@ -86,11 +86,11 @@ export default function MyTests() {
       const text = await file.text();
       const data = JSON.parse(text);
       if (!data.title || !data.questions?.length) {
-        toast.error('Некорректный файл');
+        toast.error('РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ С„Р°Р№Р»');
         return;
       }
       const payload = {
-        title: data.title + ' (импорт)',
+        title: data.title + ' (РёРјРїРѕСЂС‚)',
         description: data.description || '',
         tags: data.tags || [],
         questions: data.questions,
@@ -98,10 +98,10 @@ export default function MyTests() {
         coverImage: data.coverImage || ''
       };
       await api.post('/tests', payload);
-      toast.success('Тест импортирован!');
+      toast.success('РўРµСЃС‚ РёРјРїРѕСЂС‚РёСЂРѕРІР°РЅ!');
       fetchMyTests();
     } catch {
-      toast.error('Ошибка импорта — проверьте файл');
+      toast.error('РћС€РёР±РєР° РёРјРїРѕСЂС‚Р° вЂ” РїСЂРѕРІРµСЂСЊС‚Рµ С„Р°Р№Р»');
     }
   };
 
@@ -114,9 +114,9 @@ export default function MyTests() {
         isOpen={deleteConfirm.open}
         onClose={() => setDeleteConfirm({ open: false, id: null })}
         onConfirm={() => deleteTest(deleteConfirm.id)}
-        title="Удалить тест"
-        message="Удалить этот тест? Все результаты также будут удалены."
-        confirmText="Удалить"
+        title="РЈРґР°Р»РёС‚СЊ С‚РµСЃС‚"
+        message="РЈРґР°Р»РёС‚СЊ СЌС‚РѕС‚ С‚РµСЃС‚? Р’СЃРµ СЂРµР·СѓР»СЊС‚Р°С‚С‹ С‚Р°РєР¶Рµ Р±СѓРґСѓС‚ СѓРґР°Р»РµРЅС‹."
+        confirmText="РЈРґР°Р»РёС‚СЊ"
         variant="danger"
       />
 
@@ -128,17 +128,17 @@ export default function MyTests() {
               <ArrowLeft size={20} className="text-gray-500" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-dark">Мои тесты</h1>
-              <p className="text-sm text-gray-500">{tests.length} тестов создано</p>
+              <h1 className="text-2xl font-bold text-dark">РњРѕРё С‚РµСЃС‚С‹</h1>
+              <p className="text-sm text-gray-500">{tests.length} С‚РµСЃС‚РѕРІ СЃРѕР·РґР°РЅРѕ</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <label className="btn-secondary flex items-center gap-2 text-sm cursor-pointer">
-              <Upload size={16} /> Импорт JSON
+              <Upload size={16} /> РРјРїРѕСЂС‚ JSON
               <input type="file" accept=".json" className="hidden" onChange={importTest} />
             </label>
             <button onClick={() => navigate('/create-test')} className="btn-primary flex items-center gap-2 text-sm">
-              <Plus size={16} /> Создать тест
+              <Plus size={16} /> РЎРѕР·РґР°С‚СЊ С‚РµСЃС‚
             </button>
           </div>
         </motion.div>
@@ -157,9 +157,9 @@ export default function MyTests() {
             <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-primary-400" />
             </div>
-            <h3 className="text-lg font-semibold text-dark mb-2">Нет тестов</h3>
-            <p className="text-gray-500 mb-4">Создайте свой первый тест</p>
-            <button onClick={() => navigate('/create-test')} className="btn-primary">Создать</button>
+            <h3 className="text-lg font-semibold text-dark mb-2">РќРµС‚ С‚РµСЃС‚РѕРІ</h3>
+            <p className="text-gray-500 mb-4">РЎРѕР·РґР°Р№С‚Рµ СЃРІРѕР№ РїРµСЂРІС‹Р№ С‚РµСЃС‚</p>
+            <button onClick={() => navigate('/create-test')} className="btn-primary">РЎРѕР·РґР°С‚СЊ</button>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
@@ -176,45 +176,45 @@ export default function MyTests() {
                     <h3 className="font-semibold text-dark truncate">{test.title}</h3>
                     {test.isDeleted && (
                       <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-medium">
-                        <Trash2 size={9} /> Удалён админом
+                        <Trash2 size={9} /> РЈРґР°Р»С‘РЅ Р°РґРјРёРЅРѕРј
                       </span>
                     )}
                     {test.settings?.isPublic ? (
-                      <span className="badge-info text-[10px]"><Eye size={9} /> Публичный</span>
+                      <span className="badge-info text-[10px]"><Eye size={9} /> РџСѓР±Р»РёС‡РЅС‹Р№</span>
                     ) : (
-                      <span className="badge-warning text-[10px]"><EyeOff size={9} /> Приватный</span>
+                      <span className="badge-warning text-[10px]"><EyeOff size={9} /> РџСЂРёРІР°С‚РЅС‹Р№</span>
                     )}
                   </div>
                   {test.isDeleted && test.deleteReason && (
-                    <p className="text-xs text-red-500 dark:text-red-400 mb-1">Причина: {test.deleteReason}</p>
+                    <p className="text-xs text-red-500 dark:text-red-400 mb-1">РџСЂРёС‡РёРЅР°: {test.deleteReason}</p>
                   )}
-                  <p className="text-sm text-gray-500 truncate">{test.description || 'Без описания'}</p>
+                  <p className="text-sm text-gray-500 truncate">{test.description || 'Р‘РµР· РѕРїРёСЃР°РЅРёСЏ'}</p>
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                    <span>{test.questions?.length || 0} вопросов</span>
-                    <span><Users size={11} className="inline" /> {test.attemptCount || 0} попыток</span>
+                    <span>{test.questions?.length || 0} РІРѕРїСЂРѕСЃРѕРІ</span>
+                    <span><Users size={11} className="inline" /> {test.attemptCount || 0} РїРѕРїС‹С‚РѕРє</span>
                     <span>{new Date(test.createdAt).toLocaleDateString('ru-RU')}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button onClick={() => exportTest(test._id)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-green-600 transition-colors" title="Экспорт JSON">
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-green-600 transition-colors" title="Р­РєСЃРїРѕСЂС‚ JSON">
                     <Download size={16} />
                   </button>
                   <button onClick={() => copyLink(test.shareLink)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-primary-600 transition-colors" title="Скопировать ссылку">
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-primary-600 transition-colors" title="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєСѓ">
                     <Copy size={16} />
                   </button>
                   <button onClick={() => navigate(`/results/${test._id}`)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-blue-600 transition-colors" title="Результаты">
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-blue-600 transition-colors" title="Р РµР·СѓР»СЊС‚Р°С‚С‹">
                     <BarChart3 size={16} />
                   </button>
                   <button onClick={() => navigate(`/edit-test/${test._id}`)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-amber-600 transition-colors" title="Редактировать">
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-amber-600 transition-colors" title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">
                     <Edit3 size={16} />
                   </button>
                   <button onClick={() => setDeleteConfirm({ open: true, id: test._id })}
-                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600 transition-colors" title="Удалить">
+                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600 transition-colors" title="РЈРґР°Р»РёС‚СЊ">
                     <Trash2 size={16} />
                   </button>
                 </div>

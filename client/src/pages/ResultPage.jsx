@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -47,10 +47,10 @@ export default function ResultPage() {
   };
 
   const getGradeInfo = (pct) => {
-    if (pct >= 90) return { label: 'Отлично', color: 'text-emerald-600 dark:text-emerald-400', ring: '#10B981', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
-    if (pct >= 75) return { label: 'Хорошо', color: 'text-blue-600 dark:text-blue-400', ring: '#3B82F6', bg: 'bg-blue-50 dark:bg-blue-900/20' };
-    if (pct >= 50) return { label: 'Удовлетворительно', color: 'text-amber-600 dark:text-amber-400', ring: '#F59E0B', bg: 'bg-amber-50 dark:bg-amber-900/20' };
-    return { label: 'Неудовлетворительно', color: 'text-red-600 dark:text-red-400', ring: '#EF4444', bg: 'bg-red-50 dark:bg-red-900/20' };
+    if (pct >= 90) return { label: 'Отлично', color: 'text-emerald-600', bg: 'bg-emerald-50', icon: 'trophy' };
+    if (pct >= 75) return { label: 'Хорошо', color: 'text-blue-600', bg: 'bg-blue-50', icon: 'award' };
+    if (pct >= 50) return { label: 'Удовлетворительно', color: 'text-amber-600', bg: 'bg-amber-50', icon: 'filetext' };
+    return { label: 'Неудовлетворительно', color: 'text-red-600', bg: 'bg-red-50', icon: 'alert' };
   };
 
   const submitRating = async (rating) => {
@@ -263,163 +263,152 @@ export default function ResultPage() {
           <ArrowLeft size={16} /> На главную
         </motion.button>
 
-        {/* Score hero card with gradient ring */}
+        {/* Score card with SVG ring */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="glass-card-solid overflow-hidden mb-6"
+          className="glass-card-solid p-8 sm:p-10 mb-6"
         >
-          {/* Accent top line */}
-          <div className="h-1 w-full" style={{
-            background: `linear-gradient(90deg, ${grade.ring}33 0%, ${grade.ring} 50%, ${grade.ring}33 100%)`
-          }} />
-
-          <div className="p-8 sm:p-10">
-            <div className="flex flex-col sm:flex-row items-center gap-8">
-              {/* SVG Circular Progress Ring with glow */}
-              <div className="relative flex-shrink-0">
-                {/* Glow effect behind ring */}
-                <div className="absolute inset-0 rounded-full blur-2xl opacity-20" style={{ background: grade.ring }} />
-                <svg width="160" height="160" viewBox="0 0 160 160">
-                  {/* Background circle */}
-                  <circle
-                    cx="80" cy="80" r="68"
-                    fill="none"
-                    stroke="currentColor"
-                    className="text-gray-100 dark:text-slate-700"
-                    strokeWidth="8"
-                  />
-                  {/* Progress circle */}
-                  <motion.circle
-                    cx="80" cy="80" r="68"
-                    fill="none"
-                    stroke={grade.ring}
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 68}
-                    strokeDashoffset={2 * Math.PI * 68}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 68 * (1 - result.percentage / 100) }}
-                    transition={{ duration: 1.2, delay: 0.3, ease: 'easeOut' }}
-                    transform="rotate(-90 80 80)"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <motion.span
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.5, type: 'spring' }}
-                    className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight"
-                  >
-                    {result.percentage}%
-                  </motion.span>
-                  <span className={`text-xs font-semibold mt-1 ${grade.color}`}>{grade.label}</span>
-                </div>
+          <div className="flex flex-col sm:flex-row items-center gap-8">
+            {/* SVG Circular Progress Ring */}
+            <div className="relative flex-shrink-0">
+              <svg width="160" height="160" viewBox="0 0 160 160">
+                {/* Background circle */}
+                <circle
+                  cx="80" cy="80" r="68"
+                  fill="none"
+                  stroke="currentColor"
+                  className="text-gray-100 dark:text-slate-700"
+                  strokeWidth="10"
+                />
+                {/* Progress circle */}
+                <motion.circle
+                  cx="80" cy="80" r="68"
+                  fill="none"
+                  stroke={result.percentage >= 75 ? '#10B981' : result.percentage >= 50 ? '#F59E0B' : '#EF4444'}
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 68}
+                  strokeDashoffset={2 * Math.PI * 68}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 68 * (1 - result.percentage / 100) }}
+                  transition={{ duration: 1.2, delay: 0.3, ease: 'easeOut' }}
+                  transform="rotate(-90 80 80)"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{result.percentage}%</span>
+                <span className={`text-xs font-semibold mt-0.5 ${grade.color}`}>{grade.label}</span>
               </div>
+            </div>
 
-              {/* Info + stats */}
-              <div className="flex-1 text-center sm:text-left">
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight mb-1">
-                  {result.test?.title || 'Результат теста'}
-                </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                  {result.score} из {result.totalPoints} баллов
-                </p>
+            {/* Info + stats */}
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight mb-1">
+                {result.test?.title || 'Результат теста'}
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+                {result.score} из {result.totalPoints} баллов
+              </p>
 
-                {/* Stat mini-cards row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-900/15 border border-emerald-100 dark:border-emerald-800/30">
-                    <CheckCircle size={16} className="text-emerald-500 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">{correct}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Верно</p>
-                    </div>
+              {/* Compact stat row with vertical dividers */}
+              <div className="flex items-center justify-center sm:justify-start gap-0">
+                <div className="flex items-center gap-2 px-4 first:pl-0">
+                  <CheckCircle size={15} className="text-emerald-500" />
+                  <div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{correct}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Верно</p>
                   </div>
-                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-red-50/70 dark:bg-red-900/15 border border-red-100 dark:border-red-800/30">
-                    <XCircle size={16} className="text-red-500 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">{wrong}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Неверно</p>
-                    </div>
+                </div>
+                <div className="divider-vertical h-8" />
+                <div className="flex items-center gap-2 px-4">
+                  <XCircle size={15} className="text-red-500" />
+                  <div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{wrong}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Неверно</p>
                   </div>
-                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50/70 dark:bg-blue-900/15 border border-blue-100 dark:border-blue-800/30">
-                    <Clock size={16} className="text-blue-500 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">{formatTime(result.timeSpent)}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Время</p>
-                    </div>
+                </div>
+                <div className="divider-vertical h-8" />
+                <div className="flex items-center gap-2 px-4">
+                  <Clock size={15} className="text-blue-500" />
+                  <div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{formatTime(result.timeSpent)}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Время</p>
                   </div>
-                  {result.violationCount > 0 && (
-                    <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50/70 dark:bg-amber-900/15 border border-amber-100 dark:border-amber-800/30">
-                      <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
+                </div>
+                {result.violationCount > 0 && (
+                  <>
+                    <div className="divider-vertical h-8" />
+                    <div className="flex items-center gap-2 px-4">
+                      <AlertTriangle size={15} className="text-amber-500" />
                       <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">{result.violationCount}</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{result.violationCount}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5">Нарушения</p>
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Action buttons row */}
-            <div className="flex items-center justify-center sm:justify-start gap-3 mt-7 pt-6 border-t border-gray-100 dark:border-slate-700">
-              {result.percentage >= 50 && (
-                <button
-                  onClick={downloadCertificate}
-                  className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2"
-                >
-                  <Download size={15} /> Сертификат
-                </button>
-              )}
-              {result.test?._id && (
-                <button
-                  onClick={() => navigate(`/leaderboard/${result.test._id}`)}
-                  className="btn-secondary py-2.5 px-5 text-sm flex items-center gap-2"
-                >
-                  <Award size={15} className="text-amber-500" /> Лидеры
-                </button>
-              )}
-            </div>
-
-            {/* Inline rating */}
-            {result.test?._id && (
-              <div className="flex items-center justify-center sm:justify-start gap-3 mt-5 pt-5 border-t border-gray-100 dark:border-slate-700">
-                <span className="text-xs text-gray-400">Оцените тест:</span>
-                <div className="flex items-center gap-0.5">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <button
-                      key={star}
-                      onClick={() => !ratingSubmitted && submitRating(star)}
-                      onMouseEnter={() => !ratingSubmitted && setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      disabled={ratingSubmitted}
-                      className="p-0.5 transition-transform hover:scale-110 disabled:cursor-default"
-                    >
-                      <Star
-                        size={22}
-                        className={`transition-colors ${
-                          (hoverRating || userRating) >= star
-                            ? 'fill-amber-400 text-amber-400'
-                            : 'text-gray-300 dark:text-slate-600'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
-                {ratingSubmitted && (
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                    {userRating}/5
-                  </span>
+                  </>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Action buttons row: Certificate + Leaderboard */}
+          <div className="flex items-center justify-center sm:justify-start gap-3 mt-7 pt-6 border-t border-gray-100 dark:border-slate-700">
+            {result.percentage >= 50 && (
+              <button
+                onClick={downloadCertificate}
+                className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2"
+              >
+                <Download size={15} /> Сертификат
+              </button>
+            )}
+            {result.test?._id && (
+              <button
+                onClick={() => navigate(`/leaderboard/${result.test._id}`)}
+                className="btn-secondary py-2.5 px-5 text-sm flex items-center gap-2"
+              >
+                <Award size={15} className="text-amber-500" /> Лидеры
+              </button>
             )}
           </div>
+
+          {/* Inline rating */}
+          {result.test?._id && (
+            <div className="flex items-center justify-center sm:justify-start gap-3 mt-5 pt-5 border-t border-gray-100 dark:border-slate-700">
+              <span className="text-xs text-gray-400">Оцените тест:</span>
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button
+                    key={star}
+                    onClick={() => !ratingSubmitted && submitRating(star)}
+                    onMouseEnter={() => !ratingSubmitted && setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    disabled={ratingSubmitted}
+                    className="p-0.5 transition-transform hover:scale-110 disabled:cursor-default"
+                  >
+                    <Star
+                      size={22}
+                      className={`transition-colors ${
+                        (hoverRating || userRating) >= star
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'text-gray-300 dark:text-slate-600'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              {ratingSubmitted && (
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  {userRating}/5
+                </span>
+              )}
+            </div>
+          )}
         </motion.div>
 
         {/* Charts row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
-          {/* Answer distribution — colored segmented bar */}
+          {/* Horizontal stacked bar replacing pie chart */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -427,41 +416,38 @@ export default function ResultPage() {
             className="glass-card-solid p-5"
           >
             <p className="section-title mb-4">Распределение ответов</p>
-            <div className="flex rounded-full overflow-hidden h-6 bg-gray-100 dark:bg-slate-700">
+            {/* Stacked bar */}
+            <div className="flex rounded-full overflow-hidden h-5 bg-gray-100 dark:bg-slate-700">
               {correct > 0 && (
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${(correct / total) * 100}%` }}
                   transition={{ duration: 0.8, delay: 0.6 }}
-                  className="bg-emerald-500 h-full flex items-center justify-center"
-                >
-                  {correct > 0 && <span className="text-[10px] font-bold text-white">{Math.round((correct / total) * 100)}%</span>}
-                </motion.div>
+                  className="bg-emerald-500 h-full"
+                />
               )}
               {wrong > 0 && (
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${(wrong / total) * 100}%` }}
                   transition={{ duration: 0.8, delay: 0.7 }}
-                  className="bg-red-400 h-full flex items-center justify-center"
-                >
-                  {wrong > 0 && <span className="text-[10px] font-bold text-white">{Math.round((wrong / total) * 100)}%</span>}
-                </motion.div>
+                  className="bg-red-400 h-full"
+                />
               )}
             </div>
             <div className="flex items-center justify-between mt-3">
               <span className="flex items-center gap-1.5 text-xs text-gray-500">
                 <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
-                Верно: {correct}
+                Верно: {correct} ({total > 0 ? Math.round((correct / total) * 100) : 0}%)
               </span>
               <span className="flex items-center gap-1.5 text-xs text-gray-500">
                 <span className="w-2.5 h-2.5 bg-red-400 rounded-full" />
-                Неверно: {wrong}
+                Неверно: {wrong} ({total > 0 ? Math.round((wrong / total) * 100) : 0}%)
               </span>
             </div>
           </motion.div>
 
-          {/* Bar chart */}
+          {/* Bar chart — improved */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -520,13 +506,9 @@ export default function ResultPage() {
             className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
-                <FileText size={15} className="text-primary-600 dark:text-primary-400" />
-              </div>
-              <div className="text-left">
-                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 block">Подробный разбор ответов</span>
-                <span className="text-xs text-gray-400">{correct} из {total} верно</span>
-              </div>
+              <FileText size={16} className="text-primary-600 dark:text-primary-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Разбор ответов</span>
+              <span className="text-xs text-gray-400">{correct} из {total} верно</span>
             </div>
             {showReview ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
           </button>
@@ -604,7 +586,7 @@ export default function ResultPage() {
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-start gap-2.5 flex-1">
-                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5 ${
+                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5 ${
                           answer.isCorrect
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                             : isEssay && answer.pointsEarned === 0
@@ -623,14 +605,14 @@ export default function ResultPage() {
                         ) : (
                           <XCircle size={16} className="text-red-500" />
                         )}
-                        <span className="text-[11px] font-semibold text-gray-400 bg-gray-100/80 dark:bg-slate-700/50 px-1.5 py-0.5 rounded">
+                        <span className="text-[11px] font-medium text-gray-400">
                           {answer.pointsEarned}/{maxPts}
                         </span>
                       </div>
                     </div>
 
                     {/* User's answer */}
-                    <div className="ml-8.5 space-y-2 pl-[38px]">
+                    <div className="ml-8.5 space-y-2 pl-[34px]">
                       <div>
                         <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">Ваш ответ:</span>
                         <p className={`text-sm mt-0.5 ${

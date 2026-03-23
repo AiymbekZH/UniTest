@@ -190,9 +190,9 @@ export default function TestProfile() {
                   <p className="text-[22px] font-bold text-emerald-600 tracking-tight">{test.attemptCount || 0}</p>
                   <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('totalParticipants')}</p>
                 </div>
-                <div className="bg-orange-50/80 dark:bg-orange-900/20 rounded-xl p-4 text-center">
-                  <div className="w-8 h-8 rounded-[10px] bg-orange-100 dark:bg-orange-800/40 text-orange-600 mx-auto mb-2 flex items-center justify-center"><Star size={16} /></div>
-                  <p className="text-[22px] font-bold text-orange-600 tracking-tight">{test.rating?.toFixed(1) || '—'}</p>
+                <div className="bg-purple-50/80 dark:bg-purple-900/20 rounded-xl p-4 text-center">
+                  <div className="w-8 h-8 rounded-[10px] bg-purple-100 dark:bg-purple-800/40 text-purple-600 mx-auto mb-2 flex items-center justify-center"><Star size={16} /></div>
+                  <p className="text-[22px] font-bold text-purple-600 tracking-tight">{test.rating?.toFixed(1) || '—'}</p>
                   <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('rating')}</p>
                 </div>
               </div>

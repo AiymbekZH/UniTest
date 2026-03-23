@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+п»їimport { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -40,7 +40,7 @@ export default function MyResults() {
       const res = await api.get('/results/my');
       setResults(res.data);
     } catch (err) {
-      toast.error('Ошибка загрузки');
+      toast.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё');
     } finally {
       setLoading(false);
     }
@@ -63,8 +63,8 @@ export default function MyResults() {
             <ArrowLeft size={20} className="text-gray-500" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-dark">Мои результаты</h1>
-            <p className="text-sm text-gray-500">{results.length} результатов всего</p>
+            <h1 className="text-2xl font-bold text-dark">РњРѕРё СЂРµР·СѓР»СЊС‚Р°С‚С‹</h1>
+            <p className="text-sm text-gray-500">{results.length} СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ РІСЃРµРіРѕ</p>
           </div>
         </motion.div>
 
@@ -82,8 +82,8 @@ export default function MyResults() {
             <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <BarChart3 className="w-8 h-8 text-primary-400" />
             </div>
-            <h3 className="text-lg font-semibold text-dark mb-2">Нет результатов</h3>
-            <p className="text-gray-500">Пройдите тест, чтобы увидеть результаты</p>
+            <h3 className="text-lg font-semibold text-dark mb-2">РќРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ</h3>
+            <p className="text-gray-500">РџСЂРѕР№РґРёС‚Рµ С‚РµСЃС‚, С‡С‚РѕР±С‹ СѓРІРёРґРµС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹</p>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
@@ -117,9 +117,9 @@ export default function MyResults() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-dark truncate">{result.test?.title || 'Тест удалён'}</h3>
+                  <h3 className="font-semibold text-dark truncate">{result.test?.title || 'РўРµСЃС‚ СѓРґР°Р»С‘РЅ'}</h3>
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                    <span>{result.score}/{result.totalPoints} баллов</span>
+                    <span>{result.score}/{result.totalPoints} Р±Р°Р»Р»РѕРІ</span>
                     <span className="flex items-center gap-1"><Clock size={11} /> {formatTime(result.timeSpent)}</span>
                     {result.violationCount > 0 && (
                       <span className="flex items-center gap-1 text-amber-500">
@@ -141,7 +141,7 @@ export default function MyResults() {
                     className="flex items-center gap-1 text-[11px] text-primary-500 hover:text-primary-700 font-medium py-1 px-3 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition"
                   >
                     <TrendingUp size={12} />
-                    {isChartOpen ? 'Скрыть прогресс' : `Прогресс (${attempts.length} попыток)`}
+                    {isChartOpen ? 'РЎРєСЂС‹С‚СЊ РїСЂРѕРіСЂРµСЃСЃ' : `РџСЂРѕРіСЂРµСЃСЃ (${attempts.length} РїРѕРїС‹С‚РѕРє)`}
                     {isChartOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                   </button>
                 </div>
@@ -156,7 +156,7 @@ export default function MyResults() {
                     className="overflow-hidden"
                   >
                     <div className="glass-card-solid p-4 -mt-1">
-                      <p className="text-xs font-semibold text-gray-500 mb-3">Прогресс по попыткам</p>
+                      <p className="text-xs font-semibold text-gray-500 mb-3">РџСЂРѕРіСЂРµСЃСЃ РїРѕ РїРѕРїС‹С‚РєР°Рј</p>
                       <ResponsiveContainer width="100%" height={180}>
                         <LineChart data={chartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -164,15 +164,15 @@ export default function MyResults() {
                           <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
                           <Tooltip
                             contentStyle={{ borderRadius: 12, fontSize: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                            formatter={(value, name) => [`${value}%`, 'Результат']}
+                            formatter={(value, name) => [`${value}%`, 'Р РµР·СѓР»СЊС‚Р°С‚']}
                             labelFormatter={(label, payload) => payload?.[0]?.payload?.date || label}
                           />
                           <Line
                             type="monotone"
                             dataKey="percent"
-                            stroke="#F97316"
+                            stroke="#6366f1"
                             strokeWidth={2.5}
-                            dot={{ r: 4, fill: '#F97316' }}
+                            dot={{ r: 4, fill: '#6366f1' }}
                             activeDot={{ r: 6 }}
                           />
                         </LineChart>

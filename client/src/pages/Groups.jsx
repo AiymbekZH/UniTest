@@ -231,7 +231,7 @@ export default function Groups() {
                 <button onClick={() => setSelectedGroup(null)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition flex-shrink-0">
                   <ArrowLeft size={16} className="text-gray-400" />
                 </button>
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getGroupGradient(selectedGroup.name)} flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-sm`}>
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getGroupGradient(selectedGroup.name)} flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm`}>
                   {(selectedGroup.name?.[0] || 'G').toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -388,8 +388,8 @@ export default function Groups() {
             </div>
           ) : groups.length === 0 ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
-              <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <Users className="w-8 h-8 text-primary-500" />
+              <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-7 h-7 text-primary-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Нет групп</h3>
               <p className="text-gray-400 text-sm mb-6">Создайте группу или присоединитесь по коду</p>
@@ -411,11 +411,10 @@ export default function Groups() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
                   onClick={() => setSelectedGroup(group)}
-                  className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer group hover:shadow-card-hover border-l-4"
-                  style={{ borderLeftColor: `var(--group-accent-${i % 6}, #6366f1)` }}
+                  className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer group"
                 >
                   {/* Gradient circle avatar with first letter */}
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${getGroupGradient(group.name)} flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm`}>
+                  <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getGroupGradient(group.name)} flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm`}>
                     {(group.name?.[0] || 'G').toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">

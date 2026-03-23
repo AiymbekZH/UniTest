@@ -1,12 +1,3 @@
 node_modules/
+client/node_modules/
 .env
-.DS_Store
-dist/
-build/
-coverage/
-*.log
-*.png
-!client/dist/**
-!client/public/**
-.vscode/
-.playwright-mcp/

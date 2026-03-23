@@ -121,7 +121,7 @@
     @apply card hover:shadow-card-hover cursor-pointer;
   }
   .dark .card-interactive {
-    @apply hover:bg-slate-700 hover:border-slate-600 hover:shadow-none;
+    @apply hover:bg-slate-750 hover:border-slate-600 hover:shadow-none;
   }
 
   .section-title {
@@ -206,59 +206,6 @@
   }
   .toggle-switch:not(.active) .toggle-switch-thumb {
     @apply translate-x-1;
-  }
-
-  /* ---- Profile gradient hero ---- */
-  .profile-hero-gradient {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
-  }
-  .dark .profile-hero-gradient {
-    background: linear-gradient(135deg, #3730a3 0%, #5b21b6 50%, #6d28d9 100%);
-  }
-
-  /* ---- Stat mini-card ---- */
-  .stat-mini-card {
-    @apply flex flex-col items-center p-4 rounded-2xl bg-gray-50 border border-gray-100
-           transition-all duration-200 hover:shadow-soft cursor-pointer;
-  }
-  .dark .stat-mini-card {
-    @apply bg-slate-800/70 border-slate-700/60 hover:shadow-none hover:bg-slate-700/70;
-  }
-
-  /* ---- Accent top line ---- */
-  .accent-line-top {
-    position: relative;
-    overflow: hidden;
-  }
-  .accent-line-top::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
-    border-radius: 0 0 4px 4px;
-  }
-
-  /* ---- Custom range slider ---- */
-  .range-custom {
-    @apply w-full h-1.5 rounded-full appearance-none cursor-pointer;
-    background: linear-gradient(to right, #6366f1 0%, #6366f1 var(--range-pct, 25%), #e5e7eb var(--range-pct, 25%), #e5e7eb 100%);
-  }
-  .dark .range-custom {
-    background: linear-gradient(to right, #818cf8 0%, #818cf8 var(--range-pct, 25%), #334155 var(--range-pct, 25%), #334155 100%);
-  }
-  .range-custom::-webkit-slider-thumb {
-    @apply appearance-none w-4 h-4 rounded-full bg-white border-2 border-indigo-500 shadow-sm;
-    transition: box-shadow 0.15s ease;
-  }
-  .range-custom::-webkit-slider-thumb:hover {
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
-  }
-  .range-custom::-moz-range-thumb {
-    @apply w-4 h-4 rounded-full bg-white border-2 border-indigo-500 shadow-sm;
-    transition: box-shadow 0.15s ease;
   }
 
   /* ---- End New Design System Utilities ---- */
