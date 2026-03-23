@@ -1,12 +1,15 @@
 node_modules/
 .env
 .DS_Store
-dist/
 build/
 coverage/
 *.log
-*.png
-!client/dist/**
-!client/public/**
 .vscode/
 .playwright-mcp/
+
+# Ignore server dist but keep client dist (pre-built frontend for deploy)
+server/dist/
+!client/dist/
+!client/dist/**
+!client/public/
+!client/public/**
