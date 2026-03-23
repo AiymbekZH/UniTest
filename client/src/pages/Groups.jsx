@@ -224,64 +224,76 @@ export default function Groups() {
         {/* Content */}
         {selectedGroup ? (
           /* Group detail view */
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-            {/* Group header card */}
-            <div className="glass-card-solid p-6">
-              <div className="flex items-center gap-4">
-                <button onClick={() => setSelectedGroup(null)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition flex-shrink-0">
-                  <ArrowLeft size={16} className="text-gray-400" />
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            {/* Group header card with Banner */}
+            <div className="glass-card-solid overflow-hidden relative border-0 shadow-sm">
+              <div className={`h-24 bg-gradient-to-r ${getGroupGradient(selectedGroup.name)} relative overflow-hidden`}>
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+                <button onClick={() => setSelectedGroup(null)} className="absolute top-4 left-4 p-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl text-white transition-all shadow-sm z-10 border border-white/20">
+                  <ArrowLeft size={18} />
                 </button>
-                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getGroupGradient(selectedGroup.name)} flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm`}>
-                  {(selectedGroup.name?.[0] || 'G').toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight truncate">{selectedGroup.name}</h2>
-                    {isCreator(selectedGroup) && (
-                      <span className="text-[10px] bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full font-medium">admin</span>
+              </div>
+              <div className="px-6 pb-6 relative">
+                <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-end -mt-8 sm:-mt-10 mb-2">
+                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br ${getGroupGradient(selectedGroup.name)} p-1.5 shadow-xl transition-transform hover:scale-105 z-10`}>
+                    <div className="w-full h-full bg-white dark:bg-gray-900 rounded-xl flex items-center justify-center">
+                      <div className={`text-transparent bg-clip-text bg-gradient-to-br ${getGroupGradient(selectedGroup.name)} font-bold text-3xl sm:text-4xl`}>
+                        {(selectedGroup.name?.[0] || 'G').toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0 pb-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">{selectedGroup.name}</h2>
+                      {isCreator(selectedGroup) && (
+                        <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 dark:border-indigo-900/30 dark:bg-indigo-900/20 dark:text-indigo-400 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm">admin</span>
+                      )}
+                    </div>
+                    {selectedGroup.description && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium bg-gray-50/50 dark:bg-gray-800/30 px-3.5 py-2.5 rounded-xl border border-gray-100 dark:border-gray-700/50 inline-block shadow-inner">{selectedGroup.description}</p>
                     )}
                   </div>
-                  {selectedGroup.description && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{selectedGroup.description}</p>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Invite section (admin only) — inline row */}
+            {/* Invite section (admin only) */}
             {isCreator(selectedGroup) && (
-              <div className="glass-card-solid p-5">
-                <p className="section-title mb-3">Приглашение</p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <code className="inline-flex items-center gap-2 bg-gray-50 dark:bg-slate-700 px-4 py-2 rounded-xl text-sm font-mono font-semibold text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-slate-600">
-                    <Link2 size={14} className="text-primary-500" />
-                    {selectedGroup.inviteCode}
-                  </code>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => copyInviteCode(selectedGroup.inviteCode)}
-                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition" title="Копировать код">
-                      <Copy size={15} />
-                    </button>
-                    <button onClick={() => copyInviteLink(selectedGroup.inviteCode)}
-                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition" title="Копировать ссылку">
-                      <ExternalLink size={15} />
-                    </button>
-                    <button onClick={() => regenerateCode(selectedGroup._id)}
-                      className="p-2 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 text-gray-500 hover:text-amber-600 transition" title="Обновить код">
-                      <RefreshCw size={15} />
-                    </button>
+              <div className="glass-card-solid p-6">
+                <p className="text-base font-bold text-gray-900 dark:text-white mb-4">{t('invite') || 'Приглашение'}</p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <div className="flex-1 w-full bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 flex items-center justify-between group shadow-inner">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500 border border-indigo-200/50 dark:border-indigo-800/50">
+                        <Link2 size={16} />
+                      </div>
+                      <code className="text-sm font-mono font-bold text-gray-900 dark:text-gray-100 tracking-wide">{selectedGroup.inviteCode}</code>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => copyInviteCode(selectedGroup.inviteCode)} className="p-2 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition shadow-sm border border-gray-100 dark:border-gray-600" title="Копировать код">
+                        <Copy size={14} />
+                      </button>
+                      <button onClick={() => regenerateCode(selectedGroup._id)} className="p-2 bg-white dark:bg-gray-700 hover:bg-amber-50 dark:hover:bg-amber-900/40 rounded-lg text-amber-500 transition shadow-sm border border-gray-100 dark:border-gray-600" title="Обновить код">
+                        <RefreshCw size={14} />
+                      </button>
+                    </div>
                   </div>
+                  <button onClick={() => copyInviteLink(selectedGroup.inviteCode)} className="btn-primary w-full sm:w-auto py-3 px-6 text-sm font-semibold flex items-center justify-center gap-2 shadow-btn-glow">
+                    <ExternalLink size={16} /> Ссылка
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Members — larger avatars, role badges */}
-            <div className="glass-card-solid p-5">
-              <p className="section-title mb-4">Участники ({selectedGroup.members?.length || 0})</p>
-              <div className="space-y-1">
+            {/* Members */}
+            <div className="glass-card-solid p-6">
+              <p className="text-base font-bold text-gray-900 dark:text-white mb-5 flex items-center justify-between">
+                <span>Участники <span className="text-gray-400 font-medium text-sm ml-1">({selectedGroup.members?.length || 0})</span></span>
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {selectedGroup.members?.map(m => (
-                  <div key={m.user._id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-sm flex-shrink-0 overflow-hidden">
+                  <div key={m.user._id} className="flex items-center gap-3.5 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 bg-white/50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-800 transition-all shadow-sm group">
+                    <div className="w-11 h-11 rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100/50 dark:border-indigo-800/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm flex-shrink-0 overflow-hidden shadow-inner">
                       {m.user.avatar ? (
                         <img src={m.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -289,18 +301,20 @@ export default function Groups() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {m.user.lastName} {m.user.firstName}
-                      </p>
-                      <p className="text-xs text-gray-400 truncate">{m.user.email}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
+                          {m.user.lastName} {m.user.firstName}
+                        </p>
+                        {m.role === 'admin' && (
+                          <span className="text-[9px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md font-bold uppercase tracking-widest border border-indigo-200/50 dark:border-indigo-800/50">admin</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 font-medium truncate mt-0.5">{m.user.email}</p>
                     </div>
-                    {m.role === 'admin' && (
-                      <span className="text-[10px] bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full font-medium flex-shrink-0">admin</span>
-                    )}
                     {isCreator(selectedGroup) && m.user._id !== user._id && (
                       <button onClick={() => removeMember(selectedGroup._id, m.user._id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition flex-shrink-0">
-                        <X size={14} />
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 text-red-400 hover:bg-red-500 hover:text-white transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex-shrink-0 border border-red-100 dark:border-red-800/30 shadow-sm" title="Удалить">
+                        <X size={15} />
                       </button>
                     )}
                   </div>
@@ -308,46 +322,49 @@ export default function Groups() {
               </div>
             </div>
 
-            {/* Assigned tests — card style */}
-            <div className="glass-card-solid p-5">
-              <div className="flex items-center justify-between mb-4">
-                <p className="section-title">Назначенные тесты ({selectedGroup.assignedTests?.length || 0})</p>
+            {/* Assigned tests */}
+            <div className="glass-card-solid p-6">
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span>Назначенные тесты <span className="text-gray-400 font-medium text-sm ml-1">({selectedGroup.assignedTests?.length || 0})</span></span>
+                </p>
                 {isCreator(selectedGroup) && (
-                  <button onClick={openAssignTest} className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5">
-                    <Plus size={13} /> Назначить
+                  <button onClick={openAssignTest} className="btn-primary py-2 px-4 text-sm font-semibold flex items-center gap-1.5 shadow-btn-glow">
+                    <Plus size={16} /> Назначить
                   </button>
                 )}
               </div>
+              
               {selectedGroup.assignedTests?.length === 0 ? (
-                <div className="text-center py-10">
-                  <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                    <BookOpen size={22} className="text-gray-400" />
+                <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl p-10 flex flex-col items-center justify-center">
+                  <div className="w-14 h-14 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <BookOpen size={24} className="text-gray-400" />
                   </div>
-                  <p className="text-sm text-gray-400">Нет назначенных тестов</p>
+                  <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Нет назначенных тестов</h3>
+                  <p className="text-xs text-gray-400 font-medium text-center">Студенты не пропустят проверку знаний</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {selectedGroup.assignedTests?.map(at => (
-                    <div key={at.test?._id || at._id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-slate-700 hover:border-gray-200 dark:hover:border-slate-600 transition-colors">
-                      <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
-                        <BookOpen size={16} className="text-amber-500" />
+                    <div key={at.test?._id || at._id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/30 hover:border-amber-200 dark:hover:border-amber-800/60 hover:shadow-md transition-all group">
+                      <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-amber-100/50 dark:border-amber-800/30 shadow-inner">
+                        <BookOpen size={20} className="text-amber-500" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{at.test?.title || 'Удалённый тест'}</p>
-                        <p className="text-xs text-gray-400">{at.test?.questions?.length || 0} вопросов &middot; {at.test?.totalPoints || 0} баллов</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate pr-2">{at.test?.title || 'Удалённый тест'}</p>
+                        <p className="text-xs text-gray-500 font-medium mt-1 uppercase tracking-wide">{at.test?.questions?.length || 0} вопросов &middot; {at.test?.totalPoints || 0} баллов</p>
                       </div>
-                      <button
-                        onClick={() => at.test?.shareLink && navigate(`/test-profile/${at.test.shareLink}`)}
-                        className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1"
-                      >
-                        <ExternalLink size={12} /> Открыть
-                      </button>
-                      {isCreator(selectedGroup) && (
-                        <button onClick={() => removeAssignedTest(at.test?._id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition flex-shrink-0">
-                          <X size={14} />
+                      
+                      <div className="flex sm:flex-col gap-2 mt-2 sm:mt-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => at.test?.shareLink && navigate(`/test-profile/${at.test.shareLink}`)} className="flex-1 sm:flex-none py-1.5 px-3 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white dark:hover:bg-indigo-500 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold border border-indigo-100 dark:border-indigo-800/50" title="Открыть тест">
+                          <ExternalLink size={14} /> Открыть
                         </button>
-                      )}
+                        {isCreator(selectedGroup) && (
+                          <button onClick={() => removeAssignedTest(at.test?._id)} className="p-1.5 px-3 rounded-lg bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 transition-colors flex items-center justify-center border border-red-100 dark:border-red-800/30" title="Убрать тест">
+                            <X size={15} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -265,145 +265,139 @@ export default function ResultPage() {
 
         {/* Score card with SVG ring */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="glass-card-solid p-8 sm:p-10 mb-6"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, type: 'spring' }}
+          className="relative overflow-hidden rounded-[2rem] border border-white/10 shadow-[0_20px_50px_-12px_rgba(79,70,229,0.3)] p-8 sm:p-12 mb-8 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900"
         >
-          <div className="flex flex-col sm:flex-row items-center gap-8">
+          {/* Decorative shapes */}
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-purple-500/30 rounded-full blur-[80px] pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-indigo-500/30 rounded-full blur-[80px] pointer-events-none"></div>
+
+          <div className="relative z-10 flex flex-col sm:flex-row items-center gap-10">
             {/* SVG Circular Progress Ring */}
-            <div className="relative flex-shrink-0">
-              <svg width="160" height="160" viewBox="0 0 160 160">
+            <div className="relative flex-shrink-0 drop-shadow-xl">
+              <svg width="180" height="180" viewBox="0 0 180 180">
                 {/* Background circle */}
-                <circle
-                  cx="80" cy="80" r="68"
-                  fill="none"
-                  stroke="currentColor"
-                  className="text-gray-100 dark:text-slate-700"
-                  strokeWidth="10"
-                />
+                <circle cx="90" cy="90" r="76" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="12" />
                 {/* Progress circle */}
                 <motion.circle
-                  cx="80" cy="80" r="68"
-                  fill="none"
-                  stroke={result.percentage >= 75 ? '#10B981' : result.percentage >= 50 ? '#F59E0B' : '#EF4444'}
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 68}
-                  strokeDashoffset={2 * Math.PI * 68}
-                  animate={{ strokeDashoffset: 2 * Math.PI * 68 * (1 - result.percentage / 100) }}
-                  transition={{ duration: 1.2, delay: 0.3, ease: 'easeOut' }}
-                  transform="rotate(-90 80 80)"
+                  cx="90" cy="90" r="76" fill="none"
+                  stroke={result.percentage >= 75 ? '#34D399' : result.percentage >= 50 ? '#FBBF24' : '#F87171'}
+                  strokeWidth="12" strokeLinecap="round" strokeDasharray={2 * Math.PI * 76} strokeDashoffset={2 * Math.PI * 76}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 76 * (1 - result.percentage / 100) }}
+                  transition={{ duration: 1.5, delay: 0.2, ease: 'easeOut' }}
+                  transform="rotate(-90 90 90)"
+                  style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.3))" }}
                 />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{result.percentage}%</span>
-                <span className={`text-xs font-semibold mt-0.5 ${grade.color}`}>{grade.label}</span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pt-1">
+                <span className="text-5xl font-extrabold text-white tracking-tighter drop-shadow-md leading-none">{result.percentage}%</span>
+                <span className={`text-[10px] font-bold mt-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 tracking-wider uppercase shadow-sm ${result.percentage >= 75 ? 'text-emerald-300' : result.percentage >= 50 ? 'text-amber-300' : 'text-red-300'}`}>
+                  {grade.label}
+                </span>
               </div>
             </div>
 
             {/* Info + stats */}
-            <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight mb-1">
+            <div className="flex-1 text-center sm:text-left w-full">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2 drop-shadow-sm">
                 {result.test?.title || 'Результат теста'}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                {result.score} из {result.totalPoints} баллов
+              <p className="text-base text-indigo-200 font-medium mb-6">
+                Вы набрали <span className="text-white font-bold">{result.score}</span> из <span className="text-white font-bold">{result.totalPoints}</span> баллов
               </p>
 
-              {/* Compact stat row with vertical dividers */}
-              <div className="flex items-center justify-center sm:justify-start gap-0">
-                <div className="flex items-center gap-2 px-4 first:pl-0">
-                  <CheckCircle size={15} className="text-emerald-500" />
-                  <div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{correct}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Верно</p>
+              {/* Stat Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col items-center sm:items-start transition-all hover:bg-white/15">
+                  <div className="flex items-center gap-1.5 text-emerald-300 mb-1.5">
+                    <CheckCircle size={14} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Верно</span>
                   </div>
+                  <span className="text-2xl font-bold text-white leading-none">{correct}</span>
                 </div>
-                <div className="divider-vertical h-8" />
-                <div className="flex items-center gap-2 px-4">
-                  <XCircle size={15} className="text-red-500" />
-                  <div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{wrong}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Неверно</p>
+                <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col items-center sm:items-start transition-all hover:bg-white/15">
+                  <div className="flex items-center gap-1.5 text-red-300 mb-1.5">
+                    <XCircle size={14} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Неверно</span>
                   </div>
+                  <span className="text-2xl font-bold text-white leading-none">{wrong}</span>
                 </div>
-                <div className="divider-vertical h-8" />
-                <div className="flex items-center gap-2 px-4">
-                  <Clock size={15} className="text-blue-500" />
-                  <div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{formatTime(result.timeSpent)}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Время</p>
+                <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col items-center sm:items-start transition-all hover:bg-white/15">
+                  <div className="flex items-center gap-1.5 text-blue-300 mb-1.5">
+                    <Clock size={14} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Время</span>
                   </div>
+                  <span className="text-lg font-bold text-white leading-tight">{formatTime(result.timeSpent)}</span>
                 </div>
                 {result.violationCount > 0 && (
-                  <>
-                    <div className="divider-vertical h-8" />
-                    <div className="flex items-center gap-2 px-4">
-                      <AlertTriangle size={15} className="text-amber-500" />
-                      <div>
-                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-none">{result.violationCount}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Нарушения</p>
-                      </div>
+                  <div className="bg-white/10 backdrop-blur-md border border-red-500/30 rounded-2xl p-4 flex flex-col items-center sm:items-start transition-all hover:bg-white/15 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                    <div className="flex items-center gap-1.5 text-red-400 mb-1.5">
+                      <AlertTriangle size={14} />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Нарушения</span>
                     </div>
-                  </>
+                    <span className="text-2xl font-bold text-white leading-none">{result.violationCount}</span>
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
           {/* Action buttons row: Certificate + Leaderboard */}
-          <div className="flex items-center justify-center sm:justify-start gap-3 mt-7 pt-6 border-t border-gray-100 dark:border-slate-700">
-            {result.percentage >= 50 && (
-              <button
-                onClick={downloadCertificate}
-                className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2"
-              >
-                <Download size={15} /> Сертификат
-              </button>
-            )}
-            {result.test?._id && (
-              <button
-                onClick={() => navigate(`/leaderboard/${result.test._id}`)}
-                className="btn-secondary py-2.5 px-5 text-sm flex items-center gap-2"
-              >
-                <Award size={15} className="text-amber-500" /> Лидеры
-              </button>
-            )}
-          </div>
-
-          {/* Inline rating */}
-          {result.test?._id && (
-            <div className="flex items-center justify-center sm:justify-start gap-3 mt-5 pt-5 border-t border-gray-100 dark:border-slate-700">
-              <span className="text-xs text-gray-400">Оцените тест:</span>
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    onClick={() => !ratingSubmitted && submitRating(star)}
-                    onMouseEnter={() => !ratingSubmitted && setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    disabled={ratingSubmitted}
-                    className="p-0.5 transition-transform hover:scale-110 disabled:cursor-default"
-                  >
-                    <Star
-                      size={22}
-                      className={`transition-colors ${
-                        (hoverRating || userRating) >= star
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'text-gray-300 dark:text-slate-600'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-              {ratingSubmitted && (
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                  {userRating}/5
-                </span>
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-white/10">
+            <div className="flex items-center justify-center sm:justify-start gap-3 w-full md:w-auto">
+              {result.percentage >= 50 && (
+                <button
+                  onClick={downloadCertificate}
+                  className="bg-white text-indigo-900 hover:bg-gray-50 font-bold py-2.5 px-6 rounded-xl text-sm flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-white/20 flex-1 md:flex-none"
+                >
+                  <Download size={16} /> Сертификат
+                </button>
+              )}
+              {result.test?._id && (
+                <button
+                  onClick={() => navigate(`/leaderboard/${result.test._id}`)}
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold py-2.5 px-6 rounded-xl text-sm flex items-center justify-center gap-2 transition-all flex-1 md:flex-none"
+                >
+                  <Award size={16} className="text-amber-300" /> Таблица
+                </button>
               )}
             </div>
-          )}
+
+            {/* Inline rating */}
+            {result.test?._id && (
+              <div className="flex items-center justify-center gap-3 w-full md:w-auto bg-white/5 px-4 py-2.5 rounded-xl border border-white/10">
+                <span className="text-[11px] font-bold text-indigo-200 tracking-wide uppercase">Оцените тест:</span>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      onClick={() => !ratingSubmitted && submitRating(star)}
+                      onMouseEnter={() => !ratingSubmitted && setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      disabled={ratingSubmitted}
+                      className="p-1 transition-transform hover:scale-125 disabled:cursor-default"
+                    >
+                      <Star
+                        size={20}
+                        className={`transition-all duration-300 ${
+                          (hoverRating || userRating) >= star
+                            ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                            : 'text-white/20 dark:text-white/20'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                {ratingSubmitted && (
+                  <span className="text-xs text-amber-300 font-bold ml-1">
+                    {userRating}/5
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Charts row */}
@@ -499,34 +493,46 @@ export default function ResultPage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="glass-card-solid overflow-hidden mb-6"
+          className="glass-card-solid overflow-hidden mb-6 border-0 shadow-md ring-1 ring-gray-200/50 dark:ring-gray-700/50"
         >
           <button
             onClick={() => setShowReview(!showReview)}
-            className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
+            className="w-full flex items-center justify-between p-6 hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition-colors group"
           >
-            <div className="flex items-center gap-3">
-              <FileText size={16} className="text-primary-600 dark:text-primary-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Разбор ответов</span>
-              <span className="text-xs text-gray-400">{correct} из {total} верно</span>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner border border-primary-100 dark:border-primary-800/30">
+                <FileText size={22} className="text-primary-600 dark:text-primary-400" />
+              </div>
+              <div className="text-left">
+                <span className="block text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">Разбор ответов</span>
+                <span className="block text-sm font-medium text-gray-500 tracking-wide mt-0.5">{correct} верных из {total} вопросов</span>
+              </div>
             </div>
-            {showReview ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-primary-50 dark:group-hover:bg-primary-900/30 transition-colors shadow-sm">
+              {showReview ? <ChevronUp size={20} className="text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400" /> : <ChevronDown size={20} className="text-gray-500 group-hover:text-primary-600 dark:group-hover:text-primary-400" />}
+            </div>
           </button>
 
           {/* Progress bar showing correct/incorrect ratio */}
-          <div className="px-5">
-            <div className="flex rounded-full overflow-hidden h-1.5 bg-gray-100 dark:bg-slate-700">
+          <div className="px-6 pb-4">
+            <div className="flex rounded-full overflow-hidden h-2.5 bg-gray-100 dark:bg-gray-800 shadow-inner">
               {correct > 0 && (
-                <div className="bg-emerald-500 h-full" style={{ width: `${(correct / total) * 100}%` }} />
+                <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${Math.max(2, (correct / total) * 100)}%` }} />
               )}
               {wrong > 0 && (
-                <div className="bg-red-400 h-full" style={{ width: `${(wrong / total) * 100}%` }} />
+                <div className="bg-red-400 h-full transition-all duration-1000 delay-300" style={{ width: `${Math.max(2, (wrong / total) * 100)}%` }} />
               )}
             </div>
           </div>
 
+          <AnimatePresence>
           {showReview && (
-            <div className="border-t border-gray-100 dark:border-slate-700 mt-4 p-5 space-y-3">
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }} 
+              animate={{ height: "auto", opacity: 1 }} 
+              exit={{ height: 0, opacity: 0 }}
+              className="border-t border-gray-100 dark:border-gray-800 mt-2 p-6 space-y-5 bg-gray-50/50 dark:bg-gray-900/30"
+            >
               {result.answers.map((answer, i) => {
                 const question = result.test?.questions?.find(q => q.id === answer.questionId);
                 const qText = answer.questionText || question?.questionText || `Вопрос ${i + 1}`;
@@ -576,57 +582,67 @@ export default function ResultPage() {
                 return (
                   <div
                     key={i}
-                    className={`p-4 rounded-xl border ${
+                    className={`p-5 rounded-[1.25rem] border shadow-sm transition-all hover:shadow-md ${
                       answer.isCorrect
-                        ? 'border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-900/10'
+                        ? 'border-emerald-200/60 dark:border-emerald-800/50 bg-white dark:bg-gray-800'
                         : isEssay && answer.pointsEarned === 0
-                          ? 'border-amber-200 dark:border-amber-800/50 bg-amber-50/30 dark:bg-amber-900/10'
-                          : 'border-red-200 dark:border-red-800/50 bg-red-50/30 dark:bg-red-900/10'
+                          ? 'border-amber-200/60 dark:border-amber-800/50 bg-white dark:bg-gray-800'
+                          : 'border-red-200/60 dark:border-red-800/50 bg-white dark:bg-gray-800'
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-start gap-2.5 flex-1">
-                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5 ${
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start gap-4 flex-1 pr-2">
+                        <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-inner ${
                           answer.isCorrect
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/30'
                             : isEssay && answer.pointsEarned === 0
-                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/30'
+                              : 'bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/30'
                         }`}>
                           {i + 1}
                         </span>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: qText }} />
+                        <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-relaxed max-w-none pt-1.5" dangerouslySetInnerHTML={{ __html: qText }} />
                       </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                      <div className={`flex items-center gap-1.5 flex-shrink-0 px-3 py-1.5 rounded-xl border shadow-sm ${
+                          answer.isCorrect
+                            ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800/30'
+                            : isEssay && answer.pointsEarned === 0
+                              ? 'bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/30'
+                              : 'bg-red-50 border-red-100 dark:bg-red-900/20 dark:border-red-800/30'
+                        }`}>
                         {answer.isCorrect ? (
-                          <CheckCircle size={16} className="text-emerald-500" />
+                          <CheckCircle size={14} className="text-emerald-600 dark:text-emerald-500" />
                         ) : isEssay && answer.pointsEarned === 0 ? (
-                          <HelpCircle size={16} className="text-amber-500" />
+                          <HelpCircle size={14} className="text-amber-600 dark:text-amber-500" />
                         ) : (
-                          <XCircle size={16} className="text-red-500" />
+                          <XCircle size={14} className="text-red-600 dark:text-red-500" />
                         )}
-                        <span className="text-[11px] font-medium text-gray-400">
+                        <span className={`text-xs font-bold tracking-wide ${
+                          answer.isCorrect ? 'text-emerald-700 dark:text-emerald-400'
+                          : isEssay && answer.pointsEarned === 0 ? 'text-amber-700 dark:text-amber-400'
+                          : 'text-red-700 dark:text-red-400'
+                        }`}>
                           {answer.pointsEarned}/{maxPts}
                         </span>
                       </div>
                     </div>
 
                     {/* User's answer */}
-                    <div className="ml-8.5 space-y-2 pl-[34px]">
-                      <div>
-                        <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">Ваш ответ:</span>
-                        <p className={`text-sm mt-0.5 ${
-                          answer.isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                    <div className="ml-[3.25rem] space-y-3">
+                      <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700">
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 block mb-1">Ваш ответ</span>
+                        <p className={`text-sm font-semibold ${
+                          answer.isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'
                         }`}>
-                          {userAnswerText || <span className="italic text-gray-400">Нет ответа</span>}
+                          {userAnswerText || <span className="italic opacity-70 font-medium">Нет ответа</span>}
                         </p>
                       </div>
 
                       {/* Correct answer (if wrong) */}
                       {!answer.isCorrect && correctAnswerText && !isEssay && (
-                        <div>
-                          <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">Правильный ответ:</span>
-                          <p className="text-sm mt-0.5 text-emerald-700 dark:text-emerald-400 font-medium">
+                        <div className="bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl p-3.5 border border-emerald-100 dark:border-emerald-800/30">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-600/70 dark:text-emerald-400/70 block mb-1">Правильный ответ</span>
+                          <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                             {correctAnswerText}
                           </p>
                         </div>
@@ -634,32 +650,33 @@ export default function ResultPage() {
 
                       {/* Essay pending notice */}
                       {isEssay && answer.pointsEarned === 0 && !answer.feedback && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 italic">
-                          В ожидании проверки преподавателем
+                        <p className="text-xs text-amber-600 dark:text-amber-400 italic font-medium px-2">
+                          В ожидании проверки преподавателем...
                         </p>
                       )}
 
                       {/* Teacher feedback for essay */}
                       {answer.feedback && (
-                        <div className="mt-2 p-2.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                          <span className="text-[10px] uppercase tracking-wider font-semibold text-purple-500">Комментарий преподавателя:</span>
-                          <p className="text-xs text-purple-700 dark:text-purple-300 mt-0.5">{answer.feedback}</p>
+                        <div className="mt-3 p-3.5 bg-purple-50 dark:bg-purple-900/10 rounded-xl border border-purple-100 dark:border-purple-800/30">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-purple-500 block mb-1">Комментарий преподавателя:</span>
+                          <p className="text-sm font-medium text-purple-700 dark:text-purple-300 leading-relaxed">{answer.feedback}</p>
                         </div>
                       )}
 
                       {/* Explanation */}
                       {question?.explanation && (
-                        <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-500">Пояснение:</span>
-                          <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">{question.explanation}</p>
+                        <div className="mt-3 p-3.5 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-blue-500 block mb-1">Пояснение:</span>
+                          <p className="text-sm font-medium text-blue-700 dark:text-blue-300 leading-relaxed">{question.explanation}</p>
                         </div>
                       )}
                     </div>
                   </div>
                 );
               })}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Comments — separate card */}

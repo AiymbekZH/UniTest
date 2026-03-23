@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Camera, Save, Lock, Globe, AlertTriangle, Calendar, Copy, Check, MessageSquare, Trash2,
-  ChevronRight
+  ChevronRight, FileText, CheckCircle, TrendingUp
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -138,6 +138,8 @@ export default function Profile() {
     }
   };
 
+  const inputClass = "w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 block pl-10 py-2.5 transition-all outline-none shadow-sm dark:shadow-none placeholder-gray-400";
+
   return (
     <div className="min-h-screen bg-surface">
       <Toaster position="top-right" />
@@ -146,78 +148,107 @@ export default function Profile() {
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
 
-          {/* Profile Hero — clean white card, no gradient */}
-          <div className="glass-card-solid p-6 mb-6">
-            <div className="flex items-center gap-5">
-              {/* Avatar — circle 80px */}
-              <div className="relative group flex-shrink-0">
-                <div className="w-20 h-20 rounded-full bg-primary-50 dark:bg-primary-900/30 border-2 border-white dark:border-slate-700 flex items-center justify-center text-xl font-bold text-primary-600 dark:text-primary-400 overflow-hidden shadow-card">
-                  {avatar ? (
-                    <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
-                  )}
+          {/* Profile Hero — with Premium Banner */}
+          <div className="glass-card-solid overflow-hidden mb-6 border-0 shadow-sm relative">
+            <div className="h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 relative overflow-hidden">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 blur-3xl rounded-full"></div>
+              <div className="absolute top-10 -left-10 w-32 h-32 bg-white/10 blur-2xl rounded-full"></div>
+            </div>
+            
+            <div className="px-6 pb-6 relative">
+              <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-end -mt-12 sm:-mt-14 mb-4">
+                <div className="relative group flex-shrink-0 z-10 antialiased">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white dark:bg-gray-900 p-1.5 shadow-xl transition-transform duration-300 group-hover:scale-105">
+                    <div className="w-full h-full rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center text-3xl font-bold text-indigo-500 overflow-hidden relative">
+                      {avatar ? (
+                        <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
+                      )}
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <Camera size={20} className="text-white" />
+                        <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                      </label>
+                    </div>
+                  </div>
                 </div>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer">
-                  <Camera size={18} className="text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                </label>
-              </div>
-              {/* Name + role + email */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight">{user?.firstName} {user?.lastName}</h2>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${user?.role === 'admin' ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : user?.role === 'teacher' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
-                    {roleLabel}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{user?.email}</p>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                    <Calendar size={11} /> {t('memberSince')} {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
-                  </span>
-                  {/* Inline ID badge */}
-                  <button onClick={copyIdToClipboard} className="inline-flex items-center gap-1 text-[11px] font-mono text-primary-500 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 transition">
-                    <span className="bg-primary-50 dark:bg-primary-900/30 px-2 py-0.5 rounded-md">
-                      {user?.uniqueId || 'N/A'}
+                
+                <div className="flex-1 min-w-0 pb-1 sm:pb-2">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">{user?.firstName} {user?.lastName}</h2>
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${user?.role === 'admin' ? 'bg-red-50 text-red-600 border border-red-100 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400' : user?.role === 'teacher' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100 dark:border-indigo-900/30 dark:bg-indigo-900/20 dark:text-indigo-400' : 'bg-gray-50 text-gray-500 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>
+                      {roleLabel}
                     </span>
-                    {copiedId ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 font-medium">{user?.email}</p>
+                </div>
+
+                <div className="flex flex-col sm:items-end gap-2 pb-1 sm:pb-2">
+                  <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5 font-medium px-1">
+                    <Calendar size={13} /> {t('memberSince')} {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
+                  </span>
+                  <button onClick={copyIdToClipboard} className="inline-flex items-center gap-1.5 text-xs font-mono text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors group">
+                    <span className="bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1.5 flex items-center h-8 rounded-lg border border-indigo-100 dark:border-indigo-800/50 group-hover:border-indigo-200 dark:group-hover:border-indigo-700 transition-colors shadow-sm">
+                      ID: {user?.uniqueId || 'N/A'}
+                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center border border-indigo-100 dark:border-indigo-800/50 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-800 transition-colors shadow-sm">
+                      {copiedId ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                    </div>
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Stats — single card with 3 columns separated by vertical dividers */}
-          <div className="glass-card-solid p-5 mb-8">
-            <div className="flex items-center">
-              <div className="flex-1 text-center cursor-pointer group" onClick={() => navigate('/my-tests')}>
-                <p className="stat-value group-hover:text-primary-600 transition-colors">{stats.testsCreated}</p>
-                <p className="stat-label mt-1">{t('testsCreated')}</p>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-md transition-all duration-300 group" onClick={() => navigate('/my-tests')}>
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500 group-hover:-translate-y-1 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                <FileText size={22} />
               </div>
-              <div className="divider-vertical h-10" />
-              <div className="flex-1 text-center cursor-pointer group" onClick={() => navigate('/my-results')}>
-                <p className="stat-value group-hover:text-primary-600 transition-colors">{stats.testsTaken}</p>
-                <p className="stat-label mt-1">{t('testsTaken')}</p>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{stats.testsCreated}</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-1.5">{t('testsCreated')}</p>
               </div>
-              <div className="divider-vertical h-10" />
-              <div className="flex-1 text-center">
-                <p className="stat-value">{stats.totalScore}<span className="text-lg text-gray-400 ml-0.5">%</span></p>
-                <p className="stat-label mt-1">Средний балл</p>
+            </div>
+            
+            <div className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-md transition-all duration-300 group" onClick={() => navigate('/my-results')}>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500 group-hover:-translate-y-1 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                <CheckCircle size={22} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{stats.testsTaken}</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-1.5">{t('testsTaken')}</p>
+              </div>
+            </div>
+            
+            <div className="glass-card-solid p-5 flex items-center gap-4 hover:border-amber-200 dark:hover:border-amber-800 hover:shadow-md transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-500 group-hover:-translate-y-1 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                <TrendingUp size={22} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white leading-none flex items-baseline gap-0.5">
+                  {stats.totalScore.toFixed(1)} <span className="text-sm font-medium text-gray-400">%</span>
+                </p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-1.5">Средний балл</p>
               </div>
             </div>
           </div>
 
-          {/* Underline Tabs */}
-          <div className="flex gap-6 mb-6 border-b border-gray-200 dark:border-slate-700">
+          {/* Modern Segmented Control Tabs */}
+          <div className="flex bg-gray-100/80 dark:bg-gray-800/80 p-1.5 rounded-2xl mb-6 shadow-inner border border-gray-200/50 dark:border-gray-700 w-full sm:w-auto overflow-x-auto ring-1 ring-white/50 dark:ring-0">
             {[
               { key: 'info', label: t('editProfile'), icon: User },
               { key: 'security', label: t('changePassword'), icon: Lock },
               { key: 'comments', label: t('comments'), icon: MessageSquare },
             ].map(tb => (
               <button key={tb.key} onClick={() => setProfileTab(tb.key)}
-                className={`tab-underline flex items-center gap-1.5 ${profileTab === tb.key ? 'active' : ''}`}>
-                <tb.icon size={14} /> {tb.label}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-5 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap
+                  ${profileTab === tb.key 
+                    ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm ring-1 ring-gray-200/50 dark:ring-gray-600' 
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-white/40 dark:hover:bg-gray-700/50'}`}>
+                <tb.icon size={16} className={profileTab === tb.key ? "text-indigo-500" : "opacity-70"} /> {tb.label}
               </button>
             ))}
           </div>
@@ -226,55 +257,55 @@ export default function Profile() {
           <AnimatePresence mode="wait">
             {profileTab === 'info' && (
               <motion.div key="info" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                <div className="glass-card-solid p-6 mb-5">
-                  <p className="section-title mb-4">{t('editProfile')}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="glass-card-solid p-6 pb-7 mb-6">
+                  <p className="text-base font-bold text-gray-900 dark:text-white mb-5">{t('editProfile')}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('firstName')}</label>
-                      <div className="relative">
-                        <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input type="text" className="input-field text-sm pl-10" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 block uppercase tracking-wider">{t('firstName')}</label>
+                      <div className="relative group">
+                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <input type="text" className={inputClass} value={firstName} onChange={e => setFirstName(e.target.value)} />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('lastName')}</label>
-                      <div className="relative">
-                        <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input type="text" className="input-field text-sm pl-10" value={lastName} onChange={e => setLastName(e.target.value)} />
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 block uppercase tracking-wider">{t('lastName')}</label>
+                      <div className="relative group">
+                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <input type="text" className={inputClass} value={lastName} onChange={e => setLastName(e.target.value)} />
                       </div>
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('middleName')}</label>
-                      <div className="relative">
-                        <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input type="text" className="input-field text-sm pl-10" value={middleName} onChange={e => setMiddleName(e.target.value)} />
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 block uppercase tracking-wider">{t('middleName')}</label>
+                      <div className="relative group">
+                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <input type="text" className={inputClass} value={middleName} onChange={e => setMiddleName(e.target.value)} />
                       </div>
                     </div>
                   </div>
-                  <div className="flex justify-end mt-5">
+                  <div className="flex justify-end mt-6">
                     <button onClick={handleSave} disabled={saving}
-                      className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2">
-                      <Save size={14} /> {saving ? '...' : t('save')}
+                      className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-semibold flex items-center gap-2 transition-all shadow-btn-glow disabled:opacity-50 disabled:cursor-not-allowed">
+                      <Save size={16} /> {saving ? '...' : t('save')}
                     </button>
                   </div>
                 </div>
 
                 {/* Language — pill radio buttons */}
-                <div className="glass-card-solid p-6 mb-5">
-                  <p className="section-title mb-3">{t('language')}</p>
-                  <div className="flex gap-2 flex-wrap">
+                <div className="glass-card-solid p-6 mb-6">
+                  <p className="text-base font-bold text-gray-900 dark:text-white mb-4">{t('language')}</p>
+                  <div className="flex gap-2.5 flex-wrap">
                     {[
                       { code: 'en', label: 'English', flag: '🇬🇧' },
                       { code: 'ru', label: 'Русский', flag: '🇷🇺' },
                       { code: 'kz', label: 'Қазақша', flag: '🇰🇿' }
                     ].map(l => (
                       <button key={l.code} onClick={() => handleLanguageChange(l.code)}
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                        className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
                           ${lang === l.code
-                            ? 'bg-primary-600 text-white shadow-btn-glow'
-                            : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500'}`}
+                            ? 'bg-indigo-500 text-white shadow-btn-glow ring-2 ring-indigo-500/20'
+                            : 'bg-gray-50/80 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:bg-white dark:hover:bg-gray-800 shadow-sm dark:shadow-none'}`}
                       >
-                        <span className="text-base leading-none">{l.flag}</span> {l.label}
+                        <span className="text-lg leading-none drop-shadow-sm">{l.flag}</span> {l.label}
                       </button>
                     ))}
                   </div>
@@ -311,34 +342,34 @@ export default function Profile() {
             {profileTab === 'security' && (
               <motion.div key="security" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
                 <div className="glass-card-solid p-6">
-                  <p className="section-title mb-5">{t('changePassword')}</p>
-                  <div className="space-y-4">
+                  <p className="text-base font-bold text-gray-900 dark:text-white mb-5">{t('changePassword')}</p>
+                  <div className="space-y-5">
                     <div>
-                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('currentPassword')}</label>
-                      <div className="relative">
-                        <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input type="password" className="input-field text-sm pl-10" placeholder="••••••••"
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 block uppercase tracking-wider">{t('currentPassword')}</label>
+                      <div className="relative group">
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <input type="password" className={inputClass} placeholder="••••••••"
                           value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('newPassword')}</label>
-                      <div className="relative">
-                        <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input type="password" className="input-field text-sm pl-10" placeholder="••••••••"
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 block uppercase tracking-wider">{t('newPassword')}</label>
+                      <div className="relative group">
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <input type="password" className={inputClass} placeholder="••••••••"
                           value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Повторите новый пароль</label>
-                      <div className="relative">
-                        <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input type="password" className="input-field text-sm pl-10" placeholder="••••••••"
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 block uppercase tracking-wider">Повторите новый пароль</label>
+                      <div className="relative group">
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <input type="password" className={inputClass} placeholder="••••••••"
                           value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                       </div>
                     </div>
-                    <div className="flex justify-end pt-1">
-                      <button onClick={handlePasswordChange} className="btn-primary py-2.5 px-6 text-sm">
+                    <div className="flex justify-end pt-2">
+                      <button onClick={handlePasswordChange} className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-semibold transition-all shadow-btn-glow">
                         {t('save')}
                       </button>
                     </div>
