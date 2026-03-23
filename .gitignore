@@ -1,9 +1,12 @@
 node_modules/
-client/node_modules/
 .env
-.playwright-mcp/
-landing/
-client/nul
+.DS_Store
+dist/
+build/
+coverage/
+*.log
 *.png
 !client/dist/**
 !client/public/**
+.vscode/
+.playwright-mcp/

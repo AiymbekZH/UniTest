@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Camera, Save, Lock, Globe, AlertTriangle, Calendar, Copy, Check, MessageSquare, Trash2,
-  ChevronRight
+  ChevronRight, FileText, BarChart3, Target
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -129,66 +129,94 @@ export default function Profile() {
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
 
-          {/* Profile Hero — clean white card, no gradient */}
-          <div className="glass-card-solid p-6 mb-6">
-            <div className="flex items-center gap-5">
-              {/* Avatar — circle 80px */}
-              <div className="relative group flex-shrink-0">
-                <div className="w-20 h-20 rounded-full bg-primary-50 dark:bg-primary-900/30 border-2 border-white dark:border-slate-700 flex items-center justify-center text-xl font-bold text-primary-600 dark:text-primary-400 overflow-hidden shadow-card">
-                  {avatar ? (
-                    <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
-                  )}
+          {/* Profile Hero — gradient banner with overlapping avatar */}
+          <div className="glass-card-solid overflow-hidden mb-6">
+            {/* Gradient banner */}
+            <div className="profile-hero-gradient h-28 relative">
+              {/* Subtle pattern overlay */}
+              <div className="absolute inset-0 opacity-10" style={{
+                backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)',
+                backgroundSize: '40px 40px'
+              }} />
+            </div>
+            {/* Content below banner */}
+            <div className="px-6 pb-6">
+              <div className="flex items-end gap-5 -mt-10">
+                {/* Avatar — overlapping banner */}
+                <div className="relative group flex-shrink-0">
+                  <div className="w-24 h-24 rounded-2xl bg-white dark:bg-slate-800 border-4 border-white dark:border-slate-800 flex items-center justify-center text-2xl font-bold text-primary-600 dark:text-primary-400 overflow-hidden shadow-card">
+                    {avatar ? (
+                      <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
+                    )}
+                  </div>
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition cursor-pointer">
+                    <Camera size={20} className="text-white" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                  </label>
                 </div>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer">
-                  <Camera size={18} className="text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                </label>
-              </div>
-              {/* Name + role + email */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight">{user?.firstName} {user?.lastName}</h2>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${user?.role === 'admin' ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : user?.role === 'teacher' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
-                    {roleLabel}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{user?.email}</p>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                    <Calendar size={11} /> {t('memberSince')} {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
-                  </span>
-                  {/* Inline ID badge */}
-                  <button onClick={copyIdToClipboard} className="inline-flex items-center gap-1 text-[11px] font-mono text-primary-500 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 transition">
-                    <span className="bg-primary-50 dark:bg-primary-900/30 px-2 py-0.5 rounded-md">
-                      {user?.uniqueId || 'N/A'}
+                {/* Name + role + email */}
+                <div className="flex-1 min-w-0 pb-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{user?.firstName} {user?.lastName}</h2>
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${user?.role === 'admin' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : user?.role === 'teacher' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                      {roleLabel}
                     </span>
-                    {copiedId ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
-                  </button>
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{user?.email}</p>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                      <Calendar size={11} /> {t('memberSince')} {new Date(user?.createdAt || Date.now()).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
+              </div>
+              {/* ID badge row below avatar */}
+              <div className="mt-4 flex items-center">
+                <button onClick={copyIdToClipboard} className="inline-flex items-center gap-1.5 text-[11px] font-mono text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-300 transition bg-gray-50 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600">
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mr-1">ID</span>
+                  {user?.uniqueId || 'N/A'}
+                  {copiedId ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Stats — single card with 3 columns separated by vertical dividers */}
-          <div className="glass-card-solid p-5 mb-8">
-            <div className="flex items-center">
-              <div className="flex-1 text-center cursor-pointer group" onClick={() => navigate('/my-tests')}>
-                <p className="stat-value group-hover:text-primary-600 transition-colors">{stats.testsCreated}</p>
-                <p className="stat-label mt-1">{t('testsCreated')}</p>
+          {/* Stats — 3 mini-cards with icons */}
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            <motion.div
+              whileHover={{ y: -2 }}
+              onClick={() => navigate('/my-tests')}
+              className="stat-mini-card"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
+                <FileText size={18} className="text-indigo-500" />
               </div>
-              <div className="divider-vertical h-10" />
-              <div className="flex-1 text-center cursor-pointer group" onClick={() => navigate('/my-results')}>
-                <p className="stat-value group-hover:text-primary-600 transition-colors">{stats.testsTaken}</p>
-                <p className="stat-label mt-1">{t('testsTaken')}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{stats.testsCreated}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('testsCreated')}</p>
+            </motion.div>
+            <motion.div
+              whileHover={{ y: -2 }}
+              onClick={() => navigate('/my-results')}
+              className="stat-mini-card"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mb-2">
+                <BarChart3 size={18} className="text-emerald-500" />
               </div>
-              <div className="divider-vertical h-10" />
-              <div className="flex-1 text-center">
-                <p className="stat-value">{stats.totalScore}<span className="text-lg text-gray-400 ml-0.5">%</span></p>
-                <p className="stat-label mt-1">Средний балл</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{stats.testsTaken}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('testsTaken')}</p>
+            </motion.div>
+            <motion.div
+              whileHover={{ y: -2 }}
+              className="stat-mini-card"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center mb-2">
+                <Target size={18} className="text-amber-500" />
               </div>
-            </div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{stats.totalScore}<span className="text-base text-gray-400 ml-0.5">%</span></p>
+              <p className="text-xs text-gray-500 mt-0.5">Средний балл</p>
+            </motion.div>
           </div>
 
           {/* Underline Tabs */}
