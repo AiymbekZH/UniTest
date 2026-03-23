@@ -137,4 +137,30 @@ router.get('/me/comments', auth, async (req, res) => {
   }
 });
 
+// Get my stats (aggregated)
+router.get('/me/stats', auth, async (req, res) => {
+  try {
+    const Test = require('../models/Test');
+    const Result = require('../models/Result');
+    
+    const testsCreated = await Test.countDocuments({ creator: req.user._id, isDeleted: { $ne: true } });
+    
+    const resultsStats = await Result.aggregate([
+      { $match: { user: req.user._id, status: 'completed' } },
+      { $group: {
+          _id: null,
+          testsTaken: { $sum: 1 },
+          avgScore: { $avg: '$percentage' }
+      }}
+    ]);
+
+    const testsTaken = resultsStats.length > 0 ? resultsStats[0].testsTaken : 0;
+    const totalScore = resultsStats.length > 0 ? Math.round(resultsStats[0].avgScore) : 0;
+
+    res.json({ testsCreated, testsTaken, totalScore });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+  }
+});
+
 module.exports = router;

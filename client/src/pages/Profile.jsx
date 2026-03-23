@@ -36,15 +36,15 @@ export default function Profile() {
     api.get('/profile/me/comments')
       .then(res => setMyComments(res.data.comments || []))
       .catch(() => {});
-    // Load stats
-    api.get('/results/my')
+    // Load stats from backend efficiently
+    api.get('/profile/me/stats')
       .then(res => {
-        const results = res.data || [];
-        setStats(prev => ({ ...prev, testsTaken: results.length, totalScore: results.length > 0 ? Math.round(results.reduce((s, r) => s + r.percentage, 0) / results.length) : 0 }));
+        setStats({
+          testsCreated: res.data.testsCreated || 0,
+          testsTaken: res.data.testsTaken || 0,
+          totalScore: res.data.totalScore || 0
+        });
       })
-      .catch(() => {});
-    api.get('/tests/my')
-      .then(res => setStats(prev => ({ ...prev, testsCreated: (res.data || []).length })))
       .catch(() => {});
   }, []);
 

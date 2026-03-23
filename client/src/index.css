@@ -121,7 +121,7 @@
     @apply card hover:shadow-card-hover cursor-pointer;
   }
   .dark .card-interactive {
-    @apply hover:bg-slate-750 hover:border-slate-600 hover:shadow-none;
+    @apply hover:bg-slate-700 hover:border-slate-600 hover:shadow-none;
   }
 
   .section-title {
