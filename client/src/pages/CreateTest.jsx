@@ -77,6 +77,7 @@ export default function CreateTest() {
   const [test, setTest] = useState({
     title: '',
     description: '',
+    coverImage: '',
     tags: [],
     tagInput: '',
     questions: [createQuestion()],
@@ -112,6 +113,7 @@ export default function CreateTest() {
         setTest({
           title: t.title,
           description: t.description || '',
+          coverImage: t.coverImage || '',
           tags: t.tags || [],
           tagInput: '',
           questions: t.questions || [createQuestion()],
@@ -178,6 +180,14 @@ export default function CreateTest() {
     setTest(prev => ({ ...prev, questions: updated }));
   };
 
+  const updateTranslation = (qIndex, lang, field, value) => {
+    const updated = [...test.questions];
+    if (!updated[qIndex].translations) updated[qIndex].translations = {};
+    if (!updated[qIndex].translations[lang]) updated[qIndex].translations[lang] = {};
+    updated[qIndex].translations[lang][field] = value;
+    setTest(prev => ({ ...prev, questions: updated }));
+  };
+
   const updateOption = (qIndex, oIndex, field, value) => {
     const updated = [...test.questions];
     const opts = [...updated[qIndex].options];
@@ -239,6 +249,25 @@ export default function CreateTest() {
       toast.success(t('mediaUploaded'));
     } catch (err) {
       toast.error(t('errorUploadMedia'));
+    }
+  };
+
+  const handleCoverUpload = async (file) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large (max 5MB)');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await api.post('/tests/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      updateTest('coverImage', res.data.url);
+      toast.success(t('mediaUploaded') || 'Cover uploaded');
+    } catch (err) {
+      toast.error(t('errorUploadMedia') || 'Error uploading cover');
     }
   };
 
@@ -645,6 +674,7 @@ export default function CreateTest() {
                         { key: 'instantFeedback', label: t('instantFeedback'), icon: Zap, update: updateSettings },
                         { key: 'practiceMode', label: t('practiceModeLabel'), icon: GraduationCap, update: updateSettings },
                         { key: 'isPublic', label: t('isPublic'), icon: Globe, update: updateSettings },
+                        { key: 'multiLanguage', label: t('multiLanguage') || 'Multi-language (EN/RU/KZ)', icon: Globe, update: updateSettings },
                       ].map(opt => {
                         const val = test.settings[opt.key];
                         const Icon = opt.icon;
@@ -722,21 +752,44 @@ export default function CreateTest() {
 
           {/* Test Info */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="glass-card-solid p-5 mb-5 space-y-3">
-            <input
-              className="w-full text-lg font-bold text-dark bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600"
-              placeholder={t('testTitlePlaceholder')}
-              value={test.title}
-              onChange={e => updateTest('title', e.target.value)}
-            />
-            <textarea
-              className="input-field resize-none text-sm py-2"
-              rows="2"
-              placeholder={t('testDescPlaceholder')}
-              value={test.description}
-              onChange={e => updateTest('description', e.target.value)}
-            />
-            <div className="flex flex-wrap items-center gap-2">
+            className="glass-card-solid mb-5 overflow-hidden">
+            
+            {/* Cover image preview/upload */}
+            <div className={`relative ${test.coverImage ? 'h-48' : 'h-24'} bg-gray-50 dark:bg-slate-800 flex items-center justify-center group border-b border-gray-100 dark:border-slate-700 transition-all`}>
+              {test.coverImage ? (
+                <>
+                  <img src={test.coverImage} className="w-full h-full object-cover" alt="Cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <label className="btn-secondary py-1.5 px-3 text-xs cursor-pointer flex gap-1.5 items-center">
+                      <Image size={14} /> {t('changeCover') || 'Change cover'}
+                      <input type="file" className="hidden" accept="image/*" onChange={e => handleCoverUpload(e.target.files[0])} />
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <label className="flex flex-col items-center gap-1.5 cursor-pointer text-gray-400 hover:text-primary-500 transition-colors">
+                  <Image size={24} />
+                  <span className="text-xs font-medium">{t('addCover') || 'Add Cover (Optional)'}</span>
+                  <input type="file" className="hidden" accept="image/*" onChange={e => handleCoverUpload(e.target.files[0])} />
+                </label>
+              )}
+            </div>
+
+            <div className="p-5 space-y-3">
+              <input
+                className="w-full text-lg font-bold text-dark bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600"
+                placeholder={t('testTitlePlaceholder')}
+                value={test.title}
+                onChange={e => updateTest('title', e.target.value)}
+              />
+              <textarea
+                className="input-field resize-none text-sm py-2"
+                rows="2"
+                placeholder={t('testDescPlaceholder')}
+                value={test.description}
+                onChange={e => updateTest('description', e.target.value)}
+              />
+              <div className="flex flex-wrap items-center gap-2">
               {test.tags.map((tag, i) => (
                 <span key={i} className="badge-info flex items-center gap-1 text-xs">
                   {tag}
@@ -753,6 +806,7 @@ export default function CreateTest() {
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
               />
             </div>
+          </div>
           </motion.div>
 
           {/* Mobile Quick Actions */}
@@ -1019,6 +1073,27 @@ export default function CreateTest() {
                         <input className="input-field py-1.5 text-xs" placeholder={t('explanationPlaceholder')}
                           value={question.explanation} onChange={e => updateQuestion(qIndex, 'explanation', e.target.value)} />
                       </div>
+
+                      {/* Translations */}
+                      {test.settings.multiLanguage && (
+                        <div className="pt-3 border-t border-primary-100 dark:border-primary-900/30">
+                          <label className="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-2 flex items-center gap-1.5">
+                            <Globe size={12} /> {t('translations') || 'Переводы'}
+                          </label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <span className="text-[10px] font-medium text-gray-500 mb-1 block">Русский</span>
+                              <input className="input-field py-1.5 text-xs mb-2" placeholder="Текст вопроса"
+                                value={question.translations?.ru?.questionText || ''} onChange={e => updateTranslation(qIndex, 'ru', 'questionText', e.target.value)} />
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-medium text-gray-500 mb-1 block">Қазақша</span>
+                              <input className="input-field py-1.5 text-xs mb-2" placeholder="Сұрақ мәтіні"
+                                value={question.translations?.kz?.questionText || ''} onChange={e => updateTranslation(qIndex, 'kz', 'questionText', e.target.value)} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     </motion.div>
                   )}

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -248,7 +248,13 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                <div onClick={() => navigate(`/test-profile/${test.shareLink}`)} className="flex flex-col flex-1">
+                <div onClick={() => navigate(`/test-profile/${test.shareLink}`)} className="flex flex-col flex-1 h-full">
+                  {test.coverImage && (
+                    <div className="h-32 -mx-5 -mt-5 mb-4 rounded-t-xl overflow-hidden bg-gray-100 dark:bg-slate-800 relative group-hover:opacity-90 transition-opacity">
+                      <img src={test.coverImage} className="w-full h-full object-cover" alt={test.title} />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  )}
                   {/* Status badge */}
                   <div className="flex items-center gap-2 mb-2.5">
                     {test.settings?.isPublic ? (

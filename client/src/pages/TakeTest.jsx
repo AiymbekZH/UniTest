@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -241,6 +241,7 @@ export default function TakeTest() {
   const [guestName, setGuestName] = useState('');
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [activeTestLang, setActiveTestLang] = useState('default');
   const [timeLeft, setTimeLeft] = useState(null);
   const [violations, setViolations] = useState([]);
   const [started, setStarted] = useState(false);
@@ -697,6 +698,13 @@ export default function TakeTest() {
   const currentAnswer = answers[question?.id];
   const currentFeedback = feedback[question?.id];
 
+  const getTranslatedText = (q, field) => {
+    if (activeTestLang !== 'default' && q.translations?.[activeTestLang]?.[field]) {
+      return q.translations[activeTestLang][field];
+    }
+    return q[field] || '';
+  };
+
   // Helper for option feedback styling
   const getOptionFeedbackClass = (optId) => {
     if (!currentFeedback?.checked) return '';
@@ -954,6 +962,20 @@ export default function TakeTest() {
               )}
             </h2>
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              {test.settings?.multiLanguage && (
+                <div className="flex bg-gray-100 dark:bg-slate-700 p-0.5 rounded-lg mr-1 sm:mr-2">
+                  {[
+                    { val: 'default', label: 'Ориг' },
+                    { val: 'ru', label: 'RU' },
+                    { val: 'kz', label: 'KZ' }
+                  ].map(l => (
+                    <button key={l.val} onClick={() => setActiveTestLang(l.val)}
+                      className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md transition ${activeTestLang === l.val ? 'bg-white dark:bg-slate-600 shadow-sm text-dark' : 'text-gray-500 dark:text-gray-400 hover:text-dark'}`}>
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               {violations.length > 0 && (
                 <span className="badge-danger flex items-center gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">
                   <AlertTriangle size={10} /> {violations.length}
@@ -1024,14 +1046,14 @@ export default function TakeTest() {
                   <span className="w-4 h-4 bg-amber-500 rounded flex items-center justify-center text-white text-[8px]">T</span>
                   Текст
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{question.passage}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{getTranslatedText(question, 'passage')}</p>
               </div>
             )}
 
             {/* Question text */}
             <div
               className="text-base sm:text-lg font-semibold text-dark mb-4 sm:mb-6 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: question.questionText }}
+              dangerouslySetInnerHTML={{ __html: getTranslatedText(question, 'questionText') }}
               onClick={(e) => {
                 const link = e.target.closest('a');
                 if (!link) return;

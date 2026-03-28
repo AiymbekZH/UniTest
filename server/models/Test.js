@@ -33,12 +33,14 @@ const questionSchema = new mongoose.Schema({
     fileName: { type: String, default: '' }
   },
   explanation: { type: String, default: '' }, // Optional explanation after answering
+  translations: { type: mongoose.Schema.Types.Mixed, default: {} }, // Dynamic multilingual translations
   order: { type: Number, default: 0 }
 }, { _id: false });
 
 const testSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   description: { type: String, default: '', trim: true },
+  coverImage: { type: String, default: '' }, // Base64 data URL for cover image
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   questions: [questionSchema],
   settings: {
@@ -47,6 +49,7 @@ const testSchema = new mongoose.Schema({
     shuffleOptions: { type: Boolean, default: false },
     showResults: { type: Boolean, default: true },
     allowReview: { type: Boolean, default: true },
+    multiLanguage: { type: Boolean, default: false }, // Toggle for multilingual test
     maxAttempts: { type: Number, default: 1 },
     isPublic: { type: Boolean, default: false },
     antiCheat: {

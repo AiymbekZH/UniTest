@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -169,9 +169,14 @@ export default function MyTests() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="glass-card-solid p-5 flex flex-col sm:flex-row sm:items-center gap-4 group hover:shadow-glass transition-all"
+                className="glass-card-solid p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 group hover:shadow-glass transition-all"
               >
-                <div className="flex-1 min-w-0">
+                {test.coverImage && (
+                  <div className="w-full sm:w-32 h-32 sm:h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-slate-800 flex-shrink-0 cursor-pointer" onClick={() => navigate(`/test-profile/${test.shareLink}`)}>
+                    <img src={test.coverImage} className="w-full h-full object-cover" alt={test.title} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/test-profile/${test.shareLink}`)}>
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="font-semibold text-dark truncate">{test.title}</h3>
                     {test.isDeleted && (
