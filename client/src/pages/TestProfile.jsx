@@ -12,6 +12,7 @@ import { useLanguage } from '../context/LanguageContext';
 import Navbar from '../components/Navbar';
 import CommentsSection from '../components/CommentsSection';
 import toast, { Toaster } from 'react-hot-toast';
+import TestCoverArtwork from '../components/TestCoverArtwork';
 
 export default function TestProfile() {
   const { shareLink } = useParams();
@@ -135,6 +136,15 @@ export default function TestProfile() {
               animate={{ opacity: 1, y: 0 }}
               className="glass-card-solid p-6 sm:p-8"
             >
+              <div className="mb-6 overflow-hidden rounded-[28px] border border-white/70 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.4)] dark:border-slate-700/70">
+                <TestCoverArtwork
+                  coverImage={test.coverImage}
+                  title={test.title}
+                  className="w-full"
+                  style={{ aspectRatio: '16 / 9' }}
+                />
+              </div>
+
               <div className="flex items-center gap-2 mb-4 flex-wrap">
                 {test.settings?.isPublic ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"><Eye size={10} /> {t('publicTest')}</span>

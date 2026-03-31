@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -22,6 +22,22 @@ const HIGHLIGHTS = [
   { color: '#e9d5ff', label: 'Purple' },
   { color: '#fed7aa', label: 'Orange' },
 ];
+
+const hasHtmlMarkup = (value = '') => /<\/?[a-z][\s\S]*>/i.test(value);
+
+const escapeHtml = (value = '') => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const normalizeEditorContent = (value = '') => {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) return '';
+  if (hasHtmlMarkup(normalized)) return normalized;
+  return `<p>${escapeHtml(normalized).replace(/\n/g, '<br />')}</p>`;
+};
 
 const MenuBar = ({ editor, disableLinks }) => {
   const [showColors, setShowColors] = useState(false);
@@ -151,6 +167,7 @@ const MenuBar = ({ editor, disableLinks }) => {
 };
 
 export default function RichTextEditor({ content, onChange, placeholder = '', className = '', disableLinks = false }) {
+  const normalizedContent = normalizeEditorContent(content);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -172,7 +189,7 @@ export default function RichTextEditor({ content, onChange, placeholder = '', cl
         placeholder,
       }),
     ],
-    content: content || '',
+    content: normalizedContent,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       // Return empty string if editor is empty (only has <p></p>)
@@ -184,6 +201,15 @@ export default function RichTextEditor({ content, onChange, placeholder = '', cl
       },
     },
   });
+
+  useEffect(() => {
+    if (!editor) return;
+    const currentHtml = editor.getHTML();
+    const comparableCurrentHtml = currentHtml === '<p></p>' ? '' : currentHtml;
+    if (comparableCurrentHtml !== normalizedContent) {
+      editor.commands.setContent(normalizedContent || '', false);
+    }
+  }, [editor, normalizedContent]);
 
   return (
     <div className={`border border-gray-200 dark:border-slate-600 rounded-xl overflow-hidden bg-white dark:bg-slate-800 focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-300 dark:focus-within:border-primary-600 transition-all ${className}`}>

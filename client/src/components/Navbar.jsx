@@ -4,15 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap, Plus, LogOut, Menu, X,
   LayoutDashboard, FileText, BarChart3, Database, Sun, Moon, Sunset,
-  User, Shield, Globe, Users
+  User, Shield, Globe, Users, RefreshCw, Trash2, UserPlus
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import NotificationBell from './NotificationBell';
+import ConfirmDialog from './ConfirmDialog';
+import toast from 'react-hot-toast';
 
 export default memo(function Navbar() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, savedSessions, switchAccount, removeSavedSession, isAuthenticated } = useAuth();
   const { dark, mode, cycleTheme } = useTheme();
   const { t, lang, setLanguage } = useLanguage();
   const navigate = useNavigate();
@@ -20,10 +22,36 @@ export default memo(function Navbar() {
   const [showMenu, setShowMenu] = useState(false);
   const [showMobile, setShowMobile] = useState(false);
   const [showLang, setShowLang] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const currentSessionId = user?.id || user?._id || user?.email;
+  const quickSwitchSessions = (savedSessions || []).filter(session => session.id !== currentSessionId);
 
   const handleLogout = () => {
+    setShowMenu(false);
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleSwitchAccount = async (sessionId) => {
+    try {
+      await switchAccount(sessionId);
+      setShowMenu(false);
+      navigate('/dashboard');
+      toast.success('Аккаунт переключен');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Не удалось переключить аккаунт');
+    }
+  };
+
+  const handleRemoveSavedSession = (event, sessionId) => {
+    event.stopPropagation();
+    removeSavedSession(sessionId);
+    toast.success('Аккаунт удалён из быстрого доступа');
   };
 
   const navLinks = [
@@ -40,6 +68,16 @@ export default memo(function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-100/50 dark:border-slate-700/50">
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+        title="Выйти из аккаунта?"
+        message="Текущая сессия закроется, но сохранённые аккаунты останутся доступны для быстрого входа."
+        confirmText={t('logout')}
+        variant="warning"
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -194,6 +232,69 @@ export default memo(function Navbar() {
                             {t('admin')}
                           </Link>
                         )}
+                        <div className="mt-1 border-t border-gray-100 dark:border-slate-700 pt-2">
+                          <div className="px-3 pb-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                              Быстрый доступ
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-400">
+                              Сохранённые аккаунты для мгновенного переключения
+                            </p>
+                          </div>
+
+                          {quickSwitchSessions.length > 0 ? (
+                            <div className="space-y-1 px-1">
+                              {quickSwitchSessions.map(session => (
+                                <div
+                                  key={session.id}
+                                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-700/70 transition"
+                                >
+                                  <button
+                                    onClick={() => handleSwitchAccount(session.id)}
+                                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                                  >
+                                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-primary-100 text-[11px] font-semibold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
+                                      {session.user?.avatar ? (
+                                        <img src={session.user.avatar} alt="" className="h-full w-full object-cover" />
+                                      ) : (
+                                        <>{session.user?.firstName?.[0]}{session.user?.lastName?.[0]}</>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-200">
+                                        {session.user?.firstName} {session.user?.lastName}
+                                      </p>
+                                      <p className="truncate text-[11px] text-gray-400">
+                                        {session.user?.email}
+                                      </p>
+                                    </div>
+                                    <RefreshCw size={13} className="flex-shrink-0 text-primary-500" />
+                                  </button>
+                                  <button
+                                    onClick={(event) => handleRemoveSavedSession(event, session.id)}
+                                    className="rounded-md p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                                    title="Убрать из быстрого доступа"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="px-3 pb-2 text-[11px] text-gray-400">
+                              После входа во второй аккаунт он появится здесь.
+                            </div>
+                          )}
+
+                          <Link
+                            to="/login"
+                            onClick={() => setShowMenu(false)}
+                            className="mx-1 mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-700"
+                          >
+                            <UserPlus size={16} />
+                            Добавить аккаунт
+                          </Link>
+                        </div>
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"

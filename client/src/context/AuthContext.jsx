@@ -3,6 +3,26 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
+const ACTIVE_TOKEN_KEY = 'unitest_token';
+const ACTIVE_USER_KEY = 'unitest_user';
+const SAVED_SESSIONS_KEY = 'unitest_saved_sessions';
+
+const getSessionId = (user) => user?.id || user?._id || user?.email || '';
+
+const readSavedSessions = () => {
+  try {
+    const raw = localStorage.getItem(SAVED_SESSIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(session => session?.id && session?.token && session?.user) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeSavedSessions = (sessions) => {
+  localStorage.setItem(SAVED_SESSIONS_KEY, JSON.stringify(sessions));
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within AuthProvider');
@@ -11,57 +31,143 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [savedSessions, setSavedSessions] = useState(() => readSavedSessions());
   const [loading, setLoading] = useState(true);
 
+  const applyActiveSession = useCallback((token, nextUser) => {
+    localStorage.setItem(ACTIVE_TOKEN_KEY, token);
+    localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(nextUser));
+    setUser(nextUser);
+  }, []);
+
+  const clearActiveSession = useCallback(() => {
+    localStorage.removeItem(ACTIVE_TOKEN_KEY);
+    localStorage.removeItem(ACTIVE_USER_KEY);
+    setUser(null);
+  }, []);
+
+  const upsertSavedSession = useCallback((token, nextUser) => {
+    const sessionId = getSessionId(nextUser);
+    if (!sessionId || !token || !nextUser) return [];
+
+    const nextSessions = [
+      {
+        id: sessionId,
+        token,
+        user: nextUser,
+        lastUsedAt: new Date().toISOString()
+      },
+      ...readSavedSessions().filter(session => session.id !== sessionId)
+    ].slice(0, 6);
+
+    writeSavedSessions(nextSessions);
+    setSavedSessions(nextSessions);
+    return nextSessions;
+  }, []);
+
+  const persistSession = useCallback((token, nextUser) => {
+    applyActiveSession(token, nextUser);
+    upsertSavedSession(token, nextUser);
+  }, [applyActiveSession, upsertSavedSession]);
+
+  const removeSavedSession = useCallback((sessionId) => {
+    const nextSessions = readSavedSessions().filter(session => session.id !== sessionId);
+    writeSavedSessions(nextSessions);
+    setSavedSessions(nextSessions);
+
+    if (getSessionId(user) === sessionId) {
+      clearActiveSession();
+    }
+  }, [clearActiveSession, user]);
+
+  const syncCurrentSession = useCallback((nextUser) => {
+    const token = localStorage.getItem(ACTIVE_TOKEN_KEY);
+    if (!token || !nextUser) return;
+    applyActiveSession(token, nextUser);
+    upsertSavedSession(token, nextUser);
+  }, [applyActiveSession, upsertSavedSession]);
+
+  const switchAccount = useCallback(async (sessionId) => {
+    const session = readSavedSessions().find(item => item.id === sessionId);
+    if (!session) {
+      throw new Error('Сохраненная сессия не найдена');
+    }
+
+    applyActiveSession(session.token, session.user);
+
+    try {
+      const res = await api.get('/auth/me');
+      persistSession(session.token, res.data.user);
+      return res.data.user;
+    } catch (error) {
+      removeSavedSession(sessionId);
+      throw error;
+    }
+  }, [applyActiveSession, persistSession, removeSavedSession]);
+
   useEffect(() => {
-    const token = localStorage.getItem('unitest_token');
-    const savedUser = localStorage.getItem('unitest_user');
+    const token = localStorage.getItem(ACTIVE_TOKEN_KEY);
+    const savedUser = localStorage.getItem(ACTIVE_USER_KEY);
+
     if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
-      // Verify token is still valid
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        clearActiveSession();
+        setLoading(false);
+        return;
+      }
+
       api.get('/auth/me')
         .then(res => {
-          setUser(res.data.user);
-          localStorage.setItem('unitest_user', JSON.stringify(res.data.user));
+          syncCurrentSession(res.data.user);
         })
         .catch(() => {
-          logout();
+          clearActiveSession();
         })
         .finally(() => setLoading(false));
     } else {
+      setSavedSessions(readSavedSessions());
       setLoading(false);
     }
-  }, []);
+  }, [clearActiveSession, syncCurrentSession]);
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
-    localStorage.setItem('unitest_token', res.data.token);
-    localStorage.setItem('unitest_user', JSON.stringify(res.data.user));
-    setUser(res.data.user);
+    persistSession(res.data.token, res.data.user);
     return res.data;
   };
 
   const register = async (data) => {
     const res = await api.post('/auth/register', data);
-    localStorage.setItem('unitest_token', res.data.token);
-    localStorage.setItem('unitest_user', JSON.stringify(res.data.user));
-    setUser(res.data.user);
+    persistSession(res.data.token, res.data.user);
     return res.data;
   };
 
   const logout = () => {
-    localStorage.removeItem('unitest_token');
-    localStorage.removeItem('unitest_user');
-    setUser(null);
+    clearActiveSession();
+    setSavedSessions(readSavedSessions());
   };
 
   const updateUser = useCallback((updatedUser) => {
-    setUser(updatedUser);
-    localStorage.setItem('unitest_user', JSON.stringify(updatedUser));
-  }, []);
+    syncCurrentSession(updatedUser);
+  }, [syncCurrentSession]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        savedSessions,
+        login,
+        register,
+        logout,
+        updateUser,
+        switchAccount,
+        removeSavedSession,
+        isAuthenticated: !!user
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

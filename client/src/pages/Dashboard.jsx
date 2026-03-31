@@ -12,6 +12,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 import Pagination from '../components/Pagination';
 import ConfirmDialog from '../components/ConfirmDialog';
+import TestCoverArtwork from '../components/TestCoverArtwork';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -200,33 +201,14 @@ export default function Dashboard() {
                 className="glass-card-solid overflow-hidden cursor-pointer group relative flex flex-col"
               >
                 {/* Cover Image */}
-                <div
-                  className="relative w-full overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700"
-                  style={{ aspectRatio: '16 / 9' }}
+                <TestCoverArtwork
+                  coverImage={test.coverImage}
+                  title={test.title}
+                  className="w-full"
+                  imageClassName="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                   onClick={() => navigate(`/test-profile/${test.shareLink}`)}
-                >
-                  {test.coverImage ? (
-                    <>
-                      <img
-                        src={test.coverImage}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent" />
-                    </>
-                  ) : (
-                    <div className="absolute inset-0 flex items-end p-4">
-                      <div className="inline-flex items-center gap-2 rounded-xl bg-white/90 dark:bg-slate-900/80 px-3 py-2 shadow-sm backdrop-blur">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-100 text-xs font-bold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
-                          {test.title?.trim()?.[0]?.toUpperCase() || 'T'}
-                        </span>
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-300">
-                          {t('coverImage') || 'Обложка'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  style={{ aspectRatio: '16 / 9' }}
+                />
 
                 <div className="p-5 flex flex-col flex-1">
                 {/* Menu */}

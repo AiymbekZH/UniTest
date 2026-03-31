@@ -6,7 +6,8 @@ import {
   Check, X, Type, ListChecks, ToggleLeft,
   FileText, Link2, Settings, Upload, ChevronUp, ChevronDown,
   Database, FileSpreadsheet, Eye, EyeOff, Ticket, Sparkles,
-  Clock, Repeat, Calendar, Shield, Hash, Shuffle, Layers, Zap, Lock, Copy, Camera, Globe, GraduationCap
+  Clock, Repeat, Calendar, Shield, Hash, Shuffle, Layers, Zap, Lock, Copy, Camera, Globe, GraduationCap,
+  Move, ZoomIn, RotateCcw
 } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -18,6 +19,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 import AIGenerateModal from '../components/AIGenerateModal';
+import TestCoverArtwork from '../components/TestCoverArtwork';
 
 const questionTypesData = [
   { value: 'single-choice', labelKey: 'singleChoice', icon: Check, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' },
@@ -33,6 +35,73 @@ const TRANSLATION_LANGUAGE_OPTIONS = [
   { code: 'ru', label: '🇷🇺 Русский', shortLabel: '🇷🇺 RU' },
   { code: 'kz', label: '🇰🇿 Қазақша', shortLabel: '🇰🇿 KZ' }
 ];
+
+const COVER_FRAME_WIDTH = 800;
+const COVER_FRAME_HEIGHT = 450;
+const COVER_MIN_ZOOM = 1;
+const COVER_MAX_ZOOM = 3;
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+function getPlainText(html = '') {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function getCoverMetrics(coverState) {
+  if (!coverState?.naturalWidth || !coverState?.naturalHeight) return null;
+
+  const zoom = clamp(coverState.zoom || COVER_MIN_ZOOM, COVER_MIN_ZOOM, COVER_MAX_ZOOM);
+  const baseScale = Math.max(
+    COVER_FRAME_WIDTH / coverState.naturalWidth,
+    COVER_FRAME_HEIGHT / coverState.naturalHeight
+  );
+  const renderScale = baseScale * zoom;
+  const renderWidth = coverState.naturalWidth * renderScale;
+  const renderHeight = coverState.naturalHeight * renderScale;
+
+  return {
+    zoom,
+    baseScale,
+    renderScale,
+    renderWidth,
+    renderHeight,
+    minOffsetX: Math.min(0, COVER_FRAME_WIDTH - renderWidth),
+    maxOffsetX: 0,
+    minOffsetY: Math.min(0, COVER_FRAME_HEIGHT - renderHeight),
+    maxOffsetY: 0,
+  };
+}
+
+function createCoverEditorState({ src, fileName, naturalWidth, naturalHeight }) {
+  const initialState = {
+    src,
+    fileName,
+    naturalWidth,
+    naturalHeight,
+    zoom: COVER_MIN_ZOOM,
+    offsetX: 0,
+    offsetY: 0,
+  };
+  const metrics = getCoverMetrics(initialState);
+
+  return {
+    ...initialState,
+    offsetX: metrics ? (COVER_FRAME_WIDTH - metrics.renderWidth) / 2 : 0,
+    offsetY: metrics ? (COVER_FRAME_HEIGHT - metrics.renderHeight) / 2 : 0,
+  };
+}
+
+function clampCoverEditorState(coverState) {
+  const metrics = getCoverMetrics(coverState);
+  if (!metrics) return coverState;
+
+  return {
+    ...coverState,
+    zoom: metrics.zoom,
+    offsetX: clamp(coverState.offsetX, metrics.minOffsetX, metrics.maxOffsetX),
+    offsetY: clamp(coverState.offsetY, metrics.minOffsetY, metrics.maxOffsetY),
+  };
+}
 
 function createDefaultSettings() {
   return {
@@ -187,8 +256,11 @@ export default function CreateTest() {
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [draftStatus, setDraftStatus] = useState(''); // '' | 'saving' | 'saved'
   const [openTranslationPanels, setOpenTranslationPanels] = useState({});
+  const [coverEditor, setCoverEditor] = useState(null);
   const questionRefs = useRef({});
   const autoSaveTimer = useRef(null);
+  const coverStageRef = useRef(null);
+  const coverDragRef = useRef(null);
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const hasAIAccess = user?.role === 'admin' || Boolean(user?.aiAccess);
@@ -300,38 +372,131 @@ export default function CreateTest() {
 
   const updateTest = (field, value) => setTest(prev => ({ ...prev, [field]: value }));
 
-  // Cover image: crop to 16:9, resize to 800px, compress to JPEG
-  const processCoverImage = (file) => {
-    if (file.size > 15 * 1024 * 1024) { toast.error('Макс. 15MB'); return; }
+  const openCoverEditor = useCallback((file) => {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Макс. 15MB');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       const img = new window.Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const targetW = 800;
-        const targetH = Math.round(targetW * 9 / 16); // 450
-        canvas.width = targetW;
-        canvas.height = targetH;
-        const ctx = canvas.getContext('2d');
-        // Center-crop to 16:9
-        const srcRatio = img.width / img.height;
-        const targetRatio = 16 / 9;
-        let sx = 0, sy = 0, sw = img.width, sh = img.height;
-        if (srcRatio > targetRatio) {
-          sw = img.height * targetRatio;
-          sx = (img.width - sw) / 2;
-        } else {
-          sh = img.width / targetRatio;
-          sy = (img.height - sh) / 2;
-        }
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        updateTest('coverImage', dataUrl);
-        toast.success('Обложка готова!');
+        setCoverEditor(
+          createCoverEditorState({
+            src: reader.result,
+            fileName: file.name,
+            naturalWidth: img.width,
+            naturalHeight: img.height,
+          })
+        );
       };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
+  }, []);
+
+  const handleCoverFileInput = (event) => {
+    const file = event.target.files?.[0];
+    if (file) openCoverEditor(file);
+    event.target.value = '';
+  };
+
+  const resetCoverFrame = useCallback(() => {
+    setCoverEditor(prev => (prev
+      ? createCoverEditorState({
+          src: prev.src,
+          fileName: prev.fileName,
+          naturalWidth: prev.naturalWidth,
+          naturalHeight: prev.naturalHeight,
+        })
+      : prev
+    ));
+  }, []);
+
+  const updateCoverZoom = (nextZoom) => {
+    setCoverEditor(prev => {
+      if (!prev) return prev;
+
+      const previousMetrics = getCoverMetrics(prev);
+      const updated = { ...prev, zoom: clamp(Number(nextZoom), COVER_MIN_ZOOM, COVER_MAX_ZOOM) };
+      const nextMetrics = getCoverMetrics(updated);
+
+      if (!previousMetrics || !nextMetrics) return updated;
+
+      const focusX = (COVER_FRAME_WIDTH / 2 - prev.offsetX) / previousMetrics.renderScale;
+      const focusY = (COVER_FRAME_HEIGHT / 2 - prev.offsetY) / previousMetrics.renderScale;
+
+      return clampCoverEditorState({
+        ...updated,
+        offsetX: COVER_FRAME_WIDTH / 2 - focusX * nextMetrics.renderScale,
+        offsetY: COVER_FRAME_HEIGHT / 2 - focusY * nextMetrics.renderScale,
+      });
+    });
+  };
+
+  const handleCoverPointerDown = (event) => {
+    if (!coverEditor || !coverStageRef.current) return;
+    const rect = coverStageRef.current.getBoundingClientRect();
+
+    coverDragRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      originOffsetX: coverEditor.offsetX,
+      originOffsetY: coverEditor.offsetY,
+      scaleX: COVER_FRAME_WIDTH / rect.width,
+      scaleY: COVER_FRAME_HEIGHT / rect.height,
+    };
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handleCoverPointerMove = (event) => {
+    if (!coverDragRef.current) return;
+
+    const drag = coverDragRef.current;
+    const deltaX = (event.clientX - drag.startClientX) * drag.scaleX;
+    const deltaY = (event.clientY - drag.startClientY) * drag.scaleY;
+
+    setCoverEditor(prev => prev ? clampCoverEditorState({
+      ...prev,
+      offsetX: drag.originOffsetX + deltaX,
+      offsetY: drag.originOffsetY + deltaY,
+    }) : prev);
+  };
+
+  const stopCoverDragging = (event) => {
+    if (coverDragRef.current && event) {
+      event.currentTarget.releasePointerCapture?.(coverDragRef.current.pointerId);
+    }
+    coverDragRef.current = null;
+  };
+
+  const saveCoverCrop = () => {
+    if (!coverEditor) return;
+    const metrics = getCoverMetrics(coverEditor);
+    if (!metrics) return;
+
+    const image = new window.Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = COVER_FRAME_WIDTH;
+      canvas.height = COVER_FRAME_HEIGHT;
+      const ctx = canvas.getContext('2d');
+
+      const sx = -coverEditor.offsetX / metrics.renderScale;
+      const sy = -coverEditor.offsetY / metrics.renderScale;
+      const sw = COVER_FRAME_WIDTH / metrics.renderScale;
+      const sh = COVER_FRAME_HEIGHT / metrics.renderScale;
+
+      ctx.drawImage(image, sx, sy, sw, sh, 0, 0, COVER_FRAME_WIDTH, COVER_FRAME_HEIGHT);
+      updateTest('coverImage', canvas.toDataURL('image/jpeg', 0.88));
+      setCoverEditor(null);
+      toast.success('Обложка обновлена');
+    };
+    image.src = coverEditor.src;
   };
 
   // AI translate a single question
@@ -505,7 +670,10 @@ export default function CreateTest() {
     }
   };
 
-  const stripHtml = (html) => html?.replace(/<[^>]*>/g, '').trim() || '';
+  const stripHtml = (html) => getPlainText(html);
+  const coverMetrics = coverEditor ? getCoverMetrics(coverEditor) : null;
+  const coverPreviewTitle = test.title.trim() || 'Название теста';
+  const coverPreviewDescription = test.description.trim() || 'Краткое описание теста появится здесь';
 
   const handleSave = async () => {
     if (!test.title.trim()) { toast.error(t('enterTestTitle')); return; }
@@ -1079,48 +1247,131 @@ export default function CreateTest() {
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
               />
             </div>
-            {/* Cover Image Upload — client-side crop/compress */}
             <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 block flex items-center gap-1.5">
-                <Image size={12} />
-                {t('coverImage') || 'Обложка теста'}
-              </label>
-              {test.coverImage ? (
-                <div className="relative group/cover rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
-                  <img src={test.coverImage} alt="Cover" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <label className="px-3 py-1.5 bg-white/90 text-gray-700 text-xs rounded-lg font-medium hover:bg-white transition cursor-pointer">
-                      <Upload size={12} className="inline mr-1" />
-                      {t('change') || 'Заменить'}
-                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        processCoverImage(file);
-                      }} />
-                    </label>
-                    <button
-                      onClick={() => updateTest('coverImage', '')}
-                      className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg font-medium hover:bg-red-600 transition"
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block flex items-center gap-1.5">
+                    <Image size={12} />
+                    {t('coverImage') || 'Обложка теста'}
+                  </label>
+                  <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                    Баннер теперь редактируется под формат карточки 16:9 и сразу показывает финальный вид.
+                  </p>
+                </div>
+                {test.coverImage && (
+                  <button
+                    type="button"
+                    onClick={() => updateTest('coverImage', '')}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/10 dark:text-red-300 dark:hover:bg-red-900/20"
+                  >
+                    <Trash2 size={12} />
+                    {t('delete') || 'Удалить'}
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
+                <div className="space-y-3">
+                  <div className="max-w-[760px] overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_26px_70px_-40px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/40">
+                    <TestCoverArtwork
+                      coverImage={test.coverImage}
+                      title={coverPreviewTitle}
+                      className="w-full"
+                      style={{ aspectRatio: '16 / 9' }}
                     >
-                      <Trash2 size={12} className="inline mr-1" />
-                      {t('delete') || 'Удалить'}
-                    </button>
+                      <div className="absolute inset-x-4 bottom-4 flex flex-wrap items-end justify-between gap-3">
+                        <div className="rounded-2xl border border-white/40 bg-slate-900/56 px-4 py-3 backdrop-blur-sm">
+                          <p className="text-sm font-semibold text-white">
+                            {test.coverImage ? 'Обложка готова' : 'Выберите изображение'}
+                          </p>
+                          <p className="mt-1 text-[11px] text-white/70">
+                            {test.coverImage
+                              ? 'Выбери другое изображение, чтобы открыть редактор и изменить кадр'
+                              : 'После выбора откроется редактор с кадрированием и zoom'}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-white/35 bg-white/14 px-3 py-2 text-[11px] font-medium text-white backdrop-blur-sm">
+                          16:9 • Dashboard / Test Profile
+                        </div>
+                      </div>
+                    </TestCoverArtwork>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">
+                      <Upload size={14} />
+                      {test.coverImage ? 'Заменить и кадрировать' : (t('uploadCover') || 'Загрузить и кадрировать')}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleCoverFileInput}
+                      />
+                    </label>
                   </div>
                 </div>
-              ) : (
-                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-all text-gray-400 text-sm" style={{ aspectRatio: '16/9' }}>
-                  <div className="text-center">
-                    <Upload size={20} className="mx-auto mb-1.5 text-gray-300" />
-                    <p className="text-xs">{t('uploadCover') || 'Загрузить обложку'}</p>
-                    <p className="text-[10px] text-gray-300 mt-0.5">16:9 • авто-кроп • JPEG</p>
+
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+                      Dashboard Preview
+                    </p>
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      Так карточка будет выглядеть в каталоге тестов.
+                    </p>
                   </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    processCoverImage(file);
-                  }} />
-                </label>
-              )}
+
+                  <div className="overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_24px_64px_-42px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/40">
+                    <TestCoverArtwork
+                      coverImage={test.coverImage}
+                      title={coverPreviewTitle}
+                      className="w-full"
+                      style={{ aspectRatio: '16 / 9' }}
+                    />
+                    <div className="space-y-3 p-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                          test.settings?.isPublic
+                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+                            : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
+                        }`}>
+                          {test.settings?.isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
+                          {test.settings?.isPublic ? 'Публичный' : 'Приватный'}
+                        </span>
+                        <span className="text-[10px] text-gray-400">
+                          {test.questions.length} {t('questions')}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="line-clamp-1 text-sm font-semibold text-dark">
+                          {coverPreviewTitle}
+                        </h4>
+                        <p className="mt-1 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
+                          {coverPreviewDescription}
+                        </p>
+                      </div>
+
+                      {test.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {test.tags.slice(0, 2).map((tag, index) => (
+                            <span
+                              key={`${tag}-${index}`}
+                              className="rounded-md bg-gray-100 px-2 py-1 text-[10px] text-gray-600 dark:bg-slate-700 dark:text-gray-300"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-gray-200/80 bg-gray-50/80 px-4 py-3 text-[11px] text-gray-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-gray-400">
+                    Двигай изображение мышкой или пальцем в редакторе. Масштаб помогает убрать пустые поля и подобрать правильный кадр.
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
 
@@ -1298,80 +1549,123 @@ export default function CreateTest() {
                                   </button>
 
                                   {isOpen && (
-                                    <div className="px-3 pb-3 space-y-2 border-t border-gray-100 dark:border-slate-700/80">
-                                      <textarea
-                                        className="input-field resize-none text-xs py-2 mt-2"
-                                        rows="3"
-                                        placeholder="Текст вопроса"
-                                        value={trans.questionText}
-                                        onClick={e => e.stopPropagation()}
-                                        onChange={e => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, questionText: e.target.value }))}
-                                      />
+                                    <div className="px-3 pb-3 space-y-3 border-t border-gray-100 dark:border-slate-700/80">
+                                      <div className="pt-2">
+                                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                          Вопрос
+                                        </p>
+                                        <div onClick={e => e.stopPropagation()}>
+                                          <Suspense fallback={<div className="h-24 rounded-xl border border-dashed border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/60" />}>
+                                            <RichTextEditor
+                                              content={trans.questionText}
+                                              onChange={value => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, questionText: value }))}
+                                              placeholder="Перевод текста вопроса"
+                                              className="text-xs"
+                                              disableLinks
+                                            />
+                                          </Suspense>
+                                        </div>
+                                      </div>
 
-                                      {question.options?.length > 0 && question.options.map((opt, oi) => (
-                                        <input
-                                          key={oi}
-                                          className="input-field text-xs py-1.5"
-                                          placeholder={`Вариант ${oi + 1}: ${opt.text?.substring(0, 40) || '...'}`}
-                                          value={trans.options?.[oi] || ''}
-                                          onClick={e => e.stopPropagation()}
-                                          onChange={e => {
-                                            updateQuestionTranslation(qIndex, langCode, current => {
-                                              const nextOptions = [...(current.options || [])];
-                                              nextOptions[oi] = e.target.value;
-                                              return { ...current, options: nextOptions };
-                                            });
-                                          }}
-                                        />
-                                      ))}
+                                      {question.options?.length > 0 && (
+                                        <div className="space-y-2">
+                                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                            Варианты ответа
+                                          </p>
+                                          {question.options.map((opt, oi) => (
+                                            <input
+                                              key={oi}
+                                              className="input-field text-xs py-1.5"
+                                              placeholder={`Вариант ${oi + 1}: ${opt.text?.substring(0, 40) || '...'}`}
+                                              value={trans.options?.[oi] || ''}
+                                              onClick={e => e.stopPropagation()}
+                                              onChange={e => {
+                                                updateQuestionTranslation(qIndex, langCode, current => {
+                                                  const nextOptions = [...(current.options || [])];
+                                                  nextOptions[oi] = e.target.value;
+                                                  return { ...current, options: nextOptions };
+                                                });
+                                              }}
+                                            />
+                                          ))}
+                                        </div>
+                                      )}
 
-                                      {showMatchingPairs && question.options.map((opt, oi) => (
-                                        <input
-                                          key={`pair-${oi}`}
-                                          className="input-field text-xs py-1.5"
-                                          placeholder={`Пара ${oi + 1}: ${opt.matchPair?.substring(0, 40) || '...'}`}
-                                          value={trans.matchPairs?.[oi] || ''}
-                                          onClick={e => e.stopPropagation()}
-                                          onChange={e => {
-                                            updateQuestionTranslation(qIndex, langCode, current => {
-                                              const nextPairs = [...(current.matchPairs || [])];
-                                              nextPairs[oi] = e.target.value;
-                                              return { ...current, matchPairs: nextPairs };
-                                            });
-                                          }}
-                                        />
-                                      ))}
+                                      {showMatchingPairs && (
+                                        <div className="space-y-2">
+                                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                            Правая часть сопоставления
+                                          </p>
+                                          {question.options.map((opt, oi) => (
+                                            <input
+                                              key={`pair-${oi}`}
+                                              className="input-field text-xs py-1.5"
+                                              placeholder={`Пара ${oi + 1}: ${opt.matchPair?.substring(0, 40) || '...'}`}
+                                              value={trans.matchPairs?.[oi] || ''}
+                                              onClick={e => e.stopPropagation()}
+                                              onChange={e => {
+                                                updateQuestionTranslation(qIndex, langCode, current => {
+                                                  const nextPairs = [...(current.matchPairs || [])];
+                                                  nextPairs[oi] = e.target.value;
+                                                  return { ...current, matchPairs: nextPairs };
+                                                });
+                                              }}
+                                            />
+                                          ))}
+                                        </div>
+                                      )}
 
                                       {showPassageField && (
-                                        <textarea
-                                          className="input-field resize-none text-xs py-2"
-                                          rows="3"
-                                          placeholder="Перевод текста / passage"
-                                          value={trans.passage}
-                                          onClick={e => e.stopPropagation()}
-                                          onChange={e => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, passage: e.target.value }))}
-                                        />
+                                        <div>
+                                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                            Passage
+                                          </p>
+                                          <div onClick={e => e.stopPropagation()}>
+                                            <Suspense fallback={<div className="h-24 rounded-xl border border-dashed border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/60" />}>
+                                              <RichTextEditor
+                                                content={trans.passage}
+                                                onChange={value => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, passage: value }))}
+                                                placeholder="Перевод текста / passage"
+                                                className="text-xs"
+                                                disableLinks
+                                              />
+                                            </Suspense>
+                                          </div>
+                                        </div>
                                       )}
 
                                       {showCorrectAnswerField && (
-                                        <input
-                                          className="input-field text-xs py-1.5"
-                                          placeholder="Правильный ответ"
-                                          value={trans.correctAnswer}
-                                          onClick={e => e.stopPropagation()}
-                                          onChange={e => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, correctAnswer: e.target.value }))}
-                                        />
+                                        <div>
+                                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                            Правильный ответ
+                                          </p>
+                                          <input
+                                            className="input-field text-xs py-1.5"
+                                            placeholder="Правильный ответ"
+                                            value={trans.correctAnswer}
+                                            onClick={e => e.stopPropagation()}
+                                            onChange={e => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, correctAnswer: e.target.value }))}
+                                          />
+                                        </div>
                                       )}
 
                                       {showExplanationField && (
-                                        <textarea
-                                          className="input-field resize-none text-xs py-2"
-                                          rows="2"
-                                          placeholder="Пояснение"
-                                          value={trans.explanation}
-                                          onClick={e => e.stopPropagation()}
-                                          onChange={e => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, explanation: e.target.value }))}
-                                        />
+                                        <div>
+                                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                            Пояснение
+                                          </p>
+                                          <div onClick={e => e.stopPropagation()}>
+                                            <Suspense fallback={<div className="h-20 rounded-xl border border-dashed border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/60" />}>
+                                              <RichTextEditor
+                                                content={trans.explanation}
+                                                onChange={value => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, explanation: value }))}
+                                                placeholder="Пояснение"
+                                                className="text-xs"
+                                                disableLinks
+                                              />
+                                            </Suspense>
+                                          </div>
+                                        </div>
                                       )}
 
                                       <div className="flex flex-wrap gap-2 pt-1">
@@ -1630,6 +1924,192 @@ export default function CreateTest() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {coverEditor && coverMetrics && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+            onClick={() => {
+              coverDragRef.current = null;
+              setCoverEditor(null);
+            }}
+          >
+            <div className="absolute inset-0 bg-black/55 backdrop-blur-md" />
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.96 }}
+              onClick={(event) => event.stopPropagation()}
+              className="relative w-full max-w-6xl overflow-hidden rounded-[30px] border border-white/20 bg-white shadow-2xl dark:border-slate-700/70 dark:bg-slate-900"
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5 dark:border-slate-800">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-500">
+                    Cover Editor
+                  </p>
+                  <h3 className="mt-1 text-xl font-bold text-dark">Подгони баннер под карточку</h3>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Перетаскивай изображение внутри рамки 16:9 и сразу смотри, как оно сядет в каталоге.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    coverDragRef.current = null;
+                    setCoverEditor(null);
+                  }}
+                  className="rounded-xl p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-200"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="space-y-5">
+                  <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-slate-950 shadow-[0_36px_80px_-50px_rgba(15,23,42,0.85)] dark:border-slate-700">
+                    <div
+                      ref={coverStageRef}
+                      onPointerDown={handleCoverPointerDown}
+                      onPointerMove={handleCoverPointerMove}
+                      onPointerUp={stopCoverDragging}
+                      onPointerCancel={stopCoverDragging}
+                      className="relative w-full touch-none select-none"
+                      style={{ aspectRatio: '16 / 9' }}
+                    >
+                      <img
+                        src={coverEditor.src}
+                        alt=""
+                        draggable={false}
+                        className="absolute max-w-none cursor-grab active:cursor-grabbing"
+                        style={{
+                          width: coverMetrics.renderWidth,
+                          height: coverMetrics.renderHeight,
+                          left: coverEditor.offsetX,
+                          top: coverEditor.offsetY,
+                        }}
+                      />
+                      <div className="pointer-events-none absolute inset-0 border border-white/30" />
+                      <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/18 bg-black/30 px-3 py-1.5 text-[11px] font-medium text-white/90 backdrop-blur-sm">
+                        16:9 safe frame
+                      </div>
+                      <div className="pointer-events-none absolute bottom-4 left-4 flex items-center gap-2 rounded-full border border-white/18 bg-black/30 px-3 py-1.5 text-[11px] text-white/80 backdrop-blur-sm">
+                        <Move size={12} />
+                        Потяни изображение, чтобы сдвинуть кадр
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/60">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-dark">
+                        <ZoomIn size={16} className="text-primary-500" />
+                        Масштаб
+                      </div>
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        {Math.round((coverEditor.zoom || 1) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={COVER_MIN_ZOOM}
+                      max={COVER_MAX_ZOOM}
+                      step="0.01"
+                      value={coverEditor.zoom || COVER_MIN_ZOOM}
+                      onChange={(event) => updateCoverZoom(event.target.value)}
+                      className="mt-3 w-full accent-primary-600"
+                    />
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={resetCoverFrame}
+                        className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-white dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-700"
+                      >
+                        <RotateCcw size={13} />
+                        Сбросить кадр
+                      </button>
+                      <span className="inline-flex items-center rounded-xl bg-primary-50 px-3 py-2 text-[11px] text-primary-600 dark:bg-primary-900/20 dark:text-primary-300">
+                        Файл: {coverEditor.fileName || 'image'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+                      Live Preview
+                    </p>
+                    <h4 className="mt-1 text-sm font-semibold text-dark">Как это увидят в Dashboard</h4>
+                  </div>
+
+                  <div className="overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_28px_70px_-45px_rgba(15,23,42,0.48)] dark:border-slate-700 dark:bg-slate-900/60">
+                    <div className="relative overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
+                      <img
+                        src={coverEditor.src}
+                        alt=""
+                        className="absolute max-w-none"
+                        style={{
+                          width: `${(coverMetrics.renderWidth / COVER_FRAME_WIDTH) * 100}%`,
+                          height: `${(coverMetrics.renderHeight / COVER_FRAME_HEIGHT) * 100}%`,
+                          left: `${(coverEditor.offsetX / COVER_FRAME_WIDTH) * 100}%`,
+                          top: `${(coverEditor.offsetY / COVER_FRAME_HEIGHT) * 100}%`,
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/18 via-transparent to-white/10" />
+                    </div>
+                      <div className="space-y-3 p-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                          test.settings?.isPublic
+                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+                            : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
+                        }`}>
+                          {test.settings?.isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
+                          {test.settings?.isPublic ? 'Публичный' : 'Приватный'}
+                        </span>
+                        <span className="text-[10px] text-gray-400">
+                          {test.questions.length} {t('questions')}
+                        </span>
+                      </div>
+                      <h4 className="line-clamp-1 text-sm font-semibold text-dark">{coverPreviewTitle}</h4>
+                      <p className="line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
+                        {coverPreviewDescription}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-[11px] text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-300">
+                    Сохраняется уже итоговый JPEG 800×450. То, что видишь здесь, и пойдёт в `Dashboard` и `Test Profile`.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-3 border-t border-gray-100 px-6 py-5 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    coverDragRef.current = null;
+                    setCoverEditor(null);
+                  }}
+                  className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  onClick={saveCoverCrop}
+                  className="rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700"
+                >
+                  Сохранить обложку
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Import CSV Modal */}
       <AnimatePresence>
