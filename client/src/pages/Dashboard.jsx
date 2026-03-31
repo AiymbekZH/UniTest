@@ -210,7 +210,7 @@ export default function Dashboard() {
                   style={{ aspectRatio: '16 / 9' }}
                 />
 
-                <div className="p-5 flex flex-col flex-1">
+                <div className="p-4 sm:p-5 flex flex-col flex-1">
                 {/* Menu */}
                 <div className="absolute top-4 right-4 z-10">
                   <button
@@ -274,12 +274,12 @@ export default function Dashboard() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="mb-1 min-h-[2.75rem] pr-8 text-[15px] font-semibold text-dark transition-colors group-hover:text-primary-600 line-clamp-2">
+                  <h3 className="mb-1 pr-8 text-[15px] font-semibold text-dark transition-colors group-hover:text-primary-600 line-clamp-1">
                     {test.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="mb-3 min-h-[3.75rem] text-[13px] leading-5 text-gray-500 line-clamp-3">
+                  <p className="mb-3 min-h-[2.5rem] text-[13px] leading-5 text-gray-500 line-clamp-2">
                     {test.description || t('noDescription')}
                   </p>
 

@@ -1343,17 +1343,17 @@ export default function CreateTest() {
                         style={{ aspectRatio: '16 / 9' }}
                       >
                         <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 sm:inset-x-4 sm:bottom-4 sm:gap-3">
-                          <div className="max-w-[78%] rounded-[22px] border border-black/8 bg-white/90 px-3 py-2.5 shadow-[0_30px_70px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/78 dark:shadow-[0_32px_72px_-30px_rgba(0,0,0,0.78)] sm:max-w-[64%] sm:px-4 sm:py-3">
-                            <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                          <div className="max-w-[78%] rounded-[22px] border border-black/8 bg-white/92 px-3 py-2.5 shadow-[0_30px_70px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/92 dark:shadow-[0_32px_72px_-30px_rgba(0,0,0,0.82)] sm:max-w-[64%] sm:px-4 sm:py-3">
+                            <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
                               {test.coverImage ? 'Обложка готова' : 'Выберите изображение'}
                             </p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-slate-700 dark:text-white/80">
+                            <p className="mt-1 text-[11px] leading-relaxed text-slate-700 dark:text-slate-200/90">
                               {test.coverImage
                                 ? 'Нужен другой кадр? Просто выбери новое изображение и редактор откроется снова.'
                                 : 'После выбора откроется редактор с кадрированием и zoom.'}
                             </p>
                           </div>
-                          <div className="hidden rounded-2xl border border-black/10 bg-white/82 px-3 py-2 text-[11px] font-medium text-slate-900 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70 dark:text-white/92 sm:block">
+                          <div className="hidden rounded-2xl border border-black/10 bg-white/84 px-3 py-2 text-[11px] font-medium text-slate-900 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/88 dark:text-slate-100 sm:block">
                             16:9 • Dashboard / Test
                           </div>
                         </div>
