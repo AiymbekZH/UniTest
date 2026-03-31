@@ -11,6 +11,7 @@ import { useLanguage } from '../context/LanguageContext';
 import useAntiCheat from '../hooks/useAntiCheat';
 import toast, { Toaster } from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
+import TestCoverArtwork from '../components/TestCoverArtwork';
 
 // Matching question component with interactive drag-and-drop style matching
 function MatchingQuestion({
@@ -767,7 +768,7 @@ export default function TakeTest() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full glass-card p-8 text-center"
+          className="max-w-md w-full glass-card p-5 sm:p-8 text-center"
         >
           {/* Practice mode banner */}
           {isPractice && (
@@ -776,9 +777,20 @@ export default function TakeTest() {
               <span className="text-sm font-semibold">{t('practiceMode')}</span>
             </div>
           )}
-          <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary-600/30">
-            <Shield className="w-8 h-8 text-white" />
+
+          <div className="mb-5 overflow-hidden rounded-[26px] border border-white/60 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.45)] dark:border-slate-700/70">
+            <TestCoverArtwork
+              coverImage={test.coverImage}
+              title={test.title}
+              className="w-full"
+              style={{ aspectRatio: '16 / 9' }}
+            >
+              <div className="absolute left-4 top-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-primary-600/90 shadow-lg shadow-primary-600/30 backdrop-blur">
+                <Shield className="h-6 w-6 text-white" />
+              </div>
+            </TestCoverArtwork>
           </div>
+
           <h1 className="text-2xl font-bold text-dark mb-2">{test.title}</h1>
           {test.description && <p className="text-gray-500 text-sm mb-4">{test.description}</p>}
 

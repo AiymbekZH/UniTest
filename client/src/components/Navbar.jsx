@@ -41,8 +41,7 @@ export default memo(function Navbar() {
     try {
       await switchAccount(sessionId);
       setShowMenu(false);
-      navigate('/dashboard');
-      toast.success('Аккаунт переключен');
+      window.location.assign('/dashboard');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Не удалось переключить аккаунт');
     }
@@ -67,7 +66,7 @@ export default memo(function Navbar() {
   const langLabels = { en: 'EN', ru: 'RU', kz: 'KZ' };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-100/50 dark:border-slate-700/50">
+    <>
       <ConfirmDialog
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
@@ -78,6 +77,7 @@ export default memo(function Navbar() {
         variant="warning"
       />
 
+      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-100/50 dark:border-slate-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -372,6 +372,7 @@ export default memo(function Navbar() {
           )}
         </AnimatePresence>
       </div>
-    </nav>
+      </nav>
+    </>
   );
 })

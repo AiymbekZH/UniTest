@@ -1,6 +1,6 @@
 import { useId } from 'react';
 
-function AnimatedPlaceholder({ title = '' }) {
+function AnimatedPlaceholder({ title = '', showCaption = true }) {
   const uid = useId().replace(/:/g, '-');
   const gradientId = `cover-gradient-${uid}`;
   const glowPrimaryId = `cover-glow-primary-${uid}`;
@@ -93,21 +93,23 @@ function AnimatedPlaceholder({ title = '' }) {
         </g>
       </svg>
 
-      <div className="absolute inset-x-4 bottom-4 sm:inset-x-5 sm:bottom-5">
-        <div className="inline-flex max-w-[82%] items-center gap-3 rounded-2xl border border-white/50 bg-white/74 px-4 py-3 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.42)] backdrop-blur-md dark:border-slate-700/60 dark:bg-slate-900/70">
-          <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-primary-100 text-sm font-bold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
-            {initial}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-              {title?.trim() || 'UniTest'}
-            </p>
-            <p className="truncate text-xs text-slate-500 dark:text-slate-300">
-              Красивая обложка появится автоматически после загрузки
-            </p>
+      {showCaption && (
+        <div className="absolute inset-x-4 bottom-4 sm:inset-x-5 sm:bottom-5">
+          <div className="inline-flex max-w-[82%] items-center gap-3 rounded-2xl border border-white/50 bg-white/74 px-4 py-3 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.42)] backdrop-blur-md dark:border-slate-700/60 dark:bg-slate-900/70">
+            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-primary-100 text-sm font-bold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
+              {initial}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+                {title?.trim() || 'UniTest'}
+              </p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-300">
+                Красивая обложка появится автоматически после загрузки
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
@@ -117,6 +119,7 @@ export default function TestCoverArtwork({
   title = '',
   className = '',
   imageClassName = 'h-full w-full object-cover',
+  showPlaceholderCaption = true,
   children,
   ...rest
 }) {
@@ -125,10 +128,10 @@ export default function TestCoverArtwork({
       {coverImage ? (
         <>
           <img src={coverImage} alt="" className={imageClassName} />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/18 via-transparent to-white/12" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/42 via-slate-900/8 to-white/10" />
         </>
       ) : (
-        <AnimatedPlaceholder title={title} />
+        <AnimatedPlaceholder title={title} showCaption={showPlaceholderCaption} />
       )}
       {children}
     </div>

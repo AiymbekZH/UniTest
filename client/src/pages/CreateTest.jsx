@@ -257,6 +257,7 @@ export default function CreateTest() {
   const [draftStatus, setDraftStatus] = useState(''); // '' | 'saving' | 'saved'
   const [openTranslationPanels, setOpenTranslationPanels] = useState({});
   const [coverEditor, setCoverEditor] = useState(null);
+  const [showCoverPanel, setShowCoverPanel] = useState(true);
   const questionRefs = useRef({});
   const autoSaveTimer = useRef(null);
   const coverStageRef = useRef(null);
@@ -365,6 +366,12 @@ export default function CreateTest() {
     });
   }, [test.questions, test.settings.multiLanguage?.enabled, test.settings.multiLanguage?.languages]);
 
+  useEffect(() => {
+    if (!test.coverImage) {
+      setShowCoverPanel(true);
+    }
+  }, [test.coverImage]);
+
   const discardDraft = () => {
     localStorage.removeItem('unitest_draft');
     setShowDraftDialog(false);
@@ -383,6 +390,7 @@ export default function CreateTest() {
     reader.onload = () => {
       const img = new window.Image();
       img.onload = () => {
+        setShowCoverPanel(true);
         setCoverEditor(
           createCoverEditorState({
             src: reader.result,
@@ -494,6 +502,7 @@ export default function CreateTest() {
       ctx.drawImage(image, sx, sy, sw, sh, 0, 0, COVER_FRAME_WIDTH, COVER_FRAME_HEIGHT);
       updateTest('coverImage', canvas.toDataURL('image/jpeg', 0.88));
       setCoverEditor(null);
+      setShowCoverPanel(false);
       toast.success('Обложка обновлена');
     };
     image.src = coverEditor.src;
@@ -674,6 +683,14 @@ export default function CreateTest() {
   const coverMetrics = coverEditor ? getCoverMetrics(coverEditor) : null;
   const coverPreviewTitle = test.title.trim() || 'Название теста';
   const coverPreviewDescription = test.description.trim() || 'Краткое описание теста появится здесь';
+  const coverSectionTitle = (() => {
+    const value = t('coverImage');
+    return value && value !== 'coverImage' ? value : 'Обложка теста';
+  })();
+  const uploadCoverText = (() => {
+    const value = t('uploadCover');
+    return value && value !== 'uploadCover' ? value : 'Загрузить обложку';
+  })();
 
   const handleSave = async () => {
     if (!test.title.trim()) { toast.error(t('enterTestTitle')); return; }
@@ -1252,126 +1269,173 @@ export default function CreateTest() {
                 <div>
                   <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block flex items-center gap-1.5">
                     <Image size={12} />
-                    {t('coverImage') || 'Обложка теста'}
+                    {coverSectionTitle}
                   </label>
                   <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
-                    Баннер теперь редактируется под формат карточки 16:9 и сразу показывает финальный вид.
+                    Баннер редактируется под карточку 16:9. Блок можно свернуть после загрузки, чтобы он не мешал.
                   </p>
                 </div>
-                {test.coverImage && (
-                  <button
-                    type="button"
-                    onClick={() => updateTest('coverImage', '')}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/10 dark:text-red-300 dark:hover:bg-red-900/20"
-                  >
-                    <Trash2 size={12} />
-                    {t('delete') || 'Удалить'}
-                  </button>
-                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {test.coverImage && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCoverPanel(prev => !prev)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700"
+                    >
+                      {showCoverPanel ? 'Свернуть блок' : 'Показать блок'}
+                    </button>
+                  )}
+                  {test.coverImage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateTest('coverImage', '');
+                        setShowCoverPanel(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/10 dark:text-red-300 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 size={12} />
+                      {t('delete') || 'Удалить'}
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
-                <div className="space-y-3">
-                  <div className="max-w-[760px] overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_26px_70px_-40px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/40">
-                    <TestCoverArtwork
-                      coverImage={test.coverImage}
-                      title={coverPreviewTitle}
-                      className="w-full"
-                      style={{ aspectRatio: '16 / 9' }}
-                    >
-                      <div className="absolute inset-x-4 bottom-4 flex flex-wrap items-end justify-between gap-3">
-                        <div className="rounded-2xl border border-white/40 bg-slate-900/56 px-4 py-3 backdrop-blur-sm">
-                          <p className="text-sm font-semibold text-white">
-                            {test.coverImage ? 'Обложка готова' : 'Выберите изображение'}
-                          </p>
-                          <p className="mt-1 text-[11px] text-white/70">
-                            {test.coverImage
-                              ? 'Выбери другое изображение, чтобы открыть редактор и изменить кадр'
-                              : 'После выбора откроется редактор с кадрированием и zoom'}
-                          </p>
+              {showCoverPanel ? (
+                <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
+                  <div className="space-y-3">
+                    <div className="max-w-[760px] overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_26px_70px_-40px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/40">
+                      <TestCoverArtwork
+                        coverImage={test.coverImage}
+                        title={coverPreviewTitle}
+                        showPlaceholderCaption={false}
+                        className="w-full"
+                        style={{ aspectRatio: '16 / 9' }}
+                      >
+                        <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 sm:inset-x-4 sm:bottom-4 sm:gap-3">
+                          <div className="max-w-[82%] rounded-2xl border border-white/18 bg-slate-950/70 px-3 py-2.5 shadow-[0_28px_60px_-26px_rgba(15,23,42,0.8)] backdrop-blur-md sm:max-w-[68%] sm:px-4 sm:py-3">
+                            <p className="text-sm font-semibold text-white">
+                              {test.coverImage ? 'Обложка готова' : 'Выберите изображение'}
+                            </p>
+                            <p className="mt-1 text-[11px] leading-relaxed text-white/78">
+                              {test.coverImage
+                                ? 'Нужен другой кадр? Просто выбери новое изображение и редактор откроется снова.'
+                                : 'После выбора откроется редактор с кадрированием и zoom.'}
+                            </p>
+                          </div>
+                          <div className="hidden rounded-2xl border border-white/20 bg-white/12 px-3 py-2 text-[11px] font-medium text-white/92 backdrop-blur-sm sm:block">
+                            16:9 • Dashboard / Test
+                          </div>
                         </div>
-                        <div className="rounded-2xl border border-white/35 bg-white/14 px-3 py-2 text-[11px] font-medium text-white backdrop-blur-sm">
-                          16:9 • Dashboard / Test Profile
-                        </div>
-                      </div>
-                    </TestCoverArtwork>
-                  </div>
+                      </TestCoverArtwork>
+                    </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">
-                      <Upload size={14} />
-                      {test.coverImage ? 'Заменить и кадрировать' : (t('uploadCover') || 'Загрузить и кадрировать')}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleCoverFileInput}
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
-                      Dashboard Preview
-                    </p>
-                    <p className="mt-1 text-[11px] text-gray-400">
-                      Так карточка будет выглядеть в каталоге тестов.
-                    </p>
-                  </div>
-
-                  <div className="overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_24px_64px_-42px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/40">
-                    <TestCoverArtwork
-                      coverImage={test.coverImage}
-                      title={coverPreviewTitle}
-                      className="w-full"
-                      style={{ aspectRatio: '16 / 9' }}
-                    />
-                    <div className="space-y-3 p-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
-                          test.settings?.isPublic
-                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
-                            : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
-                        }`}>
-                          {test.settings?.isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
-                          {test.settings?.isPublic ? 'Публичный' : 'Приватный'}
-                        </span>
-                        <span className="text-[10px] text-gray-400">
-                          {test.questions.length} {t('questions')}
-                        </span>
-                      </div>
-
-                      <div>
-                        <h4 className="line-clamp-1 text-sm font-semibold text-dark">
-                          {coverPreviewTitle}
-                        </h4>
-                        <p className="mt-1 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
-                          {coverPreviewDescription}
-                        </p>
-                      </div>
-
-                      {test.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {test.tags.slice(0, 2).map((tag, index) => (
-                            <span
-                              key={`${tag}-${index}`}
-                              className="rounded-md bg-gray-100 px-2 py-1 text-[10px] text-gray-600 dark:bg-slate-700 dark:text-gray-300"
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">
+                        <Upload size={14} />
+                        {test.coverImage ? 'Заменить и кадрировать' : `${uploadCoverText} и кадрировать`}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleCoverFileInput}
+                        />
+                      </label>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-200/80 bg-gray-50/80 px-4 py-3 text-[11px] text-gray-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-gray-400">
-                    Двигай изображение мышкой или пальцем в редакторе. Масштаб помогает убрать пустые поля и подобрать правильный кадр.
+                  <div className="hidden space-y-3 md:block">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+                        Dashboard Preview
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-400">
+                        Так карточка будет выглядеть в каталоге тестов.
+                      </p>
+                    </div>
+
+                    <div className="overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_24px_64px_-42px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/40">
+                      <TestCoverArtwork
+                        coverImage={test.coverImage}
+                        title={coverPreviewTitle}
+                        showPlaceholderCaption={false}
+                        className="w-full"
+                        style={{ aspectRatio: '16 / 9' }}
+                      />
+                      <div className="space-y-3 p-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                            test.settings?.isPublic
+                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+                              : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
+                          }`}>
+                            {test.settings?.isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
+                            {test.settings?.isPublic ? 'Публичный' : 'Приватный'}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            {test.questions.length} {t('questions')}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="line-clamp-1 text-sm font-semibold text-dark">
+                            {coverPreviewTitle}
+                          </h4>
+                          <p className="mt-1 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
+                            {coverPreviewDescription}
+                          </p>
+                        </div>
+
+                        {test.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {test.tags.slice(0, 2).map((tag, index) => (
+                              <span
+                                key={`${tag}-${index}`}
+                                className="rounded-md bg-gray-100 px-2 py-1 text-[10px] text-gray-600 dark:bg-slate-700 dark:text-gray-300"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-200/80 bg-gray-50/80 px-4 py-3 text-[11px] text-gray-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-gray-400">
+                      Двигай изображение мышкой или пальцем в редакторе. Масштаб помогает убрать пустые поля и подобрать правильный кадр.
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-gray-200/80 bg-gray-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                  <div className="flex items-center gap-3">
+                    <div className="h-16 w-28 overflow-hidden rounded-xl border border-white/60 shadow-sm dark:border-slate-700">
+                      <TestCoverArtwork
+                        coverImage={test.coverImage}
+                        title={coverPreviewTitle}
+                        showPlaceholderCaption={false}
+                        className="h-full w-full"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-dark">
+                        {coverPreviewTitle}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Баннер сохранён. При необходимости можно снова открыть блок и заменить изображение.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowCoverPanel(true)}
+                      className="inline-flex items-center rounded-xl bg-white px-3 py-2 text-xs font-semibold text-primary-600 shadow-sm transition hover:bg-primary-50 dark:bg-slate-900 dark:text-primary-300 dark:hover:bg-slate-800"
+                    >
+                      Показать
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
 

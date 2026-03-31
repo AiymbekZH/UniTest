@@ -36,8 +36,7 @@ export default function Login() {
     setSwitchingId(sessionId);
     try {
       await switchAccount(sessionId);
-      toast.success('Аккаунт открыт');
-      navigate('/dashboard');
+      window.location.assign('/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Быстрый вход не удался');
     } finally {

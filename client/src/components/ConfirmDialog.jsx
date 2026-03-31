@@ -29,7 +29,7 @@ export default function ConfirmDialog({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[220] flex min-h-screen items-center justify-center overflow-y-auto p-4"
           onClick={onClose}
         >
           {/* Backdrop */}
@@ -42,7 +42,7 @@ export default function ConfirmDialog({
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             onClick={e => e.stopPropagation()}
-            className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative my-auto w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden dark:bg-slate-800"
           >
             {/* Close button */}
             <button
