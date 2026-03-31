@@ -130,23 +130,17 @@ export default function TestProfile() {
           {/* Main info */}
           <div className="space-y-6">
             {/* Header card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass-card-solid overflow-hidden"
-              >
-                {test.coverImage && (
-                  <div className="h-48 w-full bg-gray-100 dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700">
-                    <img src={test.coverImage} className="w-full h-full object-cover" alt="Cover" />
-                  </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card-solid p-6 sm:p-8"
+            >
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                {test.settings?.isPublic ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"><Eye size={10} /> {t('publicTest')}</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"><EyeOff size={10} /> {t('privateTest')}</span>
                 )}
-                <div className="p-6 sm:p-8">
-                  <div className="flex items-center gap-2 mb-4 flex-wrap">
-                    {test.settings?.isPublic ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"><Eye size={10} /> {t('publicTest')}</span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"><EyeOff size={10} /> {t('privateTest')}</span>
-                    )}
                 {test.settings?.antiCheat?.blockTabSwitch && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"><Shield size={10} /> Anti-cheat</span>
                 )}
@@ -241,7 +235,6 @@ export default function TestProfile() {
                     <Flag size={14} />
                   </button>
                 )}
-              </div>
               </div>
             </motion.div>
 

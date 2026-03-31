@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const ThemeContext = createContext(null);
 
@@ -8,67 +8,72 @@ export const useTheme = () => {
   return context;
 };
 
+// mode: 'light' | 'dark' | 'auto'
+function resolveTheme(mode) {
+  if (mode === 'auto') {
+    const hour = new Date().getHours();
+    return hour >= 22 || hour < 6;
+  }
+  return mode === 'dark';
+}
+
 export const ThemeProvider = ({ children }) => {
-  const [themeMode, setThemeMode] = useState(() => {
-    return localStorage.getItem('unitest_theme_mode') || 'auto';
+  const [mode, setMode] = useState(() => {
+    const saved = localStorage.getItem('unitest_theme');
+    if (saved === 'auto' || saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
-  const [dark, setDark] = useState(false);
 
+  const [dark, setDark] = useState(() => resolveTheme(mode));
+
+  // Apply dark class to <html>
   useEffect(() => {
-    const updateTheme = () => {
-      let isDark = false;
-      if (themeMode === 'dark') {
-        isDark = true;
-      } else if (themeMode === 'light') {
-        isDark = false;
-      } else { // auto
-        const hour = new Date().getHours();
-        if (hour >= 22 || hour < 6) { // night mode
-          isDark = true;
-        } else {
-          isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        }
-      }
-      
-      setDark(isDark);
-      const root = document.documentElement;
-      if (isDark) {
-        root.classList.add('dark');
+    const root = document.documentElement;
+    const isDark = resolveTheme(mode);
+    setDark(isDark);
+
+    if (isDark) {
+      root.classList.add('dark');
+      // Ultra-dark night mode (after 22:00)
+      if (mode === 'auto') {
+        root.classList.add('night-mode');
       } else {
-        root.classList.remove('dark');
+        root.classList.remove('night-mode');
       }
-    };
-
-    updateTheme();
-    localStorage.setItem('unitest_theme_mode', themeMode);
-
-    if (themeMode === 'auto') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const listener = () => updateTheme();
-      mediaQuery.addEventListener('change', listener);
-      const interval = setInterval(updateTheme, 60000); 
-      
-      return () => {
-        mediaQuery.removeEventListener('change', listener);
-        clearInterval(interval);
-      };
+    } else {
+      root.classList.remove('dark', 'night-mode');
     }
-  }, [themeMode]);
+    localStorage.setItem('unitest_theme', mode);
+  }, [mode]);
 
-  const toggleTheme = () => {
-    if (themeMode === 'auto') setThemeMode('dark');
-    else if (themeMode === 'dark') setThemeMode('light');
-    else setThemeMode('light'); // Changed to toggle auto -> dark -> light -> auto but let's just make toggle cycle
-  };
+  // Re-check auto mode every minute (for auto-switch at 22:00/06:00)
+  useEffect(() => {
+    if (mode !== 'auto') return;
+    const interval = setInterval(() => {
+      setDark(resolveTheme('auto'));
+      const root = document.documentElement;
+      if (resolveTheme('auto')) {
+        root.classList.add('dark', 'night-mode');
+      } else {
+        root.classList.remove('dark', 'night-mode');
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [mode]);
 
-  const cycleTheme = () => {
-    const modes = ['auto', 'dark', 'light'];
-    const idx = modes.indexOf(themeMode);
-    setThemeMode(modes[(idx + 1) % modes.length]);
-  };
+  const cycleTheme = useCallback(() => {
+    setMode(prev => {
+      if (prev === 'light') return 'dark';
+      if (prev === 'dark') return 'auto';
+      return 'light'; // auto → light
+    });
+  }, []);
+
+  // Legacy toggle for backward compatibility
+  const toggleTheme = cycleTheme;
 
   return (
-    <ThemeContext.Provider value={{ dark, themeMode, setThemeMode, toggleTheme: cycleTheme }}>
+    <ThemeContext.Provider value={{ dark, mode, toggleTheme, cycleTheme, setMode }}>
       {children}
     </ThemeContext.Provider>
   );

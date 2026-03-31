@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap, Plus, LogOut, Menu, X,
-  LayoutDashboard, FileText, BarChart3, Database, Sun, Moon, Monitor,
+  LayoutDashboard, FileText, BarChart3, Database, Sun, Moon, Sunset,
   User, Shield, Globe, Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -13,7 +13,7 @@ import NotificationBell from './NotificationBell';
 
 export default memo(function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
-  const { dark, themeMode, toggleTheme } = useTheme();
+  const { dark, mode, cycleTheme } = useTheme();
   const { t, lang, setLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -119,13 +119,13 @@ export default memo(function Navbar() {
               </AnimatePresence>
             </div>
 
-            {/* Theme mode toggle */}
+            {/* Theme mode toggle: light → dark → auto */}
             <button
-              onClick={toggleTheme}
+              onClick={cycleTheme}
               className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-all"
-              title={themeMode === 'auto' ? t('autoTheme') : themeMode === 'dark' ? t('lightTheme') : t('darkTheme')}
+              title={mode === 'light' ? t('darkTheme') : mode === 'dark' ? (t('autoTheme') || 'Auto (Night)') : t('lightTheme')}
             >
-              {themeMode === 'auto' ? <Monitor size={18} /> : dark ? <Sun size={18} /> : <Moon size={18} />}
+              {mode === 'light' ? <Moon size={18} /> : mode === 'dark' ? <Sunset size={18} /> : <Sun size={18} />}
             </button>
 
             {isAuthenticated ? (

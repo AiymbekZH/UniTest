@@ -197,10 +197,19 @@ export default function Dashboard() {
                 key={test._id}
                 variants={cardVariants}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="glass-card-solid p-5 cursor-pointer group relative flex flex-col"
+                className="glass-card-solid overflow-hidden cursor-pointer group relative flex flex-col"
               >
+                {/* Cover Image */}
+                {test.coverImage && (
+                  <div className="h-32 w-full overflow-hidden" onClick={() => navigate(`/test-profile/${test.shareLink}`)}>
+                    <img src={test.coverImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  </div>
+                )}
+
+                <div className="p-5 flex flex-col flex-1">
                 {/* Menu */}
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 z-10">
+                  {test.coverImage && <div className="absolute inset-0 -m-1 rounded-lg bg-black/20 backdrop-blur-sm -z-10" />}
                   <button
                     onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === test._id ? null : test._id); }}
                     className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
@@ -248,13 +257,7 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                <div onClick={() => navigate(`/test-profile/${test.shareLink}`)} className="flex flex-col flex-1 h-full">
-                  {test.coverImage && (
-                    <div className="h-32 -mx-5 -mt-5 mb-4 rounded-t-xl overflow-hidden bg-gray-100 dark:bg-slate-800 relative group-hover:opacity-90 transition-opacity">
-                      <img src={test.coverImage} className="w-full h-full object-cover" alt={test.title} />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  )}
+                <div onClick={() => navigate(`/test-profile/${test.shareLink}`)} className="flex flex-col flex-1">
                   {/* Status badge */}
                   <div className="flex items-center gap-2 mb-2.5">
                     {test.settings?.isPublic ? (
@@ -318,6 +321,7 @@ export default function Dashboard() {
                         <Users size={12} />
                         {test.attemptCount || 0}
                       </div>
+                    </div>
                     </div>
                   </div>
                 </div>

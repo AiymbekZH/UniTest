@@ -180,14 +180,6 @@ export default function CreateTest() {
     setTest(prev => ({ ...prev, questions: updated }));
   };
 
-  const updateTranslation = (qIndex, lang, field, value) => {
-    const updated = [...test.questions];
-    if (!updated[qIndex].translations) updated[qIndex].translations = {};
-    if (!updated[qIndex].translations[lang]) updated[qIndex].translations[lang] = {};
-    updated[qIndex].translations[lang][field] = value;
-    setTest(prev => ({ ...prev, questions: updated }));
-  };
-
   const updateOption = (qIndex, oIndex, field, value) => {
     const updated = [...test.questions];
     const opts = [...updated[qIndex].options];
@@ -249,25 +241,6 @@ export default function CreateTest() {
       toast.success(t('mediaUploaded'));
     } catch (err) {
       toast.error(t('errorUploadMedia'));
-    }
-  };
-
-  const handleCoverUpload = async (file) => {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File too large (max 5MB)');
-      return;
-    }
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const res = await api.post('/tests/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      updateTest('coverImage', res.data.url);
-      toast.success(t('mediaUploaded') || 'Cover uploaded');
-    } catch (err) {
-      toast.error(t('errorUploadMedia') || 'Error uploading cover');
     }
   };
 
@@ -674,7 +647,6 @@ export default function CreateTest() {
                         { key: 'instantFeedback', label: t('instantFeedback'), icon: Zap, update: updateSettings },
                         { key: 'practiceMode', label: t('practiceModeLabel'), icon: GraduationCap, update: updateSettings },
                         { key: 'isPublic', label: t('isPublic'), icon: Globe, update: updateSettings },
-                        { key: 'multiLanguage', label: t('multiLanguage') || 'Multi-language (EN/RU/KZ)', icon: Globe, update: updateSettings },
                       ].map(opt => {
                         const val = test.settings[opt.key];
                         const Icon = opt.icon;
@@ -698,6 +670,71 @@ export default function CreateTest() {
                         );
                       })}
                     </div>
+                  </div>
+
+                  <div className="divider" />
+
+                  {/* Section: Multilingual */}
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <Globe size={13} />
+                      {t('multiLanguage') || 'Multilingual'}
+                    </h4>
+                    <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors mb-2">
+                      <span className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                        <Globe size={14} className="text-gray-400 dark:text-gray-500" />
+                        {t('multiLanguageEnabled') || 'Enable translations'}
+                      </span>
+                      <button
+                        onClick={() => updateSettings('multiLanguage', {
+                          ...test.settings.multiLanguage,
+                          enabled: !test.settings.multiLanguage?.enabled
+                        })}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                          test.settings.multiLanguage?.enabled ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'
+                        }`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                          test.settings.multiLanguage?.enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                        }`} />
+                      </button>
+                    </div>
+                    {test.settings.multiLanguage?.enabled && (
+                      <div className="px-3 space-y-2">
+                        <p className="text-[10px] text-gray-400">{t('multiLanguageHint') || 'Select languages. Translation fields will appear for each question.'}</p>
+                        <div className="flex gap-2">
+                          {[
+                            { code: 'en', label: '🇬🇧 English' },
+                            { code: 'ru', label: '🇷🇺 Русский' },
+                            { code: 'kz', label: '🇰🇿 Қазақша' }
+                          ].map(l => {
+                            const langs = test.settings.multiLanguage?.languages || [];
+                            const isActive = langs.includes(l.code);
+                            return (
+                              <button
+                                key={l.code}
+                                onClick={() => {
+                                  const newLangs = isActive
+                                    ? langs.filter(x => x !== l.code)
+                                    : [...langs, l.code];
+                                  updateSettings('multiLanguage', {
+                                    ...test.settings.multiLanguage,
+                                    languages: newLangs
+                                  });
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                                  isActive
+                                    ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 border-primary-200 dark:border-primary-800'
+                                    : 'bg-gray-50 dark:bg-slate-800 text-gray-500 border-gray-200 dark:border-slate-700 hover:border-primary-300'
+                                }`}
+                              >
+                                {l.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="divider" />
@@ -752,44 +789,21 @@ export default function CreateTest() {
 
           {/* Test Info */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="glass-card-solid mb-5 overflow-hidden">
-            
-            {/* Cover image preview/upload */}
-            <div className={`relative ${test.coverImage ? 'h-48' : 'h-24'} bg-gray-50 dark:bg-slate-800 flex items-center justify-center group border-b border-gray-100 dark:border-slate-700 transition-all`}>
-              {test.coverImage ? (
-                <>
-                  <img src={test.coverImage} className="w-full h-full object-cover" alt="Cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <label className="btn-secondary py-1.5 px-3 text-xs cursor-pointer flex gap-1.5 items-center">
-                      <Image size={14} /> {t('changeCover') || 'Change cover'}
-                      <input type="file" className="hidden" accept="image/*" onChange={e => handleCoverUpload(e.target.files[0])} />
-                    </label>
-                  </div>
-                </>
-              ) : (
-                <label className="flex flex-col items-center gap-1.5 cursor-pointer text-gray-400 hover:text-primary-500 transition-colors">
-                  <Image size={24} />
-                  <span className="text-xs font-medium">{t('addCover') || 'Add Cover (Optional)'}</span>
-                  <input type="file" className="hidden" accept="image/*" onChange={e => handleCoverUpload(e.target.files[0])} />
-                </label>
-              )}
-            </div>
-
-            <div className="p-5 space-y-3">
-              <input
-                className="w-full text-lg font-bold text-dark bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600"
-                placeholder={t('testTitlePlaceholder')}
-                value={test.title}
-                onChange={e => updateTest('title', e.target.value)}
-              />
-              <textarea
-                className="input-field resize-none text-sm py-2"
-                rows="2"
-                placeholder={t('testDescPlaceholder')}
-                value={test.description}
-                onChange={e => updateTest('description', e.target.value)}
-              />
-              <div className="flex flex-wrap items-center gap-2">
+            className="glass-card-solid p-5 mb-5 space-y-3">
+            <input
+              className="w-full text-lg font-bold text-dark bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600"
+              placeholder={t('testTitlePlaceholder')}
+              value={test.title}
+              onChange={e => updateTest('title', e.target.value)}
+            />
+            <textarea
+              className="input-field resize-none text-sm py-2"
+              rows="2"
+              placeholder={t('testDescPlaceholder')}
+              value={test.description}
+              onChange={e => updateTest('description', e.target.value)}
+            />
+            <div className="flex flex-wrap items-center gap-2">
               {test.tags.map((tag, i) => (
                 <span key={i} className="badge-info flex items-center gap-1 text-xs">
                   {tag}
@@ -806,7 +820,51 @@ export default function CreateTest() {
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
               />
             </div>
-          </div>
+            {/* Cover Image Upload */}
+            <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 block flex items-center gap-1.5">
+                <Image size={12} />
+                {t('coverImage') || 'Cover image'}
+              </label>
+              {test.coverImage ? (
+                <div className="relative group/cover rounded-xl overflow-hidden h-32">
+                  <img src={test.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button
+                      onClick={() => updateTest('coverImage', '')}
+                      className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg font-medium hover:bg-red-600 transition"
+                    >
+                      <Trash2 size={12} className="inline mr-1" />
+                      {t('delete') || 'Remove'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 h-24 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-all text-gray-400 text-sm">
+                  <Upload size={16} />
+                  <span>{t('uploadCover') || 'Upload cover'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      if (file.size > 5 * 1024 * 1024) { toast.error('Max 5MB'); return; }
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      try {
+                        const res = await api.post('/tests/upload', formData);
+                        updateTest('coverImage', res.data.url);
+                        toast.success(t('uploadSuccess') || 'Uploaded!');
+                      } catch {
+                        toast.error(t('uploadError') || 'Upload failed');
+                      }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
           </motion.div>
 
           {/* Mobile Quick Actions */}
@@ -911,6 +969,35 @@ export default function CreateTest() {
                           disableLinks={test.settings.antiCheat.blockTabSwitch}
                         />
                       </Suspense>
+
+                      {/* Multilingual translations */}
+                      {test.settings.multiLanguage?.enabled && test.settings.multiLanguage?.languages?.length > 0 && (
+                        <div className="space-y-2 pl-3 border-l-2 border-primary-200 dark:border-primary-800">
+                          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide flex items-center gap-1">
+                            <Globe size={10} /> {t('translations') || 'Translations'}
+                          </p>
+                          {test.settings.multiLanguage.languages.map(langCode => {
+                            const langLabels = { en: '🇬🇧 English', ru: '🇷🇺 Русский', kz: '🇰🇿 Қазақша' };
+                            return (
+                              <div key={langCode}>
+                                <label className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block">{langLabels[langCode] || langCode}</label>
+                                <textarea
+                                  className="input-field text-sm py-2 resize-none"
+                                  rows="2"
+                                  placeholder={`${langLabels[langCode]} — ${t('questionTextPlaceholder') || 'Question text'}`}
+                                  value={question.translations?.[langCode] || ''}
+                                  onChange={e => {
+                                    const q = { ...question, translations: { ...question.translations, [langCode]: e.target.value } };
+                                    const updated = [...test.questions];
+                                    updated[qIndex] = q;
+                                    setTest(prev => ({ ...prev, questions: updated }));
+                                  }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {/* Optional passage / reading text */}
                       <div>
@@ -1073,27 +1160,6 @@ export default function CreateTest() {
                         <input className="input-field py-1.5 text-xs" placeholder={t('explanationPlaceholder')}
                           value={question.explanation} onChange={e => updateQuestion(qIndex, 'explanation', e.target.value)} />
                       </div>
-
-                      {/* Translations */}
-                      {test.settings.multiLanguage && (
-                        <div className="pt-3 border-t border-primary-100 dark:border-primary-900/30">
-                          <label className="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-2 flex items-center gap-1.5">
-                            <Globe size={12} /> {t('translations') || 'Переводы'}
-                          </label>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <span className="text-[10px] font-medium text-gray-500 mb-1 block">Русский</span>
-                              <input className="input-field py-1.5 text-xs mb-2" placeholder="Текст вопроса"
-                                value={question.translations?.ru?.questionText || ''} onChange={e => updateTranslation(qIndex, 'ru', 'questionText', e.target.value)} />
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-medium text-gray-500 mb-1 block">Қазақша</span>
-                              <input className="input-field py-1.5 text-xs mb-2" placeholder="Сұрақ мәтіні"
-                                value={question.translations?.kz?.questionText || ''} onChange={e => updateTranslation(qIndex, 'kz', 'questionText', e.target.value)} />
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                     </motion.div>
                   )}

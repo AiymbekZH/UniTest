@@ -219,6 +219,30 @@
   .dark .text-dark {
     color: #f1f5f9;
   }
+
+  /* ---- Night Mode (ultra-dark, warm tones — auto after 22:00) ---- */
+  .night-mode .bg-surface {
+    background-color: #080c14;
+  }
+  .night-mode body {
+    background-color: #080c14;
+  }
+  .night-mode .glass-card-solid,
+  .night-mode .card {
+    @apply bg-slate-900 border-slate-800;
+  }
+  .night-mode .glass-card {
+    @apply bg-slate-900/90 border-slate-800/60;
+  }
+  .night-mode nav {
+    @apply bg-slate-950/90 border-slate-800/50;
+  }
+  .night-mode .input-field {
+    @apply bg-slate-800 border-slate-700;
+  }
+  .night-mode .btn-secondary {
+    @apply bg-slate-800 border-slate-700 hover:bg-slate-700;
+  }
 }
 
 /* Custom scrollbar */
