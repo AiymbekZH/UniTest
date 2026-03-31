@@ -38,6 +38,7 @@ const questionSchema = new mongoose.Schema({
     en: {
       questionText: { type: String, default: '' },
       options: [{ type: String }],
+      matchPairs: [{ type: String }],
       passage: { type: String, default: '' },
       explanation: { type: String, default: '' },
       correctAnswer: { type: String, default: '' }
@@ -45,6 +46,7 @@ const questionSchema = new mongoose.Schema({
     ru: {
       questionText: { type: String, default: '' },
       options: [{ type: String }],
+      matchPairs: [{ type: String }],
       passage: { type: String, default: '' },
       explanation: { type: String, default: '' },
       correctAnswer: { type: String, default: '' }
@@ -52,6 +54,7 @@ const questionSchema = new mongoose.Schema({
     kz: {
       questionText: { type: String, default: '' },
       options: [{ type: String }],
+      matchPairs: [{ type: String }],
       passage: { type: String, default: '' },
       explanation: { type: String, default: '' },
       correctAnswer: { type: String, default: '' }

@@ -28,6 +28,123 @@ const questionTypesData = [
   { value: 'fill-blank', labelKey: 'fillBlank', icon: Type, color: 'bg-teal-50 text-teal-600 dark:bg-teal-900/30' },
 ];
 
+const TRANSLATION_LANGUAGE_OPTIONS = [
+  { code: 'en', label: '🇬🇧 English', shortLabel: '🇬🇧 EN' },
+  { code: 'ru', label: '🇷🇺 Русский', shortLabel: '🇷🇺 RU' },
+  { code: 'kz', label: '🇰🇿 Қазақша', shortLabel: '🇰🇿 KZ' }
+];
+
+function createDefaultSettings() {
+  return {
+    timeLimit: 0,
+    shuffleQuestions: false,
+    shuffleOptions: false,
+    showResults: true,
+    allowReview: true,
+    instantFeedback: true,
+    questionPoolSize: 0,
+    inactivityTimeout: 0,
+    practiceMode: false,
+    partialCredit: false,
+    variants: { enabled: false, count: 0 },
+    startDate: '',
+    endDate: '',
+    maxAttempts: 1,
+    isPublic: false,
+    antiCheat: {
+      blockTabSwitch: true,
+      blockCopyPaste: true,
+      blockScreenshot: true,
+      maxViolations: 5,
+    },
+    multiLanguage: {
+      enabled: false,
+      languages: []
+    }
+  };
+}
+
+function mergeSettings(settings = {}) {
+  const defaults = createDefaultSettings();
+  return {
+    ...defaults,
+    ...settings,
+    antiCheat: {
+      ...defaults.antiCheat,
+      ...(settings.antiCheat || {})
+    },
+    variants: {
+      ...defaults.variants,
+      ...(settings.variants || {})
+    },
+    multiLanguage: {
+      ...defaults.multiLanguage,
+      ...(settings.multiLanguage || {})
+    }
+  };
+}
+
+function createEmptyTranslation() {
+  return {
+    questionText: '',
+    options: [],
+    matchPairs: [],
+    passage: '',
+    explanation: '',
+    correctAnswer: ''
+  };
+}
+
+function normalizeTranslation(translation = {}) {
+  return {
+    ...createEmptyTranslation(),
+    ...translation,
+    options: Array.isArray(translation?.options) ? [...translation.options] : [],
+    matchPairs: Array.isArray(translation?.matchPairs) ? [...translation.matchPairs] : []
+  };
+}
+
+function getTranslationPanelKey(questionId, langCode) {
+  return `${questionId}:${langCode}`;
+}
+
+function hasTranslationContent(translation = {}) {
+  const normalized = normalizeTranslation(translation);
+  return Boolean(
+    normalized.questionText?.trim() ||
+    normalized.passage?.trim() ||
+    normalized.explanation?.trim() ||
+    normalized.correctAnswer?.trim() ||
+    normalized.options.some(option => option?.trim()) ||
+    normalized.matchPairs.some(pair => pair?.trim())
+  );
+}
+
+function pickTranslationValue(existingValue = '', incomingValue = '', overwrite = false) {
+  return overwrite
+    ? (incomingValue || existingValue || '')
+    : (existingValue || incomingValue || '');
+}
+
+function mergeTranslationArray(existingValues = [], incomingValues = [], overwrite = false) {
+  const length = Math.max(existingValues.length, incomingValues.length);
+  return Array.from({ length }, (_, index) => pickTranslationValue(existingValues[index], incomingValues[index], overwrite));
+}
+
+function mergeTranslationPayload(existingTranslation = {}, incomingTranslation = {}, overwrite = false) {
+  const existing = normalizeTranslation(existingTranslation);
+  const incoming = normalizeTranslation(incomingTranslation);
+
+  return {
+    questionText: pickTranslationValue(existing.questionText, incoming.questionText, overwrite),
+    options: mergeTranslationArray(existing.options, incoming.options, overwrite),
+    matchPairs: mergeTranslationArray(existing.matchPairs, incoming.matchPairs, overwrite),
+    passage: pickTranslationValue(existing.passage, incoming.passage, overwrite),
+    explanation: pickTranslationValue(existing.explanation, incoming.explanation, overwrite),
+    correctAnswer: pickTranslationValue(existing.correctAnswer, incoming.correctAnswer, overwrite)
+  };
+}
+
 function createQuestion(type = 'single-choice') {
   const base = { id: uuidv4(), type, questionText: '', passage: '', points: 1, options: [], correctAnswer: '', media: { type: '', url: '', fileName: '' }, explanation: '' };
 
@@ -69,14 +186,16 @@ export default function CreateTest() {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, index: null });
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [draftStatus, setDraftStatus] = useState(''); // '' | 'saving' | 'saved'
+  const [openTranslationPanels, setOpenTranslationPanels] = useState({});
   const questionRefs = useRef({});
   const autoSaveTimer = useRef(null);
   const { t, lang } = useLanguage();
   const { user } = useAuth();
+  const hasAIAccess = user?.role === 'admin' || Boolean(user?.aiAccess);
 
   const checkAIAccess = (callback) => {
-    if (!user?.aiAccess && user?.role !== 'admin') {
-      toast.error('Доступ к режиму AI ограничен! Обратитесь к администратору для получения доступа.', {
+    if (!hasAIAccess) {
+      toast.error('AI-функции доступны только по разрешению администратора.', {
         icon: '🔒',
         duration: 4000
       });
@@ -94,29 +213,7 @@ export default function CreateTest() {
     tags: [],
     tagInput: '',
     questions: [createQuestion()],
-    settings: {
-      timeLimit: 0,
-      shuffleQuestions: false,
-      shuffleOptions: false,
-      showResults: true,
-      allowReview: true,
-      instantFeedback: true,
-      questionPoolSize: 0,
-      inactivityTimeout: 0,
-      practiceMode: false,
-      partialCredit: false,
-      variants: { enabled: false, count: 0 },
-      startDate: '',
-      endDate: '',
-      maxAttempts: 1,
-      isPublic: false,
-      antiCheat: {
-        blockTabSwitch: true,
-        blockCopyPaste: true,
-        blockScreenshot: true,
-        maxViolations: 5,
-      }
-    }
+    settings: createDefaultSettings()
   });
 
   useEffect(() => {
@@ -130,7 +227,7 @@ export default function CreateTest() {
           tags: t.tags || [],
           tagInput: '',
           questions: t.questions || [createQuestion()],
-          settings: t.settings || test.settings
+          settings: mergeSettings(t.settings)
         });
       }).catch(() => toast.error(t('errorLoading')));
     } else {
@@ -165,12 +262,36 @@ export default function CreateTest() {
     try {
       const draft = JSON.parse(localStorage.getItem('unitest_draft'));
       if (draft) {
-        setTest({ ...draft, tagInput: '' });
+        setTest({
+          ...draft,
+          tagInput: '',
+          questions: draft.questions || [createQuestion()],
+          settings: mergeSettings(draft.settings)
+        });
         toast.success(t('restore'));
       }
     } catch {}
     setShowDraftDialog(false);
   };
+
+  useEffect(() => {
+    if (!test.settings.multiLanguage?.enabled) return;
+
+    setOpenTranslationPanels(prev => {
+      const next = { ...prev };
+
+      test.questions.forEach(question => {
+        (test.settings.multiLanguage.languages || []).forEach(langCode => {
+          const panelKey = getTranslationPanelKey(question.id, langCode);
+          if (next[panelKey] === undefined) {
+            next[panelKey] = !hasTranslationContent(question.translations?.[langCode]);
+          }
+        });
+      });
+
+      return next;
+    });
+  }, [test.questions, test.settings.multiLanguage?.enabled, test.settings.multiLanguage?.languages]);
 
   const discardDraft = () => {
     localStorage.removeItem('unitest_draft');
@@ -214,16 +335,17 @@ export default function CreateTest() {
   };
 
   // AI translate a single question
-  const [translatingQ, setTranslatingQ] = useState(null);
-  const aiTranslateQuestion = async (qIndex) => {
+  const [translatingState, setTranslatingState] = useState(null);
+  const aiTranslateQuestion = async (qIndex, targetLanguages = test.settings.multiLanguage?.languages || [], overwriteExisting = false) => {
     const q = test.questions[qIndex];
-    const langs = test.settings.multiLanguage?.languages || [];
+    const langs = [...new Set((targetLanguages || []).filter(Boolean))];
     if (!langs.length) { toast.error('Выберите языки в настройках'); return; }
-    setTranslatingQ(qIndex);
+    setTranslatingState({ qIndex, languages: langs });
     try {
       const res = await api.post('/ai/translate', {
-        questionText: q.questionText?.replace(/<[^>]*>/g, '') || '',
+        questionText: q.questionText || '',
         options: q.options?.map(o => ({ text: o.text })) || [],
+        matchingPairs: q.options?.map(o => o.matchPair || '') || [],
         passage: q.passage || '',
         explanation: q.explanation || '',
         correctAnswer: q.correctAnswer || '',
@@ -234,22 +356,27 @@ export default function CreateTest() {
       const newTranslations = { ...(q.translations || {}) };
       for (const lang of langs) {
         if (translations[lang]) {
-          newTranslations[lang] = {
-            questionText: translations[lang].questionText || '',
-            options: translations[lang].options || [],
-            passage: translations[lang].passage || '',
-            explanation: translations[lang].explanation || '',
-            correctAnswer: translations[lang].correctAnswer || ''
-          };
+          newTranslations[lang] = mergeTranslationPayload(newTranslations[lang], translations[lang], overwriteExisting);
         }
       }
       updated[qIndex] = { ...q, translations: newTranslations };
       setTest(prev => ({ ...prev, questions: updated }));
-      toast.success(`✅ Переведено на ${langs.length} язык(ов)`);
+
+      setOpenTranslationPanels(prev => {
+        const next = { ...prev };
+        langs.forEach(langCode => {
+          next[getTranslationPanelKey(q.id, langCode)] = true;
+        });
+        return next;
+      });
+
+      toast.success(langs.length === 1
+        ? `Перевод обновлён: ${langs[0].toUpperCase()}`
+        : `Переводы обновлены: ${langs.length} языка(ов)`);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Ошибка перевода');
     } finally {
-      setTranslatingQ(null);
+      setTranslatingState(null);
     }
   };
   const updateSettings = (field, value) => setTest(prev => ({
@@ -265,6 +392,46 @@ export default function CreateTest() {
     const updated = [...test.questions];
     updated[index] = { ...updated[index], [field]: value };
     setTest(prev => ({ ...prev, questions: updated }));
+  };
+
+  const updateQuestionTranslation = (qIndex, langCode, updater) => {
+    setTest(prev => {
+      const updated = [...prev.questions];
+      const currentQuestion = updated[qIndex];
+      const currentTranslation = normalizeTranslation(currentQuestion.translations?.[langCode]);
+      const nextTranslation = normalizeTranslation(
+        typeof updater === 'function' ? updater(currentTranslation) : updater
+      );
+
+      updated[qIndex] = {
+        ...currentQuestion,
+        translations: {
+          ...(currentQuestion.translations || {}),
+          [langCode]: nextTranslation
+        }
+      };
+
+      return { ...prev, questions: updated };
+    });
+  };
+
+  const clearQuestionTranslation = (qIndex, langCode) => {
+    const questionId = test.questions[qIndex]?.id;
+    updateQuestionTranslation(qIndex, langCode, createEmptyTranslation());
+    if (questionId) {
+      setOpenTranslationPanels(prev => ({
+        ...prev,
+        [getTranslationPanelKey(questionId, langCode)]: true
+      }));
+    }
+  };
+
+  const toggleTranslationPanel = (questionId, langCode) => {
+    const panelKey = getTranslationPanelKey(questionId, langCode);
+    setOpenTranslationPanels(prev => ({
+      ...prev,
+      [panelKey]: !(prev[panelKey] ?? true)
+    }));
   };
 
   const updateOption = (qIndex, oIndex, field, value) => {
@@ -546,6 +713,11 @@ export default function CreateTest() {
             </div>
 
             <div className="glass-card-solid p-3 space-y-2">
+              {!hasAIAccess && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+                  AI-функции закрыты. Доступ выдаётся администратором.
+                </div>
+              )}
               <button onClick={loadBankQuestions}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 <Database size={14} /> {t('fromQuestionBank')}
@@ -555,7 +727,11 @@ export default function CreateTest() {
                 <FileSpreadsheet size={14} /> {t('importCSV')}
               </button>
               <button onClick={() => checkAIAccess(() => setShowAIModal(true))}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  hasAIAccess
+                    ? 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                    : 'text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/10'
+                }`}>
                 <Sparkles size={14} /> {t('aiGenerate') || 'AI Generate'}
               </button>
               <button onClick={saveToBank}
@@ -790,11 +966,7 @@ export default function CreateTest() {
                       <div className="px-3 space-y-2">
                         <p className="text-[10px] text-gray-400">{t('multiLanguageHint') || 'Select languages. Translation fields will appear for each question.'}</p>
                         <div className="flex gap-2">
-                          {[
-                            { code: 'en', label: '🇬🇧 English' },
-                            { code: 'ru', label: '🇷🇺 Русский' },
-                            { code: 'kz', label: '🇰🇿 Қазақша' }
-                          ].map(l => {
+                          {TRANSLATION_LANGUAGE_OPTIONS.map(l => {
                             const langs = test.settings.multiLanguage?.languages || [];
                             const isActive = langs.includes(l.code);
                             return (
@@ -953,6 +1125,11 @@ export default function CreateTest() {
           </motion.div>
 
           {/* Mobile Quick Actions */}
+          {!hasAIAccess && (
+            <div className="lg:hidden mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+              AI-функции недоступны для этого аккаунта. Обратитесь к администратору за доступом.
+            </div>
+          )}
           <div className="lg:hidden flex gap-2 mb-4 overflow-x-auto pb-2">
             <button onClick={loadBankQuestions} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <Database size={12} /> {t('fromQuestionBank')}
@@ -960,7 +1137,11 @@ export default function CreateTest() {
             <button onClick={() => setShowImportModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <FileSpreadsheet size={12} /> {t('importCSV')}
             </button>
-            <button onClick={() => setShowAIModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800">
+            <button onClick={() => checkAIAccess(() => setShowAIModal(true))} className={`btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap ${
+              hasAIAccess
+                ? 'text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+                : 'text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+            }`}>
               <Sparkles size={12} /> {t('aiGenerate') || 'AI Generate'}
             </button>
             <button onClick={saveToBank} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
@@ -1057,68 +1238,172 @@ export default function CreateTest() {
 
                       {/* Multilingual translations — compact with AI */}
                       {test.settings.multiLanguage?.enabled && test.settings.multiLanguage?.languages?.length > 0 && (
-                        <div className="rounded-xl border border-primary-200/50 dark:border-primary-800/50 bg-primary-50/30 dark:bg-primary-900/10 overflow-hidden">
-                          <div className="flex items-center justify-between px-3 py-2">
+                        <div className="rounded-xl border border-primary-200/50 dark:border-primary-800/50 bg-primary-50/30 dark:bg-primary-900/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-between gap-3 px-3 py-2">
                             <span className="text-[10px] text-primary-600 dark:text-primary-400 font-semibold uppercase tracking-wide flex items-center gap-1">
                               <Globe size={10} /> {t('translations') || 'Переводы'}
-                              {test.settings.multiLanguage.languages.some(l => question.translations?.[l]?.questionText) && (
+                              {test.settings.multiLanguage.languages.some(languageCode => hasTranslationContent(question.translations?.[languageCode])) && (
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1" />
                               )}
                             </span>
                             <button
-                              onClick={() => checkAIAccess(() => aiTranslateQuestion(qIndex))}
-                              disabled={translatingQ === qIndex}
-                              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition disabled:opacity-50"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                checkAIAccess(() => aiTranslateQuestion(qIndex));
+                              }}
+                              disabled={translatingState?.qIndex === qIndex}
+                              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition ${
+                                hasAIAccess
+                                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+                                  : 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/30'
+                              } disabled:opacity-50`}
                             >
-                              {translatingQ === qIndex ? (
-                                <><Sparkles size={10} className="animate-spin" /> Переводим...</>
+                              {translatingState?.qIndex === qIndex ? (
+                                <><Sparkles size={10} className="animate-spin" /> Заполняем...</>
                               ) : (
-                                <><Sparkles size={10} /> AI Перевод</>
+                                <><Sparkles size={10} /> AI заполнить пустые</>
                               )}
                             </button>
                           </div>
                           <div className="px-3 pb-3 space-y-2">
                             {test.settings.multiLanguage.languages.map(langCode => {
-                              const langLabels = { en: '🇬🇧 EN', ru: '🇷🇺 RU', kz: '🇰🇿 KZ' };
-                              const trans = question.translations?.[langCode] || {};
-                              const hasTranslation = !!trans.questionText;
+                              const langMeta = TRANSLATION_LANGUAGE_OPTIONS.find(option => option.code === langCode);
+                              const trans = normalizeTranslation(question.translations?.[langCode]);
+                              const hasTranslation = hasTranslationContent(trans);
+                              const panelKey = getTranslationPanelKey(question.id, langCode);
+                              const isOpen = openTranslationPanels[panelKey] ?? true;
+                              const isLangTranslating = translatingState?.qIndex === qIndex
+                                && translatingState.languages?.length === 1
+                                && translatingState.languages[0] === langCode;
+                              const showPassageField = Boolean(question.passage?.trim() || trans.passage?.trim());
+                              const showExplanationField = Boolean(question.explanation?.trim() || trans.explanation?.trim());
+                              const showCorrectAnswerField = question.type === 'fill-blank' || Boolean(question.correctAnswer?.trim() || trans.correctAnswer?.trim());
+                              const showMatchingPairs = question.type === 'matching' && question.options?.some(option => option.matchPair?.trim());
+
                               return (
-                                <details key={langCode} className="group/lang" defaultOpen={!hasTranslation}>
-                                  <summary className="flex items-center gap-2 cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-dark py-1 select-none">
-                                    <span className="font-medium">{langLabels[langCode]}</span>
+                                <div key={langCode} className="rounded-lg border border-gray-200/80 bg-white/80 dark:border-slate-700 dark:bg-slate-900/20">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleTranslationPanel(question.id, langCode);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800/40 transition"
+                                  >
+                                    <span className="font-medium">{langMeta?.shortLabel || langCode.toUpperCase()}</span>
                                     {hasTranslation && <span className="text-emerald-500 text-[9px]">✓</span>}
-                                    <ChevronDown size={10} className="ml-auto group-open/lang:rotate-180 transition-transform" />
-                                  </summary>
-                                  <div className="pl-1 pt-1 space-y-1.5">
-                                    <input
-                                      className="input-field text-xs py-1.5"
-                                      placeholder="Текст вопроса"
-                                      value={trans.questionText || ''}
-                                      onChange={e => {
-                                        const newT = { ...trans, questionText: e.target.value };
-                                        const q = { ...question, translations: { ...question.translations, [langCode]: newT } };
-                                        const updated = [...test.questions]; updated[qIndex] = q;
-                                        setTest(prev => ({ ...prev, questions: updated }));
-                                      }}
-                                    />
-                                    {question.options?.length > 0 && question.options.map((opt, oi) => (
-                                      <input
-                                        key={oi}
-                                        className="input-field text-xs py-1.5 pl-6"
-                                        placeholder={`Ответ ${oi + 1}: ${opt.text?.substring(0, 30) || '...'}`}
-                                        value={trans.options?.[oi] || ''}
-                                        onChange={e => {
-                                          const newOpts = [...(trans.options || [])];
-                                          newOpts[oi] = e.target.value;
-                                          const newT = { ...trans, options: newOpts };
-                                          const q = { ...question, translations: { ...question.translations, [langCode]: newT } };
-                                          const updated = [...test.questions]; updated[qIndex] = q;
-                                          setTest(prev => ({ ...prev, questions: updated }));
-                                        }}
+                                    {isLangTranslating && <span className="text-purple-500 text-[9px]">AI</span>}
+                                    <ChevronDown size={10} className={`ml-auto transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                                  </button>
+
+                                  {isOpen && (
+                                    <div className="px-3 pb-3 space-y-2 border-t border-gray-100 dark:border-slate-700/80">
+                                      <textarea
+                                        className="input-field resize-none text-xs py-2 mt-2"
+                                        rows="3"
+                                        placeholder="Текст вопроса"
+                                        value={trans.questionText}
+                                        onClick={e => e.stopPropagation()}
+                                        onChange={e => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, questionText: e.target.value }))}
                                       />
-                                    ))}
-                                  </div>
-                                </details>
+
+                                      {question.options?.length > 0 && question.options.map((opt, oi) => (
+                                        <input
+                                          key={oi}
+                                          className="input-field text-xs py-1.5"
+                                          placeholder={`Вариант ${oi + 1}: ${opt.text?.substring(0, 40) || '...'}`}
+                                          value={trans.options?.[oi] || ''}
+                                          onClick={e => e.stopPropagation()}
+                                          onChange={e => {
+                                            updateQuestionTranslation(qIndex, langCode, current => {
+                                              const nextOptions = [...(current.options || [])];
+                                              nextOptions[oi] = e.target.value;
+                                              return { ...current, options: nextOptions };
+                                            });
+                                          }}
+                                        />
+                                      ))}
+
+                                      {showMatchingPairs && question.options.map((opt, oi) => (
+                                        <input
+                                          key={`pair-${oi}`}
+                                          className="input-field text-xs py-1.5"
+                                          placeholder={`Пара ${oi + 1}: ${opt.matchPair?.substring(0, 40) || '...'}`}
+                                          value={trans.matchPairs?.[oi] || ''}
+                                          onClick={e => e.stopPropagation()}
+                                          onChange={e => {
+                                            updateQuestionTranslation(qIndex, langCode, current => {
+                                              const nextPairs = [...(current.matchPairs || [])];
+                                              nextPairs[oi] = e.target.value;
+                                              return { ...current, matchPairs: nextPairs };
+                                            });
+                                          }}
+                                        />
+                                      ))}
+
+                                      {showPassageField && (
+                                        <textarea
+                                          className="input-field resize-none text-xs py-2"
+                                          rows="3"
+                                          placeholder="Перевод текста / passage"
+                                          value={trans.passage}
+                                          onClick={e => e.stopPropagation()}
+                                          onChange={e => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, passage: e.target.value }))}
+                                        />
+                                      )}
+
+                                      {showCorrectAnswerField && (
+                                        <input
+                                          className="input-field text-xs py-1.5"
+                                          placeholder="Правильный ответ"
+                                          value={trans.correctAnswer}
+                                          onClick={e => e.stopPropagation()}
+                                          onChange={e => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, correctAnswer: e.target.value }))}
+                                        />
+                                      )}
+
+                                      {showExplanationField && (
+                                        <textarea
+                                          className="input-field resize-none text-xs py-2"
+                                          rows="2"
+                                          placeholder="Пояснение"
+                                          value={trans.explanation}
+                                          onClick={e => e.stopPropagation()}
+                                          onChange={e => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, explanation: e.target.value }))}
+                                        />
+                                      )}
+
+                                      <div className="flex flex-wrap gap-2 pt-1">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            checkAIAccess(() => aiTranslateQuestion(qIndex, [langCode]));
+                                          }}
+                                          disabled={isLangTranslating}
+                                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition ${
+                                            hasAIAccess
+                                              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+                                              : 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/30'
+                                          } disabled:opacity-50`}
+                                        >
+                                          {isLangTranslating ? 'AI...' : 'AI заполнить'}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            clearQuestionTranslation(qIndex, langCode);
+                                          }}
+                                          className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600 transition"
+                                        >
+                                          Очистить
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>

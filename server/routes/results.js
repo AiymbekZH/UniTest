@@ -7,6 +7,26 @@ const { notifyTestCompletion } = require('../utils/mailer');
 
 const router = express.Router();
 
+function normalizeFreeText(value = '') {
+  return String(value).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function getAcceptedFillBlankAnswers(question) {
+  const values = new Set();
+  const addValue = (candidate) => {
+    const normalized = normalizeFreeText(candidate);
+    if (normalized) values.add(normalized);
+  };
+
+  addValue(question.correctAnswer);
+
+  for (const lang of ['en', 'ru', 'kz']) {
+    addValue(question.translations?.[lang]?.correctAnswer);
+  }
+
+  return values;
+}
+
 // Submit test result
 router.post('/', optionalAuth, async (req, res) => {
   try {
@@ -115,8 +135,8 @@ router.post('/', optionalAuth, async (req, res) => {
           break;
         }
         case 'fill-blank': {
-          isCorrect = answer.textAnswer?.trim().toLowerCase() ===
-            question.correctAnswer?.trim().toLowerCase();
+          const acceptedAnswers = getAcceptedFillBlankAnswers(question);
+          isCorrect = acceptedAnswers.has(normalizeFreeText(answer.textAnswer));
           break;
         }
         case 'essay': {

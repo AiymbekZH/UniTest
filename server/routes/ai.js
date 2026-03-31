@@ -42,6 +42,10 @@ async function extractText(file) {
   return null; // images handled separately
 }
 
+function normalizeString(value) {
+  return typeof value === 'string' ? value : '';
+}
+
 // Initialize OpenAI client — supports both direct OpenAI API and Azure
 const getClient = () => {
   // Option 1: Direct OpenAI API (simplest — just OPENAI_API_KEY)
@@ -243,7 +247,7 @@ Rules:
     try {
       await AiHistory.create({
         user: req.user._id,
-        prompt: combinedText ? combinedText.substring(0, 100) : (uploadedFile ? uploadedFile.name : 'Generated Test'),
+        prompt: combinedText ? combinedText.substring(0, 100) : (req.file?.originalname || 'Generated Test'),
         questions: formatted,
         count: formatted.length
       });
@@ -303,40 +307,65 @@ router.post('/translate', auth, async (req, res) => {
       return res.status(403).json({ error: 'У вас нет доступа к AI функциям. Обратитесь к администратору.' });
     }
 
-    const { questionText, options, passage, explanation, correctAnswer, targetLanguages } = req.body;
-    if (!questionText || !targetLanguages?.length) {
-      return res.status(400).json({ error: 'Provide questionText and targetLanguages' });
+    const {
+      questionText = '',
+      options = [],
+      matchingPairs = [],
+      passage = '',
+      explanation = '',
+      correctAnswer = '',
+      targetLanguages = []
+    } = req.body;
+
+    const normalizedOptions = Array.isArray(options) ? options : [];
+    const normalizedMatchingPairs = Array.isArray(matchingPairs) ? matchingPairs : [];
+    const normalizedTargets = [...new Set((Array.isArray(targetLanguages) ? targetLanguages : []).filter(Boolean))];
+    const hasSourceContent = [
+      normalizeString(questionText).trim(),
+      normalizeString(passage).trim(),
+      normalizeString(explanation).trim(),
+      normalizeString(correctAnswer).trim(),
+      normalizedOptions.some(option => normalizeString(option?.text).trim()),
+      normalizedMatchingPairs.some(pair => normalizeString(pair).trim())
+    ].some(Boolean);
+
+    if (!hasSourceContent || normalizedTargets.length === 0) {
+      return res.status(400).json({ error: 'Provide source content and targetLanguages' });
     }
 
     const { client, model } = getClient();
 
     const langMap = { ru: 'Russian', en: 'English', kz: 'Kazakh' };
-    const langs = targetLanguages.map(l => langMap[l] || l).join(', ');
+    const langs = normalizedTargets.map(l => langMap[l] || l).join(', ');
 
     // Build content to translate
-    let contentToTranslate = `Question: ${questionText}`;
-    if (options?.length) {
-      contentToTranslate += '\nOptions:\n' + options.map((o, i) => `${i + 1}. ${o.text}`).join('\n');
+    let contentToTranslate = `Question HTML/Text:\n${normalizeString(questionText)}`;
+    if (normalizedOptions.length) {
+      contentToTranslate += '\n\nOptions:\n' + normalizedOptions.map((option, i) => `${i + 1}. ${normalizeString(option?.text)}`).join('\n');
     }
-    if (passage) contentToTranslate += `\nPassage: ${passage}`;
-    if (explanation) contentToTranslate += `\nExplanation: ${explanation}`;
-    if (correctAnswer) contentToTranslate += `\nCorrect answer: ${correctAnswer}`;
+    if (normalizedMatchingPairs.length) {
+      contentToTranslate += '\n\nMatching pairs:\n' + normalizedMatchingPairs.map((pair, i) => `${i + 1}. ${normalizeString(pair)}`).join('\n');
+    }
+    if (passage) contentToTranslate += `\n\nPassage:\n${normalizeString(passage)}`;
+    if (explanation) contentToTranslate += `\n\nExplanation:\n${normalizeString(explanation)}`;
+    if (correctAnswer) contentToTranslate += `\n\nCorrect answer:\n${normalizeString(correctAnswer)}`;
 
     const systemPrompt = `You are a professional translator for an educational testing platform.
 Translate the given content to: ${langs}.
 
-Respond with JSON: { "translations": { "${targetLanguages.join('": {...}, "')}" : {...} } }
+Respond with JSON: { "translations": { "${normalizedTargets.join('": {...}, "')}" : {...} } }
 
 For each language, include:
 - "questionText": translated question
-${options?.length ? '- "options": [array of translated option texts in same order]' : ''}
+${normalizedOptions.length ? '- "options": [array of translated option texts in the same order]' : ''}
+${normalizedMatchingPairs.length ? '- "matchPairs": [array of translated matching pair labels in the same order]' : ''}
 ${passage ? '- "passage": translated passage' : ''}
 ${explanation ? '- "explanation": translated explanation' : ''}
 ${correctAnswer ? '- "correctAnswer": translated correct answer' : ''}
 
 Rules:
 - Keep the meaning and tone identical
-- Maintain all formatting (bold, lists, etc.)
+- Preserve HTML tags and formatting when they are present in the source
 - For Kazakh: use proper Қazaq grammar, not transliteration
 - Translate naturally, not word-by-word`;
 
@@ -350,9 +379,22 @@ Rules:
     });
 
     const raw = completion.choices[0]?.message?.content || '{}';
-    const result = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    const translations = {};
 
-    res.json(result);
+    for (const lang of normalizedTargets) {
+      const current = parsed?.translations?.[lang] || {};
+      translations[lang] = {
+        questionText: normalizeString(current.questionText),
+        options: Array.isArray(current.options) ? current.options.map(option => normalizeString(option)) : [],
+        matchPairs: Array.isArray(current.matchPairs) ? current.matchPairs.map(pair => normalizeString(pair)) : [],
+        passage: normalizeString(current.passage),
+        explanation: normalizeString(current.explanation),
+        correctAnswer: normalizeString(current.correctAnswer)
+      };
+    }
+
+    res.json({ translations });
   } catch (err) {
     console.error('AI translate error:', err);
     if (err.message?.includes('not configured')) {

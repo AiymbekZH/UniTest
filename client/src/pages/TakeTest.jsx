@@ -13,7 +13,13 @@ import toast, { Toaster } from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 // Matching question component with interactive drag-and-drop style matching
-function MatchingQuestion({ question, currentAnswer, onAnswer }) {
+function MatchingQuestion({
+  question,
+  currentAnswer,
+  onAnswer,
+  getLeftText = (option) => option.text,
+  getRightText = (text) => text
+}) {
   const [selectedLeft, setSelectedLeft] = useState(null);
   const pairs = currentAnswer?.matchingPairs || [];
   const rightSide = question.matchingRightSide || [];
@@ -104,7 +110,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
             <div className="w-3 h-3 rounded-full bg-primary-500" />
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Элементы</p>
           </div>
-          {question.options.map(opt => {
+          {question.options.map((opt, optionIndex) => {
             const matched = getMatchedRight(opt.id);
             const isSelected = selectedLeft === opt.id;
             const colorIdx = getPairIndex(opt.id);
@@ -130,9 +136,9 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                     matched ? `${color?.dot || 'bg-emerald-500'} text-white` : isSelected ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-500'
                   }`}>
-                    {matched ? '✓' : (question.options.indexOf(opt) + 1)}
+                    {matched ? '✓' : (optionIndex + 1)}
                   </div>
-                  <span className="flex-1">{opt.text}</span>
+                  <span className="flex-1">{getLeftText(opt, optionIndex)}</span>
                 </div>
                 {matched && (
                   <motion.div 
@@ -141,7 +147,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
                     className="mt-2 pt-2 border-t border-current/10 flex items-center gap-1.5"
                   >
                     <span className="text-xs opacity-70">→</span>
-                    <span className="text-xs font-medium">{matched}</span>
+                    <span className="text-xs font-medium">{getRightText(matched)}</span>
                     <span className="text-[10px] ml-auto opacity-50 hover:opacity-100">(×)</span>
                   </motion.div>
                 )}
@@ -178,7 +184,7 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
                   <div className={`absolute right-0 top-0 bottom-0 w-1 ${color.dot}`} />
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="flex-1">{text}</span>
+                  <span className="flex-1">{getRightText(text)}</span>
                   {used && color && (
                     <div className={`w-5 h-5 rounded-md ${color.dot} text-white flex items-center justify-center`}>
                       <span className="text-[10px] font-bold">✓</span>
@@ -210,11 +216,13 @@ function MatchingQuestion({ question, currentAnswer, onAnswer }) {
           <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Ваши пары:</p>
           <div className="flex flex-wrap gap-1.5">
             {pairs.map((p, i) => {
-              const leftText = question.options.find(o => o.id === p.left)?.text || p.left;
+              const leftIndex = question.options.findIndex(option => option.id === p.left);
+              const leftOption = leftIndex >= 0 ? question.options[leftIndex] : null;
+              const leftText = leftOption ? getLeftText(leftOption, leftIndex) : p.left;
               const color = pairColors[i % pairColors.length];
               return (
                 <span key={i} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${color.bg} ${color.text} border ${color.border}`}>
-                  {leftText} → {p.right}
+                  {leftText} → {getRightText(p.right)}
                 </span>
               );
             })}
@@ -576,7 +584,8 @@ export default function TakeTest() {
         questionId,
         selectedOptions: answer.selectedOptions,
         textAnswer: answer.textAnswer,
-        matchingPairs: answer.matchingPairs
+        matchingPairs: answer.matchingPairs,
+        language: testLang || ''
       });
       setFeedback(prev => ({
         ...prev,
@@ -720,6 +729,23 @@ export default function TakeTest() {
     return opt.text;
   };
 
+  const getMatchingPairText = (originalText) => {
+    if (testLang && question?.translations && Array.isArray(question?.options)) {
+      const t = question.translations instanceof Map
+        ? question.translations.get(testLang)
+        : question.translations?.[testLang];
+
+      if (Array.isArray(t?.matchPairs)) {
+        const optionIndex = question.options.findIndex(option => option.matchPair === originalText);
+        if (optionIndex >= 0 && t.matchPairs[optionIndex]) {
+          return t.matchPairs[optionIndex];
+        }
+      }
+    }
+
+    return originalText;
+  };
+
   // Helper for option feedback styling
   const getOptionFeedbackClass = (optId) => {
     if (!currentFeedback?.checked) return '';
@@ -729,6 +755,9 @@ export default function TakeTest() {
     if (isSelected && !isCorrect) return 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 ring-2 ring-red-200 dark:ring-red-800';
     return 'opacity-50';
   };
+
+  const displayedPassage = getTransField('passage', question?.passage || '');
+  const displayedExplanation = getTransField('explanation', currentFeedback?.explanation || question?.explanation || '');
 
   // Pre-start screen
   if (!started) {
@@ -1066,13 +1095,13 @@ export default function TakeTest() {
             )}
 
             {/* Passage / Reading text */}
-            {question.passage && question.passage.trim() && (
+            {displayedPassage && displayedPassage.trim() && (
               <div className="mb-4 sm:mb-5 p-3 sm:p-4 bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl">
                 <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
                   <span className="w-4 h-4 bg-amber-500 rounded flex items-center justify-center text-white text-[8px]">T</span>
                   Текст
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{getTransField('passage', question.passage)}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{displayedPassage}</p>
               </div>
             )}
 
@@ -1283,6 +1312,8 @@ export default function TakeTest() {
                 <MatchingQuestion
                   question={question}
                   currentAnswer={currentAnswer}
+                  getLeftText={getOptText}
+                  getRightText={getMatchingPairText}
                   onAnswer={(pairs) => {
                     if (currentFeedback?.checked) return;
                     setAnswers(prev => ({
@@ -1310,7 +1341,7 @@ export default function TakeTest() {
             )}
 
             {/* Feedback explanation */}
-            {currentFeedback?.checked && currentFeedback.explanation && (
+            {currentFeedback?.checked && displayedExplanation && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1318,7 +1349,7 @@ export default function TakeTest() {
                 className="mt-4 p-3 sm:p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
               >
                 <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">{t('explanationLabel')}</p>
-                <p className="text-sm text-blue-600 dark:text-blue-300">{currentFeedback.explanation}</p>
+                <p className="text-sm text-blue-600 dark:text-blue-300">{displayedExplanation}</p>
               </motion.div>
             )}
 

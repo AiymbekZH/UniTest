@@ -6,6 +6,7 @@ const { auth } = require('../middleware/auth');
 const router = express.Router();
 const OWNER_EMAIL = process.env.ADMIN_EMAIL;
 const OWNER_ID = (process.env.ADMIN_UNIQUE_ID || 'OWNERUNITEST').toUpperCase();
+const SELF_REGISTER_ROLES = new Set(['student', 'teacher']);
 
 async function ensureOwnerAdmin(user) {
   if (!OWNER_EMAIL) return;
@@ -27,7 +28,8 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Пользователь с таким email уже существует' });
     }
 
-    const user = new User({ firstName, lastName, middleName, email, password, role });
+    const safeRole = SELF_REGISTER_ROLES.has(role) ? role : 'student';
+    const user = new User({ firstName, lastName, middleName, email, password, role: safeRole });
     await user.save();
     await ensureOwnerAdmin(user);
 
@@ -45,7 +47,8 @@ router.post('/register', async (req, res) => {
         uniqueId: user.uniqueId,
         fullName: user.fullName,
         avatar: user.avatar,
-        language: user.language
+        language: user.language,
+        aiAccess: !!user.aiAccess
       }
     });
   } catch (error) {

@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import Navbar from '../components/Navbar';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function AdminPanel() {
   const { t } = useLanguage();
@@ -31,6 +32,8 @@ export default function AdminPanel() {
   const [reports, setReports] = useState([]);
   const [reportFilter, setReportFilter] = useState('pending');
   const [reportSubTab, setReportSubTab] = useState('all');
+  const [aiFilter, setAiFilter] = useState('all');
+  const [bulkAiResetConfirm, setBulkAiResetConfirm] = useState(false);
 
   useEffect(() => {
     if (user?.role !== 'admin') {
@@ -54,7 +57,10 @@ export default function AdminPanel() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/users', { params: { search, limit: 50 } });
+      const params = { search, limit: 50 };
+      if (aiFilter === 'granted') params.aiAccess = true;
+      if (aiFilter === 'blocked') params.aiAccess = false;
+      const res = await api.get('/admin/users', { params });
       setUsers(res.data.users);
     } catch (err) {
       toast.error('Ошибка загрузки пользователей');
@@ -102,7 +108,7 @@ export default function AdminPanel() {
     else if (tab === 'tests') loadTests();
     else if (tab === 'stats') loadStats();
     else if (tab === 'reports') loadReports();
-  }, [tab, reportFilter]);
+  }, [tab, reportFilter, aiFilter]);
 
   const handleBan = async (userId) => {
     try {
@@ -154,9 +160,21 @@ export default function AdminPanel() {
       const res = await api.put(`/admin/users/${userId}/ai-access`, { aiAccess: selectedAIAccess });
       toast.success(res.data.message || 'Доступ к AI обновлен');
       setActionModal(null);
+      loadStats();
       loadUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Ошибка изменения доступа');
+    }
+  };
+
+  const handleResetAIAccessForEveryone = async () => {
+    try {
+      const res = await api.put('/admin/ai-access/bulk', { aiAccess: false });
+      toast.success(res.data.message || 'AI-доступ снят');
+      loadStats();
+      loadUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Ошибка массового обновления доступа');
     }
   };
 
@@ -260,6 +278,15 @@ export default function AdminPanel() {
     <div className="min-h-screen bg-surface">
       <Toaster position="top-right" />
       <Navbar />
+      <ConfirmDialog
+        isOpen={bulkAiResetConfirm}
+        onClose={() => setBulkAiResetConfirm(false)}
+        onConfirm={handleResetAIAccessForEveryone}
+        title="Снять AI-доступ у всех"
+        message="Доступ будет снят у всех не-админов. Администраторы сохраняют AI-доступ автоматически."
+        confirmText="Снять доступ"
+        variant="warning"
+      />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -294,6 +321,19 @@ export default function AdminPanel() {
               <StatCard icon={FileText} label={t('totalTests')} value={stats.testCount} color="bg-emerald-500" onClick={() => setTab('tests')} />
               <StatCard icon={BarChart3} label={t('totalResults')} value={stats.resultCount} color="bg-purple-500" />
               <StatCard icon={Ban} label={t('bannedUsers')} value={stats.bannedCount} color="bg-red-500" onClick={() => setTab('users')} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <StatCard icon={Sparkles} label="Пользователи с AI-доступом" value={stats.aiAccessCount || 0} color="bg-indigo-500" onClick={() => { setAiFilter('granted'); setTab('users'); }} />
+              <div className="glass-card-solid p-5 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-dark">Доступ к AI только по разрешению админа</p>
+                  <p className="text-xs text-gray-500 mt-1">Админы имеют доступ автоматически. Для остальных пользователей доступ можно выдать или снять вручную.</p>
+                </div>
+                <button onClick={() => { setAiFilter('blocked'); setTab('users'); }} className="btn-secondary py-2 px-4 text-sm whitespace-nowrap">
+                  Открыть
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -353,6 +393,35 @@ export default function AdminPanel() {
               <button onClick={loadUsers} className="btn-primary py-2 px-4 text-sm">{t('search')}</button>
             </div>
 
+            <div className="glass-card-solid p-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-dark">Управление доступом к AI</p>
+                <p className="text-xs text-gray-500 mt-1">Админы имеют доступ автоматически. Пользователям ниже можно дать или снять доступ отдельно.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'all', label: 'Все' },
+                  { key: 'granted', label: 'С доступом' },
+                  { key: 'blocked', label: 'Без доступа' }
+                ].map(filter => (
+                  <button
+                    key={filter.key}
+                    onClick={() => setAiFilter(filter.key)}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium transition ${
+                      aiFilter === filter.key
+                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/20'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+                <button onClick={() => setBulkAiResetConfirm(true)} className="px-3 py-2 rounded-xl text-xs font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30">
+                  Снять у всех
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-2">
               {users.map(u => (
                 <motion.div key={u._id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
@@ -367,7 +436,19 @@ export default function AdminPanel() {
                         {u.role}
                       </span>
                       {u.isBanned && <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30">{t('banned')}</span>}
-                      {u.aiAccess && <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 flex items-center gap-1"><Sparkles size={10} /> AI Access</span>}
+                      {u.role === 'admin' ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 flex items-center gap-1">
+                          <Sparkles size={10} /> AI по роли
+                        </span>
+                      ) : u.aiAccess ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 flex items-center gap-1">
+                          <Sparkles size={10} /> AI доступ
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-gray-300 flex items-center gap-1">
+                          <Sparkles size={10} /> AI отключён
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-gray-400">{u.email}</p>
                     {u.warnings?.length > 0 && (
@@ -396,13 +477,15 @@ export default function AdminPanel() {
                     >
                       <MessageSquare size={14} />
                     </button>
-                    <button
-                      onClick={() => { setActionModal({ type: 'aiAccess', userId: u._id, userName: `${u.firstName} ${u.lastName}` }); setSelectedAIAccess(u.aiAccess); }}
-                      className={`p-2 text-xs rounded-lg transition ${u.aiAccess ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40' : 'bg-indigo-50 text-indigo-300 hover:bg-indigo-100 dark:bg-indigo-900/10'}`}
-                      title="Настройка доступа к AI"
-                    >
-                      <Sparkles size={14} />
-                    </button>
+                    {u.role !== 'admin' && (
+                      <button
+                        onClick={() => { setActionModal({ type: 'aiAccess', userId: u._id, userName: `${u.firstName} ${u.lastName}` }); setSelectedAIAccess(u.aiAccess); }}
+                        className={`p-2 text-xs rounded-lg transition ${u.aiAccess ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40' : 'bg-indigo-50 text-indigo-300 hover:bg-indigo-100 dark:bg-indigo-900/10'}`}
+                        title="Настройка доступа к AI"
+                      >
+                        <Sparkles size={14} />
+                      </button>
+                    )}
                     {u.warnings?.length > 0 && (
                       <button onClick={() => handleRemoveWarnings(u._id)}
                         className="p-2 text-xs rounded-lg bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 transition"
@@ -619,14 +702,17 @@ export default function AdminPanel() {
               <p className="text-sm text-gray-500 mb-4">{actionModal.userName}</p>
 
               {actionModal.type === 'aiAccess' ? (
-                <select
-                  value={selectedAIAccess ? 'true' : 'false'}
-                  onChange={e => setSelectedAIAccess(e.target.value === 'true')}
-                  className="input-field text-sm mb-4"
-                >
-                  <option value="false">Запретить доступ к ИИ</option>
-                  <option value="true">Выдать доступ к ИИ</option>
-                </select>
+                <>
+                  <select
+                    value={selectedAIAccess ? 'true' : 'false'}
+                    onChange={e => setSelectedAIAccess(e.target.value === 'true')}
+                    className="input-field text-sm mb-3"
+                  >
+                    <option value="false">Снять доступ к ИИ</option>
+                    <option value="true">Дать доступ к ИИ</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mb-4">Если доступ снят, пользователь увидит блокировку AI-функций и подсказку обратиться к администратору.</p>
+                </>
               ) : actionModal.type === 'role' ? (
                 <select
                   value={selectedRole}

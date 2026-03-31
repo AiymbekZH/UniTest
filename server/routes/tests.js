@@ -6,6 +6,31 @@ const upload = require('../middleware/upload');
 
 const router = express.Router();
 
+function normalizeFreeText(value = '') {
+  return String(value).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function getAcceptedFillBlankAnswers(question) {
+  const values = new Set();
+  const addValue = (candidate) => {
+    const normalized = normalizeFreeText(candidate);
+    if (normalized) values.add(normalized);
+  };
+
+  addValue(question.correctAnswer);
+
+  for (const lang of ['en', 'ru', 'kz']) {
+    addValue(question.translations?.[lang]?.correctAnswer);
+  }
+
+  return [...values];
+}
+
+function getDisplayCorrectAnswer(question, language) {
+  const translated = language && question.translations?.[language]?.correctAnswer;
+  return translated || question.correctAnswer || '';
+}
+
 // Create test
 router.post('/', auth, async (req, res) => {
   try {
@@ -289,7 +314,7 @@ router.post('/:id/duplicate', auth, async (req, res) => {
 // Check single answer (for instant feedback mode)
 router.post('/:id/check-answer', optionalAuth, async (req, res) => {
   try {
-    const { questionId, selectedOptions, textAnswer, matchingPairs } = req.body;
+    const { questionId, selectedOptions, textAnswer, matchingPairs, language } = req.body;
     const test = await Test.findById(req.params.id);
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
     if (!test.settings?.instantFeedback) {
@@ -331,8 +356,9 @@ router.post('/:id/check-answer', optionalAuth, async (req, res) => {
         break;
       }
       case 'fill-blank': {
-        correctText = question.correctAnswer || '';
-        isCorrect = textAnswer?.trim().toLowerCase() === question.correctAnswer?.trim().toLowerCase();
+        const acceptedAnswers = getAcceptedFillBlankAnswers(question);
+        correctText = getDisplayCorrectAnswer(question, language);
+        isCorrect = acceptedAnswers.includes(normalizeFreeText(textAnswer));
         break;
       }
       case 'matching': {

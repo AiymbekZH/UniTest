@@ -10,7 +10,7 @@ const router = express.Router();
 // Get all users (admin)
 router.get('/users', adminAuth, async (req, res) => {
   try {
-    const { search, role, page = 1, limit = 20 } = req.query;
+    const { search, role, aiAccess, page = 1, limit = 20 } = req.query;
     const filter = {};
     if (search) {
       filter.$or = [
@@ -20,6 +20,14 @@ router.get('/users', adminAuth, async (req, res) => {
       ];
     }
     if (role) filter.role = role;
+    if (aiAccess === 'true') {
+      filter.aiAccess = true;
+      if (!role) filter.role = { $ne: 'admin' };
+    }
+    if (aiAccess === 'false') {
+      filter.aiAccess = false;
+      if (!role) filter.role = { $ne: 'admin' };
+    }
 
     const total = await User.countDocuments(filter);
     const users = await User.find(filter)
@@ -97,20 +105,47 @@ router.put('/users/:id/role', adminAuth, async (req, res) => {
   }
 });
 
-// Toggle AI Access
+// Set AI access for a single user
 router.put('/users/:id/ai-access', adminAuth, async (req, res) => {
   try {
+    if (typeof req.body.aiAccess !== 'boolean') {
+      return res.status(400).json({ message: 'Укажите aiAccess: true или false' });
+    }
+
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'Пользователь не найден' });
-    
-    if (req.body.aiAccess !== undefined) {
-      user.aiAccess = req.body.aiAccess;
-    } else {
-      user.aiAccess = !user.aiAccess;
+
+    if (user.role === 'admin') {
+      return res.status(400).json({ message: 'Администраторы получают доступ к AI автоматически' });
     }
-    
+
+    user.aiAccess = req.body.aiAccess;
     await user.save();
     res.json({ message: user.aiAccess ? 'Доступ к AI выдан' : 'Доступ к AI отключен', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+  }
+});
+
+// Bulk-set AI access for non-admin users
+router.put('/ai-access/bulk', adminAuth, async (req, res) => {
+  try {
+    if (typeof req.body.aiAccess !== 'boolean') {
+      return res.status(400).json({ message: 'Укажите aiAccess: true или false' });
+    }
+
+    const result = await User.updateMany(
+      { role: { $ne: 'admin' } },
+      { $set: { aiAccess: req.body.aiAccess } }
+    );
+
+    res.json({
+      message: req.body.aiAccess
+        ? 'AI-доступ выдан всем не-админам'
+        : 'AI-доступ снят у всех не-админов',
+      matchedCount: result.matchedCount || 0,
+      modifiedCount: result.modifiedCount || 0
+    });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера', error: error.message });
   }
@@ -159,18 +194,19 @@ router.get('/tests', adminAuth, async (req, res) => {
 // Stats overview (admin)
 router.get('/stats', adminAuth, async (req, res) => {
   try {
-    const [userCount, testCount, resultCount, bannedCount] = await Promise.all([
+    const [userCount, testCount, resultCount, bannedCount, aiAccessCount] = await Promise.all([
       User.countDocuments(),
       Test.countDocuments({ isDeleted: { $ne: true } }),
       Result.countDocuments(),
-      User.countDocuments({ isBanned: true })
+      User.countDocuments({ isBanned: true }),
+      User.countDocuments({ aiAccess: true, role: { $ne: 'admin' } })
     ]);
     const recentUsers = await User.find().select('-password').sort({ createdAt: -1 }).limit(5);
     const recentTests = await Test.find({ isDeleted: { $ne: true } })
       .populate('creator', 'firstName lastName')
       .sort({ createdAt: -1 }).limit(5);
 
-    res.json({ userCount, testCount, resultCount, bannedCount, recentUsers, recentTests });
+    res.json({ userCount, testCount, resultCount, bannedCount, aiAccessCount, recentUsers, recentTests });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера', error: error.message });
   }

@@ -200,19 +200,40 @@ export default function Dashboard() {
                 className="glass-card-solid overflow-hidden cursor-pointer group relative flex flex-col"
               >
                 {/* Cover Image */}
-                {test.coverImage && (
-                  <div className="h-40 w-full overflow-hidden" onClick={() => navigate(`/test-profile/${test.shareLink}`)}>
-                    <img src={test.coverImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  </div>
-                )}
+                <div
+                  className="relative w-full overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 dark:from-slate-800 dark:via-slate-800 dark:to-slate-700"
+                  style={{ aspectRatio: '16 / 9' }}
+                  onClick={() => navigate(`/test-profile/${test.shareLink}`)}
+                >
+                  {test.coverImage ? (
+                    <>
+                      <img
+                        src={test.coverImage}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 flex items-end p-4">
+                      <div className="inline-flex items-center gap-2 rounded-xl bg-white/90 dark:bg-slate-900/80 px-3 py-2 shadow-sm backdrop-blur">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-100 text-xs font-bold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
+                          {test.title?.trim()?.[0]?.toUpperCase() || 'T'}
+                        </span>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-300">
+                          {t('coverImage') || 'Обложка'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="p-5 flex flex-col flex-1">
                 {/* Menu */}
                 <div className="absolute top-4 right-4 z-10">
-                  {test.coverImage && <div className="absolute inset-0 -m-1 rounded-lg bg-black/20 backdrop-blur-sm -z-10" />}
                   <button
                     onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === test._id ? null : test._id); }}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="rounded-lg bg-white/90 p-1.5 shadow-sm backdrop-blur transition-colors hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700"
                   >
                     <MoreVertical size={16} className="text-gray-400" />
                   </button>
