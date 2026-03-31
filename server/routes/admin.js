@@ -103,9 +103,14 @@ router.put('/users/:id/ai-access', adminAuth, async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'Пользователь не найден' });
     
-    user.aiAccess = !user.aiAccess;
+    if (req.body.aiAccess !== undefined) {
+      user.aiAccess = req.body.aiAccess;
+    } else {
+      user.aiAccess = !user.aiAccess;
+    }
+    
     await user.save();
-    res.json({ message: user.aiAccess ? 'Доступ к AI выдан' : 'Доступ к AI забран', user });
+    res.json({ message: user.aiAccess ? 'Доступ к AI выдан' : 'Доступ к AI отключен', user });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера', error: error.message });
   }

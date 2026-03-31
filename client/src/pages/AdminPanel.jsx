@@ -25,6 +25,7 @@ export default function AdminPanel() {
   const [actionModal, setActionModal] = useState(null); // { type: 'ban'|'warn'|'role'|'message', userId, userName }
   const [actionInput, setActionInput] = useState('');
   const [selectedRole, setSelectedRole] = useState('student');
+  const [selectedAIAccess, setSelectedAIAccess] = useState(false);
   const [testDetail, setTestDetail] = useState(null); // for editing questions
   const [leaderboardData, setLeaderboardData] = useState(null); // { testId, testTitle, results }
   const [reports, setReports] = useState([]);
@@ -148,10 +149,11 @@ export default function AdminPanel() {
     }
   };
 
-  const handleToggleAIAccess = async (userId) => {
+  const handleSetAIAccess = async (userId) => {
     try {
-      const res = await api.put(`/admin/users/${userId}/ai-access`);
+      const res = await api.put(`/admin/users/${userId}/ai-access`, { aiAccess: selectedAIAccess });
       toast.success(res.data.message || 'Доступ к AI обновлен');
+      setActionModal(null);
       loadUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Ошибка изменения доступа');
@@ -395,9 +397,9 @@ export default function AdminPanel() {
                       <MessageSquare size={14} />
                     </button>
                     <button
-                      onClick={() => handleToggleAIAccess(u._id)}
+                      onClick={() => { setActionModal({ type: 'aiAccess', userId: u._id, userName: `${u.firstName} ${u.lastName}` }); setSelectedAIAccess(u.aiAccess); }}
                       className={`p-2 text-xs rounded-lg transition ${u.aiAccess ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40' : 'bg-indigo-50 text-indigo-300 hover:bg-indigo-100 dark:bg-indigo-900/10'}`}
-                      title={u.aiAccess ? 'Забрать доступ к AI' : 'Дать доступ к AI'}
+                      title="Настройка доступа к AI"
                     >
                       <Sparkles size={14} />
                     </button>
@@ -612,11 +614,20 @@ export default function AdminPanel() {
               onClick={e => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold text-dark mb-1">
-                {actionModal.type === 'ban' ? t('banUser') : actionModal.type === 'warn' ? t('warn') : actionModal.type === 'message' ? 'Отправить сообщение' : t('changeRole')}
+                {actionModal.type === 'ban' ? t('banUser') : actionModal.type === 'warn' ? t('warn') : actionModal.type === 'message' ? 'Отправить сообщение' : actionModal.type === 'aiAccess' ? 'Доступ к AI' : t('changeRole')}
               </h3>
               <p className="text-sm text-gray-500 mb-4">{actionModal.userName}</p>
 
-              {actionModal.type === 'role' ? (
+              {actionModal.type === 'aiAccess' ? (
+                <select
+                  value={selectedAIAccess ? 'true' : 'false'}
+                  onChange={e => setSelectedAIAccess(e.target.value === 'true')}
+                  className="input-field text-sm mb-4"
+                >
+                  <option value="false">Запретить доступ к ИИ</option>
+                  <option value="true">Выдать доступ к ИИ</option>
+                </select>
+              ) : actionModal.type === 'role' ? (
                 <select
                   value={selectedRole}
                   onChange={e => setSelectedRole(e.target.value)}
@@ -645,6 +656,7 @@ export default function AdminPanel() {
                     if (actionModal.type === 'ban') handleBan(actionModal.userId);
                     else if (actionModal.type === 'warn') handleWarn(actionModal.userId);
                     else if (actionModal.type === 'message') handleSendMessage(actionModal.userId);
+                    else if (actionModal.type === 'aiAccess') handleSetAIAccess(actionModal.userId);
                     else handleRoleChange(actionModal.userId);
                   }}
                   className="btn-primary py-2 px-4 text-sm"

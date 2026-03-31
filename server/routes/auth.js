@@ -88,7 +88,8 @@ router.post('/login', async (req, res) => {
         uniqueId: user.uniqueId,
         fullName: user.fullName,
         avatar: user.avatar,
-        language: user.language
+        language: user.language,
+        aiAccess: !!user.aiAccess
       }
     });
   } catch (error) {

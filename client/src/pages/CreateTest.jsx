@@ -15,6 +15,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { lazy, Suspense } from 'react';
 const RichTextEditor = lazy(() => import('../components/RichTextEditor'));
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 import AIGenerateModal from '../components/AIGenerateModal';
 
@@ -71,6 +72,18 @@ export default function CreateTest() {
   const questionRefs = useRef({});
   const autoSaveTimer = useRef(null);
   const { t, lang } = useLanguage();
+  const { user } = useAuth();
+
+  const checkAIAccess = (callback) => {
+    if (!user?.aiAccess && user?.role !== 'admin') {
+      toast.error('Доступ к режиму AI ограничен! Обратитесь к администратору для получения доступа.', {
+        icon: '🔒',
+        duration: 4000
+      });
+      return;
+    }
+    callback();
+  };
 
   const questionTypes = questionTypesData.map(qt => ({ ...qt, label: t(qt.labelKey) }));
 
@@ -541,7 +554,7 @@ export default function CreateTest() {
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 <FileSpreadsheet size={14} /> {t('importCSV')}
               </button>
-              <button onClick={() => setShowAIModal(true)}
+              <button onClick={() => checkAIAccess(() => setShowAIModal(true))}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
                 <Sparkles size={14} /> {t('aiGenerate') || 'AI Generate'}
               </button>
@@ -1053,7 +1066,7 @@ export default function CreateTest() {
                               )}
                             </span>
                             <button
-                              onClick={() => aiTranslateQuestion(qIndex)}
+                              onClick={() => checkAIAccess(() => aiTranslateQuestion(qIndex))}
                               disabled={translatingQ === qIndex}
                               className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition disabled:opacity-50"
                             >
