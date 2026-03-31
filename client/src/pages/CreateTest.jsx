@@ -1070,7 +1070,7 @@ export default function CreateTest() {
                               const trans = question.translations?.[langCode] || {};
                               const hasTranslation = !!trans.questionText;
                               return (
-                                <details key={langCode} className="group/lang" open={!hasTranslation}>
+                                <details key={langCode} className="group/lang" defaultOpen={!hasTranslation}>
                                   <summary className="flex items-center gap-2 cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-dark py-1 select-none">
                                     <span className="font-medium">{langLabels[langCode]}</span>
                                     {hasTranslation && <span className="text-emerald-500 text-[9px]">✓</span>}

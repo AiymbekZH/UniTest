@@ -35,15 +35,27 @@ const questionSchema = new mongoose.Schema({
   explanation: { type: String, default: '' }, // Optional explanation after answering
   order: { type: Number, default: 0 },
   translations: {
-    type: Map,
-    of: new mongoose.Schema({
+    en: {
       questionText: { type: String, default: '' },
-      options: [{ type: String }], // translated option texts in same order
+      options: [{ type: String }],
       passage: { type: String, default: '' },
       explanation: { type: String, default: '' },
       correctAnswer: { type: String, default: '' }
-    }, { _id: false }),
-    default: {}
+    },
+    ru: {
+      questionText: { type: String, default: '' },
+      options: [{ type: String }],
+      passage: { type: String, default: '' },
+      explanation: { type: String, default: '' },
+      correctAnswer: { type: String, default: '' }
+    },
+    kz: {
+      questionText: { type: String, default: '' },
+      options: [{ type: String }],
+      passage: { type: String, default: '' },
+      explanation: { type: String, default: '' },
+      correctAnswer: { type: String, default: '' }
+    }
   }
 }, { _id: false });
 
