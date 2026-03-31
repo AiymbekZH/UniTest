@@ -221,12 +221,25 @@ router.get('/share/:shareLink', optionalAuth, async (req, res) => {
     sanitized.questions = sanitized.questions.map(q => {
       const { correctAnswer, ...rest } = q;
       if (q.type === 'matching') {
-        // Collect right-side (matchPair) values and shuffle them
-        const rightSide = q.options
-          .map(o => o.matchPair)
-          .filter(Boolean)
+        // Shuffle right-side values together with their translated labels.
+        const pairEntries = q.options
+          .filter(option => option.matchPair)
+          .map((option, optionIndex) => ({
+            original: option.matchPair,
+            translations: {
+              en: q.translations?.en?.matchPairs?.[optionIndex] || option.matchPair,
+              ru: q.translations?.ru?.matchPairs?.[optionIndex] || option.matchPair,
+              kz: q.translations?.kz?.matchPairs?.[optionIndex] || option.matchPair,
+            }
+          }))
           .sort(() => Math.random() - 0.5);
-        rest.matchingRightSide = rightSide;
+
+        rest.matchingRightSide = pairEntries.map(entry => entry.original);
+        rest.matchingRightSideTranslations = {
+          en: pairEntries.map(entry => entry.translations.en),
+          ru: pairEntries.map(entry => entry.translations.ru),
+          kz: pairEntries.map(entry => entry.translations.kz),
+        };
         rest.options = rest.options.map(o => {
           const { isCorrect, matchPair, ...opt } = o;
           return opt; // Left side only (text), no matchPair

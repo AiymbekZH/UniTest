@@ -185,7 +185,7 @@ function MatchingQuestion({
                   <div className={`absolute right-0 top-0 bottom-0 w-1 ${color.dot}`} />
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="flex-1">{getRightText(text)}</span>
+                  <span className="flex-1">{getRightText(text, idx)}</span>
                   {used && color && (
                     <div className={`w-5 h-5 rounded-md ${color.dot} text-white flex items-center justify-center`}>
                       <span className="text-[10px] font-bold">✓</span>
@@ -730,17 +730,15 @@ export default function TakeTest() {
     return opt.text;
   };
 
-  const getMatchingPairText = (originalText) => {
-    if (testLang && question?.translations && Array.isArray(question?.options)) {
-      const t = question.translations instanceof Map
-        ? question.translations.get(testLang)
-        : question.translations?.[testLang];
+  const getMatchingPairText = (originalText, rightIndex = -1) => {
+    if (testLang && Array.isArray(question?.matchingRightSideTranslations?.[testLang])) {
+      if (rightIndex >= 0 && question.matchingRightSideTranslations[testLang][rightIndex]) {
+        return question.matchingRightSideTranslations[testLang][rightIndex];
+      }
 
-      if (Array.isArray(t?.matchPairs)) {
-        const optionIndex = question.options.findIndex(option => option.matchPair === originalText);
-        if (optionIndex >= 0 && t.matchPairs[optionIndex]) {
-          return t.matchPairs[optionIndex];
-        }
+      const fallbackIndex = question.matchingRightSide?.findIndex(value => value === originalText) ?? -1;
+      if (fallbackIndex >= 0 && question.matchingRightSideTranslations[testLang][fallbackIndex]) {
+        return question.matchingRightSideTranslations[testLang][fallbackIndex];
       }
     }
 
@@ -783,6 +781,7 @@ export default function TakeTest() {
               coverImage={test.coverImage}
               title={test.title}
               className="w-full"
+              imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/8 via-transparent to-transparent"
               style={{ aspectRatio: '16 / 9' }}
             >
               <div className="absolute left-4 top-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-primary-600/90 shadow-lg shadow-primary-600/30 backdrop-blur">

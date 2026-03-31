@@ -120,6 +120,7 @@ export default function TestCoverArtwork({
   className = '',
   imageClassName = 'h-full w-full object-cover',
   showPlaceholderCaption = true,
+  imageOverlayClassName = 'absolute inset-0 bg-gradient-to-t from-slate-900/16 via-transparent to-white/8',
   children,
   ...rest
 }) {
@@ -128,7 +129,7 @@ export default function TestCoverArtwork({
       {coverImage ? (
         <>
           <img src={coverImage} alt="" className={imageClassName} />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/42 via-slate-900/8 to-white/10" />
+          <div className={imageOverlayClassName} />
         </>
       ) : (
         <AnimatedPlaceholder title={title} showCaption={showPlaceholderCaption} />

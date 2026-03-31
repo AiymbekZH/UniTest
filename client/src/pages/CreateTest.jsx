@@ -1311,20 +1311,21 @@ export default function CreateTest() {
                         title={coverPreviewTitle}
                         showPlaceholderCaption={false}
                         className="w-full"
+                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/18 via-transparent to-white/6 dark:from-black/24"
                         style={{ aspectRatio: '16 / 9' }}
                       >
                         <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 sm:inset-x-4 sm:bottom-4 sm:gap-3">
-                          <div className="max-w-[82%] rounded-2xl border border-white/18 bg-slate-950/70 px-3 py-2.5 shadow-[0_28px_60px_-26px_rgba(15,23,42,0.8)] backdrop-blur-md sm:max-w-[68%] sm:px-4 sm:py-3">
-                            <p className="text-sm font-semibold text-white">
+                          <div className="max-w-[82%] rounded-2xl border border-white/75 bg-white/82 px-3 py-2.5 shadow-[0_28px_60px_-26px_rgba(15,23,42,0.32)] backdrop-blur-md dark:border-white/10 dark:bg-slate-950/72 dark:shadow-[0_28px_60px_-26px_rgba(0,0,0,0.7)] sm:max-w-[68%] sm:px-4 sm:py-3">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
                               {test.coverImage ? 'Обложка готова' : 'Выберите изображение'}
                             </p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-white/78">
+                            <p className="mt-1 text-[11px] leading-relaxed text-slate-600 dark:text-white/72">
                               {test.coverImage
                                 ? 'Нужен другой кадр? Просто выбери новое изображение и редактор откроется снова.'
                                 : 'После выбора откроется редактор с кадрированием и zoom.'}
                             </p>
                           </div>
-                          <div className="hidden rounded-2xl border border-white/20 bg-white/12 px-3 py-2 text-[11px] font-medium text-white/92 backdrop-blur-sm sm:block">
+                          <div className="hidden rounded-2xl border border-white/70 bg-white/68 px-3 py-2 text-[11px] font-medium text-slate-900 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/62 dark:text-white/92 sm:block">
                             16:9 • Dashboard / Test
                           </div>
                         </div>
@@ -1361,6 +1362,7 @@ export default function CreateTest() {
                         title={coverPreviewTitle}
                         showPlaceholderCaption={false}
                         className="w-full"
+                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/12 via-transparent to-white/5 dark:from-black/18"
                         style={{ aspectRatio: '16 / 9' }}
                       />
                       <div className="space-y-3 p-4">
@@ -1415,6 +1417,7 @@ export default function CreateTest() {
                         coverImage={test.coverImage}
                         title={coverPreviewTitle}
                         showPlaceholderCaption={false}
+                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-white/4 dark:from-black/14"
                         className="h-full w-full"
                       />
                     </div>
@@ -2007,15 +2010,15 @@ export default function CreateTest() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.96 }}
               onClick={(event) => event.stopPropagation()}
-              className="relative w-full max-w-6xl overflow-hidden rounded-[30px] border border-white/20 bg-white shadow-2xl dark:border-slate-700/70 dark:bg-slate-900"
+              className="relative flex w-full max-w-6xl max-h-[calc(100vh-1rem)] flex-col overflow-hidden rounded-[28px] border border-white/20 bg-white shadow-2xl dark:border-slate-700/70 dark:bg-slate-900"
             >
-              <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5 dark:border-slate-800">
+              <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-4 py-4 dark:border-slate-800 sm:px-6 sm:py-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-500">
                     Cover Editor
                   </p>
-                  <h3 className="mt-1 text-xl font-bold text-dark">Подгони баннер под карточку</h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  <h3 className="mt-1 text-lg font-bold text-dark sm:text-xl">Подгони баннер под карточку</h3>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
                     Перетаскивай изображение внутри рамки 16:9 и сразу смотри, как оно сядет в каталоге.
                   </p>
                 </div>
@@ -2031,8 +2034,9 @@ export default function CreateTest() {
                 </button>
               </div>
 
-              <div className="grid gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="space-y-5">
+              <div className="flex-1 overflow-y-auto">
+                <div className="grid gap-5 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="space-y-4 sm:space-y-5">
                   <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-slate-950 shadow-[0_36px_80px_-50px_rgba(15,23,42,0.85)] dark:border-slate-700">
                     <div
                       ref={coverStageRef}
@@ -2099,73 +2103,74 @@ export default function CreateTest() {
                       </span>
                     </div>
                   </div>
-                </div>
+                  </div>
 
-                <div className="space-y-4">
-                  <div>
+                  <div className="space-y-4">
+                    <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
                       Live Preview
                     </p>
                     <h4 className="mt-1 text-sm font-semibold text-dark">Как это увидят в Dashboard</h4>
                   </div>
 
-                  <div className="overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_28px_70px_-45px_rgba(15,23,42,0.48)] dark:border-slate-700 dark:bg-slate-900/60">
-                    <div className="relative overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
-                      <img
-                        src={coverEditor.src}
-                        alt=""
-                        className="absolute max-w-none"
-                        style={{
-                          width: `${(coverMetrics.renderWidth / COVER_FRAME_WIDTH) * 100}%`,
-                          height: `${(coverMetrics.renderHeight / COVER_FRAME_HEIGHT) * 100}%`,
-                          left: `${(coverEditor.offsetX / COVER_FRAME_WIDTH) * 100}%`,
-                          top: `${(coverEditor.offsetY / COVER_FRAME_HEIGHT) * 100}%`,
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/18 via-transparent to-white/10" />
-                    </div>
-                      <div className="space-y-3 p-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
-                          test.settings?.isPublic
-                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
-                            : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
-                        }`}>
-                          {test.settings?.isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
-                          {test.settings?.isPublic ? 'Публичный' : 'Приватный'}
-                        </span>
-                        <span className="text-[10px] text-gray-400">
-                          {test.questions.length} {t('questions')}
-                        </span>
+                    <div className="overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_28px_70px_-45px_rgba(15,23,42,0.48)] dark:border-slate-700 dark:bg-slate-900/60">
+                      <div className="relative overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
+                        <img
+                          src={coverEditor.src}
+                          alt=""
+                          className="absolute max-w-none"
+                          style={{
+                            width: `${(coverMetrics.renderWidth / COVER_FRAME_WIDTH) * 100}%`,
+                            height: `${(coverMetrics.renderHeight / COVER_FRAME_HEIGHT) * 100}%`,
+                            left: `${(coverEditor.offsetX / COVER_FRAME_WIDTH) * 100}%`,
+                            top: `${(coverEditor.offsetY / COVER_FRAME_HEIGHT) * 100}%`,
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/18 via-transparent to-white/10" />
                       </div>
-                      <h4 className="line-clamp-1 text-sm font-semibold text-dark">{coverPreviewTitle}</h4>
-                      <p className="line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
-                        {coverPreviewDescription}
-                      </p>
+                      <div className="space-y-3 p-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                            test.settings?.isPublic
+                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+                              : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
+                          }`}>
+                            {test.settings?.isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
+                            {test.settings?.isPublic ? 'Публичный' : 'Приватный'}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            {test.questions.length} {t('questions')}
+                          </span>
+                        </div>
+                        <h4 className="line-clamp-1 text-sm font-semibold text-dark">{coverPreviewTitle}</h4>
+                        <p className="line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
+                          {coverPreviewDescription}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-[11px] text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-300">
-                    Сохраняется уже итоговый JPEG 800×450. То, что видишь здесь, и пойдёт в `Dashboard` и `Test Profile`.
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-[11px] text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-300">
+                      Сохраняется уже итоговый JPEG 800×450. То, что видишь здесь, и пойдёт в `Dashboard` и `Test Profile`.
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap justify-end gap-3 border-t border-gray-100 px-6 py-5 dark:border-slate-800">
+              <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-5">
                 <button
                   type="button"
                   onClick={() => {
                     coverDragRef.current = null;
                     setCoverEditor(null);
                   }}
-                  className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800 sm:w-auto"
                 >
                   Отмена
                 </button>
                 <button
                   type="button"
                   onClick={saveCoverCrop}
-                  className="rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700"
+                  className="w-full rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700 sm:w-auto"
                 >
                   Сохранить обложку
                 </button>
