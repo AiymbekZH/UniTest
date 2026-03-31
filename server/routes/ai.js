@@ -60,7 +60,7 @@ const getClient = () => {
       client: new AzureOpenAI({
         endpoint: process.env.AZURE_OPENAI_ENDPOINT,
         apiKey: process.env.AZURE_OPENAI_API_KEY,
-        apiVersion: '2025-04-01-preview',
+        apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-12-01-preview',
         deployment,
       }),
       model: deployment,
