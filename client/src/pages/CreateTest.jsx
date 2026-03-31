@@ -165,6 +165,80 @@ export default function CreateTest() {
   };
 
   const updateTest = (field, value) => setTest(prev => ({ ...prev, [field]: value }));
+
+  // Cover image: crop to 16:9, resize to 800px, compress to JPEG
+  const processCoverImage = (file) => {
+    if (file.size > 15 * 1024 * 1024) { toast.error('Макс. 15MB'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const targetW = 800;
+        const targetH = Math.round(targetW * 9 / 16); // 450
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        // Center-crop to 16:9
+        const srcRatio = img.width / img.height;
+        const targetRatio = 16 / 9;
+        let sx = 0, sy = 0, sw = img.width, sh = img.height;
+        if (srcRatio > targetRatio) {
+          sw = img.height * targetRatio;
+          sx = (img.width - sw) / 2;
+        } else {
+          sh = img.width / targetRatio;
+          sy = (img.height - sh) / 2;
+        }
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        updateTest('coverImage', dataUrl);
+        toast.success('Обложка готова!');
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // AI translate a single question
+  const [translatingQ, setTranslatingQ] = useState(null);
+  const aiTranslateQuestion = async (qIndex) => {
+    const q = test.questions[qIndex];
+    const langs = test.settings.multiLanguage?.languages || [];
+    if (!langs.length) { toast.error('Выберите языки в настройках'); return; }
+    setTranslatingQ(qIndex);
+    try {
+      const res = await api.post('/ai/translate', {
+        questionText: q.questionText?.replace(/<[^>]*>/g, '') || '',
+        options: q.options?.map(o => ({ text: o.text })) || [],
+        passage: q.passage || '',
+        explanation: q.explanation || '',
+        correctAnswer: q.correctAnswer || '',
+        targetLanguages: langs
+      });
+      const translations = res.data.translations || {};
+      const updated = [...test.questions];
+      const newTranslations = { ...(q.translations || {}) };
+      for (const lang of langs) {
+        if (translations[lang]) {
+          newTranslations[lang] = {
+            questionText: translations[lang].questionText || '',
+            options: translations[lang].options || [],
+            passage: translations[lang].passage || '',
+            explanation: translations[lang].explanation || '',
+            correctAnswer: translations[lang].correctAnswer || ''
+          };
+        }
+      }
+      updated[qIndex] = { ...q, translations: newTranslations };
+      setTest(prev => ({ ...prev, questions: updated }));
+      toast.success(`✅ Переведено на ${langs.length} язык(ов)`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Ошибка перевода');
+    } finally {
+      setTranslatingQ(null);
+    }
+  };
   const updateSettings = (field, value) => setTest(prev => ({
     ...prev, settings: { ...prev.settings, [field]: value }
   }));
@@ -820,48 +894,46 @@ export default function CreateTest() {
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
               />
             </div>
-            {/* Cover Image Upload */}
+            {/* Cover Image Upload — client-side crop/compress */}
             <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
               <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 block flex items-center gap-1.5">
                 <Image size={12} />
-                {t('coverImage') || 'Cover image'}
+                {t('coverImage') || 'Обложка теста'}
               </label>
               {test.coverImage ? (
-                <div className="relative group/cover rounded-xl overflow-hidden h-32">
+                <div className="relative group/cover rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
                   <img src={test.coverImage} alt="Cover" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <label className="px-3 py-1.5 bg-white/90 text-gray-700 text-xs rounded-lg font-medium hover:bg-white transition cursor-pointer">
+                      <Upload size={12} className="inline mr-1" />
+                      {t('change') || 'Заменить'}
+                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        processCoverImage(file);
+                      }} />
+                    </label>
                     <button
                       onClick={() => updateTest('coverImage', '')}
                       className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg font-medium hover:bg-red-600 transition"
                     >
                       <Trash2 size={12} className="inline mr-1" />
-                      {t('delete') || 'Remove'}
+                      {t('delete') || 'Удалить'}
                     </button>
                   </div>
                 </div>
               ) : (
-                <label className="flex items-center justify-center gap-2 h-24 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-all text-gray-400 text-sm">
-                  <Upload size={16} />
-                  <span>{t('uploadCover') || 'Upload cover'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-                      if (file.size > 5 * 1024 * 1024) { toast.error('Max 5MB'); return; }
-                      const formData = new FormData();
-                      formData.append('file', file);
-                      try {
-                        const res = await api.post('/tests/upload', formData);
-                        updateTest('coverImage', res.data.url);
-                        toast.success(t('uploadSuccess') || 'Uploaded!');
-                      } catch {
-                        toast.error(t('uploadError') || 'Upload failed');
-                      }
-                    }}
-                  />
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-all text-gray-400 text-sm" style={{ aspectRatio: '16/9' }}>
+                  <div className="text-center">
+                    <Upload size={20} className="mx-auto mb-1.5 text-gray-300" />
+                    <p className="text-xs">{t('uploadCover') || 'Загрузить обложку'}</p>
+                    <p className="text-[10px] text-gray-300 mt-0.5">16:9 • авто-кроп • JPEG</p>
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    processCoverImage(file);
+                  }} />
                 </label>
               )}
             </div>
@@ -970,32 +1042,73 @@ export default function CreateTest() {
                         />
                       </Suspense>
 
-                      {/* Multilingual translations */}
+                      {/* Multilingual translations — compact with AI */}
                       {test.settings.multiLanguage?.enabled && test.settings.multiLanguage?.languages?.length > 0 && (
-                        <div className="space-y-2 pl-3 border-l-2 border-primary-200 dark:border-primary-800">
-                          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide flex items-center gap-1">
-                            <Globe size={10} /> {t('translations') || 'Translations'}
-                          </p>
-                          {test.settings.multiLanguage.languages.map(langCode => {
-                            const langLabels = { en: '🇬🇧 English', ru: '🇷🇺 Русский', kz: '🇰🇿 Қазақша' };
-                            return (
-                              <div key={langCode}>
-                                <label className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 block">{langLabels[langCode] || langCode}</label>
-                                <textarea
-                                  className="input-field text-sm py-2 resize-none"
-                                  rows="2"
-                                  placeholder={`${langLabels[langCode]} — ${t('questionTextPlaceholder') || 'Question text'}`}
-                                  value={question.translations?.[langCode] || ''}
-                                  onChange={e => {
-                                    const q = { ...question, translations: { ...question.translations, [langCode]: e.target.value } };
-                                    const updated = [...test.questions];
-                                    updated[qIndex] = q;
-                                    setTest(prev => ({ ...prev, questions: updated }));
-                                  }}
-                                />
-                              </div>
-                            );
-                          })}
+                        <div className="rounded-xl border border-primary-200/50 dark:border-primary-800/50 bg-primary-50/30 dark:bg-primary-900/10 overflow-hidden">
+                          <div className="flex items-center justify-between px-3 py-2">
+                            <span className="text-[10px] text-primary-600 dark:text-primary-400 font-semibold uppercase tracking-wide flex items-center gap-1">
+                              <Globe size={10} /> {t('translations') || 'Переводы'}
+                              {test.settings.multiLanguage.languages.some(l => question.translations?.[l]?.questionText) && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1" />
+                              )}
+                            </span>
+                            <button
+                              onClick={() => aiTranslateQuestion(qIndex)}
+                              disabled={translatingQ === qIndex}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition disabled:opacity-50"
+                            >
+                              {translatingQ === qIndex ? (
+                                <><Sparkles size={10} className="animate-spin" /> Переводим...</>
+                              ) : (
+                                <><Sparkles size={10} /> AI Перевод</>
+                              )}
+                            </button>
+                          </div>
+                          <div className="px-3 pb-3 space-y-2">
+                            {test.settings.multiLanguage.languages.map(langCode => {
+                              const langLabels = { en: '🇬🇧 EN', ru: '🇷🇺 RU', kz: '🇰🇿 KZ' };
+                              const trans = question.translations?.[langCode] || {};
+                              const hasTranslation = !!trans.questionText;
+                              return (
+                                <details key={langCode} className="group/lang" open={!hasTranslation}>
+                                  <summary className="flex items-center gap-2 cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-dark py-1 select-none">
+                                    <span className="font-medium">{langLabels[langCode]}</span>
+                                    {hasTranslation && <span className="text-emerald-500 text-[9px]">✓</span>}
+                                    <ChevronDown size={10} className="ml-auto group-open/lang:rotate-180 transition-transform" />
+                                  </summary>
+                                  <div className="pl-1 pt-1 space-y-1.5">
+                                    <input
+                                      className="input-field text-xs py-1.5"
+                                      placeholder="Текст вопроса"
+                                      value={trans.questionText || ''}
+                                      onChange={e => {
+                                        const newT = { ...trans, questionText: e.target.value };
+                                        const q = { ...question, translations: { ...question.translations, [langCode]: newT } };
+                                        const updated = [...test.questions]; updated[qIndex] = q;
+                                        setTest(prev => ({ ...prev, questions: updated }));
+                                      }}
+                                    />
+                                    {question.options?.length > 0 && question.options.map((opt, oi) => (
+                                      <input
+                                        key={oi}
+                                        className="input-field text-xs py-1.5 pl-6"
+                                        placeholder={`Ответ ${oi + 1}: ${opt.text?.substring(0, 30) || '...'}`}
+                                        value={trans.options?.[oi] || ''}
+                                        onChange={e => {
+                                          const newOpts = [...(trans.options || [])];
+                                          newOpts[oi] = e.target.value;
+                                          const newT = { ...trans, options: newOpts };
+                                          const q = { ...question, translations: { ...question.translations, [langCode]: newT } };
+                                          const updated = [...test.questions]; updated[qIndex] = q;
+                                          setTest(prev => ({ ...prev, questions: updated }));
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                </details>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
 

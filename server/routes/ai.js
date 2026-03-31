@@ -292,4 +292,67 @@ router.delete('/history', auth, async (req, res) => {
   }
 });
 
+// POST /api/ai/translate — Translate question + options to target languages
+router.post('/translate', auth, async (req, res) => {
+  try {
+    const { questionText, options, passage, explanation, correctAnswer, targetLanguages } = req.body;
+    if (!questionText || !targetLanguages?.length) {
+      return res.status(400).json({ error: 'Provide questionText and targetLanguages' });
+    }
+
+    const { client, model } = getClient();
+
+    const langMap = { ru: 'Russian', en: 'English', kz: 'Kazakh' };
+    const langs = targetLanguages.map(l => langMap[l] || l).join(', ');
+
+    // Build content to translate
+    let contentToTranslate = `Question: ${questionText}`;
+    if (options?.length) {
+      contentToTranslate += '\nOptions:\n' + options.map((o, i) => `${i + 1}. ${o.text}`).join('\n');
+    }
+    if (passage) contentToTranslate += `\nPassage: ${passage}`;
+    if (explanation) contentToTranslate += `\nExplanation: ${explanation}`;
+    if (correctAnswer) contentToTranslate += `\nCorrect answer: ${correctAnswer}`;
+
+    const systemPrompt = `You are a professional translator for an educational testing platform.
+Translate the given content to: ${langs}.
+
+Respond with JSON: { "translations": { "${targetLanguages.join('": {...}, "')}" : {...} } }
+
+For each language, include:
+- "questionText": translated question
+${options?.length ? '- "options": [array of translated option texts in same order]' : ''}
+${passage ? '- "passage": translated passage' : ''}
+${explanation ? '- "explanation": translated explanation' : ''}
+${correctAnswer ? '- "correctAnswer": translated correct answer' : ''}
+
+Rules:
+- Keep the meaning and tone identical
+- Maintain all formatting (bold, lists, etc.)
+- For Kazakh: use proper Қazaq grammar, not transliteration
+- Translate naturally, not word-by-word`;
+
+    const completion = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: contentToTranslate }
+      ],
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+    });
+
+    const raw = completion.choices[0]?.message?.content || '{}';
+    const result = JSON.parse(raw);
+
+    res.json(result);
+  } catch (err) {
+    console.error('AI translate error:', err);
+    if (err.message?.includes('not configured')) {
+      return res.status(503).json({ error: err.message });
+    }
+    res.status(500).json({ error: 'Translation failed: ' + (err.message || 'Unknown error') });
+  }
+});
+
 module.exports = router;

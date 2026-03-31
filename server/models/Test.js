@@ -35,9 +35,15 @@ const questionSchema = new mongoose.Schema({
   explanation: { type: String, default: '' }, // Optional explanation after answering
   order: { type: Number, default: 0 },
   translations: {
-    en: { type: String, default: '' },
-    ru: { type: String, default: '' },
-    kz: { type: String, default: '' }
+    type: Map,
+    of: new mongoose.Schema({
+      questionText: { type: String, default: '' },
+      options: [{ type: String }], // translated option texts in same order
+      passage: { type: String, default: '' },
+      explanation: { type: String, default: '' },
+      correctAnswer: { type: String, default: '' }
+    }, { _id: false }),
+    default: {}
   }
 }, { _id: false });
 

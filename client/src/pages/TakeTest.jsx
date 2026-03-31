@@ -698,6 +698,28 @@ export default function TakeTest() {
   const currentAnswer = answers[question?.id];
   const currentFeedback = feedback[question?.id];
 
+  // Helper: get translated text for simple fields (questionText, passage, explanation)
+  const getTransField = (field, fallback) => {
+    if (testLang && question?.translations) {
+      const t = question.translations instanceof Map 
+        ? question.translations.get(testLang) 
+        : question.translations?.[testLang];
+      if (t?.[field]) return t[field];
+    }
+    return fallback;
+  };
+
+  // Helper: get translated option text
+  const getOptText = (opt, optIndex) => {
+    if (testLang && question?.translations) {
+      const t = question.translations instanceof Map 
+        ? question.translations.get(testLang) 
+        : question.translations?.[testLang];
+      if (t?.options?.[optIndex]) return t.options[optIndex];
+    }
+    return opt.text;
+  };
+
   // Helper for option feedback styling
   const getOptionFeedbackClass = (optId) => {
     if (!currentFeedback?.checked) return '';
@@ -1050,14 +1072,14 @@ export default function TakeTest() {
                   <span className="w-4 h-4 bg-amber-500 rounded flex items-center justify-center text-white text-[8px]">T</span>
                   Текст
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{question.passage}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{getTransField('passage', question.passage)}</p>
               </div>
             )}
 
             {/* Question text */}
             <div
               className="text-base sm:text-lg font-semibold text-dark mb-4 sm:mb-6 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: (testLang && question.translations?.[testLang]) ? question.translations[testLang] : question.questionText }}
+              dangerouslySetInnerHTML={{ __html: getTransField('questionText', question.questionText) }}
               onClick={(e) => {
                 const link = e.target.closest('a');
                 if (!link) return;
@@ -1089,7 +1111,7 @@ export default function TakeTest() {
             {/* Answer options — Single choice / True-false */}
             {(question.type === 'single-choice' || question.type === 'true-false') && (
               <div className="space-y-2 sm:space-y-3">
-                {question.options.map(opt => {
+                {question.options.map((opt, optIdx) => {
                   const selected = currentAnswer?.selectedOptions?.includes(opt.id);
                   const fbClass = getOptionFeedbackClass(opt.id);
                   const isLocked = currentFeedback?.checked;
@@ -1119,7 +1141,7 @@ export default function TakeTest() {
                             <div className="w-2 h-2 bg-white rounded-full" />
                           )}
                         </div>
-                        <span className="font-medium text-sm flex-1">{opt.text}</span>
+                        <span className="font-medium text-sm flex-1">{getOptText(opt, optIdx)}</span>
                         {currentFeedback?.checked && currentFeedback.correctOptionIds?.includes(opt.id) && (
                           <Check size={16} className="text-emerald-500 flex-shrink-0" />
                         )}
@@ -1136,7 +1158,7 @@ export default function TakeTest() {
             {/* Multiple choice */}
             {question.type === 'multiple-choice' && (
               <div className="space-y-2 sm:space-y-3">
-                {question.options.map(opt => {
+                {question.options.map((opt, optIdx) => {
                   const selected = currentAnswer?.selectedOptions?.includes(opt.id);
                   const fbClass = getOptionFeedbackClass(opt.id);
                   const isLocked = currentFeedback?.checked;
@@ -1168,7 +1190,7 @@ export default function TakeTest() {
                             </svg>
                           )}
                         </div>
-                        <span className="font-medium text-sm flex-1">{opt.text}</span>
+                        <span className="font-medium text-sm flex-1">{getOptText(opt, optIdx)}</span>
                         {currentFeedback?.checked && currentFeedback.correctOptionIds?.includes(opt.id) && (
                           <Check size={16} className="text-emerald-500 flex-shrink-0" />
                         )}

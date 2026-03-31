@@ -201,7 +201,7 @@ export default function Dashboard() {
               >
                 {/* Cover Image */}
                 {test.coverImage && (
-                  <div className="h-32 w-full overflow-hidden" onClick={() => navigate(`/test-profile/${test.shareLink}`)}>
+                  <div className="w-full overflow-hidden" style={{ aspectRatio: '16/9' }} onClick={() => navigate(`/test-profile/${test.shareLink}`)}>
                     <img src={test.coverImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                 )}
