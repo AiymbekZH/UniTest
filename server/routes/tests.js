@@ -31,11 +31,57 @@ function getDisplayCorrectAnswer(question, language) {
   return translated || question.correctAnswer || '';
 }
 
+const DESCRIPTION_WORD_LIMIT = 200;
+
+function limitWords(value = '', maxWords = DESCRIPTION_WORD_LIMIT) {
+  const tokens = String(value).match(/\S+\s*/g) || [];
+  if (tokens.length <= maxWords) return String(value);
+  return tokens.slice(0, maxWords).join('').trimEnd();
+}
+
+function sanitizeTestPayload(payload = {}) {
+  return {
+    ...payload,
+    description: limitWords(payload.description || '')
+  };
+}
+
+function shuffleArray(items = [], seed = null) {
+  const result = [...items];
+  let state = Number.isFinite(seed) ? Math.abs(Math.floor(seed)) || 1 : null;
+  const getRandom = () => {
+    if (state === null) return Math.random();
+    state = (state * 9301 + 49297) % 233280;
+    return state / 233280;
+  };
+
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(getRandom() * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+
+  return result;
+}
+
+function buildLangTranslations(question = {}, entries = [], key, fallbackField) {
+  const languages = ['en', 'ru', 'kz'];
+  const baseTranslations = question.translations || {};
+
+  return languages.reduce((acc, lang) => {
+    const current = baseTranslations[lang] || {};
+    acc[lang] = {
+      ...current,
+      [key]: entries.map(entry => entry.translations?.[lang] || entry[fallbackField] || '')
+    };
+    return acc;
+  }, { ...baseTranslations });
+}
+
 // Create test
 router.post('/', auth, async (req, res) => {
   try {
     const test = new Test({
-      ...req.body,
+      ...sanitizeTestPayload(req.body),
       creator: req.user._id
     });
     await test.save();
@@ -191,64 +237,94 @@ router.get('/share/:shareLink', optionalAuth, async (req, res) => {
     // Don't send correct answers to test takers
     const sanitized = test.toObject();
 
-    // Seeded shuffle for variant-based ordering
     const variantNum = parseInt(req.query.variant) || 0;
-    function seededShuffle(arr, seed) {
-      const result = [...arr];
-      let s = seed;
-      for (let i = result.length - 1; i > 0; i--) {
-        s = (s * 9301 + 49297) % 233280;
-        const j = Math.floor((s / 233280) * (i + 1));
-        [result[i], result[j]] = [result[j], result[i]];
-      }
-      return result;
-    }
+    const useSeededShuffle = variantNum > 0 && test.settings?.variants?.enabled;
 
     // Random pool selection: if questionPoolSize > 0 and < total, pick random subset
     const poolSize = test.settings?.questionPoolSize || 0;
     if (poolSize > 0 && poolSize < sanitized.questions.length) {
-      const shuffled = variantNum > 0
-        ? seededShuffle(sanitized.questions, variantNum * 1000)
-        : [...sanitized.questions].sort(() => Math.random() - 0.5);
+      const shuffled = shuffleArray(sanitized.questions, useSeededShuffle ? variantNum * 1000 + 17 : null);
       sanitized.questions = shuffled.slice(0, poolSize);
     }
 
-    // If variant system is active, shuffle questions deterministically per variant
-    if (variantNum > 0 && test.settings?.variants?.enabled) {
-      sanitized.questions = seededShuffle(sanitized.questions, variantNum);
+    // Shuffle question order when enabled, while keeping variants deterministic.
+    if (test.settings?.shuffleQuestions || useSeededShuffle) {
+      sanitized.questions = shuffleArray(sanitized.questions, useSeededShuffle ? variantNum * 100 + 31 : null);
     }
 
-    sanitized.questions = sanitized.questions.map(q => {
+    sanitized.questions = sanitized.questions.map((q, questionIndex) => {
       const { correctAnswer, ...rest } = q;
-      if (q.type === 'matching') {
-        // Shuffle right-side values together with their translated labels.
-        const pairEntries = q.options
-          .filter(option => option.matchPair)
-          .map((option, optionIndex) => ({
-            original: option.matchPair,
-            translations: {
-              en: q.translations?.en?.matchPairs?.[optionIndex] || option.matchPair,
-              ru: q.translations?.ru?.matchPairs?.[optionIndex] || option.matchPair,
-              kz: q.translations?.kz?.matchPairs?.[optionIndex] || option.matchPair,
-            }
-          }))
-          .sort(() => Math.random() - 0.5);
+      const shouldShuffleOptions = Boolean(test.settings?.shuffleOptions);
+      const optionSeedBase = useSeededShuffle ? variantNum * 10000 + (questionIndex + 1) * 131 : null;
 
-        rest.matchingRightSide = pairEntries.map(entry => entry.original);
-        rest.matchingRightSideTranslations = {
-          en: pairEntries.map(entry => entry.translations.en),
-          ru: pairEntries.map(entry => entry.translations.ru),
-          kz: pairEntries.map(entry => entry.translations.kz),
+      if (q.type === 'matching') {
+        const pairEntries = q.options.map((option, optionIndex) => {
+          const { isCorrect, matchPair, ...leftOption } = option;
+          return {
+            option: leftOption,
+            pair: option.matchPair,
+            translations: {
+              en: {
+                option: q.translations?.en?.options?.[optionIndex] || option.text,
+                pair: q.translations?.en?.matchPairs?.[optionIndex] || option.matchPair,
+              },
+              ru: {
+                option: q.translations?.ru?.options?.[optionIndex] || option.text,
+                pair: q.translations?.ru?.matchPairs?.[optionIndex] || option.matchPair,
+              },
+              kz: {
+                option: q.translations?.kz?.options?.[optionIndex] || option.text,
+                pair: q.translations?.kz?.matchPairs?.[optionIndex] || option.matchPair,
+              }
+            }
+          };
+        });
+
+        const orderedLeft = shouldShuffleOptions
+          ? shuffleArray(pairEntries, optionSeedBase !== null ? optionSeedBase + 11 : null)
+          : pairEntries;
+        const orderedRight = shouldShuffleOptions
+          ? shuffleArray(pairEntries, optionSeedBase !== null ? optionSeedBase + 53 : null)
+          : pairEntries;
+
+        rest.options = orderedLeft.map(entry => entry.option);
+        rest.translations = {
+          ...buildLangTranslations(q, orderedLeft.map(entry => ({
+            text: entry.option.text,
+            translations: {
+              en: entry.translations.en.option,
+              ru: entry.translations.ru.option,
+              kz: entry.translations.kz.option
+            }
+          })), 'options', 'text')
         };
-        rest.options = rest.options.map(o => {
-          const { isCorrect, matchPair, ...opt } = o;
-          return opt; // Left side only (text), no matchPair
-        });
+        rest.matchingRightSide = orderedRight.map(entry => entry.pair);
+        rest.matchingRightSideTranslations = {
+          en: orderedRight.map(entry => entry.translations.en.pair),
+          ru: orderedRight.map(entry => entry.translations.ru.pair),
+          kz: orderedRight.map(entry => entry.translations.kz.pair),
+        };
       } else {
-        rest.options = rest.options.map(o => {
-          const { isCorrect, matchPair, ...opt } = o;
-          return opt;
+        const optionEntries = q.options.map((option, optionIndex) => {
+          const { isCorrect, matchPair, ...displayOption } = option;
+          return {
+            option: displayOption,
+            text: option.text,
+            translations: {
+              en: q.translations?.en?.options?.[optionIndex] || option.text,
+              ru: q.translations?.ru?.options?.[optionIndex] || option.text,
+              kz: q.translations?.kz?.options?.[optionIndex] || option.text,
+            }
+          };
         });
+        const orderedOptions = shouldShuffleOptions
+          ? shuffleArray(optionEntries, optionSeedBase !== null ? optionSeedBase + 17 : null)
+          : optionEntries;
+
+        rest.options = orderedOptions.map(entry => entry.option);
+        rest.translations = {
+          ...buildLangTranslations(q, orderedOptions, 'options', 'text')
+        };
       }
       return rest;
     });
@@ -270,7 +346,8 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     // Strip system fields to prevent duplication/corruption
-    const { _id, __v, creator, createdAt, updatedAt, shareLink, attemptCount, averageScore, ...updateData } = req.body;
+    const sanitizedPayload = sanitizeTestPayload(req.body);
+    const { _id, __v, creator, createdAt, updatedAt, shareLink, attemptCount, averageScore, ...updateData } = sanitizedPayload;
     Object.assign(test, updateData);
     await test.save();
     await test.populate('creator', 'firstName lastName email role avatar');

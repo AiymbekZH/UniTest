@@ -781,7 +781,7 @@ export default function TakeTest() {
               coverImage={test.coverImage}
               title={test.title}
               className="w-full"
-              imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/8 via-transparent to-transparent"
+              imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-slate-950/3 to-transparent"
               style={{ aspectRatio: '16 / 9' }}
             >
               <div className="absolute left-4 top-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-primary-600/90 shadow-lg shadow-primary-600/30 backdrop-blur">
@@ -791,7 +791,7 @@ export default function TakeTest() {
           </div>
 
           <h1 className="text-2xl font-bold text-dark mb-2">{test.title}</h1>
-          {test.description && <p className="text-gray-500 text-sm mb-4">{test.description}</p>}
+          {test.description && <p className="mb-4 text-sm leading-6 text-gray-500">{test.description}</p>}
 
           <div className="flex flex-wrap justify-center gap-3 mb-6 text-sm">
             <span className="badge-info">{test.questions.length} {t('questions')}</span>

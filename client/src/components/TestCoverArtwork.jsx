@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { motion } from 'framer-motion';
 
 function AnimatedPlaceholder({ title = '', showCaption = true }) {
   const uid = useId().replace(/:/g, '-');
@@ -120,7 +121,7 @@ export default function TestCoverArtwork({
   className = '',
   imageClassName = 'h-full w-full object-cover',
   showPlaceholderCaption = true,
-  imageOverlayClassName = 'absolute inset-0 bg-gradient-to-t from-slate-900/16 via-transparent to-white/8',
+  imageOverlayClassName = 'absolute inset-0 bg-gradient-to-t from-slate-950/14 via-slate-950/4 to-transparent',
   children,
   ...rest
 }) {
@@ -128,8 +129,27 @@ export default function TestCoverArtwork({
     <div className={`relative overflow-hidden bg-slate-100 ${className}`} {...rest}>
       {coverImage ? (
         <>
-          <img src={coverImage} alt="" className={imageClassName} />
+          <motion.img
+            src={coverImage}
+            alt=""
+            className={imageClassName}
+            initial={{ scale: 1.04, opacity: 0.9 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+          />
           <div className={imageOverlayClassName} />
+          <div className="pointer-events-none absolute inset-0">
+            <motion.div
+              className="absolute -left-12 top-[-18%] h-36 w-36 rounded-full bg-sky-300/12 blur-3xl"
+              animate={{ x: [0, 20, 0], y: [0, 12, 0], opacity: [0.16, 0.28, 0.16] }}
+              transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div
+              className="absolute -right-16 bottom-[-24%] h-44 w-44 rounded-full bg-primary-400/14 blur-3xl"
+              animate={{ x: [0, -22, 0], y: [0, -14, 0], opacity: [0.14, 0.24, 0.14] }}
+              transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
         </>
       ) : (
         <AnimatedPlaceholder title={title} showCaption={showPlaceholderCaption} />

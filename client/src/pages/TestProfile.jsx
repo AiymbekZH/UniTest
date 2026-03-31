@@ -141,6 +141,7 @@ export default function TestProfile() {
                   coverImage={test.coverImage}
                   title={test.title}
                   className="w-full"
+                  imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/12 via-slate-950/3 to-transparent"
                   style={{ aspectRatio: '16 / 9' }}
                 />
               </div>

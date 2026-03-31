@@ -40,11 +40,22 @@ const COVER_FRAME_WIDTH = 800;
 const COVER_FRAME_HEIGHT = 450;
 const COVER_MIN_ZOOM = 1;
 const COVER_MAX_ZOOM = 3;
+const DESCRIPTION_WORD_LIMIT = 200;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 function getPlainText(html = '') {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function countWords(value = '') {
+  return (String(value).match(/\S+/g) || []).length;
+}
+
+function limitWords(value = '', maxWords = DESCRIPTION_WORD_LIMIT) {
+  const tokens = String(value).match(/\S+\s*/g) || [];
+  if (tokens.length <= maxWords) return String(value);
+  return tokens.slice(0, maxWords).join('').trimEnd();
 }
 
 function getCoverMetrics(coverState) {
@@ -683,6 +694,7 @@ export default function CreateTest() {
   const coverMetrics = coverEditor ? getCoverMetrics(coverEditor) : null;
   const coverPreviewTitle = test.title.trim() || 'Название теста';
   const coverPreviewDescription = test.description.trim() || 'Краткое описание теста появится здесь';
+  const descriptionWordCount = countWords(test.description);
   const coverSectionTitle = (() => {
     const value = t('coverImage');
     return value && value !== 'coverImage' ? value : 'Обложка теста';
@@ -691,6 +703,9 @@ export default function CreateTest() {
     const value = t('uploadCover');
     return value && value !== 'uploadCover' ? value : 'Загрузить обложку';
   })();
+  const handleDescriptionChange = (value) => {
+    updateTest('description', limitWords(value, DESCRIPTION_WORD_LIMIT));
+  };
 
   const handleSave = async () => {
     if (!test.title.trim()) { toast.error(t('enterTestTitle')); return; }
@@ -739,6 +754,7 @@ export default function CreateTest() {
     setSaving(true);
     try {
       const { tagInput, ...data } = test;
+      data.description = limitWords(data.description || '', DESCRIPTION_WORD_LIMIT);
       if (editId) {
         await api.put(`/tests/${editId}`, data);
         toast.success(t('testUpdated'));
@@ -848,7 +864,7 @@ export default function CreateTest() {
   const totalPoints = test.questions.reduce((s, q) => s + (q.points || 0), 0);
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen overflow-x-clip bg-surface">
       <Toaster position="top-right" />
       <Navbar />
 
@@ -862,7 +878,7 @@ export default function CreateTest() {
         variant="danger"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex gap-6">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 overflow-x-clip px-4 py-6 sm:px-6 lg:flex-row">
         {/* Left Sidebar: Question Navigator */}
         <div className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-24 space-y-3">
@@ -930,12 +946,16 @@ export default function CreateTest() {
         {/* Main Content */}
         <div className="flex-1 min-w-0">
           {/* Header */}
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex min-w-0 items-center gap-3">
               <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
                 <ArrowLeft size={20} className="text-dark" />
               </button>
-              <div>
+              <div className="min-w-0">
                 <h1 className="text-xl font-bold text-dark">{editId ? t('editTest') : t('createTest')}</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {test.questions.length} {t('questions')} · {totalPoints} {t('points')}
@@ -947,8 +967,8 @@ export default function CreateTest() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setShowSettings(!showSettings)} className="btn-secondary flex items-center gap-2 py-2 px-3 text-xs">
+            <div className="flex w-full gap-2 sm:w-auto">
+              <button onClick={() => setShowSettings(!showSettings)} className="btn-secondary flex flex-1 items-center justify-center gap-2 py-2 px-3 text-xs sm:flex-none">
                 <Settings size={14} /> {t('settings')}
               </button>
               <motion.button
@@ -956,7 +976,7 @@ export default function CreateTest() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSave}
                 disabled={saving}
-                className="btn-primary flex items-center gap-2 py-2 px-4 text-xs"
+                className="btn-primary flex flex-1 items-center justify-center gap-2 py-2 px-4 text-xs sm:flex-none"
               >
                 {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
                 {editId ? t('update') : t('save')}
@@ -1245,8 +1265,16 @@ export default function CreateTest() {
               rows="2"
               placeholder={t('testDescPlaceholder')}
               value={test.description}
-              onChange={e => updateTest('description', e.target.value)}
+              onChange={e => handleDescriptionChange(e.target.value)}
             />
+            <div className="flex items-center justify-between gap-3 text-[11px]">
+              <p className="text-gray-400 dark:text-gray-500">
+                До {DESCRIPTION_WORD_LIMIT} слов. В карточках длинное описание аккуратно обрежется.
+              </p>
+              <span className={`font-medium ${descriptionWordCount >= DESCRIPTION_WORD_LIMIT ? 'text-amber-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                {descriptionWordCount}/{DESCRIPTION_WORD_LIMIT}
+              </span>
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               {test.tags.map((tag, i) => (
                 <span key={i} className="badge-info flex items-center gap-1 text-xs">
@@ -1311,21 +1339,21 @@ export default function CreateTest() {
                         title={coverPreviewTitle}
                         showPlaceholderCaption={false}
                         className="w-full"
-                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/18 via-transparent to-white/6 dark:from-black/24"
+                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/26 via-slate-950/10 to-transparent dark:from-black/34 dark:via-black/14"
                         style={{ aspectRatio: '16 / 9' }}
                       >
                         <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 sm:inset-x-4 sm:bottom-4 sm:gap-3">
-                          <div className="max-w-[82%] rounded-2xl border border-white/75 bg-white/82 px-3 py-2.5 shadow-[0_28px_60px_-26px_rgba(15,23,42,0.32)] backdrop-blur-md dark:border-white/10 dark:bg-slate-950/72 dark:shadow-[0_28px_60px_-26px_rgba(0,0,0,0.7)] sm:max-w-[68%] sm:px-4 sm:py-3">
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                          <div className="max-w-[78%] rounded-[22px] border border-black/8 bg-white/90 px-3 py-2.5 shadow-[0_30px_70px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/78 dark:shadow-[0_32px_72px_-30px_rgba(0,0,0,0.78)] sm:max-w-[64%] sm:px-4 sm:py-3">
+                            <p className="text-sm font-semibold text-slate-950 dark:text-white">
                               {test.coverImage ? 'Обложка готова' : 'Выберите изображение'}
                             </p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-slate-600 dark:text-white/72">
+                            <p className="mt-1 text-[11px] leading-relaxed text-slate-700 dark:text-white/80">
                               {test.coverImage
                                 ? 'Нужен другой кадр? Просто выбери новое изображение и редактор откроется снова.'
                                 : 'После выбора откроется редактор с кадрированием и zoom.'}
                             </p>
                           </div>
-                          <div className="hidden rounded-2xl border border-white/70 bg-white/68 px-3 py-2 text-[11px] font-medium text-slate-900 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/62 dark:text-white/92 sm:block">
+                          <div className="hidden rounded-2xl border border-black/10 bg-white/82 px-3 py-2 text-[11px] font-medium text-slate-900 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70 dark:text-white/92 sm:block">
                             16:9 • Dashboard / Test
                           </div>
                         </div>
@@ -1362,7 +1390,7 @@ export default function CreateTest() {
                         title={coverPreviewTitle}
                         showPlaceholderCaption={false}
                         className="w-full"
-                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/12 via-transparent to-white/5 dark:from-black/18"
+                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/16 via-slate-950/5 to-transparent dark:from-black/22"
                         style={{ aspectRatio: '16 / 9' }}
                       />
                       <div className="space-y-3 p-4">
@@ -1417,7 +1445,7 @@ export default function CreateTest() {
                         coverImage={test.coverImage}
                         title={coverPreviewTitle}
                         showPlaceholderCaption={false}
-                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-white/4 dark:from-black/14"
+                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/12 via-slate-950/4 to-transparent dark:from-black/18"
                         className="h-full w-full"
                       />
                     </div>
@@ -1998,7 +2026,7 @@ export default function CreateTest() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[110] flex items-end justify-center p-2 sm:items-center sm:p-4"
             onClick={() => {
               coverDragRef.current = null;
               setCoverEditor(null);
@@ -2010,10 +2038,10 @@ export default function CreateTest() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.96 }}
               onClick={(event) => event.stopPropagation()}
-              className="relative flex w-full max-w-6xl max-h-[calc(100vh-1rem)] flex-col overflow-hidden rounded-[28px] border border-white/20 bg-white shadow-2xl dark:border-slate-700/70 dark:bg-slate-900"
+              className="relative flex h-[calc(100vh-0.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[24px] border border-white/20 bg-white shadow-2xl dark:border-slate-700/70 dark:bg-slate-900 sm:h-auto sm:max-h-[calc(100vh-1rem)] sm:rounded-[28px]"
             >
-              <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-4 py-4 dark:border-slate-800 sm:px-6 sm:py-5">
-                <div>
+              <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 dark:border-slate-800 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6 sm:py-5">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-500">
                     Cover Editor
                   </p>
@@ -2035,7 +2063,7 @@ export default function CreateTest() {
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                <div className="grid gap-5 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="grid gap-4 px-3 py-3 sm:gap-5 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                   <div className="space-y-4 sm:space-y-5">
                   <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-slate-950 shadow-[0_36px_80px_-50px_rgba(15,23,42,0.85)] dark:border-slate-700">
                     <div
@@ -2060,12 +2088,12 @@ export default function CreateTest() {
                         }}
                       />
                       <div className="pointer-events-none absolute inset-0 border border-white/30" />
-                      <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/18 bg-black/30 px-3 py-1.5 text-[11px] font-medium text-white/90 backdrop-blur-sm">
+                      <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/18 bg-black/32 px-2.5 py-1 text-[10px] font-medium text-white/90 backdrop-blur-sm sm:left-4 sm:top-4 sm:px-3 sm:py-1.5 sm:text-[11px]">
                         16:9 safe frame
                       </div>
-                      <div className="pointer-events-none absolute bottom-4 left-4 flex items-center gap-2 rounded-full border border-white/18 bg-black/30 px-3 py-1.5 text-[11px] text-white/80 backdrop-blur-sm">
+                      <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-white/18 bg-black/32 px-2.5 py-1 text-[10px] text-white/80 backdrop-blur-sm sm:bottom-4 sm:left-4 sm:px-3 sm:py-1.5 sm:text-[11px]">
                         <Move size={12} />
-                        Потяни изображение, чтобы сдвинуть кадр
+                        Потяни, чтобы сдвинуть кадр
                       </div>
                     </div>
                   </div>
@@ -2113,7 +2141,7 @@ export default function CreateTest() {
                     <h4 className="mt-1 text-sm font-semibold text-dark">Как это увидят в Dashboard</h4>
                   </div>
 
-                    <div className="overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_28px_70px_-45px_rgba(15,23,42,0.48)] dark:border-slate-700 dark:bg-slate-900/60">
+                    <div className="mx-auto w-full max-w-[320px] overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_28px_70px_-45px_rgba(15,23,42,0.48)] dark:border-slate-700 dark:bg-slate-900/60 lg:max-w-none">
                       <div className="relative overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
                         <img
                           src={coverEditor.src}
@@ -2126,7 +2154,7 @@ export default function CreateTest() {
                             top: `${(coverEditor.offsetY / COVER_FRAME_HEIGHT) * 100}%`,
                           }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/18 via-transparent to-white/10" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/14 via-transparent to-transparent" />
                       </div>
                       <div className="space-y-3 p-4">
                         <div className="flex items-center gap-2">
@@ -2149,14 +2177,14 @@ export default function CreateTest() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-[11px] text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-300">
+                    <div className="hidden rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-[11px] text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-300 sm:block">
                       Сохраняется уже итоговый JPEG 800×450. То, что видишь здесь, и пойдёт в `Dashboard` и `Test Profile`.
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-5">
+              <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-gray-100 bg-white/95 px-4 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-5">
                 <button
                   type="button"
                   onClick={() => {

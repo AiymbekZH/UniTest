@@ -274,12 +274,12 @@ export default function Dashboard() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-[15px] font-semibold text-dark mb-1 group-hover:text-primary-600 transition-colors line-clamp-1 pr-8">
+                  <h3 className="mb-1 min-h-[2.75rem] pr-8 text-[15px] font-semibold text-dark transition-colors group-hover:text-primary-600 line-clamp-2">
                     {test.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-[13px] text-gray-500 mb-3 line-clamp-1">
+                  <p className="mb-3 min-h-[3.75rem] text-[13px] leading-5 text-gray-500 line-clamp-3">
                     {test.description || t('noDescription')}
                   </p>
 
