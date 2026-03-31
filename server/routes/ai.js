@@ -73,6 +73,10 @@ const getClient = () => {
 // POST /api/ai/generate — Generate test questions from text/file/image
 router.post('/generate', auth, fileUpload.single('file'), async (req, res) => {
   try {
+    if (!req.user.aiAccess && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'У вас нет доступа к AI функциям. Обратитесь к администратору.' });
+    }
+
     const { text, image, questionCount = 5, questionTypes = '["single-choice"]', language = 'ru' } = req.body;
     
     // Parse questionTypes (could be JSON string from FormData)
@@ -295,6 +299,10 @@ router.delete('/history', auth, async (req, res) => {
 // POST /api/ai/translate — Translate question + options to target languages
 router.post('/translate', auth, async (req, res) => {
   try {
+    if (!req.user.aiAccess && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'У вас нет доступа к AI функциям. Обратитесь к администратору.' });
+    }
+
     const { questionText, options, passage, explanation, correctAnswer, targetLanguages } = req.body;
     if (!questionText || !targetLanguages?.length) {
       return res.status(400).json({ error: 'Provide questionText and targetLanguages' });

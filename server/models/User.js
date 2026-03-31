@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema({
   avatar: { type: String, default: '' },
   isBanned: { type: Boolean, default: false },
   banReason: { type: String, default: '' },
+  aiAccess: { type: Boolean, default: false }, // AI generation and translation access
   warnings: [{
     message: { type: String },
     fromAdmin: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

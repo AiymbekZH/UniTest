@@ -97,6 +97,20 @@ router.put('/users/:id/role', adminAuth, async (req, res) => {
   }
 });
 
+// Toggle AI Access
+router.put('/users/:id/ai-access', adminAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Пользователь не найден' });
+    
+    user.aiAccess = !user.aiAccess;
+    await user.save();
+    res.json({ message: user.aiAccess ? 'Доступ к AI выдан' : 'Доступ к AI забран', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+  }
+});
+
 // Delete test (admin)
 router.delete('/tests/:id', adminAuth, async (req, res) => {
   try {

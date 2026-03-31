@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, Users, FileText, BarChart3, Search, Ban, ShieldCheck,
   AlertTriangle, Trash2, ChevronDown, ArrowLeft, UserCog, MessageSquare,
-  ShieldOff, Trophy, Eye, X, Flag, CheckCircle, XCircle, Clock
+  ShieldOff, Trophy, Eye, X, Flag, CheckCircle, XCircle, Clock, Sparkles
 } from 'lucide-react';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -145,6 +145,16 @@ export default function AdminPanel() {
       loadUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Ошибка');
+    }
+  };
+
+  const handleToggleAIAccess = async (userId) => {
+    try {
+      const res = await api.put(`/admin/users/${userId}/ai-access`);
+      toast.success(res.data.message || 'Доступ к AI обновлен');
+      loadUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Ошибка изменения доступа');
     }
   };
 
@@ -355,6 +365,7 @@ export default function AdminPanel() {
                         {u.role}
                       </span>
                       {u.isBanned && <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30">{t('banned')}</span>}
+                      {u.aiAccess && <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 flex items-center gap-1"><Sparkles size={10} /> AI Access</span>}
                     </div>
                     <p className="text-xs text-gray-400">{u.email}</p>
                     {u.warnings?.length > 0 && (
@@ -382,6 +393,13 @@ export default function AdminPanel() {
                       title="Отправить сообщение"
                     >
                       <MessageSquare size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleToggleAIAccess(u._id)}
+                      className={`p-2 text-xs rounded-lg transition ${u.aiAccess ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40' : 'bg-indigo-50 text-indigo-300 hover:bg-indigo-100 dark:bg-indigo-900/10'}`}
+                      title={u.aiAccess ? 'Забрать доступ к AI' : 'Дать доступ к AI'}
+                    >
+                      <Sparkles size={14} />
                     </button>
                     {u.warnings?.length > 0 && (
                       <button onClick={() => handleRemoveWarnings(u._id)}
