@@ -23,7 +23,7 @@ router.post('/', auth, async (req, res) => {
     await group.populate('members.user', 'firstName lastName email avatar');
     res.status(201).json(group);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка создания группы', error: error.message });
+    res.status(500).json({ message: 'Ошибка создания группы' });
   }
 });
 
@@ -41,7 +41,7 @@ router.get('/my', auth, async (req, res) => {
 
     res.json(groups);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -61,7 +61,7 @@ router.get('/:id', auth, async (req, res) => {
 
     res.json(group);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -83,7 +83,7 @@ router.post('/join/:code', auth, async (req, res) => {
 
     res.json(group);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -101,7 +101,7 @@ router.put('/:id', auth, async (req, res) => {
     await group.save();
     res.json(group);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -118,7 +118,7 @@ router.delete('/:id', auth, async (req, res) => {
     await group.save();
     res.json({ message: 'Группа удалена' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -138,7 +138,7 @@ router.delete('/:id/members/:userId', auth, async (req, res) => {
     await group.save();
     res.json({ message: 'Участник удалён' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -155,7 +155,7 @@ router.post('/:id/leave', auth, async (req, res) => {
     await group.save();
     res.json({ message: 'Вы вышли из группы' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -185,7 +185,7 @@ router.post('/:id/assign-test', auth, async (req, res) => {
     await group.populate('assignedTests.test', 'title shareLink totalPoints attemptCount averageScore');
     res.json(group);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -202,7 +202,7 @@ router.delete('/:id/assigned-tests/:testId', auth, async (req, res) => {
     await group.save();
     res.json({ message: 'Тест убран из группы' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -220,7 +220,7 @@ router.post('/:id/regenerate-code', auth, async (req, res) => {
     await group.save();
     res.json({ inviteCode: group.inviteCode });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 

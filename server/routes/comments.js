@@ -22,7 +22,7 @@ router.get('/:testId', optionalAuth, async (req, res) => {
 
     res.json({ comments, creatorId: test.creator?.toString() });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -74,7 +74,7 @@ router.post('/:testId', auth, async (req, res) => {
 
     res.status(201).json({ comment });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -97,7 +97,7 @@ router.put('/:id', auth, async (req, res) => {
 
     res.json({ comment });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -114,7 +114,7 @@ router.delete('/:id', auth, async (req, res) => {
     await comment.save();
     res.json({ message: 'Комментарий удалён' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -154,7 +154,7 @@ router.post('/:id/vote', auth, async (req, res) => {
     await comment.save();
     res.json({ upvotes: comment.upvotes.length, downvotes: comment.downvotes.length });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 

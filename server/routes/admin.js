@@ -38,7 +38,7 @@ router.get('/users', adminAuth, async (req, res) => {
 
     res.json({ users, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -55,7 +55,7 @@ router.put('/users/:id/ban', adminAuth, async (req, res) => {
     await user.save();
     res.json({ message: 'Пользователь заблокирован', user });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -70,7 +70,7 @@ router.put('/users/:id/unban', adminAuth, async (req, res) => {
     await user.save();
     res.json({ message: 'Пользователь разблокирован', user });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -86,7 +86,7 @@ router.post('/users/:id/warn', adminAuth, async (req, res) => {
     await user.save();
     res.json({ message: 'Предупреждение отправлено', warnings: user.warnings });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -101,7 +101,7 @@ router.put('/users/:id/role', adminAuth, async (req, res) => {
     if (!user) return res.status(404).json({ message: 'Пользователь не найден' });
     res.json({ message: 'Роль обновлена', user });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -123,7 +123,7 @@ router.put('/users/:id/ai-access', adminAuth, async (req, res) => {
     await user.save();
     res.json({ message: user.aiAccess ? 'Доступ к AI выдан' : 'Доступ к AI отключен', user });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -147,7 +147,7 @@ router.put('/ai-access/bulk', adminAuth, async (req, res) => {
       modifiedCount: result.modifiedCount || 0
     });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -163,7 +163,7 @@ router.delete('/tests/:id', adminAuth, async (req, res) => {
     await test.save();
     res.json({ message: 'Тест удалён' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -187,7 +187,7 @@ router.get('/tests', adminAuth, async (req, res) => {
 
     res.json({ tests, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -208,7 +208,7 @@ router.get('/stats', adminAuth, async (req, res) => {
 
     res.json({ userCount, testCount, resultCount, bannedCount, aiAccessCount, recentUsers, recentTests });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -218,7 +218,7 @@ router.delete('/comments/:id', adminAuth, async (req, res) => {
     await Comment.findByIdAndUpdate(req.params.id, { isDeleted: true });
     res.json({ message: 'Комментарий удалён' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -231,7 +231,7 @@ router.delete('/users/:id/warnings', adminAuth, async (req, res) => {
     await user.save();
     res.json({ message: 'Предупреждения сняты', user });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -247,7 +247,7 @@ router.post('/users/:id/message', adminAuth, async (req, res) => {
     await user.save();
     res.json({ message: 'Сообщение отправлено', user });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -259,7 +259,7 @@ router.delete('/results/:id', adminAuth, async (req, res) => {
     await Result.findByIdAndDelete(req.params.id);
     res.json({ message: 'Результат удалён из рейтинга' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -269,7 +269,7 @@ router.delete('/results/user/:userId/test/:testId', adminAuth, async (req, res) 
     const deleted = await Result.deleteMany({ user: req.params.userId, test: req.params.testId });
     res.json({ message: `Удалено ${deleted.deletedCount} результатов` });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -283,7 +283,7 @@ router.get('/leaderboard/:testId', adminAuth, async (req, res) => {
 
     res.json({ results });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -301,7 +301,7 @@ router.delete('/tests/:testId/questions/:questionId', adminAuth, async (req, res
     await test.save();
     res.json({ message: 'Вопрос удалён', questionsCount: test.questions.length });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -313,7 +313,7 @@ router.get('/tests/:id/details', adminAuth, async (req, res) => {
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
     res.json(test);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 

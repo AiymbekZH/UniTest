@@ -37,7 +37,7 @@ router.get('/', auth, async (req, res) => {
       categories: categories.filter(Boolean)
     });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка получения вопросов', error: error.message });
+    res.status(500).json({ message: 'Ошибка получения вопросов' });
   }
 });
 
@@ -51,7 +51,7 @@ router.post('/', auth, async (req, res) => {
     await question.save();
     res.status(201).json(question);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сохранения вопроса', error: error.message });
+    res.status(500).json({ message: 'Ошибка сохранения вопроса' });
   }
 });
 
@@ -86,7 +86,7 @@ router.post('/bulk', auth, async (req, res) => {
     const saved = await BankQuestion.insertMany(formatted);
     res.status(201).json({ count: saved.length, message: `Сохранено ${saved.length} вопросов` });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сохранения', error: error.message });
+    res.status(500).json({ message: 'Ошибка сохранения' });
   }
 });
 
@@ -101,7 +101,7 @@ router.put('/:id', auth, async (req, res) => {
     if (!question) return res.status(404).json({ message: 'Вопрос не найден' });
     res.json(question);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка обновления', error: error.message });
+    res.status(500).json({ message: 'Ошибка обновления' });
   }
 });
 
@@ -115,7 +115,7 @@ router.delete('/:id', auth, async (req, res) => {
     if (!question) return res.status(404).json({ message: 'Вопрос не найден' });
     res.json({ message: 'Вопрос удалён' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка удаления', error: error.message });
+    res.status(500).json({ message: 'Ошибка удаления' });
   }
 });
 
@@ -126,7 +126,7 @@ router.post('/bulk-delete', auth, async (req, res) => {
     await BankQuestion.deleteMany({ _id: { $in: ids }, creator: req.user._id });
     res.json({ message: 'Вопросы удалены' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка удаления', error: error.message });
+    res.status(500).json({ message: 'Ошибка удаления' });
   }
 });
 

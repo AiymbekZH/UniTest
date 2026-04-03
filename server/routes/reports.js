@@ -30,7 +30,7 @@ router.post('/', auth, async (req, res) => {
     await report.save();
     res.status(201).json({ message: 'Жалоба отправлена', report });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -58,7 +58,7 @@ router.get('/', auth, async (req, res) => {
 
     res.json({ reports, counts });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -88,7 +88,7 @@ router.put('/:id', auth, async (req, res) => {
 
     res.json({ report });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 

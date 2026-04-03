@@ -13,7 +13,7 @@ router.get('/', auth, async (req, res) => {
     const unreadCount = await Notification.countDocuments({ user: req.user._id, isRead: false });
     res.json({ notifications, unreadCount });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -23,7 +23,7 @@ router.get('/unread-count', auth, async (req, res) => {
     const count = await Notification.countDocuments({ user: req.user._id, isRead: false });
     res.json({ count });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -38,7 +38,7 @@ router.put('/:id/read', auth, async (req, res) => {
     if (!notification) return res.status(404).json({ message: 'Уведомление не найдено' });
     res.json({ notification });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -48,7 +48,7 @@ router.put('/read-all', auth, async (req, res) => {
     await Notification.updateMany({ user: req.user._id, isRead: false }, { isRead: true });
     res.json({ message: 'Все уведомления прочитаны' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -58,7 +58,7 @@ router.delete('/:id', auth, async (req, res) => {
     await Notification.findOneAndDelete({ _id: req.params.id, user: req.user._id });
     res.json({ message: 'Уведомление удалено' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 

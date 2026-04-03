@@ -88,7 +88,7 @@ router.post('/', auth, async (req, res) => {
     await test.populate('creator', 'firstName lastName email role avatar');
     res.status(201).json(test);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка создания теста', error: error.message });
+    res.status(500).json({ message: 'Ошибка создания теста' });
   }
 });
 
@@ -112,7 +112,7 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
       fileName: req.file.originalname
     });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка загрузки файла', error: error.message });
+    res.status(500).json({ message: 'Ошибка загрузки файла' });
   }
 });
 
@@ -178,7 +178,7 @@ router.get('/', optionalAuth, async (req, res) => {
       totalPages: Math.ceil(total / parseInt(limit))
     });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка получения тестов', error: error.message });
+    res.status(500).json({ message: 'Ошибка получения тестов' });
   }
 });
 
@@ -190,7 +190,7 @@ router.get('/my', auth, async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(tests);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка получения тестов', error: error.message });
+    res.status(500).json({ message: 'Ошибка получения тестов' });
   }
 });
 
@@ -204,7 +204,7 @@ router.get('/:id', auth, async (req, res) => {
     }
     res.json(test);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка получения теста', error: error.message });
+    res.status(500).json({ message: 'Ошибка получения теста' });
   }
 });
 
@@ -330,7 +330,7 @@ router.get('/share/:shareLink', optionalAuth, async (req, res) => {
     });
     res.json(sanitized);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка получения теста', error: error.message });
+    res.status(500).json({ message: 'Ошибка получения теста' });
   }
 });
 
@@ -353,7 +353,7 @@ router.put('/:id', auth, async (req, res) => {
     await test.populate('creator', 'firstName lastName email role avatar');
     res.json(test);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка обновления теста', error: error.message });
+    res.status(500).json({ message: 'Ошибка обновления теста' });
   }
 });
 
@@ -370,7 +370,7 @@ router.delete('/:id', auth, async (req, res) => {
     await Test.findByIdAndDelete(req.params.id);
     res.json({ message: 'Тест удалён' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка удаления теста', error: error.message });
+    res.status(500).json({ message: 'Ошибка удаления теста' });
   }
 });
 
@@ -397,7 +397,7 @@ router.post('/:id/duplicate', auth, async (req, res) => {
     await copy.populate('creator', 'firstName lastName email role avatar');
     res.status(201).json(copy);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка дублирования теста', error: error.message });
+    res.status(500).json({ message: 'Ошибка дублирования теста' });
   }
 });
 
@@ -491,7 +491,7 @@ router.post('/:id/check-answer', optionalAuth, async (req, res) => {
       partialRatio
     });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка проверки ответа', error: error.message });
+    res.status(500).json({ message: 'Ошибка проверки ответа' });
   }
 });
 
@@ -520,7 +520,7 @@ router.post('/:id/rate', auth, async (req, res) => {
 
     res.json({ rating: test.rating, ratingCount: test.ratingCount, alreadyRated });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -532,7 +532,7 @@ router.get('/:id/my-rating', auth, async (req, res) => {
     const myRating = test.ratings?.find(r => r.user.toString() === req.user._id.toString());
     res.json({ rating: myRating?.rating || 0 });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -574,7 +574,7 @@ router.get('/:id/tickets', optionalAuth, async (req, res) => {
 
     res.json({ variants, myVariant, variantCount, isPublic });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -624,7 +624,7 @@ router.post('/:id/tickets/claim', optionalAuth, async (req, res) => {
       throw dupErr;
     }
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -639,7 +639,7 @@ router.delete('/:id/tickets', auth, async (req, res) => {
     await TicketClaim.deleteMany({ test: req.params.id });
     res.json({ message: 'Все билеты сброшены' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 

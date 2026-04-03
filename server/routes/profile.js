@@ -12,7 +12,7 @@ router.get('/me', auth, async (req, res) => {
     const user = await User.findById(req.user._id).select('-password');
     res.json({ user });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -43,7 +43,7 @@ router.put('/me', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -59,7 +59,7 @@ router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id, { avatar: avatarUrl }, { new: true }).select('-password');
     res.json({ avatar: avatarUrl, user });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -84,7 +84,7 @@ router.put('/password', auth, async (req, res) => {
     await user.save();
     res.json({ message: 'Пароль изменён' });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -110,7 +110,7 @@ router.get('/:id', async (req, res) => {
       publicTests 
     });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -120,7 +120,7 @@ router.get('/me/warnings', auth, async (req, res) => {
     const user = await User.findById(req.user._id).select('warnings');
     res.json({ warnings: user.warnings });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -133,7 +133,7 @@ router.get('/me/comments', auth, async (req, res) => {
       .limit(50);
     res.json({ comments });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
@@ -159,7 +159,7 @@ router.get('/me/stats', auth, async (req, res) => {
 
     res.json({ testsCreated, testsTaken, totalScore });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сервера', error: error.message });
+    res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 

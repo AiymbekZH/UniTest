@@ -203,7 +203,7 @@ router.post('/', optionalAuth, async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка сохранения результата', error: error.message });
+    res.status(500).json({ message: 'Ошибка сохранения результата' });
   }
 });
 
@@ -219,7 +219,7 @@ router.post('/violation', optionalAuth, async (req, res) => {
 
     res.json({ violationCount: result.violationCount });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -235,7 +235,7 @@ router.get('/test/:testId', auth, async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка получения результатов', error: error.message });
+    res.status(500).json({ message: 'Ошибка получения результатов' });
   }
 });
 
@@ -247,7 +247,7 @@ router.get('/my', auth, async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(results);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка получения результатов', error: error.message });
+    res.status(500).json({ message: 'Ошибка получения результатов' });
   }
 });
 
@@ -294,7 +294,7 @@ router.put('/:resultId/grade-essay', auth, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка оценивания', error: error.message });
+    res.status(500).json({ message: 'Ошибка оценивания' });
   }
 });
 
@@ -344,7 +344,7 @@ router.get('/leaderboard/:testId', async (req, res) => {
 
     res.json({ testTitle: test.title, leaderboard });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -369,7 +369,7 @@ router.get('/my-attempts/:testId', optionalAuth, async (req, res) => {
     });
     res.json({ attempts: count });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -419,7 +419,7 @@ router.get('/analytics/:testId', auth, async (req, res) => {
 
     res.json({ totalResponses, questions: analytics });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
@@ -432,7 +432,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
     if (!result) return res.status(404).json({ message: 'Результат не найден' });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка', error: error.message });
+    res.status(500).json({ message: 'Ошибка' });
   }
 });
 
