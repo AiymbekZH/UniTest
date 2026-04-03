@@ -45,7 +45,13 @@ app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false
 }));
-app.use(cors(corsOptions));
+
+if (allowedOrigins.length === 0) {
+  console.warn('CORS allowlist is empty. API CORS runs in fallback mode. Set ALLOWED_ORIGINS in production.');
+}
+
+// Apply CORS only to API routes so static assets never fail because of CORS config.
+app.use('/api', cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
