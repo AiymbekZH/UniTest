@@ -28,6 +28,8 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL ||
 
 const corsOptions = {
   origin: (origin, callback) => {
+    // Fail-open when allowlist is not configured to avoid breaking app boot/static assets.
+    if (allowedOrigins.length === 0) return callback(null, true);
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('CORS origin is not allowed'));
