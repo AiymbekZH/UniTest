@@ -68,13 +68,17 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: { message: 'Слишком много попыток входа. Повторите позже.' },
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false
 });
 
 // Routes
 app.use('/api', apiLimiter);
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/activate-admin', authLimiter);
+app.use('/api/auth', authRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/question-bank', questionBankRoutes);
