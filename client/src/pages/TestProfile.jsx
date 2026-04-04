@@ -261,15 +261,44 @@ export default function TestProfile() {
                 </div>
               </div>
 
-              <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-gray-200/70 dark:border-slate-700 bg-white/70 dark:bg-slate-800/50 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-wider text-gray-400">Сложность по оценкам</p>
-                  <p className={`text-sm font-semibold ${difficultyMeta.color}`}>{difficultyMeta.label}</p>
+              {/* Complexity DNA Bar */}
+              <div className="mb-6 p-4 rounded-2xl border border-gray-200/70 dark:border-slate-700 bg-white/70 dark:bg-slate-800/50">
+                <div className="flex justify-between items-end mb-3">
+                  <div>
+                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">Оценка сложности</h3>
+                    <div className="flex items-center gap-2">
+                       <span className={`text-base font-bold tracking-tight ${difficultyMeta.color}`}>{difficultyMeta.label}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-black text-slate-700 dark:text-slate-200 leading-none flex items-baseline justify-end gap-1">
+                      {test.difficultyScore ? test.difficultyScore.toFixed(1) : '0.0'}
+                      <span className="text-xs font-bold text-gray-400">/ 5</span>
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider text-gray-400 mt-1">
+                      {test.difficultyCount || 0} голосов
+                    </div>
+                  </div>
                 </div>
-                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${difficultyMeta.badge}`}>
-                  <span>{test.difficultyScore ? test.difficultyScore.toFixed(1) : '0.0'}/5</span>
-                  <span className="opacity-70">•</span>
-                  <span>{test.difficultyCount || 0} оценок</span>
+                {/* DNA Scale */}
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden flex">
+                  {[1, 2, 3, 4, 5].map((level) => {
+                    const isActive = test.difficultyScore ? Math.round(test.difficultyScore) >= level : false;
+                    let bgColor = "bg-slate-200 dark:bg-slate-700";
+                    if (isActive) {
+                      if (level <= 2) bgColor = "bg-emerald-400 dark:bg-emerald-500";
+                      else if (level <= 3) bgColor = "bg-amber-400 dark:bg-amber-500";
+                      else bgColor = "bg-red-500 dark:bg-red-500";
+                    }
+                    return (
+                      <div key={level} className={`h-full flex-1 ${level < 5 ? 'border-r-2 border-white dark:border-slate-800' : ''} transition-colors duration-500 ${bgColor}`} />
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between mt-2 px-0.5">
+                  <span className="text-[10px] font-medium text-emerald-500 uppercase tracking-widest">Легко</span>
+                  <span className="text-[10px] font-medium text-amber-500 uppercase tracking-widest">Средне</span>
+                  <span className="text-[10px] font-medium text-red-500 uppercase tracking-widest">Тяжело</span>
                 </div>
               </div>
 

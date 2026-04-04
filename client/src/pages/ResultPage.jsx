@@ -449,38 +449,44 @@ export default function ResultPage() {
 
             <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
               <h3 className="font-semibold text-dark mb-2">Оцените сложность теста</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">1 — легкий, 5 — очень сложный</p>
-              <div className="flex items-center justify-center gap-1">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <motion.button
-                    key={`difficulty-${star}`}
-                    whileHover={{ scale: 1.2 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => !difficultySubmitted && submitDifficulty(star)}
-                    onMouseEnter={() => !difficultySubmitted && setHoverDifficulty(star)}
-                    onMouseLeave={() => setHoverDifficulty(0)}
-                    disabled={difficultySubmitted}
-                    className="p-1 transition-colors disabled:cursor-default"
-                  >
-                    <Star
-                      size={30}
-                      className={`transition-colors ${
-                        (hoverDifficulty || userDifficulty) >= star
-                          ? 'fill-red-400 text-red-400'
-                          : 'text-gray-300 dark:text-slate-600'
-                      }`}
-                    />
-                  </motion.button>
-                ))}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">1 — очень легко, 5 — очень сложно</p>
+              
+              <div className="flex items-center justify-center gap-2 mb-4 w-full max-w-xs mx-auto">
+                 {[1, 2, 3, 4, 5].map((level) => {
+                   const isActiveColor = level <= 2 ? 'bg-emerald-500' : level <= 3 ? 'bg-amber-500' : 'bg-red-500';
+                   const hoverStyle = level <= 2 ? 'hover:bg-emerald-400' : level <= 3 ? 'hover:bg-amber-400' : 'hover:bg-red-400';
+                   const textStyle = level <= 2 ? 'text-emerald-700 dark:text-emerald-300' : level <= 3 ? 'text-amber-700 dark:text-amber-300' : 'text-red-700 dark:text-red-300';
+                   
+                   const isHovered = hoverDifficulty >= level;
+                   const isSelected = userDifficulty >= level;
+                   const isActive = isHovered || isSelected;
+
+                   return (
+                     <motion.button
+                        key={`diff-${level}`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => !difficultySubmitted && submitDifficulty(level)}
+                        onMouseEnter={() => !difficultySubmitted && setHoverDifficulty(level)}
+                        onMouseLeave={() => setHoverDifficulty(0)}
+                        disabled={difficultySubmitted}
+                        className={`group relative h-10 flex-1 rounded-xl font-bold transition-all duration-300 outline-none
+                          ${isActive 
+                            ? `${isActiveColor} text-white shadow-md` 
+                            : `bg-slate-100 dark:bg-slate-700/50 ${hoverStyle} text-slate-400 hover:text-white dark:text-slate-400`} 
+                          disabled:cursor-default`}
+                     >
+                       {level}
+                     </motion.button>
+                   );
+                 })}
               </div>
 
-              <div className="mt-3 flex items-center justify-center">
-                <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${difficultyMeta.badge}`}>
+              <div className="mt-4 flex items-center justify-center">
+                <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider ${difficultyMeta.badge}`}>
                   <span>{difficultyMeta.label}</span>
-                  <span className="opacity-70">•</span>
-                  <span>{result.test?.difficultyScore ? result.test.difficultyScore.toFixed(1) : '0.0'}/5</span>
-                  <span className="opacity-70">•</span>
-                  <span>{result.test?.difficultyCount || 0} оценок</span>
+                  <span className="opacity-50 text-xs">|</span>
+                  <span>{result.test?.difficultyScore ? result.test.difficultyScore.toFixed(1) : '0.0'} СРЕДНИЙ БАЛЛ</span>
                 </span>
               </div>
 
