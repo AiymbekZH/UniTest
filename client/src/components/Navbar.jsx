@@ -34,7 +34,7 @@ export default memo(function Navbar() {
 
   const confirmLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const handleSwitchAccount = async (sessionId) => {
