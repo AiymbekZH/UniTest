@@ -26,6 +26,8 @@ export default function TestProfile() {
   const [attemptInfo, setAttemptInfo] = useState({ attempts: 0, maxAttempts: 0 });
   const [myRating, setMyRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [myDifficulty, setMyDifficulty] = useState(0);
+  const [hoverDifficulty, setHoverDifficulty] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
@@ -57,6 +59,12 @@ export default function TestProfile() {
           const rRes = await api.get(`/tests/${res.data._id}/my-rating`);
           setMyRating(rRes.data.rating || 0);
         } catch (_) {}
+
+        // Fetch my difficulty rating
+        try {
+          const dRes = await api.get(`/tests/${res.data._id}/my-difficulty-rating`);
+          setMyDifficulty(dRes.data.difficulty || 0);
+        } catch (_) {}
       }
     } catch (err) {
       toast.error(t('testNotFound'));
@@ -79,6 +87,48 @@ export default function TestProfile() {
     } catch (err) {
       toast.error(t('error'));
     }
+  };
+
+  const handleDifficultyRate = async (value) => {
+    if (!user) {
+      toast.error(t('loginToRate'));
+      return;
+    }
+    try {
+      const res = await api.post(`/tests/${test._id}/rate-difficulty`, { difficulty: value });
+      setMyDifficulty(value);
+      setTest(prev => ({
+        ...prev,
+        difficultyScore: res.data.difficultyScore,
+        difficultyCount: res.data.difficultyCount
+      }));
+      toast.success(res.data.alreadyRated ? 'Оценка сложности обновлена' : 'Спасибо за оценку сложности');
+    } catch (_) {
+      toast.error(t('error'));
+    }
+  };
+
+  const getDifficultyMeta = (score) => {
+    const value = Number(score || 0);
+    if (value >= 3.7) {
+      return {
+        label: 'Очень сложный',
+        color: 'text-red-600 dark:text-red-400',
+        badge: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'
+      };
+    }
+    if (value >= 2.4) {
+      return {
+        label: 'Средний',
+        color: 'text-amber-600 dark:text-amber-400',
+        badge: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+      };
+    }
+    return {
+      label: 'Легкий',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      badge: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+    };
   };
 
   const getQuestionTypeLabel = (type) => {
@@ -110,6 +160,8 @@ export default function TestProfile() {
   test.questions?.forEach(q => {
     questionTypes[q.type] = (questionTypes[q.type] || 0) + 1;
   });
+
+  const difficultyMeta = getDifficultyMeta(test.difficultyScore);
 
   const canStart = !(attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts);
 
@@ -205,6 +257,19 @@ export default function TestProfile() {
                   <div className="w-8 h-8 rounded-[10px] bg-purple-100 dark:bg-purple-800/40 text-purple-600 mx-auto mb-2 flex items-center justify-center"><Star size={16} /></div>
                   <p className="text-[22px] font-bold text-purple-600 tracking-tight">{test.rating?.toFixed(1) || '—'}</p>
                   <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('rating')}</p>
+                  <p className="mt-1 text-[10px] text-gray-400">{test.ratingCount || 0} оценок</p>
+                </div>
+              </div>
+
+              <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-gray-200/70 dark:border-slate-700 bg-white/70 dark:bg-slate-800/50 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-xs uppercase tracking-wider text-gray-400">Сложность по оценкам</p>
+                  <p className={`text-sm font-semibold ${difficultyMeta.color}`}>{difficultyMeta.label}</p>
+                </div>
+                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${difficultyMeta.badge}`}>
+                  <span>{test.difficultyScore ? test.difficultyScore.toFixed(1) : '0.0'}/5</span>
+                  <span className="opacity-70">•</span>
+                  <span>{test.difficultyCount || 0} оценок</span>
                 </div>
               </div>
 
@@ -280,6 +345,33 @@ export default function TestProfile() {
                   <span className="text-sm text-gray-500 ml-3">
                     {myRating > 0 ? `${t('yourRating')}: ${myRating}/5` : t('clickToRate')}
                   </span>
+                </div>
+
+                <div className="mt-5 pt-5 border-t border-gray-100 dark:border-slate-700">
+                  <h3 className="text-sm font-semibold text-dark mb-3">Оцените сложность</h3>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map(v => (
+                      <button
+                        key={`difficulty-${v}`}
+                        onClick={() => handleDifficultyRate(v)}
+                        onMouseEnter={() => setHoverDifficulty(v)}
+                        onMouseLeave={() => setHoverDifficulty(0)}
+                        className="p-1 transition-transform hover:scale-125"
+                      >
+                        <Star
+                          size={26}
+                          className={
+                            v <= (hoverDifficulty || myDifficulty)
+                              ? 'fill-red-400 text-red-400'
+                              : 'text-gray-300 dark:text-gray-600'
+                          }
+                        />
+                      </button>
+                    ))}
+                    <span className="text-sm text-gray-500 ml-3">
+                      {myDifficulty > 0 ? `Ваша оценка сложности: ${myDifficulty}/5` : 'Кликните, чтобы оценить сложность'}
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             )}

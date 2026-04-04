@@ -347,7 +347,23 @@ router.put('/:id', auth, async (req, res) => {
 
     // Strip system fields to prevent duplication/corruption
     const sanitizedPayload = sanitizeTestPayload(req.body);
-    const { _id, __v, creator, createdAt, updatedAt, shareLink, attemptCount, averageScore, ...updateData } = sanitizedPayload;
+    const {
+      _id,
+      __v,
+      creator,
+      createdAt,
+      updatedAt,
+      shareLink,
+      attemptCount,
+      averageScore,
+      rating,
+      ratingCount,
+      ratings,
+      difficultyScore,
+      difficultyCount,
+      difficultyRatings,
+      ...updateData
+    } = sanitizedPayload;
     Object.assign(test, updateData);
     await test.save();
     await test.populate('creator', 'firstName lastName email role avatar');
@@ -382,7 +398,22 @@ router.post('/:id/duplicate', auth, async (req, res) => {
     if (!original.settings.isPublic && original.creator.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Нет доступа к этому тесту' });
     }
-    const { _id, __v, shareLink, attemptCount, averageScore, rating, ratingCount, ratings, createdAt, updatedAt, ...data } = original.toObject();
+    const {
+      _id,
+      __v,
+      shareLink,
+      attemptCount,
+      averageScore,
+      rating,
+      ratingCount,
+      ratings,
+      difficultyScore,
+      difficultyCount,
+      difficultyRatings,
+      createdAt,
+      updatedAt,
+      ...data
+    } = original.toObject();
     const copy = new Test({
       ...data,
       title: data.title + ' (копия)',
@@ -391,7 +422,10 @@ router.post('/:id/duplicate', auth, async (req, res) => {
       averageScore: 0,
       rating: 0,
       ratingCount: 0,
-      ratings: []
+      ratings: [],
+      difficultyScore: 0,
+      difficultyCount: 0,
+      difficultyRatings: []
     });
     await copy.save();
     await copy.populate('creator', 'firstName lastName email role avatar');
@@ -498,7 +532,10 @@ router.post('/:id/check-answer', optionalAuth, async (req, res) => {
 // Rate test (one rating per user)
 router.post('/:id/rate', auth, async (req, res) => {
   try {
-    const { rating } = req.body;
+    const rating = Number(req.body?.rating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Оценка должна быть от 1 до 5' });
+    }
     const test = await Test.findById(req.params.id);
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
 
@@ -531,6 +568,57 @@ router.get('/:id/my-rating', auth, async (req, res) => {
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
     const myRating = test.ratings?.find(r => r.user.toString() === req.user._id.toString());
     res.json({ rating: myRating?.rating || 0 });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
+// Rate test difficulty (one rating per user)
+router.post('/:id/rate-difficulty', auth, async (req, res) => {
+  try {
+    const difficulty = Number(req.body?.difficulty);
+    if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 5) {
+      return res.status(400).json({ message: 'Оценка сложности должна быть от 1 до 5' });
+    }
+
+    const test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ message: 'Тест не найден' });
+
+    if (!Array.isArray(test.difficultyRatings)) test.difficultyRatings = [];
+
+    const existingIdx = test.difficultyRatings.findIndex(r => r.user.toString() === req.user._id.toString());
+    let alreadyRated = false;
+    if (existingIdx >= 0) {
+      test.difficultyRatings[existingIdx].difficulty = difficulty;
+      alreadyRated = true;
+    } else {
+      test.difficultyRatings.push({ user: req.user._id, difficulty });
+    }
+
+    const totalRatings = test.difficultyRatings.length;
+    test.difficultyScore = totalRatings > 0
+      ? test.difficultyRatings.reduce((sum, item) => sum + item.difficulty, 0) / totalRatings
+      : 0;
+    test.difficultyCount = totalRatings;
+    await test.save();
+
+    res.json({
+      difficultyScore: test.difficultyScore,
+      difficultyCount: test.difficultyCount,
+      alreadyRated
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
+// Check user's existing difficulty rating
+router.get('/:id/my-difficulty-rating', auth, async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.id).select('difficultyRatings');
+    if (!test) return res.status(404).json({ message: 'Тест не найден' });
+    const myDifficulty = test.difficultyRatings?.find(r => r.user.toString() === req.user._id.toString());
+    res.json({ difficulty: myDifficulty?.difficulty || 0 });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка' });
   }

@@ -27,6 +27,9 @@ export default function ResultPage() {
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [userDifficulty, setUserDifficulty] = useState(0);
+  const [hoverDifficulty, setHoverDifficulty] = useState(0);
+  const [difficultySubmitted, setDifficultySubmitted] = useState(false);
 
   useEffect(() => {
     fetchResult();
@@ -67,6 +70,40 @@ export default function ResultPage() {
     }
   };
 
+  const submitDifficulty = async (difficulty) => {
+    setUserDifficulty(difficulty);
+    try {
+      await api.post(`/tests/${result.test?._id}/rate-difficulty`, { difficulty });
+      setDifficultySubmitted(true);
+      toast.success('Спасибо за оценку сложности!');
+    } catch (_) {
+      toast.error('Ошибка отправки оценки сложности');
+    }
+  };
+
+  const getDifficultyMeta = (score) => {
+    const value = Number(score || 0);
+    if (value >= 3.7) {
+      return {
+        label: 'Очень сложный',
+        color: 'text-red-600 dark:text-red-400',
+        badge: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'
+      };
+    }
+    if (value >= 2.4) {
+      return {
+        label: 'Средний',
+        color: 'text-amber-600 dark:text-amber-400',
+        badge: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+      };
+    }
+    return {
+      label: 'Легкий',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      badge: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+    };
+  };
+
   // Check if user already rated this test
   useEffect(() => {
     if (result?.test?._id && user) {
@@ -75,6 +112,15 @@ export default function ResultPage() {
           if (res.data.rating > 0) {
             setUserRating(res.data.rating);
             setRatingSubmitted(true);
+          }
+        })
+        .catch(() => {});
+
+      api.get(`/tests/${result.test._id}/my-difficulty-rating`)
+        .then(res => {
+          if (res.data.difficulty > 0) {
+            setUserDifficulty(res.data.difficulty);
+            setDifficultySubmitted(true);
           }
         })
         .catch(() => {});
@@ -241,6 +287,7 @@ export default function ResultPage() {
   if (!result) return null;
 
   const grade = getGradeInfo(result.percentage);
+  const difficultyMeta = getDifficultyMeta(result.test?.difficultyScore);
   const correct = result.answers.filter(a => a.isCorrect).length;
   const wrong = result.answers.filter(a => !a.isCorrect).length;
   const total = result.answers.length;
@@ -395,6 +442,58 @@ export default function ResultPage() {
                 {userRating > 0 ? `Ваша оценка: ${userRating}/5` : 'Спасибо за оценку!'}
               </motion.p>
             )}
+
+            <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              Всего оценок теста: {result.test?.ratingCount || 0}
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
+              <h3 className="font-semibold text-dark mb-2">Оцените сложность теста</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">1 — легкий, 5 — очень сложный</p>
+              <div className="flex items-center justify-center gap-1">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <motion.button
+                    key={`difficulty-${star}`}
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => !difficultySubmitted && submitDifficulty(star)}
+                    onMouseEnter={() => !difficultySubmitted && setHoverDifficulty(star)}
+                    onMouseLeave={() => setHoverDifficulty(0)}
+                    disabled={difficultySubmitted}
+                    className="p-1 transition-colors disabled:cursor-default"
+                  >
+                    <Star
+                      size={30}
+                      className={`transition-colors ${
+                        (hoverDifficulty || userDifficulty) >= star
+                          ? 'fill-red-400 text-red-400'
+                          : 'text-gray-300 dark:text-slate-600'
+                      }`}
+                    />
+                  </motion.button>
+                ))}
+              </div>
+
+              <div className="mt-3 flex items-center justify-center">
+                <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${difficultyMeta.badge}`}>
+                  <span>{difficultyMeta.label}</span>
+                  <span className="opacity-70">•</span>
+                  <span>{result.test?.difficultyScore ? result.test.difficultyScore.toFixed(1) : '0.0'}/5</span>
+                  <span className="opacity-70">•</span>
+                  <span>{result.test?.difficultyCount || 0} оценок</span>
+                </span>
+              </div>
+
+              {difficultySubmitted && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-sm text-emerald-600 dark:text-emerald-400 mt-2 font-medium"
+                >
+                  {userDifficulty > 0 ? `Ваша оценка сложности: ${userDifficulty}/5` : 'Спасибо за оценку сложности!'}
+                </motion.p>
+              )}
+            </div>
           </motion.div>
         )}
 

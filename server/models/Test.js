@@ -111,6 +111,12 @@ const testSchema = new mongoose.Schema({
   ratings: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     rating: { type: Number, min: 1, max: 5 }
+  }],
+  difficultyScore: { type: Number, default: 0, min: 0, max: 5 },
+  difficultyCount: { type: Number, default: 0 },
+  difficultyRatings: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    difficulty: { type: Number, min: 1, max: 5 }
   }]
 }, { timestamps: true });
 
