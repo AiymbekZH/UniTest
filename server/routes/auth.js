@@ -10,8 +10,8 @@ const router = express.Router();
 const OWNER_EMAIL = process.env.ADMIN_EMAIL;
 const OWNER_ID = (process.env.ADMIN_UNIQUE_ID || 'OWNERUNITEST').toUpperCase();
 const SELF_REGISTER_ROLES = new Set(['student', 'teacher']);
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOGIN_LOCK_MS = 15 * 60 * 1000;
+const MAX_LOGIN_ATTEMPTS = 10;
+const LOGIN_LOCK_MS = 10 * 60 * 1000;
 
 function getCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production';
