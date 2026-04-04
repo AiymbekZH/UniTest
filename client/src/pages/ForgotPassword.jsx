@@ -4,16 +4,34 @@ import { motion } from 'framer-motion';
 import { Mail, ArrowLeft } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import SimpleCaptcha from '../components/SimpleCaptcha';
+
+const createCaptcha = () => {
+  const left = Math.floor(Math.random() * 8) + 2;
+  const right = Math.floor(Math.random() * 8) + 1;
+  return {
+    question: `${left} + ${right} = ?`,
+    answer: left + right
+  };
+};
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captcha, setCaptcha] = useState(() => createCaptcha());
+  const [captchaValue, setCaptchaValue] = useState('');
   const { forgotPassword } = useAuth();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!email) {
       toast.error('Введите email');
+      return;
+    }
+    if (Number(captchaValue.trim()) !== captcha.answer) {
+      toast.error('Неверная капча');
+      setCaptcha(createCaptcha());
+      setCaptchaValue('');
       return;
     }
 
@@ -23,6 +41,8 @@ export default function ForgotPassword() {
       toast.success(res.message || 'Проверьте почту для восстановления пароля');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Ошибка отправки письма');
+      setCaptcha(createCaptcha());
+      setCaptchaValue('');
     } finally {
       setLoading(false);
     }
@@ -55,6 +75,17 @@ export default function ForgotPassword() {
                 />
               </div>
             </div>
+
+            <SimpleCaptcha
+              challenge={captcha}
+              value={captchaValue}
+              onChange={setCaptchaValue}
+              onRefresh={() => {
+                setCaptcha(createCaptcha());
+                setCaptchaValue('');
+              }}
+              label="Проверка перед отправкой"
+            />
 
             <button
               type="submit"

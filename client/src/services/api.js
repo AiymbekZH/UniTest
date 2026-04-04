@@ -22,8 +22,16 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('unitest_token');
       localStorage.removeItem('unitest_user');
-      // Only redirect if not already on login/register
-      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
+      const publicAuthPaths = [
+        '/login',
+        '/register',
+        '/forgot-password',
+        '/reset-password'
+      ];
+
+      const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.startsWith(path));
+
+      if (!isPublicAuthPage) {
         window.location.href = '/login';
       }
     }

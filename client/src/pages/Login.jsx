@@ -4,6 +4,16 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, LogIn, GraduationCap, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
+import SimpleCaptcha from '../components/SimpleCaptcha';
+
+const createCaptcha = () => {
+  const left = Math.floor(Math.random() * 8) + 2;
+  const right = Math.floor(Math.random() * 8) + 1;
+  return {
+    question: `${left} + ${right} = ?`,
+    answer: left + right
+  };
+};
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -11,6 +21,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [switchingId, setSwitchingId] = useState('');
+  const [captcha, setCaptcha] = useState(() => createCaptcha());
+  const [captchaValue, setCaptchaValue] = useState('');
   const { login, loginWithGoogleRedirect, savedSessions, switchAccount } = useAuth();
   const navigate = useNavigate();
 
@@ -27,6 +39,12 @@ export default function Login() {
       toast.error('Заполните все поля');
       return;
     }
+    if (Number(captchaValue.trim()) !== captcha.answer) {
+      toast.error('Неверная капча');
+      setCaptcha(createCaptcha());
+      setCaptchaValue('');
+      return;
+    }
     setLoading(true);
     try {
       await login(email, password);
@@ -34,6 +52,8 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Ошибка входа');
+      setCaptcha(createCaptcha());
+      setCaptchaValue('');
     } finally {
       setLoading(false);
     }
@@ -160,6 +180,23 @@ export default function Login() {
             >
               Войти через Google
             </motion.button>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <SimpleCaptcha
+                challenge={captcha}
+                value={captchaValue}
+                onChange={setCaptchaValue}
+                onRefresh={() => {
+                  setCaptcha(createCaptcha());
+                  setCaptchaValue('');
+                }}
+                label="Проверка перед входом"
+              />
+            </motion.div>
           </form>
 
           {savedSessions?.length > 0 && (
@@ -209,7 +246,7 @@ export default function Login() {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.7 }}
             className="text-center mt-6 text-sm text-gray-500"
           >
             Нет аккаунта?{' '}

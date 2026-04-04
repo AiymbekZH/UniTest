@@ -174,11 +174,17 @@ router.post('/forgot-password', async (req, res) => {
       const resetBase = process.env.RESET_PASSWORD_URL_BASE || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password`;
       const resetUrl = `${resetBase}/${resetToken}`;
 
-      await sendPasswordResetEmail({
+      const emailSent = await sendPasswordResetEmail({
         email: user.email,
         firstName: user.firstName,
         resetUrl
       });
+
+      if (!emailSent) {
+        return res.status(503).json({
+          message: 'Почта для сброса пароля не настроена на сервере'
+        });
+      }
     }
 
     res.json({ message: 'Если такой email существует, ссылка для сброса отправлена.' });

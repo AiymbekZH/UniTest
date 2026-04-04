@@ -4,6 +4,16 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, UserPlus, GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
+import SimpleCaptcha from '../components/SimpleCaptcha';
+
+const createCaptcha = () => {
+  const left = Math.floor(Math.random() * 8) + 2;
+  const right = Math.floor(Math.random() * 8) + 1;
+  return {
+    question: `${left} + ${right} = ?`,
+    answer: left + right
+  };
+};
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -12,6 +22,8 @@ export default function Register() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [captcha, setCaptcha] = useState(() => createCaptcha());
+  const [captchaValue, setCaptchaValue] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -31,6 +43,12 @@ export default function Register() {
       toast.error('Пароли не совпадают');
       return;
     }
+    if (Number(captchaValue.trim()) !== captcha.answer) {
+      toast.error('Неверная капча');
+      setCaptcha(createCaptcha());
+      setCaptchaValue('');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -40,6 +58,8 @@ export default function Register() {
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Ошибка регистрации');
+      setCaptcha(createCaptcha());
+      setCaptchaValue('');
     } finally {
       setLoading(false);
     }
@@ -150,6 +170,19 @@ export default function Register() {
                 onChange={e => update('confirmPassword', e.target.value)} />
             </motion.div>
 
+            <motion.div {...inputAnim(0.52)}>
+              <SimpleCaptcha
+                challenge={captcha}
+                value={captchaValue}
+                onChange={setCaptchaValue}
+                onRefresh={() => {
+                  setCaptcha(createCaptcha());
+                  setCaptchaValue('');
+                }}
+                label="Проверка перед регистрацией"
+              />
+            </motion.div>
+
             <motion.button
               type="submit"
               disabled={loading}
@@ -158,7 +191,7 @@ export default function Register() {
               whileTap={{ scale: 0.98 }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.55 }}
+              transition={{ delay: 0.6 }}
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

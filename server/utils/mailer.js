@@ -29,7 +29,7 @@ function getTransporter() {
  */
 async function notifyTestCompletion({ teacherEmail, teacherName, studentName, testTitle, score, totalPoints, percentage }) {
   const transport = getTransporter();
-  if (!transport) return; // Email not configured, skip silently
+  if (!transport) return false; // Email not configured
 
   try {
     const gradeEmoji = percentage >= 90 ? '🏆' : percentage >= 75 ? '👍' : percentage >= 50 ? '📝' : '📚';
@@ -62,15 +62,17 @@ async function notifyTestCompletion({ teacherEmail, teacherName, studentName, te
         </div>
       `,
     });
+    return true;
   } catch (error) {
     console.error('Email notification error:', error.message);
     // Don't throw — email failure shouldn't break the result submission
+    return false;
   }
 }
 
 async function sendPasswordResetEmail({ email, firstName, resetUrl }) {
   const transport = getTransporter();
-  if (!transport) return;
+  if (!transport) return false;
 
   try {
     await transport.sendMail({
@@ -89,8 +91,10 @@ async function sendPasswordResetEmail({ email, firstName, resetUrl }) {
         </div>
       `
     });
+    return true;
   } catch (error) {
     console.error('Password reset email error:', error.message);
+    return false;
   }
 }
 
