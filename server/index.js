@@ -124,25 +124,13 @@ const indexHtmlPath = path.join(clientDistPath, 'index.html');
 // Static files
 app.use(express.static(clientDistPath));
 
-// Read index.html once at startup to ensure UTF-8
-let indexHtml = null;
-try {
-  indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
-} catch (err) {
-  console.error('Failed to read index.html:', err);
-}
-
 // Fallback to index.html for SPA routes
 app.get('*', (req, res) => {
-  if (indexHtml) {
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-    res.send(indexHtml);
-  } else {
-    res.sendFile(indexHtmlPath);
-  }
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.sendFile(indexHtmlPath);
 });
 
 // MongoDB Connection
