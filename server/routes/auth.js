@@ -232,7 +232,11 @@ router.get('/google/start', async (req, res) => {
 
     return res.redirect(url);
   } catch (error) {
-    return res.status(500).json({ message: 'Не удалось начать вход через Google' });
+    console.error('google/start failed:', error);
+    return res.status(500).json({
+      message: 'Не удалось начать вход через Google',
+      debug: error?.message || 'unknown error'
+    });
   }
 });
 
