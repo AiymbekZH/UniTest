@@ -435,20 +435,21 @@ export default function ResultPage() {
             </div>
 
             <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-700">
-              <h3 className="font-semibold text-dark mb-2">Оцените сложность теста</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">1 — очень легко, 5 — очень сложно</p>
+              <h3 className="font-semibold text-dark mb-4">Оцените сложность теста</h3>
               
-              <div className="flex items-center justify-center gap-2 mb-4 w-full max-w-xs mx-auto">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4 w-full max-w-2xl mx-auto">
                  {[1, 2, 3, 4, 5].map((level) => {
                    const colorMap = {
-                     1: { active: 'bg-emerald-500', hover: 'hover:bg-emerald-400' },
-                     2: { active: 'bg-lime-500', hover: 'hover:bg-lime-400' },
-                     3: { active: 'bg-amber-500', hover: 'hover:bg-amber-400' },
-                     4: { active: 'bg-orange-500', hover: 'hover:bg-orange-400' },
-                     5: { active: 'bg-red-500', hover: 'hover:bg-red-400' }
+                     1: { active: 'bg-emerald-500', hover: 'hover:bg-emerald-400', label: 'Очень легко', text: 'text-emerald-700 dark:text-emerald-300' },
+                     2: { active: 'bg-lime-500', hover: 'hover:bg-lime-400', label: 'Легко', text: 'text-lime-700 dark:text-lime-300' },
+                     3: { active: 'bg-amber-500', hover: 'hover:bg-amber-400', label: 'Средняя', text: 'text-amber-700 dark:text-amber-300' },
+                     4: { active: 'bg-orange-500', hover: 'hover:bg-orange-400', label: 'Сложная', text: 'text-orange-700 dark:text-orange-300' },
+                     5: { active: 'bg-red-500', hover: 'hover:bg-red-400', label: 'Очень сложная', text: 'text-red-700 dark:text-red-300' }
                    };
                    const isActiveColor = colorMap[level].active;
                    const hoverStyle = colorMap[level].hover;
+                   const activeText = colorMap[level].text;
+                   const label = colorMap[level].label;
                    
                    const isHovered = hoverDifficulty >= level;
                    const isSelected = userDifficulty >= level;
@@ -463,13 +464,14 @@ export default function ResultPage() {
                         onMouseEnter={() => !difficultySubmitted && setHoverDifficulty(level)}
                         onMouseLeave={() => setHoverDifficulty(0)}
                         disabled={difficultySubmitted}
-                        className={`group relative h-10 flex-1 rounded-xl font-bold transition-all duration-300 outline-none
+                        className={`group relative h-12 sm:h-16 flex-1 w-full rounded-xl font-bold transition-all duration-300 outline-none flex flex-col items-center justify-center
                           ${isActive 
                             ? `${isActiveColor} text-white shadow-md` 
                             : `bg-slate-100 dark:bg-slate-700/50 ${hoverStyle} text-slate-400 hover:text-white dark:text-slate-400`} 
                           disabled:cursor-default`}
                      >
-                       {level}
+                       <span className="text-sm sm:text-base">{level}</span>
+                       <span className={`text-[10px] sm:text-xs font-semibold leading-none ${isActive ? 'text-white/90' : 'opacity-70 group-hover:text-white/90'}`}>{label}</span>
                      </motion.button>
                    );
                  })}
