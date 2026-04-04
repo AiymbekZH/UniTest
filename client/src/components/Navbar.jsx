@@ -63,7 +63,7 @@ export default memo(function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
-  const langLabels = { en: 'EN', ru: 'RU', kz: 'KZ' };
+  const langLabels = { en: 'EN', ru: 'RU', kz: 'KZ', es: 'ES' };
 
   return (
     <>
@@ -140,9 +140,10 @@ export default memo(function Navbar() {
                     className="absolute right-0 mt-1 w-32 glass-card-solid p-1 shadow-glass z-50"
                   >
                     {[
-                      { code: 'en', label: 'EN English' },
+                      { code: 'en', label: '🇬🇧 English' },
                       { code: 'ru', label: '🇷🇺 Русский' },
-                      { code: 'kz', label: '🇰🇿 Қазақша' }
+                      { code: 'kz', label: '🇰🇿 Қазақша' },
+                      { code: 'es', label: '🇪🇸 Español' }
                     ].map(l => (
                       <button key={l.code}
                         onClick={() => { setLanguage(l.code); setShowLang(false); }}
