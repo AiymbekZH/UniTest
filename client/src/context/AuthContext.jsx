@@ -34,6 +34,16 @@ export const AuthProvider = ({ children }) => {
   const [savedSessions, setSavedSessions] = useState(() => readSavedSessions());
   const [loading, setLoading] = useState(true);
 
+  const isPublicAuthPage = () => {
+    const pathname = window.location.pathname;
+    return [
+      '/login',
+      '/register',
+      '/forgot-password',
+      '/reset-password'
+    ].some(path => pathname.startsWith(path));
+  };
+
   const applyActiveSession = useCallback((token, nextUser) => {
     localStorage.setItem(ACTIVE_TOKEN_KEY, token);
     localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(nextUser));
@@ -111,6 +121,12 @@ export const AuthProvider = ({ children }) => {
   }, [applyActiveSession, persistSession, removeSavedSession]);
 
   useEffect(() => {
+    if (isPublicAuthPage()) {
+      setSavedSessions(readSavedSessions());
+      setLoading(false);
+      return;
+    }
+
     const token = localStorage.getItem(ACTIVE_TOKEN_KEY);
     const savedUser = localStorage.getItem(ACTIVE_USER_KEY);
 

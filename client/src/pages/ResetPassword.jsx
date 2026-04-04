@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, ArrowLeft } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -10,8 +10,20 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { token } = useParams();
+  const location = useLocation();
   const { resetPassword } = useAuth();
   const navigate = useNavigate();
+
+  const resetToken = useMemo(() => {
+    const queryToken = new URLSearchParams(location.search).get('token');
+    const pathToken = location.pathname
+      .split('/')
+      .filter(Boolean)
+      .slice(1)
+      .join('/');
+
+    return queryToken || token || pathToken || '';
+  }, [location.pathname, location.search, token]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -26,15 +38,37 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      const res = await resetPassword(token, password);
+      const res = await resetPassword(resetToken, password);
       toast.success(res.message || 'Пароль изменен');
-      setTimeout(() => navigate('/login'), 800);
+      setTimeout(() => navigate('/login', { replace: true }), 800);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Ошибка смены пароля');
     } finally {
       setLoading(false);
     }
   };
+
+  if (!resetToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+        <Toaster position="top-right" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <div className="glass-card p-8">
+            <h1 className="text-2xl font-bold text-dark mb-2">Ссылка для сброса недействительна</h1>
+            <p className="text-sm text-gray-500 mb-6">Откройте письмо заново или запросите новую ссылку для восстановления пароля.</p>
+            <Link to="/forgot-password" className="btn-primary inline-flex w-full items-center justify-center gap-2">
+              <ArrowLeft size={16} />
+              Запросить новую ссылку
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
