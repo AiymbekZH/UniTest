@@ -35,13 +35,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const isPublicAuthPage = () => {
-    const pathname = window.location.pathname;
+    const checkPath = window.location.href.toLowerCase();
     return [
-      '/login',
-      '/register',
-      '/forgot-password',
-      '/reset-password'
-    ].some(path => pathname.startsWith(path));
+      'login',
+      'register',
+      'forgot-password',
+      'reset-password'
+    ].some(path => checkPath.includes(path));
   };
 
   const applyActiveSession = useCallback((token, nextUser) => {

@@ -23,13 +23,13 @@ api.interceptors.response.use(
       localStorage.removeItem('unitest_token');
       localStorage.removeItem('unitest_user');
       const publicAuthPaths = [
-        '/login',
-        '/register',
-        '/forgot-password',
-        '/reset-password'
+        'login',
+        'register',
+        'forgot-password',
+        'reset-password'
       ];
 
-      const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.startsWith(path));
+      const isPublicAuthPage = publicAuthPaths.some(path => window.location.href.toLowerCase().includes(path));
 
       if (!isPublicAuthPage) {
         window.location.href = '/login';
