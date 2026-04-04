@@ -13,10 +13,12 @@ const SELF_REGISTER_ROLES = new Set(['student', 'teacher']);
 
 function getCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production';
+  const rawSameSite = String(process.env.COOKIE_SAMESITE || 'lax').trim().toLowerCase();
+  const sameSite = ['lax', 'strict', 'none'].includes(rawSameSite) ? rawSameSite : 'lax';
   return {
     httpOnly: true,
     secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProd,
-    sameSite: process.env.COOKIE_SAMESITE || 'lax',
+    sameSite,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/'
   };
