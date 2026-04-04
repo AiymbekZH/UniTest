@@ -22,18 +22,9 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('unitest_token');
       localStorage.removeItem('unitest_user');
-      const publicAuthPaths = [
-        'login',
-        'register',
-        'forgot-password',
-        'reset-password'
-      ];
-
-      const isPublicAuthPage = publicAuthPaths.some(path => window.location.href.toLowerCase().includes(path));
-
-      if (!isPublicAuthPage) {
-        window.location.href = '/login';
-      }
+      
+      // Dispatch event to clear React state without a forced window redirect
+      window.dispatchEvent(new Event('auth_unauthorized'));
     }
     return Promise.reject(error);
   }

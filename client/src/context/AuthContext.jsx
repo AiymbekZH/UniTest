@@ -121,6 +121,14 @@ export const AuthProvider = ({ children }) => {
   }, [applyActiveSession, persistSession, removeSavedSession]);
 
   useEffect(() => {
+    const handleUnauthorized = () => {
+      clearActiveSession();
+    };
+    window.addEventListener('auth_unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth_unauthorized', handleUnauthorized);
+  }, [clearActiveSession]);
+
+  useEffect(() => {
     if (isPublicAuthPage()) {
       setSavedSessions(readSavedSessions());
       setLoading(false);
