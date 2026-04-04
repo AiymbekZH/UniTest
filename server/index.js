@@ -22,18 +22,22 @@ const groupRoutes = require('./routes/groups');
 const aiRoutes = require('./routes/ai');
 
 const app = express();
+const isProd = process.env.NODE_ENV === 'production';
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || '')
   .split(',')
   .map(origin => origin.trim())
   .filter(Boolean);
 
+if (isProd && allowedOrigins.length === 0) {
+  throw new Error('ALLOWED_ORIGINS must be set in production');
+}
+
 const corsOptions = {
   origin: (origin, callback) => {
-    // Fail-open when allowlist is not configured to avoid breaking app boot/static assets.
-    if (allowedOrigins.length === 0) return callback(null, true);
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (!isProd && allowedOrigins.length === 0) return callback(null, true);
     return callback(new Error('CORS origin is not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -48,7 +52,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-if (allowedOrigins.length === 0) {
+if (!isProd && allowedOrigins.length === 0) {
   console.warn('CORS allowlist is empty. API CORS runs in fallback mode. Set ALLOWED_ORIGINS in production.');
 }
 
