@@ -54,6 +54,24 @@ function getGoogleClient() {
   return new OAuth2Client(clientId, clientSecret, redirectUri);
 }
 
+function buildGoogleAuthUrl(state) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const redirectUri = process.env.GOOGLE_CALLBACK_URL;
+  if (!clientId || !redirectUri) return null;
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'select_account',
+    state
+  });
+
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
 async function ensureOwnerAdmin(user) {
   if (!OWNER_EMAIL) return;
   if (user.email.toLowerCase() !== OWNER_EMAIL.toLowerCase()) return;
@@ -199,25 +217,23 @@ router.post('/reset-password', async (req, res) => {
 
 // Google OAuth start (redirect flow)
 router.get('/google/start', async (req, res) => {
-  const client = getGoogleClient();
-  if (!client) {
-    return res.status(503).json({ message: 'Google вход не настроен на сервере' });
+  try {
+    const state = crypto.randomBytes(16).toString('hex');
+    const url = buildGoogleAuthUrl(state);
+
+    if (!url) {
+      return res.status(503).json({ message: 'Google вход не настроен на сервере' });
+    }
+
+    res.cookie('google_oauth_state', state, {
+      ...getCookieOptions(),
+      maxAge: 10 * 60 * 1000
+    });
+
+    return res.redirect(url);
+  } catch (error) {
+    return res.status(500).json({ message: 'Не удалось начать вход через Google' });
   }
-
-  const state = crypto.randomBytes(16).toString('hex');
-  res.cookie('google_oauth_state', state, {
-    ...getCookieOptions(),
-    maxAge: 10 * 60 * 1000
-  });
-
-  const url = client.generateAuthUrl({
-    access_type: 'offline',
-    scope: ['openid', 'profile', 'email'],
-    prompt: 'select_account',
-    state
-  });
-
-  res.redirect(url);
 });
 
 // Google OAuth callback
