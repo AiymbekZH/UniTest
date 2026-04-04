@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
+const { ensureCsrfCookie, csrfProtection } = require('./middleware/csrf');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -56,6 +57,8 @@ app.use('/api', cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use('/api', ensureCsrfCookie);
+app.use('/api', csrfProtection);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const apiLimiter = rateLimit({

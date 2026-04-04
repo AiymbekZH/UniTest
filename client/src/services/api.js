@@ -6,12 +6,25 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 });
 
+function readCookie(name) {
+  const prefix = `${name}=`;
+  const parts = document.cookie ? document.cookie.split('; ') : [];
+  const found = parts.find(part => part.startsWith(prefix));
+  return found ? decodeURIComponent(found.slice(prefix.length)) : '';
+}
+
 // Attach token to every request
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('unitest_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  const csrfToken = readCookie('csrf_token');
+  if (csrfToken) {
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+
   return config;
 });
 
