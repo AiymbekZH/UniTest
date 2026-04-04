@@ -286,8 +286,10 @@ export default function TestProfile() {
                     const isActive = test.difficultyScore ? Math.round(test.difficultyScore) >= level : false;
                     let bgColor = "bg-slate-200 dark:bg-slate-700";
                     if (isActive) {
-                      if (level <= 2) bgColor = "bg-emerald-400 dark:bg-emerald-500";
-                      else if (level <= 3) bgColor = "bg-amber-400 dark:bg-amber-500";
+                      if (level === 1) bgColor = "bg-emerald-400 dark:bg-emerald-500";
+                      else if (level === 2) bgColor = "bg-lime-400 dark:bg-lime-500";
+                      else if (level === 3) bgColor = "bg-amber-400 dark:bg-amber-500";
+                      else if (level === 4) bgColor = "bg-orange-400 dark:bg-orange-500";
                       else bgColor = "bg-red-500 dark:bg-red-500";
                     }
                     return (

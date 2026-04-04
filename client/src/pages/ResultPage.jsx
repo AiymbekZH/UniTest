@@ -453,9 +453,15 @@ export default function ResultPage() {
               
               <div className="flex items-center justify-center gap-2 mb-4 w-full max-w-xs mx-auto">
                  {[1, 2, 3, 4, 5].map((level) => {
-                   const isActiveColor = level <= 2 ? 'bg-emerald-500' : level <= 3 ? 'bg-amber-500' : 'bg-red-500';
-                   const hoverStyle = level <= 2 ? 'hover:bg-emerald-400' : level <= 3 ? 'hover:bg-amber-400' : 'hover:bg-red-400';
-                   const textStyle = level <= 2 ? 'text-emerald-700 dark:text-emerald-300' : level <= 3 ? 'text-amber-700 dark:text-amber-300' : 'text-red-700 dark:text-red-300';
+                   const colorMap = {
+                     1: { active: 'bg-emerald-500', hover: 'hover:bg-emerald-400' },
+                     2: { active: 'bg-lime-500', hover: 'hover:bg-lime-400' },
+                     3: { active: 'bg-amber-500', hover: 'hover:bg-amber-400' },
+                     4: { active: 'bg-orange-500', hover: 'hover:bg-orange-400' },
+                     5: { active: 'bg-red-500', hover: 'hover:bg-red-400' }
+                   };
+                   const isActiveColor = colorMap[level].active;
+                   const hoverStyle = colorMap[level].hover;
                    
                    const isHovered = hoverDifficulty >= level;
                    const isSelected = userDifficulty >= level;
