@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { 
   Sparkles, 
   BarChart, 
@@ -13,16 +13,9 @@ import {
   Zap
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
 
 export default function Landing() {
   const { t } = useLanguage();
-  const { isAuthenticated } = useAuth();
-
-  // If already logged in, redirect to dashboard
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
