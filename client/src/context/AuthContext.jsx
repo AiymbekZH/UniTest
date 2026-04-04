@@ -46,6 +46,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
+  const applyCookieOnlySession = useCallback((nextUser) => {
+    localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(nextUser));
+    setUser(nextUser);
+  }, []);
+
   const upsertSavedSession = useCallback((token, nextUser) => {
     const sessionId = getSessionId(nextUser);
     if (!sessionId || !token || !nextUser) return [];
@@ -127,10 +132,16 @@ export const AuthProvider = ({ children }) => {
         })
         .finally(() => setLoading(false));
     } else {
-      setSavedSessions(readSavedSessions());
-      setLoading(false);
+      api.get('/auth/me')
+        .then(res => {
+          applyCookieOnlySession(res.data.user);
+        })
+        .catch(() => {
+          setSavedSessions(readSavedSessions());
+        })
+        .finally(() => setLoading(false));
     }
-  }, [clearActiveSession, syncCurrentSession]);
+  }, [applyCookieOnlySession, clearActiveSession, syncCurrentSession]);
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
@@ -144,7 +155,26 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const logout = () => {
+  const forgotPassword = async (email) => {
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data;
+  };
+
+  const resetPassword = async (token, password) => {
+    const res = await api.post('/auth/reset-password', { token, password });
+    return res.data;
+  };
+
+  const loginWithGoogleRedirect = () => {
+    window.location.assign('/api/auth/google/start');
+  };
+
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Ignore server logout errors and clear local session anyway
+    }
     clearActiveSession();
     setSavedSessions(readSavedSessions());
   };
@@ -161,6 +191,9 @@ export const AuthProvider = ({ children }) => {
         savedSessions,
         login,
         register,
+        forgotPassword,
+        resetPassword,
+        loginWithGoogleRedirect,
         logout,
         updateUser,
         switchAccount,

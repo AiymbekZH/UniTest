@@ -1,14 +1,10 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 // Generate 12-character unique ID
 function generateUniqueId() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let id = '';
-  for (let i = 0; i < 12; i++) {
-    id += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return id;
+  return crypto.randomBytes(6).toString('hex').toUpperCase();
 }
 
 const userSchema = new mongoose.Schema({
@@ -17,6 +13,8 @@ const userSchema = new mongoose.Schema({
   middleName: { type: String, trim: true, default: '' },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true, minlength: 6 },
+  googleId: { type: String, default: '', index: true },
+  authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
   uniqueId: { type: String, unique: true, default: generateUniqueId },
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
   avatar: { type: String, default: '' },
@@ -28,6 +26,8 @@ const userSchema = new mongoose.Schema({
     fromAdmin: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now }
   }],
+  passwordResetTokenHash: { type: String, default: '' },
+  passwordResetExpiresAt: { type: Date, default: null },
   language: { type: String, enum: ['en', 'ru', 'kz'], default: 'en' },
   createdAt: { type: Date, default: Date.now }
 });

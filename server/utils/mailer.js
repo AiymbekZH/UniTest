@@ -68,4 +68,30 @@ async function notifyTestCompletion({ teacherEmail, teacherName, studentName, te
   }
 }
 
-module.exports = { notifyTestCompletion };
+async function sendPasswordResetEmail({ email, firstName, resetUrl }) {
+  const transport = getTransporter();
+  if (!transport) return;
+
+  try {
+    await transport.sendMail({
+      from: `"UniTest" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: 'Восстановление пароля UniTest',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+          <h2 style="color: #4F46E5; margin: 0 0 16px;">Восстановление пароля</h2>
+          <p style="color: #334155;">Здравствуйте, ${firstName || 'пользователь'}!</p>
+          <p style="color: #334155;">Мы получили запрос на смену пароля. Если это были вы, нажмите кнопку ниже:</p>
+          <p style="margin: 20px 0;">
+            <a href="${resetUrl}" style="display:inline-block;background:#4F46E5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600;">Сбросить пароль</a>
+          </p>
+          <p style="color: #64748b; font-size: 14px;">Ссылка действует 1 час. Если вы не запрашивали смену пароля, просто проигнорируйте это письмо.</p>
+        </div>
+      `
+    });
+  } catch (error) {
+    console.error('Password reset email error:', error.message);
+  }
+}
+
+module.exports = { notifyTestCompletion, sendPasswordResetEmail };

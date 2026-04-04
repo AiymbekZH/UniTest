@@ -1,12 +1,58 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
+const { sendPasswordResetEmail } = require('../utils/mailer');
 
 const router = express.Router();
 const OWNER_EMAIL = process.env.ADMIN_EMAIL;
 const OWNER_ID = (process.env.ADMIN_UNIQUE_ID || 'OWNERUNITEST').toUpperCase();
 const SELF_REGISTER_ROLES = new Set(['student', 'teacher']);
+
+function getCookieOptions() {
+  const isProd = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProd,
+    sameSite: process.env.COOKIE_SAMESITE || 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/'
+  };
+}
+
+function setAuthCookie(res, token) {
+  res.cookie('unitest_token', token, getCookieOptions());
+}
+
+function clearAuthCookie(res) {
+  res.clearCookie('unitest_token', { ...getCookieOptions(), maxAge: undefined });
+}
+
+function buildAuthPayload(user) {
+  return {
+    id: user._id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    middleName: user.middleName,
+    email: user.email,
+    role: user.role,
+    uniqueId: user.uniqueId,
+    fullName: user.fullName,
+    avatar: user.avatar,
+    language: user.language,
+    aiAccess: !!user.aiAccess
+  };
+}
+
+function getGoogleClient() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_CALLBACK_URL;
+  if (!clientId || !clientSecret || !redirectUri) return null;
+  return new OAuth2Client(clientId, clientSecret, redirectUri);
+}
 
 async function ensureOwnerAdmin(user) {
   if (!OWNER_EMAIL) return;
@@ -34,22 +80,11 @@ router.post('/register', async (req, res) => {
     await ensureOwnerAdmin(user);
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    setAuthCookie(res, token);
 
     res.status(201).json({
       token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        middleName: user.middleName,
-        email: user.email,
-        role: user.role,
-        uniqueId: user.uniqueId,
-        fullName: user.fullName,
-        avatar: user.avatar,
-        language: user.language,
-        aiAccess: !!user.aiAccess
-      }
+      user: buildAuthPayload(user)
     });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера' });
@@ -78,31 +113,177 @@ router.post('/login', async (req, res) => {
     await ensureOwnerAdmin(user);
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    setAuthCookie(res, token);
 
     res.json({
       token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        middleName: user.middleName,
-        email: user.email,
-        role: user.role,
-        uniqueId: user.uniqueId,
-        fullName: user.fullName,
-        avatar: user.avatar,
-        language: user.language,
-        aiAccess: !!user.aiAccess
-      }
+      user: buildAuthPayload(user)
     });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
 
+// Logout
+router.post('/logout', async (req, res) => {
+  clearAuthCookie(res);
+  res.json({ message: 'Вы вышли из аккаунта' });
+});
+
 // Get current user
 router.get('/me', auth, async (req, res) => {
   res.json({ user: req.user });
+});
+
+// Forgot password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== 'string') {
+      return res.json({ message: 'Если такой email существует, ссылка для сброса отправлена.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (user) {
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      user.passwordResetTokenHash = tokenHash;
+      user.passwordResetExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      await user.save();
+
+      const resetBase = process.env.RESET_PASSWORD_URL_BASE || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password`;
+      const resetUrl = `${resetBase}/${resetToken}`;
+
+      await sendPasswordResetEmail({
+        email: user.email,
+        firstName: user.firstName,
+        resetUrl
+      });
+    }
+
+    res.json({ message: 'Если такой email существует, ссылка для сброса отправлена.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Reset password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password || String(password).length < 6) {
+      return res.status(400).json({ message: 'Некорректный токен или пароль' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+    const user = await User.findOne({
+      passwordResetTokenHash: tokenHash,
+      passwordResetExpiresAt: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Ссылка устарела или недействительна' });
+    }
+
+    user.password = String(password);
+    user.passwordResetTokenHash = '';
+    user.passwordResetExpiresAt = null;
+    await user.save();
+
+    clearAuthCookie(res);
+    res.json({ message: 'Пароль успешно изменен. Войдите снова.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Google OAuth start (redirect flow)
+router.get('/google/start', async (req, res) => {
+  const client = getGoogleClient();
+  if (!client) {
+    return res.status(503).json({ message: 'Google вход не настроен на сервере' });
+  }
+
+  const state = crypto.randomBytes(16).toString('hex');
+  res.cookie('google_oauth_state', state, {
+    ...getCookieOptions(),
+    maxAge: 10 * 60 * 1000
+  });
+
+  const url = client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['openid', 'profile', 'email'],
+    prompt: 'select_account',
+    state
+  });
+
+  res.redirect(url);
+});
+
+// Google OAuth callback
+router.get('/google/callback', async (req, res) => {
+  try {
+    const client = getGoogleClient();
+    if (!client) {
+      return res.status(503).send('Google вход не настроен на сервере');
+    }
+
+    const { code, state } = req.query;
+    if (!code || !state || req.cookies?.google_oauth_state !== state) {
+      return res.status(400).send('Недействительный OAuth state');
+    }
+
+    res.clearCookie('google_oauth_state', { ...getCookieOptions(), maxAge: undefined });
+
+    const { tokens } = await client.getToken(String(code));
+    if (!tokens.id_token) {
+      return res.status(400).send('Google не вернул id_token');
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    if (!payload?.email || !payload?.sub) {
+      return res.status(400).send('Недостаточно данных аккаунта Google');
+    }
+
+    let user = await User.findOne({ googleId: payload.sub });
+    if (!user) {
+      user = await User.findOne({ email: payload.email.toLowerCase() });
+    }
+
+    if (!user) {
+      user = new User({
+        firstName: payload.given_name || 'Google',
+        lastName: payload.family_name || 'User',
+        middleName: '',
+        email: payload.email.toLowerCase(),
+        password: crypto.randomBytes(24).toString('hex'),
+        avatar: payload.picture || '',
+        authProvider: 'google',
+        googleId: payload.sub
+      });
+      await user.save();
+    } else {
+      if (!user.googleId) user.googleId = payload.sub;
+      user.authProvider = 'google';
+      if (!user.avatar && payload.picture) user.avatar = payload.picture;
+      await user.save();
+    }
+
+    await ensureOwnerAdmin(user);
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    setAuthCookie(res, token);
+
+    const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontend}/dashboard?auth=google-success`);
+  } catch (error) {
+    const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontend}/login?error=google-auth-failed`);
+  }
 });
 
 // Activate admin with unique ID

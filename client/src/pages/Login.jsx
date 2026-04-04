@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, LogIn, GraduationCap, RefreshCw } from 'lucide-react';
@@ -11,8 +11,15 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [switchingId, setSwitchingId] = useState('');
-  const { login, savedSessions, switchAccount } = useAuth();
+  const { login, loginWithGoogleRedirect, savedSessions, switchAccount } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'google-auth-failed') {
+      toast.error('Google вход не выполнен. Попробуйте снова.');
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,7 +105,12 @@ export default function Login() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Пароль</label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Пароль</label>
+                <Link to="/forgot-password" className="text-xs font-medium text-primary-600 hover:text-primary-700">
+                  Забыли пароль?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -136,6 +148,17 @@ export default function Login() {
                   Войти
                 </>
               )}
+            </motion.button>
+
+            <motion.button
+              type="button"
+              onClick={loginWithGoogleRedirect}
+              className="w-full rounded-xl border border-gray-300 bg-white py-3 font-medium text-gray-700 transition hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-gray-200 dark:hover:bg-slate-700"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55 }}
+            >
+              Войти через Google
             </motion.button>
           </form>
 

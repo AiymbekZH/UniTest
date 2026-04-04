@@ -5,6 +5,8 @@ import { useAuth } from './context/AuthContext';
 // Lazy-loaded pages (code splitting)
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CreateTest = lazy(() => import('./pages/CreateTest'));
 const TakeTest = lazy(() => import('./pages/TakeTest'));
@@ -39,6 +41,8 @@ export default function App() {
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/test/:shareLink" element={<TakeTest />} />
       <Route path="/test-profile/:shareLink" element={<TestProfile />} />
       <Route path="/result/:id" element={<ResultPage />} />

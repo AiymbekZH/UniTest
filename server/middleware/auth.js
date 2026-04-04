@@ -1,9 +1,17 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+function extractToken(req) {
+  const bearer = req.header('Authorization')?.replace('Bearer ', '');
+  if (bearer) return bearer;
+  const cookieToken = req.cookies?.unitest_token;
+  if (cookieToken) return cookieToken;
+  return null;
+}
+
 const auth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const token = extractToken(req);
     if (!token) {
       return res.status(401).json({ message: 'Авторизация требуется' });
     }
@@ -24,7 +32,7 @@ const auth = async (req, res, next) => {
 
 const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const token = extractToken(req);
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.userId).select('-password');
@@ -39,7 +47,7 @@ const optionalAuth = async (req, res, next) => {
 // Admin-only middleware
 const adminAuth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const token = extractToken(req);
     if (!token) return res.status(401).json({ message: 'Авторизация требуется' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId).select('-password');
