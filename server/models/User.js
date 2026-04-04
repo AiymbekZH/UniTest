@@ -26,6 +26,8 @@ const userSchema = new mongoose.Schema({
     fromAdmin: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now }
   }],
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date, default: null },
   passwordResetTokenHash: { type: String, default: '' },
   passwordResetExpiresAt: { type: Date, default: null },
   language: { type: String, enum: ['en', 'ru', 'kz'], default: 'en' },
@@ -43,6 +45,10 @@ userSchema.pre('save', async function(next) {
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+userSchema.methods.isLocked = function() {
+  return !!(this.lockUntil && this.lockUntil > new Date());
 };
 
 // Virtual for full name

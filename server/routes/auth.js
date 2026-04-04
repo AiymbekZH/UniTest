@@ -10,6 +10,8 @@ const router = express.Router();
 const OWNER_EMAIL = process.env.ADMIN_EMAIL;
 const OWNER_ID = (process.env.ADMIN_UNIQUE_ID || 'OWNERUNITEST').toUpperCase();
 const SELF_REGISTER_ROLES = new Set(['student', 'teacher']);
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
 
 function getCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -115,10 +117,15 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = String(email || '').toLowerCase().trim();
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(400).json({ message: 'Неверный email или пароль' });
+    }
+
+    if (user.isLocked && user.isLocked()) {
+      return res.status(429).json({ message: 'Слишком много неудачных попыток. Повторите позже.' });
     }
 
     if (user.isBanned) {
@@ -127,8 +134,17 @@ router.post('/login', async (req, res) => {
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      user.loginAttempts = (user.loginAttempts || 0) + 1;
+      if (user.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+        user.lockUntil = new Date(Date.now() + LOGIN_LOCK_MS);
+      }
+      await user.save();
       return res.status(400).json({ message: 'Неверный email или пароль' });
     }
+
+    user.loginAttempts = 0;
+    user.lockUntil = null;
+    await user.save();
 
     await ensureOwnerAdmin(user);
 
@@ -242,8 +258,7 @@ router.get('/google/start', async (req, res) => {
   } catch (error) {
     console.error('google/start failed:', error);
     return res.status(500).json({
-      message: 'Не удалось начать вход через Google',
-      debug: error?.message || 'unknown error'
+      message: 'Не удалось начать вход через Google'
     });
   }
 });
