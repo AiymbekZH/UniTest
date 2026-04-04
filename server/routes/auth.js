@@ -171,8 +171,8 @@ router.post('/forgot-password', async (req, res) => {
       user.passwordResetExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
       await user.save();
 
-      const resetBase = process.env.RESET_PASSWORD_URL_BASE || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password`;
-      const resetUrl = `${resetBase}/${resetToken}?token=${resetToken}`;
+      const frontendStr = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+      const resetUrl = `${frontendStr}/reset-password/${resetToken}?token=${resetToken}`;
 
       const emailSent = await sendPasswordResetEmail({
         email: user.email,
