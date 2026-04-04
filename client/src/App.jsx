@@ -21,6 +21,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Groups = lazy(() => import('./pages/Groups'));
+const Landing = lazy(() => import('./pages/Landing'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-surface">
@@ -39,6 +40,7 @@ export default function App() {
     <Suspense fallback={<PageLoader />}>
       <Routes>
       {/* Public routes */}
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
