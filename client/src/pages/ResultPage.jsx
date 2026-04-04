@@ -83,25 +83,12 @@ export default function ResultPage() {
 
   const getDifficultyMeta = (score) => {
     const value = Number(score || 0);
-    if (value >= 3.7) {
-      return {
-        label: 'Очень сложный',
-        color: 'text-red-600 dark:text-red-400',
-        badge: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'
-      };
-    }
-    if (value >= 2.4) {
-      return {
-        label: 'Средний',
-        color: 'text-amber-600 dark:text-amber-400',
-        badge: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800'
-      };
-    }
-    return {
-      label: 'Легкий',
-      color: 'text-emerald-600 dark:text-emerald-400',
-      badge: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
-    };
+    if (!value) return { label: 'Нет оценок', color: 'text-gray-500', badge: 'bg-gray-50 text-gray-500 border-gray-200' };
+    if (value >= 4.5) return { label: 'Очень сложная', color: 'text-red-600 dark:text-red-400', badge: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' };
+    if (value >= 3.5) return { label: 'Сложная', color: 'text-orange-600 dark:text-orange-400', badge: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800' };
+    if (value >= 2.5) return { label: 'Средняя', color: 'text-amber-600 dark:text-amber-400', badge: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800' };
+    if (value >= 1.5) return { label: 'Легко', color: 'text-lime-600 dark:text-lime-400', badge: 'bg-lime-50 dark:bg-lime-900/20 text-lime-600 dark:text-lime-400 border-lime-200 dark:border-lime-800' };
+    return { label: 'Очень легко', color: 'text-emerald-600 dark:text-emerald-400', badge: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' };
   };
 
   // Check if user already rated this test
