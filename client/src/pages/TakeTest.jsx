@@ -1170,13 +1170,13 @@ export default function TakeTest() {
   const displayedExplanationHtml = toRichTextHtml(getTransField('explanation', currentFeedback?.explanation || question?.explanation || ''));
   const hasDisplayedPassage = Boolean(stripHtml(displayedPassageHtml));
   const hasDisplayedExplanation = Boolean(stripHtml(displayedExplanationHtml));
-  const handleContentLinkClick = useCallback((event) => {
+  const handleContentLinkClick = (event) => {
     const link = event.target.closest('a');
     if (!link) return;
     event.preventDefault();
     if (blockTabSwitchEnabled) return;
     window.open(link.href, '_blank', 'noopener,noreferrer');
-  }, [blockTabSwitchEnabled]);
+  };
 
   // Pre-start screen
   if (!started) {

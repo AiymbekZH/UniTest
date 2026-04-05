@@ -220,8 +220,47 @@ function clampCoverEditorState(coverState) {
 function HelpHint({ text }) {
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const [tooltipStyle, setTooltipStyle] = useState(null);
   const rootRef = useRef(null);
+  const tooltipRef = useRef(null);
   const visible = hovered || pinned;
+
+  useEffect(() => {
+    if (!visible) {
+      setTooltipStyle(null);
+      return undefined;
+    }
+
+    const updatePosition = () => {
+      const triggerRect = rootRef.current?.getBoundingClientRect();
+      const tooltipRect = tooltipRef.current?.getBoundingClientRect();
+      if (!triggerRect || !tooltipRect) return;
+
+      const viewportPadding = 12;
+      let left = triggerRect.left + (triggerRect.width / 2) - (tooltipRect.width / 2);
+      left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+
+      let top = triggerRect.bottom + 10;
+      if (top + tooltipRect.height > window.innerHeight - viewportPadding) {
+        top = Math.max(viewportPadding, triggerRect.top - tooltipRect.height - 10);
+      }
+
+      setTooltipStyle({
+        top: `${Math.round(top)}px`,
+        left: `${Math.round(left)}px`,
+      });
+    };
+
+    const raf = window.requestAnimationFrame(updatePosition);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return undefined;
@@ -261,7 +300,11 @@ function HelpHint({ text }) {
         <CircleHelp size={11} />
       </button>
       {visible && (
-        <div className="absolute left-1/2 top-full z-30 mt-2 w-52 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-[11px] font-medium leading-5 text-gray-500 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900 dark:text-gray-300 sm:left-auto sm:right-full sm:top-1/2 sm:mt-0 sm:mr-2 sm:w-56 sm:translate-x-0 sm:-translate-y-1/2">
+        <div
+          ref={tooltipRef}
+          style={tooltipStyle || { visibility: 'hidden' }}
+          className="fixed z-[130] w-56 max-w-[calc(100vw-24px)] rounded-2xl border border-gray-200 bg-white px-3 py-2 text-[11px] font-medium leading-5 text-gray-500 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900 dark:text-gray-300"
+        >
           {text}
         </div>
       )}
