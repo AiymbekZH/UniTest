@@ -359,9 +359,11 @@ export default function TakeTest() {
   }, [showInactivityWarning]);
 
   const sessionStorageKey = getSessionStorageKey(shareLink);
-  const warnOnLeaveEnabled = Boolean(test?.settings?.antiCheat?.warnOnLeave ?? test?.settings?.antiCheat?.blockTabSwitch);
+  const blockTabSwitchEnabled = Boolean(test?.settings?.antiCheat?.blockTabSwitch);
+  const warnOnLeaveEnabled = Boolean(test?.settings?.antiCheat?.warnOnLeave);
   const finishOnLeaveEnabled = Boolean(test?.settings?.antiCheat?.finishOnLeave);
-  const leaveMonitoringEnabled = warnOnLeaveEnabled || finishOnLeaveEnabled;
+  const shouldRecordLeaveWarning = warnOnLeaveEnabled && !blockTabSwitchEnabled;
+  const leaveMonitoringEnabled = blockTabSwitchEnabled || warnOnLeaveEnabled || finishOnLeaveEnabled;
 
   const clearSavedSession = useCallback(() => {
     if (isPractice) return;
@@ -518,7 +520,11 @@ export default function TakeTest() {
   }, [persistSessionSnapshot, resetActivity]);
 
   useAntiCheat({
-    enabled: started && (test?.settings?.antiCheat?.blockCopyPaste || test?.settings?.antiCheat?.blockScreenshot),
+    enabled: started && (
+      test?.settings?.antiCheat?.blockTabSwitch ||
+      test?.settings?.antiCheat?.blockCopyPaste ||
+      test?.settings?.antiCheat?.blockScreenshot
+    ),
     settings: test?.settings?.antiCheat,
     onViolation: handleViolation
   });
@@ -981,7 +987,7 @@ export default function TakeTest() {
         pauseActiveSession();
         if (finishOnLeaveEnabled) {
           finishSessionOnLeave({ keepalive: true });
-        } else if (warnOnLeaveEnabled) {
+        } else if (shouldRecordLeaveWarning) {
           recordLeaveViolation(t('leaveWarningRecorded'));
         }
         return;
@@ -1013,7 +1019,7 @@ export default function TakeTest() {
         return;
       }
 
-      if (warnOnLeaveEnabled) {
+      if (shouldRecordLeaveWarning) {
         recordLeaveViolation(t('leaveWarningRecorded'));
       } else {
         persistSessionSnapshot({ sessionPaused: true });
@@ -1045,8 +1051,10 @@ export default function TakeTest() {
     started,
     isPractice,
     shareLink,
+    blockTabSwitchEnabled,
     finishOnLeaveEnabled,
     warnOnLeaveEnabled,
+    shouldRecordLeaveWarning,
     finishSessionOnLeave,
     pauseActiveSession,
     persistSessionSnapshot,
@@ -1162,6 +1170,13 @@ export default function TakeTest() {
   const displayedExplanationHtml = toRichTextHtml(getTransField('explanation', currentFeedback?.explanation || question?.explanation || ''));
   const hasDisplayedPassage = Boolean(stripHtml(displayedPassageHtml));
   const hasDisplayedExplanation = Boolean(stripHtml(displayedExplanationHtml));
+  const handleContentLinkClick = useCallback((event) => {
+    const link = event.target.closest('a');
+    if (!link) return;
+    event.preventDefault();
+    if (blockTabSwitchEnabled) return;
+    window.open(link.href, '_blank', 'noopener,noreferrer');
+  }, [blockTabSwitchEnabled]);
 
   // Pre-start screen
   if (!started) {
@@ -1229,6 +1244,7 @@ export default function TakeTest() {
                 <Shield size={16} /> {t('testRules')}
               </h3>
               <ul className="text-xs text-red-600 dark:text-red-300 space-y-1.5">
+                {blockTabSwitchEnabled && <li>-- {t('tabSwitchBlocked')}: {test.settings.antiCheat.maxViolations}</li>}
                 {warnOnLeaveEnabled && <li>-- {t('ruleLeaveWarning')}</li>}
                 {warnOnLeaveEnabled && <li>-- {t('ruleMaxViolations', { max: test.settings.antiCheat.maxViolations })}</li>}
                 {finishOnLeaveEnabled && <li>-- {t('ruleLeaveEndsTest')}</li>}
@@ -1586,6 +1602,7 @@ export default function TakeTest() {
                 <div
                   className="prose prose-sm max-w-none text-sm text-gray-700 dark:prose-invert dark:text-gray-300"
                   dangerouslySetInnerHTML={{ __html: displayedPassageHtml }}
+                  onClick={handleContentLinkClick}
                 />
               </div>
             )}
@@ -1594,13 +1611,7 @@ export default function TakeTest() {
             <div
               className="text-base sm:text-lg font-semibold text-dark mb-4 sm:mb-6 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: displayedQuestionHtml }}
-              onClick={(e) => {
-                const link = e.target.closest('a');
-                if (!link) return;
-                e.preventDefault();
-                if (leaveMonitoringEnabled) return;
-                window.open(link.href, '_blank', 'noopener,noreferrer');
-              }}
+              onClick={handleContentLinkClick}
             />
 
             {/* Media */}

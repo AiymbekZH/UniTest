@@ -67,6 +67,7 @@ const SETTING_HELP_TEXT = {
     practiceMode: 'Training mode with unlimited attempts and without saving real results.',
     isPublic: 'Public tests are visible in the catalog and can be opened by anyone with access.',
     multiLanguageEnabled: 'Adds translation tabs for questions so students can switch languages during the test.',
+    blockTabSwitch: 'Counts tab switches or hiding the page as anti-cheat violations. Links inside questions are disabled in this mode.',
     warnOnLeave: 'Leaving the page saves progress, pauses the timer, and records a warning.',
     finishOnLeave: 'Leaving the page immediately finishes the attempt and uses one available attempt.',
     blockCopyPaste: 'Blocks copy, paste, context menu, and text selection during the test.',
@@ -89,6 +90,7 @@ const SETTING_HELP_TEXT = {
     practiceMode: 'Режим тренировки: без лимита попыток и без сохранения реальных результатов.',
     isPublic: 'Публичный тест виден в каталоге и доступен всем, у кого есть доступ к сайту.',
     multiLanguageEnabled: 'Добавляет вкладки переводов у вопросов, чтобы студент мог переключать язык во время теста.',
+    blockTabSwitch: 'Считает переключение вкладок и скрытие страницы нарушением античита. В этом режиме ссылки внутри вопросов отключаются.',
     warnOnLeave: 'При уходе со страницы прогресс сохраняется, таймер ставится на паузу и записывается предупреждение.',
     finishOnLeave: 'При уходе со страницы попытка сразу завершается и списывает одну попытку.',
     blockCopyPaste: 'Блокирует копирование, вставку, контекстное меню и выделение текста во время теста.',
@@ -111,6 +113,7 @@ const SETTING_HELP_TEXT = {
     practiceMode: 'Жаттығу режимі: әрекет саны шектелмейді және нақты нәтижелер сақталмайды.',
     isPublic: 'Жария тест каталогта көрінеді және қолжетімділігі бар кез келген адам аша алады.',
     multiLanguageEnabled: 'Сұрақтарға аударма қойындыларын қосады, сонда студент тест ішінде тілді ауыстыра алады.',
+    blockTabSwitch: 'Қойынды ауыстыруды және бетті жасыруды античит бұзушылығы ретінде санайды. Бұл режимде сұрақ ішіндегі сілтемелер өшіріледі.',
     warnOnLeave: 'Беттен шыққанда прогресс сақталады, таймер тоқтайды және ескерту жазылады.',
     finishOnLeave: 'Беттен шыққанда әрекет бірден аяқталып, бір мүмкіндік жұмсалады.',
     blockCopyPaste: 'Тест кезінде көшіруді, қоюды, контекстік мәзірді және мәтін таңдауды бұғаттайды.',
@@ -133,6 +136,7 @@ const SETTING_HELP_TEXT = {
     practiceMode: 'Modo de práctica con intentos ilimitados y sin guardar resultados reales.',
     isPublic: 'Los exámenes públicos aparecen en el catálogo y cualquiera con acceso puede abrirlos.',
     multiLanguageEnabled: 'Añade pestañas de traducción a las preguntas para que el estudiante cambie de idioma durante el examen.',
+    blockTabSwitch: 'Cuenta el cambio de pestaña o esconder la página como infracciones anti-trampa. En este modo los enlaces dentro de las preguntas se desactivan.',
     warnOnLeave: 'Salir de la página guarda el progreso, pausa el temporizador y registra una advertencia.',
     finishOnLeave: 'Salir de la página finaliza el intento de inmediato y consume una oportunidad.',
     blockCopyPaste: 'Bloquea copiar, pegar, menú contextual y selección de texto durante el examen.',
@@ -257,7 +261,7 @@ function HelpHint({ text }) {
         <CircleHelp size={11} />
       </button>
       {visible && (
-        <div className="absolute right-0 top-full z-30 mt-2 w-56 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-[11px] font-medium leading-5 text-gray-500 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900 dark:text-gray-300 sm:left-full sm:right-auto sm:top-1/2 sm:mt-0 sm:ml-2 sm:-translate-y-1/2">
+        <div className="absolute left-1/2 top-full z-30 mt-2 w-52 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-[11px] font-medium leading-5 text-gray-500 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900 dark:text-gray-300 sm:left-auto sm:right-full sm:top-1/2 sm:mt-0 sm:mr-2 sm:w-56 sm:translate-x-0 sm:-translate-y-1/2">
           {text}
         </div>
       )}
@@ -303,12 +307,6 @@ function mergeSettings(settings = {}) {
     ...defaults.antiCheat,
     ...(settings.antiCheat || {})
   };
-
-  if (settings.antiCheat?.warnOnLeave === undefined && typeof settings.antiCheat?.blockTabSwitch === 'boolean') {
-    mergedAntiCheat.warnOnLeave = settings.antiCheat.blockTabSwitch;
-  }
-
-  mergedAntiCheat.blockTabSwitch = mergedAntiCheat.warnOnLeave;
 
   return {
     ...defaults,
@@ -774,8 +772,7 @@ export default function CreateTest() {
       ...prev.settings,
       antiCheat: {
         ...prev.settings.antiCheat,
-        [field]: value,
-        ...(field === 'warnOnLeave' ? { blockTabSwitch: value } : null)
+        [field]: value
       }
     }
   }));
@@ -1447,6 +1444,7 @@ export default function CreateTest() {
                     </h4>
                     <div className="space-y-2">
                       {[
+                        { key: 'blockTabSwitch', label: t('blockTabSwitch'), icon: Shield, helpKey: 'blockTabSwitch' },
                         { key: 'warnOnLeave', label: t('warnOnLeave') || 'Warn on leave', icon: Shield, helpKey: 'warnOnLeave' },
                         { key: 'finishOnLeave', label: t('finishOnLeave') || 'Finish on leave', icon: Lock, helpKey: 'finishOnLeave' },
                         { key: 'blockCopyPaste', label: t('blockCopyPaste'), icon: Copy, helpKey: 'blockCopyPaste' },
@@ -1475,7 +1473,7 @@ export default function CreateTest() {
                         );
                       })}
                     </div>
-                    {test.settings.antiCheat.warnOnLeave && (
+                    {(test.settings.antiCheat.blockTabSwitch || test.settings.antiCheat.warnOnLeave) && (
                       <div className="mt-3">
                         <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
                           <span>{t('maxViolations')}</span>
@@ -1821,7 +1819,7 @@ export default function CreateTest() {
                           content={question.questionText}
                           onChange={val => updateQuestion(qIndex, 'questionText', val)}
                           placeholder={t('questionTextPlaceholder')}
-                          disableLinks={test.settings.antiCheat.warnOnLeave || test.settings.antiCheat.finishOnLeave}
+                          disableLinks={test.settings.antiCheat.blockTabSwitch}
                         />
                       </Suspense>
 
@@ -2075,7 +2073,7 @@ export default function CreateTest() {
                                   placeholder={t('passagePlaceholder')}
                                   contentClassName="min-h-[180px] max-h-[420px] overflow-auto resize-y"
                                   editorClassName="min-h-[180px] h-full"
-                                  disableLinks={test.settings.antiCheat.warnOnLeave || test.settings.antiCheat.finishOnLeave}
+                                  disableLinks={test.settings.antiCheat.blockTabSwitch}
                                 />
                               </Suspense>
                             </div>

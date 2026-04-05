@@ -308,9 +308,9 @@ Rules:
 - Provide 4 options for single/multiple choice
 - Make wrong options plausible (not obviously wrong)
 - Follow the requested difficulty level consistently
-- If the source already contains ready-made questions or answer keys, use them only as reference material
-- Do NOT copy existing questions, answer options, numbering, or answer keys verbatim
-- Create fresh paraphrased questions that test the same ideas in a new way
+- If the source already contains ready-made questions, answer options, matching pairs, or answer keys, extract and copy them as faithfully as possible into the requested JSON schema
+- Preserve the original wording and correct answers as closely as possible when they already exist in the source
+- Only generate brand-new questions when the source does not already contain enough ready-made questions for the requested amount or requested types
 - Do not add markdown, comments, or text outside the JSON object`;
 
     // Build message content
@@ -319,7 +319,7 @@ Rules:
     if (combinedText) {
       userContent.push({
         type: 'text',
-        text: `Generate exactly ${totalQuestions} test questions with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5. If the material already contains questions or answers, do not copy them verbatim. Use the content only as source material and write fresh questions.\n\n${combinedText.substring(0, 15000)}`,
+        text: `Generate exactly ${totalQuestions} test questions with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5. If the material already contains ready-made questions or answers, extract and copy them first. Keep the wording and correct answers as close to the source as possible. Only generate missing questions if the source does not provide enough ready-made ones.\n\n${combinedText.substring(0, 15000)}`,
       });
     }
 
@@ -333,7 +333,7 @@ Rules:
       if (!combinedText) {
         userContent.push({
           type: 'text',
-          text: `Generate exactly ${totalQuestions} test questions from this image with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5. If the image contains ready-made questions or answer keys, use them only as reference and create fresh questions instead of copying them.`,
+          text: `Generate exactly ${totalQuestions} test questions from this image with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5. If the image contains ready-made questions or answer keys, extract and copy them first as faithfully as possible. Only generate missing questions if the image does not provide enough ready-made ones.`,
         });
       }
     }

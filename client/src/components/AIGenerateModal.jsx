@@ -626,23 +626,6 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/30 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 mb-2">
-                        {t('aiGenerateDesc') || 'Create questions from text or image'}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                        {questionMixSummary || (t('aiUseAtLeastOneType') || 'Select at least one question type')}
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-500 mb-2">
-                        {t('aiFreshQuestions') || 'Fresh generation'}
-                      </p>
-                      <p className="text-sm leading-relaxed text-amber-700 dark:text-amber-200/90">
-                        {t('aiFreshQuestionsDesc') || 'The AI should use the file as source material, but generate new questions instead of copying ready-made ones verbatim.'}
-                      </p>
-                    </div>
                   </div>
                 </div>
 
