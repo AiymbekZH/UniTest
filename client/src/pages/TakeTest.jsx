@@ -122,28 +122,26 @@ function MatchingQuestion({
                 whileTap={{ scale: 0.97 }}
                 whileHover={{ scale: 1.01 }}
                 onClick={() => handleLeftClick(opt.id)}
-                className={`w-full text-left p-3.5 rounded-xl border-2 text-sm font-medium transition-all relative overflow-hidden ${
-                  matched && color
+                className={`w-full text-left p-3.5 rounded-xl border-2 text-sm font-medium transition-all relative overflow-hidden ${matched && color
                     ? `${color.border} ${color.bg} ${color.text}`
                     : isSelected
                       ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 ring-2 ring-primary-300 dark:ring-primary-700 shadow-lg shadow-primary-500/10'
                       : 'border-gray-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-600 text-dark hover:shadow-md'
-                }`}
+                  }`}
               >
                 {color && colorIdx >= 0 && (
                   <div className={`absolute left-0 top-0 bottom-0 w-1 ${color.dot}`} />
                 )}
                 <div className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                    matched ? `${color?.dot || 'bg-emerald-500'} text-white` : isSelected ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-500'
-                  }`}>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${matched ? `${color?.dot || 'bg-emerald-500'} text-white` : isSelected ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-500'
+                    }`}>
                     {matched ? '✓' : (optionIndex + 1)}
                   </div>
                   <span className="flex-1">{getLeftText(opt, optionIndex)}</span>
                 </div>
                 {matched && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }} 
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     className="mt-2 pt-2 border-t border-current/10 flex items-center gap-1.5"
                   >
@@ -173,13 +171,12 @@ function MatchingQuestion({
                 whileTap={{ scale: 0.97 }}
                 whileHover={{ scale: selectedLeft ? 1.02 : 1.0 }}
                 onClick={() => handleRightClick(text)}
-                className={`w-full text-left p-3.5 rounded-xl border-2 text-sm font-medium transition-all relative overflow-hidden ${
-                  used && color
+                className={`w-full text-left p-3.5 rounded-xl border-2 text-sm font-medium transition-all relative overflow-hidden ${used && color
                     ? `${color.border} ${color.bg} ${color.text} opacity-75`
                     : selectedLeft
                       ? 'border-amber-300 dark:border-amber-600 bg-amber-50/70 dark:bg-amber-900/20 hover:border-amber-400 dark:hover:border-amber-500 text-dark cursor-pointer hover:shadow-md'
                       : 'border-gray-200 dark:border-slate-600 text-dark'
-                }`}
+                  }`}
               >
                 {color && colorIdx >= 0 && (
                   <div className={`absolute right-0 top-0 bottom-0 w-1 ${color.dot}`} />
@@ -192,7 +189,7 @@ function MatchingQuestion({
                     </div>
                   )}
                   {selectedLeft && !used && (
-                    <motion.div 
+                    <motion.div
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ repeat: Infinity, duration: 1.5 }}
                       className="w-5 h-5 rounded-md bg-amber-400 text-white flex items-center justify-center"
@@ -209,8 +206,8 @@ function MatchingQuestion({
 
       {/* Matched pairs summary */}
       {pairs.length > 0 && (
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700"
         >
@@ -358,6 +355,38 @@ export default function TakeTest() {
     fetchTest();
   }, [shareLink]);
 
+  // Session Recovery
+  useEffect(() => {
+    if (!test || !started || isPractice) return;
+    const storageKey = 'testSession_' + shareLink;
+    localStorage.setItem(storageKey, JSON.stringify({
+      testId: test._id,
+      answers,
+      currentQ,
+      violations,
+      guestName,
+      timeLeft
+    }));
+  }, [test, started, isPractice, answers, currentQ, violations, guestName, timeLeft]);
+  
+  useEffect(() => {
+    if (!test || isPractice) return;
+    const storageKey = 'testSession_' + shareLink;
+    const restored = localStorage.getItem(storageKey);
+    if (restored) {
+      try {
+        const parsed = JSON.parse(restored);
+        if (parsed.testId === test._id) {
+          setAnswers(parsed.answers || {});
+          setCurrentQ(parsed.currentQ || 0);
+          setViolations(parsed.violations || []);
+          if (parsed.guestName) setGuestName(parsed.guestName);
+          if (parsed.timeLeft) setTimeLeft(parsed.timeLeft);
+        }
+      } catch(e) {}
+    }
+  }, [test, isPractice]);
+
   // Timer
   useEffect(() => {
     if (!started || !test?.settings?.timeLimit) return;
@@ -471,7 +500,7 @@ export default function TakeTest() {
           if (ticketRes.data.myVariant && !ticketRes.data.isPublic) {
             setSelectedVariant(ticketRes.data.myVariant);
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (!user) setShowGuestForm(true);
@@ -480,7 +509,7 @@ export default function TakeTest() {
         const attUrl = `/results/my-attempts/${res.data._id}${guestId ? `?guestId=${guestId}` : ''}`;
         const attRes = await api.get(attUrl);
         setAttemptInfo({ attempts: attRes.data.attempts, maxAttempts: res.data.settings?.maxAttempts || 0 });
-      } catch (_) {}
+      } catch (_) { }
     } catch (err) {
       if (err.response?.status === 403 && err.response?.data?.code) {
         setDeadlineError(err.response.data);
@@ -501,7 +530,7 @@ export default function TakeTest() {
         const res = await api.get(`/tests/${test._id}/tickets`);
         setTicketState(res.data);
         if (res.data.myVariant) setSelectedVariant(res.data.myVariant);
-      } catch (_) {}
+      } catch (_) { }
     }, 2000);
     return () => clearInterval(interval);
   }, [test, selectedVariant, started, isPractice]);
@@ -524,7 +553,7 @@ export default function TakeTest() {
         try {
           const ticketRes = await api.get(`/tests/${test._id}/tickets`);
           setTicketState(ticketRes.data);
-        } catch (_) {}
+        } catch (_) { }
       } else {
         toast.error('Ошибка при выборе билета');
       }
@@ -645,6 +674,7 @@ export default function TakeTest() {
         timeSpent
       });
 
+      localStorage.removeItem('testSession_' + shareLink);
       navigate(`/result/${res.data._id}`);
     } catch (err) {
       toast.error(t('errorSubmitting'));
@@ -711,8 +741,8 @@ export default function TakeTest() {
   // Helper: get translated text for simple fields (questionText, passage, explanation)
   const getTransField = (field, fallback) => {
     if (testLang && question?.translations) {
-      const t = question.translations instanceof Map 
-        ? question.translations.get(testLang) 
+      const t = question.translations instanceof Map
+        ? question.translations.get(testLang)
         : question.translations?.[testLang];
       if (t?.[field]) return t[field];
     }
@@ -722,8 +752,8 @@ export default function TakeTest() {
   // Helper: get translated option text
   const getOptText = (opt, optIndex) => {
     if (testLang && question?.translations) {
-      const t = question.translations instanceof Map 
-        ? question.translations.get(testLang) 
+      const t = question.translations instanceof Map
+        ? question.translations.get(testLang)
         : question.translations?.[testLang];
       if (t?.options?.[optIndex]) return t.options[optIndex];
     }
@@ -892,11 +922,10 @@ export default function TakeTest() {
                           whileTap={!isDisabled ? { scale: 0.95 } : {}}
                           onClick={() => !isDisabled && !ticketLoading && claimTicket(v.number)}
                           disabled={isDisabled || ticketLoading}
-                          className={`relative aspect-square rounded-lg font-bold text-sm flex items-center justify-center transition-all ${
-                            isDisabled
+                          className={`relative aspect-square rounded-lg font-bold text-sm flex items-center justify-center transition-all ${isDisabled
                               ? 'bg-red-100 dark:bg-red-900/30 text-red-400 dark:text-red-500 cursor-not-allowed border border-red-200 dark:border-red-800'
                               : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 cursor-pointer border border-indigo-200 dark:border-indigo-700 shadow-sm hover:shadow-md'
-                          }`}
+                            }`}
                         >
                           {v.number}
                           {isDisabled && (
@@ -917,7 +946,7 @@ export default function TakeTest() {
                     </div>
                   )}
                   <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-3 text-center">
-                    {isPublicTest 
+                    {isPublicTest
                       ? (t('ticketHintPublic') || 'Выберите любой билет. Каждый билет доступен для всех.')
                       : t('ticketHint')
                     }
@@ -1046,7 +1075,52 @@ export default function TakeTest() {
       </div>
 
       {/* Question area - grows to fill available space */}
-      <main className="flex-1 max-w-3xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-28 sm:pb-32">
+      <div className="flex-1 w-full lg:max-w-5xl mx-auto flex gap-6 px-3 sm:px-4 py-4 sm:py-8 pb-28 sm:pb-32">
+        {/* Desktop Left Sidebar Navigator */}
+        <aside className="hidden lg:block w-64 flex-shrink-0">
+          <div className="sticky top-24 glass-card-solid p-5 rounded-2xl border border-gray-200 dark:border-slate-700 max-h-[calc(100vh-120px)] flex flex-col">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">{t('navigation') || 'Навигатор'}</h3>
+            <div className="flex flex-wrap gap-2 overflow-y-auto pr-1 pb-4" style={{maxHeight:'400px'}}>
+              {test.questions.map((q, i) => {
+                const answered = !!answers[q.id];
+                const fb = feedback[q.id];
+                const isCurrent = i === currentQ;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentQ(i)}
+                    className={`w-9 h-9 rounded-lg text-xs font-semibold transition-all flex-shrink-0 relative ${
+                      isCurrent
+                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30 scale-110 z-10'
+                        : fb?.checked
+                          ? fb.isCorrect
+                            ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                            : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+                          : answered
+                            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 border border-primary-200 dark:border-primary-800'
+                            : 'bg-gray-100 dark:bg-slate-700/50 text-gray-500 hover:bg-gray-200 dark:hover:bg-slate-600 border border-transparent'
+                    }`}
+                  >
+                    {i + 1}
+                    {fb?.checked && !isCurrent && (
+                      <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800 ${
+                        fb.isCorrect ? 'bg-emerald-500' : 'bg-red-500'
+                      }`} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Keyboard shortcuts hint */}
+            <div className="flex flex-col gap-2 pt-4 mt-auto border-t border-gray-100 dark:border-slate-700">
+              <span className="text-[10px] text-gray-400 flex items-center justify-between"><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">1-9</kbd> {t('selectOption') || 'select'}</span>
+              <span className="text-[10px] text-gray-400 flex items-center justify-between"><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono font-bold">← →</kbd> {t('navigation') || 'navigate'}</span>
+              <span className="text-[10px] text-gray-400 flex items-center justify-between"><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">Enter</kbd> {t('next') || 'next / submit'}</span>
+            </div>
+          </div>
+        </aside>
+
+        <main className="flex-1 min-w-0 max-w-3xl w-full mx-auto lg:mx-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentQ}
@@ -1070,11 +1144,10 @@ export default function TakeTest() {
                 </span>
               )}
               {currentFeedback?.checked && (
-                <span className={`ml-auto text-[10px] sm:text-xs px-2 py-0.5 rounded-md font-bold ${
-                  currentFeedback.isCorrect
+                <span className={`ml-auto text-[10px] sm:text-xs px-2 py-0.5 rounded-md font-bold ${currentFeedback.isCorrect
                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
                     : 'bg-red-100 dark:bg-red-900/30 text-red-600'
-                }`}>
+                  }`}>
                   {currentFeedback.isCorrect ? t('correct') : t('incorrect')}
                 </span>
               )}
@@ -1161,22 +1234,20 @@ export default function TakeTest() {
                       whileTap={!isLocked ? { scale: 0.98 } : {}}
                       onClick={() => handleAnswer(question.id, 'single', opt.id)}
                       disabled={isLocked}
-                      className={`w-full text-left p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 ${
-                        fbClass || (
+                      className={`w-full text-left p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 ${fbClass || (
                           selected
                             ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
                             : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700/50'
                         )
-                      } ${isLocked ? 'cursor-default' : 'active:scale-[0.98]'}`}
+                        } ${isLocked ? 'cursor-default' : 'active:scale-[0.98]'}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
-                          currentFeedback?.checked
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${currentFeedback?.checked
                             ? currentFeedback.correctOptionIds?.includes(opt.id)
                               ? 'border-emerald-500 bg-emerald-500'
                               : selected ? 'border-red-500 bg-red-500' : 'border-gray-300 dark:border-slate-500'
                             : selected ? 'border-primary-500 bg-primary-500' : 'border-gray-300 dark:border-slate-500'
-                        }`}>
+                          }`}>
                           {(selected || currentFeedback?.correctOptionIds?.includes(opt.id)) && (
                             <div className="w-2 h-2 bg-white rounded-full" />
                           )}
@@ -1208,22 +1279,20 @@ export default function TakeTest() {
                       whileTap={!isLocked ? { scale: 0.98 } : {}}
                       onClick={() => handleAnswer(question.id, 'multiple', opt.id)}
                       disabled={isLocked}
-                      className={`w-full text-left p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 ${
-                        fbClass || (
+                      className={`w-full text-left p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 ${fbClass || (
                           selected
                             ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
                             : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700/50'
                         )
-                      } ${isLocked ? 'cursor-default' : 'active:scale-[0.98]'}`}
+                        } ${isLocked ? 'cursor-default' : 'active:scale-[0.98]'}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all flex-shrink-0 ${
-                          currentFeedback?.checked
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all flex-shrink-0 ${currentFeedback?.checked
                             ? currentFeedback.correctOptionIds?.includes(opt.id)
                               ? 'border-emerald-500 bg-emerald-500'
                               : selected ? 'border-red-500 bg-red-500' : 'border-gray-300 dark:border-slate-500'
                             : selected ? 'border-primary-500 bg-primary-500' : 'border-gray-300 dark:border-slate-500'
-                        }`}>
+                          }`}>
                           {(selected || (currentFeedback?.checked && currentFeedback.correctOptionIds?.includes(opt.id))) && (
                             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -1370,15 +1439,13 @@ export default function TakeTest() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className={`mt-4 p-3 rounded-xl flex items-center gap-3 ${
-                  currentFeedback.isCorrect
+                className={`mt-4 p-3 rounded-xl flex items-center gap-3 ${currentFeedback.isCorrect
                     ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
                     : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                }`}
+                  }`}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  currentFeedback.isCorrect ? 'bg-emerald-500' : 'bg-red-500'
-                }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${currentFeedback.isCorrect ? 'bg-emerald-500' : 'bg-red-500'
+                  }`}>
                   {currentFeedback.isCorrect
                     ? <Check size={16} className="text-white" />
                     : <X size={16} className="text-white" />
@@ -1412,9 +1479,10 @@ export default function TakeTest() {
           </motion.div>
         </AnimatePresence>
       </main>
+      </div>
 
       {/* Fixed bottom navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-slate-700 safe-area-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-slate-700 safe-area-bottom lg:hidden">
         <div className="max-w-3xl mx-auto">
           {/* Scrollable question navigator */}
           <div
@@ -1431,8 +1499,7 @@ export default function TakeTest() {
                   <button
                     key={i}
                     onClick={() => setCurrentQ(i)}
-                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex-shrink-0 relative ${
-                      isCurrent
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex-shrink-0 relative ${isCurrent
                         ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30 scale-110'
                         : fb?.checked
                           ? fb.isCorrect
@@ -1441,13 +1508,12 @@ export default function TakeTest() {
                           : answered
                             ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 border border-primary-200 dark:border-primary-800'
                             : 'bg-gray-100 dark:bg-slate-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-600 border border-transparent'
-                    }`}
+                      }`}
                   >
                     {i + 1}
                     {fb?.checked && !isCurrent && (
-                      <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white dark:border-slate-900 ${
-                        fb.isCorrect ? 'bg-emerald-500' : 'bg-red-500'
-                      }`} />
+                      <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white dark:border-slate-900 ${fb.isCorrect ? 'bg-emerald-500' : 'bg-red-500'
+                        }`} />
                     )}
                   </button>
                 );
@@ -1506,37 +1572,28 @@ export default function TakeTest() {
       {/* Full-screen violation warning overlay */}
       <AnimatePresence>
         {showViolationWarning && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-red-900/90 backdrop-blur-md"
-          >
-            <motion.div
-              initial={{ scale: 0.5 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.5 }}
-              className="text-center p-8 max-w-md"
-            >
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ repeat: 2, duration: 0.4 }}
-              >
-                <AlertTriangle className="w-20 h-20 sm:w-24 sm:h-24 text-red-300 mx-auto mb-6" />
-              </motion.div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">{t('violation')}</h2>
-              <p className="text-red-200 text-base sm:text-lg mb-2">{lastViolationText}</p>
-              <p className="text-red-300 text-sm mb-8">
-                {t('violationCount', { current: violations.length, max: test?.settings?.antiCheat?.maxViolations || '---' })}
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowViolationWarning(false)}
-                className="bg-white text-red-600 font-bold py-3 px-8 rounded-xl text-lg hover:bg-red-50 transition-colors shadow-xl"
-              >
-                {t('understood')}
-              </motion.button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 backdrop-blur-2xl shadow-[0_0_80px_-15px_rgba(239,68,68,0.5)] rounded-[2rem] p-8 max-w-md w-full text-center relative overflow-hidden">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-20 bg-red-500/20 blur-3xl rounded-full" />
+              <div className="w-20 h-20 bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6 relative">
+                <div className="absolute inset-0 bg-red-500/20 animate-ping rounded-2xl" />
+                <AlertTriangle className="w-10 h-10 text-red-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">
+                {t('violation') || 'Нарушение правил!'}
+              </h3>
+              <p className="text-red-200/80 mb-5 text-sm leading-relaxed">{lastViolationText}</p>
+              <div className="bg-black/20 rounded-xl p-4 mb-6 border border-white/5">
+                <p className="text-lg font-mono font-bold text-red-400">
+                  {t('violationCount', { current: violations.length, max: test?.settings?.antiCheat?.maxViolations || '---' })}
+                </p>
+              </div>
+              <button onClick={() => setShowViolationWarning(false)}
+                className="w-full bg-red-500 hover:bg-red-400 text-white font-bold py-3.5 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(239,68,68,0.5)]">
+                {t('understood') || 'Понятно'}
+              </button>
             </motion.div>
           </motion.div>
         )}
