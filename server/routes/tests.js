@@ -5,9 +5,77 @@ const { auth, optionalAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
 const router = express.Router();
+const SUPPORTED_TRANSLATION_LANGUAGES = ['en', 'ru', 'kz', 'es'];
+
+const TRUE_FALSE_CATEGORY_KEYWORDS = {
+  true: ['true', 'verdadero', 'верно', 'дұрыс'],
+  false: ['false', 'falso', 'неверно', 'бұрыс'],
+  notGiven: [
+    'not given',
+    'not stated',
+    'not specified',
+    'not mentioned',
+    'not provided',
+    'не указано',
+    'не дано',
+    'не упоминается',
+    'не уверен',
+    'берілмеген',
+    'көрсетілмеген',
+    'no se indica',
+    'no se menciona',
+    'no se especifica'
+  ]
+};
 
 function normalizeFreeText(value = '') {
   return String(value).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function normalizeComparisonText(value = '') {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-zа-яёқғүұөһáéíóúñ0-9]+/gi, ' ')
+    .trim();
+}
+
+function detectTrueFalseCategory(...candidates) {
+  for (const candidate of candidates) {
+    const normalized = normalizeComparisonText(candidate);
+    if (!normalized) continue;
+
+    for (const [category, keywords] of Object.entries(TRUE_FALSE_CATEGORY_KEYWORDS)) {
+      if (keywords.some(keyword => normalized.includes(keyword))) {
+        return category;
+      }
+    }
+  }
+
+  return null;
+}
+
+function orderTrueFalseEntries(entries = []) {
+  const bucketed = new Map();
+  const leftovers = [];
+
+  entries.forEach((entry) => {
+    const category = detectTrueFalseCategory(
+      entry?.text,
+      ...SUPPORTED_TRANSLATION_LANGUAGES.map(lang => entry?.translations?.[lang])
+    );
+
+    if (category && !bucketed.has(category)) {
+      bucketed.set(category, entry);
+      return;
+    }
+
+    leftovers.push(entry);
+  });
+
+  return ['true', 'false', 'notGiven']
+    .map(category => bucketed.get(category))
+    .filter(Boolean)
+    .concat(leftovers);
 }
 
 function getAcceptedFillBlankAnswers(question) {
@@ -19,7 +87,7 @@ function getAcceptedFillBlankAnswers(question) {
 
   addValue(question.correctAnswer);
 
-  for (const lang of ['en', 'ru', 'kz']) {
+  for (const lang of SUPPORTED_TRANSLATION_LANGUAGES) {
     addValue(question.translations?.[lang]?.correctAnswer);
   }
 
@@ -64,10 +132,9 @@ function shuffleArray(items = [], seed = null) {
 }
 
 function buildLangTranslations(question = {}, entries = [], key, fallbackField) {
-  const languages = ['en', 'ru', 'kz'];
   const baseTranslations = question.translations || {};
 
-  return languages.reduce((acc, lang) => {
+  return SUPPORTED_TRANSLATION_LANGUAGES.reduce((acc, lang) => {
     const current = baseTranslations[lang] || {};
     acc[lang] = {
       ...current,
@@ -263,20 +330,15 @@ router.get('/share/:shareLink', optionalAuth, async (req, res) => {
           return {
             option: leftOption,
             pair: option.matchPair,
-            translations: {
-              en: {
-                option: q.translations?.en?.options?.[optionIndex] || option.text,
-                pair: q.translations?.en?.matchPairs?.[optionIndex] || option.matchPair,
-              },
-              ru: {
-                option: q.translations?.ru?.options?.[optionIndex] || option.text,
-                pair: q.translations?.ru?.matchPairs?.[optionIndex] || option.matchPair,
-              },
-              kz: {
-                option: q.translations?.kz?.options?.[optionIndex] || option.text,
-                pair: q.translations?.kz?.matchPairs?.[optionIndex] || option.matchPair,
-              }
-            }
+            translations: Object.fromEntries(
+              SUPPORTED_TRANSLATION_LANGUAGES.map(lang => [
+                lang,
+                {
+                  option: q.translations?.[lang]?.options?.[optionIndex] || option.text,
+                  pair: q.translations?.[lang]?.matchPairs?.[optionIndex] || option.matchPair,
+                }
+              ])
+            )
           };
         });
 
@@ -291,35 +353,41 @@ router.get('/share/:shareLink', optionalAuth, async (req, res) => {
         rest.translations = {
           ...buildLangTranslations(q, orderedLeft.map(entry => ({
             text: entry.option.text,
-            translations: {
-              en: entry.translations.en.option,
-              ru: entry.translations.ru.option,
-              kz: entry.translations.kz.option
-            }
+            translations: Object.fromEntries(
+              SUPPORTED_TRANSLATION_LANGUAGES.map(lang => [
+                lang,
+                entry.translations?.[lang]?.option || entry.option.text
+              ])
+            )
           })), 'options', 'text')
         };
         rest.matchingRightSide = orderedRight.map(entry => entry.pair);
-        rest.matchingRightSideTranslations = {
-          en: orderedRight.map(entry => entry.translations.en.pair),
-          ru: orderedRight.map(entry => entry.translations.ru.pair),
-          kz: orderedRight.map(entry => entry.translations.kz.pair),
-        };
+        rest.matchingRightSideTranslations = Object.fromEntries(
+          SUPPORTED_TRANSLATION_LANGUAGES.map(lang => [
+            lang,
+            orderedRight.map(entry => entry.translations?.[lang]?.pair || entry.pair)
+          ])
+        );
       } else {
         const optionEntries = q.options.map((option, optionIndex) => {
           const { isCorrect, matchPair, ...displayOption } = option;
           return {
             option: displayOption,
             text: option.text,
-            translations: {
-              en: q.translations?.en?.options?.[optionIndex] || option.text,
-              ru: q.translations?.ru?.options?.[optionIndex] || option.text,
-              kz: q.translations?.kz?.options?.[optionIndex] || option.text,
-            }
+            translations: Object.fromEntries(
+              SUPPORTED_TRANSLATION_LANGUAGES.map(lang => [
+                lang,
+                q.translations?.[lang]?.options?.[optionIndex] || option.text
+              ])
+            )
           };
         });
-        const orderedOptions = shouldShuffleOptions
-          ? shuffleArray(optionEntries, optionSeedBase !== null ? optionSeedBase + 17 : null)
+        const orderedOptionsBase = q.type === 'true-false'
+          ? orderTrueFalseEntries(optionEntries)
           : optionEntries;
+        const orderedOptions = shouldShuffleOptions
+          ? shuffleArray(orderedOptionsBase, optionSeedBase !== null ? optionSeedBase + 17 : null)
+          : orderedOptionsBase;
 
         rest.options = orderedOptions.map(entry => entry.option);
         rest.translations = {

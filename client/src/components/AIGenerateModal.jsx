@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Upload, FileText, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, File, History, Trash2, Clock, Lock } from 'lucide-react';
+import { X, Sparkles, Upload, FileText, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, File, History, Trash2, Clock } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
 const QUESTION_TYPES = [
@@ -13,18 +12,27 @@ const QUESTION_TYPES = [
   { value: 'matching', icon: '↔', label: 'Matching' },
 ];
 
+const DEFAULT_QUESTION_PLAN = {
+  'single-choice': 5,
+  'multiple-choice': 0,
+  'true-false': 0,
+  'fill-blank': 0,
+  'matching': 0,
+};
+
+const MAX_TYPE_COUNT = 20;
+
 const FILE_ACCEPT = '.pdf,.docx,.doc,.txt,image/jpeg,image/png,image/gif,image/webp';
 
 export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentLanguage = 'ru' }) {
   const { t } = useLanguage();
-  const { user } = useAuth();
   
   // Step 1: Input state
   const [text, setText] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null); // for image preview
-  const [questionCount, setQuestionCount] = useState(5);
-  const [selectedTypes, setSelectedTypes] = useState(['single-choice']);
+  const [questionPlan, setQuestionPlan] = useState(DEFAULT_QUESTION_PLAN);
+  const [difficultyLevel, setDifficultyLevel] = useState(3);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -38,6 +46,7 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
   const [history, setHistory] = useState([]);
   
   const fileRef = useRef(null);
+  const totalQuestions = Object.values(questionPlan).reduce((sum, count) => sum + count, 0);
 
   useEffect(() => {
     if (isOpen) {
@@ -82,18 +91,20 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
     return '🖼️';
   };
 
-  const toggleType = (type) => {
-    setSelectedTypes(prev => {
-      if (prev.includes(type)) {
-        return prev.length > 1 ? prev.filter(t => t !== type) : prev;
-      }
-      return [...prev, type];
-    });
+  const updateTypeCount = (type, nextValue) => {
+    setQuestionPlan(prev => ({
+      ...prev,
+      [type]: Math.max(0, Math.min(MAX_TYPE_COUNT, nextValue))
+    }));
   };
 
   const handleGenerate = async () => {
     if (!text && !uploadedFile) {
       setError(t('aiProvideContent') || 'Provide text, file, or image');
+      return;
+    }
+    if (totalQuestions <= 0) {
+      setError(t('aiUseAtLeastOneType') || 'Select at least one question type');
       return;
     }
     setLoading(true);
@@ -103,8 +114,14 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
       const formData = new FormData();
       if (text) formData.append('text', text);
       if (uploadedFile) formData.append('file', uploadedFile);
-      formData.append('questionCount', questionCount);
-      formData.append('questionTypes', JSON.stringify(selectedTypes));
+      formData.append('questionCount', totalQuestions);
+      formData.append('questionPlan', JSON.stringify(questionPlan));
+      formData.append('questionTypes', JSON.stringify(
+        Object.entries(questionPlan)
+          .filter(([, count]) => count > 0)
+          .map(([type]) => type)
+      ));
+      formData.append('difficultyLevel', difficultyLevel);
       formData.append('language', currentLanguage);
 
       const { data } = await api.post('/ai/generate', formData, {
@@ -165,8 +182,8 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
     setText('');
     setUploadedFile(null);
     setFilePreview(null);
-    setQuestionCount(5);
-    setSelectedTypes(['single-choice']);
+    setQuestionPlan(DEFAULT_QUESTION_PLAN);
+    setDifficultyLevel(3);
     setError('');
     setStep('input');
     setGeneratedQuestions([]);
@@ -212,6 +229,17 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
     'fill-blank': t('fillBlank') || 'Fill Blank',
     'matching': t('matching') || 'Matching',
   };
+  const difficultyLabels = {
+    1: t('difficultyVeryEasy') || 'Very easy',
+    2: t('difficultyEasy') || 'Easy',
+    3: t('difficultyMedium') || 'Medium',
+    4: t('difficultyHard') || 'Hard',
+    5: t('difficultyExpert') || 'Expert',
+  };
+  const questionMixSummary = Object.entries(questionPlan)
+    .filter(([, count]) => count > 0)
+    .map(([type, count]) => `${typeLabels[type] || type}: ${count}`)
+    .join(' · ');
 
   if (!isOpen) return null;
 
@@ -230,21 +258,22 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
           exit={{ scale: 0.96, opacity: 0, y: 8 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-900 rounded-2xl shadow-card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-200/60 dark:border-gray-700/60"
+          className="bg-white dark:bg-gray-900 rounded-[28px] shadow-card w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col border border-gray-200/60 dark:border-gray-700/60"
         >
-          {/* Header — clean white, no gradient */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-br from-slate-50 via-white to-indigo-50/70 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-950/20">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl flex items-center justify-center">
+              <div className="w-11 h-11 bg-indigo-50 dark:bg-indigo-950/50 rounded-2xl flex items-center justify-center shadow-sm">
                 <Sparkles className="text-indigo-500" size={20} />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
                   {t('aiGenerate') || 'AI Generate'}
                 </h2>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {step === 'input' 
-                    ? (t('aiGenerateDesc') || 'Create questions from text or image')
+                    ? (questionMixSummary
+                      ? `${questionMixSummary} · ${difficultyLabels[difficultyLevel]}`
+                      : (t('aiGenerateDesc') || 'Create questions from text or image'))
                     : step === 'history'
                     ? (t('aiHistory') || 'Generation history')
                     : `${generatedQuestions.length} ${t('questionsGenerated') || 'questions generated'} · ${selectedQuestions.size} ${t('selected') || 'selected'}`
@@ -379,60 +408,123 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                   <input ref={fileRef} type="file" accept={FILE_ACCEPT} onChange={handleFileUpload} className="hidden" />
                 </div>
 
-                {/* Question Count — with badge */}
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">
-                    {t('aiQuestionCount') || 'Questions'}
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setQuestionCount(Math.max(1, questionCount - 1))}
-                      className="w-9 h-9 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500"
-                    >
-                      <Minus size={14} />
-                    </button>
-                    <div className="flex-1 relative">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,1fr)]">
+                  <div className="rounded-2xl border border-gray-200/80 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/40 p-4">
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                          {t('aiQuestionMix') || 'Question mix'}
+                        </p>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                          {t('aiQuestionMixDesc') || 'Choose exactly how many questions of each type to generate.'}
+                        </p>
+                      </div>
+                      <div className="min-w-[72px] rounded-2xl bg-white dark:bg-gray-900 border border-indigo-100 dark:border-indigo-900/50 px-3 py-2 text-center shadow-sm">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-gray-400">{t('aiTotalQuestions') || 'Total questions'}</p>
+                        <p className="text-xl font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums">{totalQuestions}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {QUESTION_TYPES.map(({ value, icon }) => {
+                        const currentCount = questionPlan[value] || 0;
+                        return (
+                          <div
+                            key={value}
+                            className={`rounded-2xl border px-3 py-3 transition-all ${
+                              currentCount > 0
+                                ? 'border-indigo-200 dark:border-indigo-800 bg-white dark:bg-gray-900 shadow-sm'
+                                : 'border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-semibold ${
+                                currentCount > 0
+                                  ? 'bg-indigo-500 text-white'
+                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                              }`}>
+                                {icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                                  {typeLabels[value] || value}
+                                </p>
+                                <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                                  {currentCount > 0 ? `${currentCount} ${t('questions') || 'questions'}` : `0 ${t('questions') || 'questions'}`}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => updateTypeCount(value, currentCount - 1)}
+                                  className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center"
+                                >
+                                  <Minus size={14} />
+                                </button>
+                                <span className="w-10 text-center text-sm font-semibold text-gray-700 dark:text-gray-200 tabular-nums">
+                                  {currentCount}
+                                </span>
+                                <button
+                                  onClick={() => updateTypeCount(value, currentCount + 1)}
+                                  className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors flex items-center justify-center"
+                                >
+                                  <Plus size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-gray-200/80 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 space-y-5 shadow-sm">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                        {t('aiDifficulty') || 'Difficulty'}
+                      </p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                        {t('aiDifficultyHint') || 'The AI will target this overall difficulty when generating questions.'}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/70 dark:bg-indigo-950/20 px-4 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.18em] text-indigo-500 dark:text-indigo-400">Level</p>
+                          <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {difficultyLevel} / 5
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-white dark:bg-gray-900 px-3 py-1 text-xs font-medium text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/50">
+                          {difficultyLabels[difficultyLevel]}
+                        </span>
+                      </div>
                       <input
                         type="range"
                         min={1}
-                        max={20}
-                        value={questionCount}
-                        onChange={(e) => setQuestionCount(Number(e.target.value))}
-                        className="w-full accent-indigo-500 h-1.5"
+                        max={5}
+                        step={1}
+                        value={difficultyLevel}
+                        onChange={(e) => setDifficultyLevel(Number(e.target.value))}
+                        className="mt-4 w-full accent-indigo-500"
                       />
+                      <div className="mt-2 grid grid-cols-5 text-[10px] text-gray-400 dark:text-gray-500">
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <span key={level} className={`text-center ${difficultyLevel === level ? 'text-indigo-500 dark:text-indigo-400 font-semibold' : ''}`}>
+                            {level}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <button
-                      onClick={() => setQuestionCount(Math.min(20, questionCount + 1))}
-                      className="w-9 h-9 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500"
-                    >
-                      <Plus size={14} />
-                    </button>
-                    <span className="min-w-[2.25rem] h-9 flex items-center justify-center bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-sm font-semibold rounded-lg tabular-nums">
-                      {questionCount}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Question Types — pill buttons */}
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">
-                    {t('aiQuestionTypes') || 'Question types'}
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {QUESTION_TYPES.map(({ value, icon }) => (
-                      <button
-                        key={value}
-                        onClick={() => toggleType(value)}
-                        className={`px-3.5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                          selectedTypes.includes(value)
-                            ? 'bg-indigo-500 text-white shadow-btn-glow'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        <span className={`text-xs font-mono ${selectedTypes.includes(value) ? 'text-indigo-200' : 'opacity-50'}`}>{icon}</span>
-                        {typeLabels[value] || value}
-                      </button>
-                    ))}
+                    <div className="rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/30 px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 mb-2">
+                        {t('aiGenerateDesc') || 'Create questions from text or image'}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                        {questionMixSummary || (t('aiUseAtLeastOneType') || 'Select at least one question type')}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -587,10 +679,22 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
               </div>
             ) : step === 'input' ? (
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-gray-300 dark:text-gray-600 bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-md flex items-center gap-1.5 font-medium">
-                  <Sparkles size={10} />
-                  GPT-5.2 · Azure OpenAI
-                </span>
+                <div className="flex items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
+                  <button
+                    onClick={handleFullReset}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                  >
+                    <RotateCcw size={11} />
+                    {t('clearAll') || 'Clear all'}
+                  </button>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2.5 py-1">
+                    <Sparkles size={10} />
+                    {totalQuestions} {t('questions') || 'questions'}
+                  </span>
+                  <span className="hidden sm:inline-flex items-center rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2.5 py-1">
+                    {difficultyLabels[difficultyLevel]}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleClose}
@@ -600,7 +704,7 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                   </button>
                   <button
                     onClick={handleGenerate}
-                    disabled={loading || (!text && !uploadedFile)}
+                    disabled={loading || (!text && !uploadedFile) || totalQuestions <= 0}
                     className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-colors shadow-btn-glow"
                   >
                     {loading ? (

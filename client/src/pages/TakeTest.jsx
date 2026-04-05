@@ -21,6 +21,7 @@ function MatchingQuestion({
   getLeftText = (option) => option.text,
   getRightText = (text) => text
 }) {
+  const { t } = useLanguage();
   const [selectedLeft, setSelectedLeft] = useState(null);
   const pairs = currentAnswer?.matchingPairs || [];
   const rightSide = question.matchingRightSide || [];
@@ -87,7 +88,7 @@ function MatchingQuestion({
           <span className="text-white text-xs font-bold">?</span>
         </div>
         <p className="text-xs text-primary-700 dark:text-primary-300">
-          Нажмите на элемент слева, затем на его пару справа. Совпавшие пары будут выделены одним цветом.
+          {t('matchingHint')}
         </p>
       </div>
 
@@ -109,7 +110,7 @@ function MatchingQuestion({
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-primary-500" />
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Элементы</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('elements')}</p>
           </div>
           {question.options.map((opt, optionIndex) => {
             const matched = getMatchedRight(opt.id);
@@ -159,7 +160,7 @@ function MatchingQuestion({
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Пары</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('pairs')}</p>
           </div>
           {rightSide.map((text, idx) => {
             const used = isRightUsed(text);
@@ -211,7 +212,7 @@ function MatchingQuestion({
           animate={{ opacity: 1, y: 0 }}
           className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700"
         >
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Ваши пары:</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">{t('yourPairs')}</p>
           <div className="flex flex-wrap gap-1.5">
             {pairs.map((p, i) => {
               const leftIndex = question.options.findIndex(option => option.id === p.left);
@@ -229,6 +230,24 @@ function MatchingQuestion({
       )}
     </div>
   );
+}
+
+const hasHtmlMarkup = (value = '') => /<\/?[a-z][\s\S]*>/i.test(value);
+
+const escapeHtml = (value = '') => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+function toRichTextHtml(value = '') {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) return '';
+  if (hasHtmlMarkup(normalized)) return normalized;
+  return `<p>${escapeHtml(normalized).replace(/\n/g, '<br />')}</p>`;
 }
 
 export default function TakeTest() {
@@ -255,10 +274,13 @@ export default function TakeTest() {
   const [lastViolationText, setLastViolationText] = useState('');
   const [attemptInfo, setAttemptInfo] = useState({ attempts: 0, maxAttempts: 0 });
   const [isPublicTest, setIsPublicTest] = useState(false);
-  const [testLang, setTestLang] = useState(null); // null = original, 'en'/'ru'/'kz' = translated
+  const [testLang, setTestLang] = useState(null); // null = original, 'en'/'ru'/'kz'/'es' = translated
   const startTimeRef = useRef(null);
   const dialogOpenRef = useRef(false);
   const navScrollRef = useRef(null);
+  const submittingRef = useRef(false);
+  const leaveGuardRef = useRef(false);
+  const forceSubmitRef = useRef(null);
 
   // Persistent guest ID for attempt tracking (browser fingerprint)
   const getGuestId = () => {
@@ -295,6 +317,10 @@ export default function TakeTest() {
       if (countdownRef.current) clearInterval(countdownRef.current);
     }
   }, [showInactivityWarning]);
+
+  useEffect(() => {
+    submittingRef.current = submitting;
+  }, [submitting]);
 
   useEffect(() => {
     if (!started || !test?.settings?.inactivityTimeout) return;
@@ -545,17 +571,17 @@ export default function TakeTest() {
       setSelectedVariant(res.data.variantNumber);
       // Re-fetch test with variant ordering
       await fetchTest(res.data.variantNumber);
-      toast.success(`🎫 Билет #${res.data.variantNumber} выбран!`);
+      toast.success(`🎫 ${t('ticketChosen', { n: res.data.variantNumber })}`);
     } catch (err) {
       if (err.response?.status === 409) {
-        toast.error(err.response.data.message || 'Билет уже занят!');
+        toast.error(err.response.data.message || t('ticketAlreadyTaken'));
         // Refresh tickets
         try {
           const ticketRes = await api.get(`/tests/${test._id}/tickets`);
           setTicketState(ticketRes.data);
         } catch (_) { }
       } else {
-        toast.error('Ошибка при выборе билета');
+        toast.error(t('ticketSelectError'));
       }
     } finally {
       setTicketLoading(false);
@@ -567,6 +593,7 @@ export default function TakeTest() {
       toast.error(t('enterYourName'));
       return;
     }
+    leaveGuardRef.current = false;
     startTimeRef.current = Date.now();
     setStarted(true);
     setShowGuestForm(false);
@@ -656,6 +683,7 @@ export default function TakeTest() {
     }
 
     setSubmitting(true);
+    leaveGuardRef.current = true;
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
 
     try {
@@ -677,11 +705,58 @@ export default function TakeTest() {
       localStorage.removeItem('testSession_' + shareLink);
       navigate(`/result/${res.data._id}`);
     } catch (err) {
+      leaveGuardRef.current = false;
       toast.error(t('errorSubmitting'));
     } finally {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    forceSubmitRef.current = () => handleSubmit(true);
+  }, [handleSubmit]);
+
+  useEffect(() => {
+    if (!started || isPractice) return;
+
+    const guardState = { unitestGuard: true, shareLink, ts: Date.now() };
+    window.history.pushState(guardState, '', window.location.href);
+
+    const handlePopState = () => {
+      if (leaveGuardRef.current || submittingRef.current) return;
+
+      leaveGuardRef.current = true;
+      window.history.pushState(guardState, '', window.location.href);
+
+      const exitMessage = t('leaveTestAutoSubmit') || 'You tried to leave the test. Your attempt is being submitted automatically.';
+      setLastViolationText(exitMessage);
+      setViolations(prev => [
+        ...prev,
+        { type: 'tab-switch', timestamp: new Date().toISOString(), details: exitMessage }
+      ]);
+      setShowViolationWarning(true);
+
+      window.setTimeout(() => {
+        setShowViolationWarning(false);
+        forceSubmitRef.current?.();
+      }, 900);
+    };
+
+    const handleBeforeUnload = (event) => {
+      if (leaveGuardRef.current || submittingRef.current) return undefined;
+      event.preventDefault();
+      event.returnValue = '';
+      return '';
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [started, isPractice, shareLink, t]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -715,12 +790,12 @@ export default function TakeTest() {
             <Clock className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-xl font-bold text-dark mb-2">
-            {isNotStarted ? 'Тест ещё не доступен' : 'Тест завершён'}
+            {isNotStarted ? (t('testNotAvailableYet') || 'Test is not available yet') : (t('testFinished') || 'Test is finished')}
           </h2>
           <p className="text-gray-500 text-sm mb-6">
             {isNotStarted
-              ? `Тест откроется: ${dateStr}`
-              : `Тест был доступен до: ${dateStr}`
+              ? (t('testOpensAt', { date: dateStr }) || `The test opens at: ${dateStr}`)
+              : (t('testWasAvailableUntil', { date: dateStr }) || `The test was available until: ${dateStr}`)
             }
           </p>
           <button onClick={() => navigate('/')} className="btn-primary w-full py-3">
@@ -785,8 +860,11 @@ export default function TakeTest() {
     return 'opacity-50';
   };
 
-  const displayedPassage = getTransField('passage', question?.passage || '');
-  const displayedExplanation = getTransField('explanation', currentFeedback?.explanation || question?.explanation || '');
+  const displayedQuestionHtml = toRichTextHtml(getTransField('questionText', question?.questionText || ''));
+  const displayedPassageHtml = toRichTextHtml(getTransField('passage', question?.passage || ''));
+  const displayedExplanationHtml = toRichTextHtml(getTransField('explanation', currentFeedback?.explanation || question?.explanation || ''));
+  const hasDisplayedPassage = Boolean(stripHtml(displayedPassageHtml));
+  const hasDisplayedExplanation = Boolean(stripHtml(displayedExplanationHtml));
 
   // Pre-start screen
   if (!started) {
@@ -1021,12 +1099,12 @@ export default function TakeTest() {
               <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Clock className="w-7 h-7 text-amber-600" />
               </div>
-              <h3 className="text-lg font-bold text-dark mb-2">\u0412\u044b \u0435\u0449\u0451 \u0437\u0434\u0435\u0441\u044c?</h3>
-              <p className="text-sm text-gray-500 mb-1">\u0414\u043e\u043b\u0433\u043e\u0435 \u0431\u0435\u0437\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435. \u0422\u0435\u0441\u0442 \u0431\u0443\u0434\u0435\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d \u0447\u0435\u0440\u0435\u0437:</p>
+              <h3 className="text-lg font-bold text-dark mb-2">{t('inactivityWarning') || 'Are you still there?'}</h3>
+              <p className="text-sm text-gray-500 mb-1">{t('inactivityCountdownMsg', { seconds: inactivityCountdown }) || 'The test will be submitted automatically soon.'}</p>
               <p className="text-3xl font-mono font-bold text-amber-600 mb-5">{inactivityCountdown}s</p>
               <button onClick={resetActivity}
                 className="w-full btn-primary py-3 text-sm">
-                \u042f \u0437\u0434\u0435\u0441\u044c, \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u0442\u0435\u0441\u0442
+                {t('imHere') || "I'm here!"}
               </button>
             </motion.div>
           </motion.div>
@@ -1161,10 +1239,10 @@ export default function TakeTest() {
                   onClick={() => setTestLang(null)}
                   className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${!testLang ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                  Original
+                  {t('original') || 'Original'}
                 </button>
                 {test.settings.multiLanguage.languages.map(code => {
-                  const labels = { en: 'EN', ru: 'RU', kz: 'KZ' };
+                  const labels = { en: 'EN', ru: 'RU', kz: 'KZ', es: 'ES' };
                   return (
                     <button
                       key={code}
@@ -1179,20 +1257,23 @@ export default function TakeTest() {
             )}
 
             {/* Passage / Reading text */}
-            {displayedPassage && displayedPassage.trim() && (
+            {hasDisplayedPassage && (
               <div className="mb-4 sm:mb-5 p-3 sm:p-4 bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl">
                 <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
                   <span className="w-4 h-4 bg-amber-500 rounded flex items-center justify-center text-white text-[8px]">T</span>
-                  Текст
+                  {t('passageLabel') || 'Text'}
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{displayedPassage}</p>
+                <div
+                  className="prose prose-sm max-w-none text-sm text-gray-700 dark:prose-invert dark:text-gray-300"
+                  dangerouslySetInnerHTML={{ __html: displayedPassageHtml }}
+                />
               </div>
             )}
 
             {/* Question text */}
             <div
               className="text-base sm:text-lg font-semibold text-dark mb-4 sm:mb-6 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: getTransField('questionText', question.questionText) }}
+              dangerouslySetInnerHTML={{ __html: displayedQuestionHtml }}
               onClick={(e) => {
                 const link = e.target.closest('a');
                 if (!link) return;
@@ -1421,7 +1502,7 @@ export default function TakeTest() {
             )}
 
             {/* Feedback explanation */}
-            {currentFeedback?.checked && displayedExplanation && (
+            {currentFeedback?.checked && hasDisplayedExplanation && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1429,7 +1510,10 @@ export default function TakeTest() {
                 className="mt-4 p-3 sm:p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
               >
                 <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">{t('explanationLabel')}</p>
-                <p className="text-sm text-blue-600 dark:text-blue-300">{displayedExplanation}</p>
+                <div
+                  className="prose prose-sm max-w-none text-sm text-blue-600 dark:prose-invert dark:text-blue-300"
+                  dangerouslySetInnerHTML={{ __html: displayedExplanationHtml }}
+                />
               </motion.div>
             )}
 
@@ -1456,9 +1540,9 @@ export default function TakeTest() {
                     {currentFeedback.isCorrect ? t('correctBanner') : t('incorrectBanner')}
                   </p>
                   <p className={`text-xs ${currentFeedback.isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    +{currentFeedback.isCorrect ? currentFeedback.points : (currentFeedback.partialPoints || 0)} {t('outOfPoints')} {currentFeedback.points} {t('points')}
+                      +{currentFeedback.isCorrect ? currentFeedback.points : (currentFeedback.partialPoints || 0)} {t('outOfPoints')} {currentFeedback.points} {t('points')}
                     {!currentFeedback.isCorrect && currentFeedback.partialPoints > 0 && (
-                      <span className="ml-1 text-amber-600 dark:text-amber-400">({t('partialCredit') || 'частичный балл'})</span>
+                      <span className="ml-1 text-amber-600 dark:text-amber-400">({t('partialCreditLabel') || 'partial credit'})</span>
                     )}
                   </p>
                 </div>
@@ -1573,27 +1657,32 @@ export default function TakeTest() {
       <AnimatePresence>
         {showViolationWarning && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl">
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-xl">
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 backdrop-blur-2xl shadow-[0_0_80px_-15px_rgba(239,68,68,0.5)] rounded-[2rem] p-8 max-w-md w-full text-center relative overflow-hidden">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-20 bg-red-500/20 blur-3xl rounded-full" />
-              <div className="w-20 h-20 bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6 relative">
-                <div className="absolute inset-0 bg-red-500/20 animate-ping rounded-2xl" />
-                <AlertTriangle className="w-10 h-10 text-red-500" />
+              className="relative max-w-md w-full overflow-hidden rounded-[30px] border border-red-200/20 bg-white text-center shadow-[0_30px_100px_-40px_rgba(239,68,68,0.7)] dark:bg-slate-900">
+              <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-br from-red-500/18 via-rose-500/10 to-transparent" />
+              <div className="relative p-7 sm:p-8">
+                <div className="mx-auto mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-[22px] border border-red-200 bg-red-50 shadow-sm dark:border-red-900/40 dark:bg-red-950/40">
+                  <AlertTriangle className="h-9 w-9 text-red-500" />
+                </div>
+                <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-red-500 dark:bg-red-950/40 dark:text-red-300">
+                  Anti-cheat
+                </span>
+                <h3 className="mt-4 text-2xl font-bold text-slate-900 dark:text-white">
+                  {t('violation') || 'Нарушение правил!'}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-500 dark:text-slate-300">{lastViolationText}</p>
+                <div className="mt-6 rounded-2xl border border-red-100 bg-red-50/70 px-4 py-4 dark:border-red-900/30 dark:bg-red-950/30">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-red-400 dark:text-red-300">Count</p>
+                  <p className="mt-1 text-xl font-mono font-bold text-red-500 dark:text-red-300">
+                    {t('violationCount', { current: violations.length, max: test?.settings?.antiCheat?.maxViolations || '---' })}
+                  </p>
+                </div>
+                <button onClick={() => setShowViolationWarning(false)}
+                  className="mt-6 w-full rounded-2xl bg-red-500 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-red-600">
+                  {t('understood') || 'Понятно'}
+                </button>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">
-                {t('violation') || 'Нарушение правил!'}
-              </h3>
-              <p className="text-red-200/80 mb-5 text-sm leading-relaxed">{lastViolationText}</p>
-              <div className="bg-black/20 rounded-xl p-4 mb-6 border border-white/5">
-                <p className="text-lg font-mono font-bold text-red-400">
-                  {t('violationCount', { current: violations.length, max: test?.settings?.antiCheat?.maxViolations || '---' })}
-                </p>
-              </div>
-              <button onClick={() => setShowViolationWarning(false)}
-                className="w-full bg-red-500 hover:bg-red-400 text-white font-bold py-3.5 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(239,68,68,0.5)]">
-                {t('understood') || 'Понятно'}
-              </button>
             </motion.div>
           </motion.div>
         )}

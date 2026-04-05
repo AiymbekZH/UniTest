@@ -24,7 +24,7 @@ router.put('/me', auth, async (req, res) => {
     if (firstName) updates.firstName = firstName;
     if (lastName) updates.lastName = lastName;
     if (middleName !== undefined) updates.middleName = middleName;
-    if (language && ['en', 'ru', 'kz'].includes(language)) updates.language = language;
+    if (language && ['en', 'ru', 'kz', 'es'].includes(language)) updates.language = language;
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select('-password');
     res.json({

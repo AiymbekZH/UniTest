@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
   lockUntil: { type: Date, default: null },
   passwordResetTokenHash: { type: String, default: '' },
   passwordResetExpiresAt: { type: Date, default: null },
-  language: { type: String, enum: ['en', 'ru', 'kz'], default: 'en' },
+  language: { type: String, enum: ['en', 'ru', 'kz', 'es'], default: 'en' },
   createdAt: { type: Date, default: Date.now }
 });
 

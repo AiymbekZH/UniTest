@@ -58,6 +58,14 @@ const questionSchema = new mongoose.Schema({
       passage: { type: String, default: '' },
       explanation: { type: String, default: '' },
       correctAnswer: { type: String, default: '' }
+    },
+    es: {
+      questionText: { type: String, default: '' },
+      options: [{ type: String }],
+      matchPairs: [{ type: String }],
+      passage: { type: String, default: '' },
+      explanation: { type: String, default: '' },
+      correctAnswer: { type: String, default: '' }
     }
   }
 }, { _id: false });
@@ -95,7 +103,7 @@ const testSchema = new mongoose.Schema({
     allowComments: { type: Boolean, default: true },
     multiLanguage: {
       enabled: { type: Boolean, default: false },
-      languages: [{ type: String, enum: ['en', 'ru', 'kz'], default: 'ru' }]
+      languages: [{ type: String, enum: ['en', 'ru', 'kz', 'es'], default: 'ru' }]
     }
   },
   isDeleted: { type: Boolean, default: false },

@@ -6,6 +6,7 @@ const { auth, optionalAuth } = require('../middleware/auth');
 const { notifyTestCompletion } = require('../utils/mailer');
 
 const router = express.Router();
+const SUPPORTED_TRANSLATION_LANGUAGES = ['en', 'ru', 'kz', 'es'];
 
 function normalizeFreeText(value = '') {
   return String(value).trim().replace(/\s+/g, ' ').toLowerCase();
@@ -20,7 +21,7 @@ function getAcceptedFillBlankAnswers(question) {
 
   addValue(question.correctAnswer);
 
-  for (const lang of ['en', 'ru', 'kz']) {
+  for (const lang of SUPPORTED_TRANSLATION_LANGUAGES) {
     addValue(question.translations?.[lang]?.correctAnswer);
   }
 

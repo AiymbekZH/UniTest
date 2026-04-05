@@ -33,8 +33,16 @@ const questionTypesData = [
 const TRANSLATION_LANGUAGE_OPTIONS = [
   { code: 'en', label: '🇬🇧 English', shortLabel: '🇬🇧 EN' },
   { code: 'ru', label: '🇷🇺 Русский', shortLabel: '🇷🇺 RU' },
-  { code: 'kz', label: '🇰🇿 Қазақша', shortLabel: '🇰🇿 KZ' }
+  { code: 'kz', label: '🇰🇿 Қазақша', shortLabel: '🇰🇿 KZ' },
+  { code: 'es', label: '🇪🇸 Español', shortLabel: '🇪🇸 ES' }
 ];
+
+const TRUE_FALSE_OPTION_LABELS = {
+  ru: ['Верно', 'Неверно', 'Не указано'],
+  en: ['True', 'False', 'Not given'],
+  kz: ['Дұрыс', 'Бұрыс', 'Берілмеген'],
+  es: ['Verdadero', 'Falso', 'No se indica']
+};
 
 const COVER_FRAME_WIDTH = 800;
 const COVER_FRAME_HEIGHT = 450;
@@ -225,7 +233,25 @@ function mergeTranslationPayload(existingTranslation = {}, incomingTranslation =
   };
 }
 
-function createQuestion(type = 'single-choice') {
+function createTrueFalseOptions(language = 'ru', correctIndex = -1) {
+  const labels = TRUE_FALSE_OPTION_LABELS[language] || TRUE_FALSE_OPTION_LABELS.ru;
+  return labels.map((text, index) => ({
+    id: uuidv4(),
+    text,
+    isCorrect: correctIndex === index,
+    matchPair: ''
+  }));
+}
+
+function detectTrueFalseOptionLanguage(options = []) {
+  const sample = options.map(option => String(option?.text || '').toLowerCase()).join(' ');
+  if (sample.includes('verdadero') || sample.includes('falso')) return 'es';
+  if (sample.includes('дұрыс') || sample.includes('бұрыс')) return 'kz';
+  if (sample.includes('true') || sample.includes('false')) return 'en';
+  return 'ru';
+}
+
+function createQuestion(type = 'single-choice', baseLanguage = 'ru') {
   const base = { id: uuidv4(), type, questionText: '', passage: '', points: 1, options: [], correctAnswer: '', media: { type: '', url: '', fileName: '' }, explanation: '' };
 
   if (type === 'single-choice' || type === 'multiple-choice') {
@@ -236,11 +262,7 @@ function createQuestion(type = 'single-choice') {
       { id: uuidv4(), text: '', isCorrect: false },
     ];
   } else if (type === 'true-false') {
-    base.options = [
-      { id: uuidv4(), text: 'Верно', isCorrect: false },
-      { id: uuidv4(), text: 'Неверно', isCorrect: false },
-      { id: uuidv4(), text: 'Не уверен в ответе', isCorrect: false },
-    ];
+    base.options = createTrueFalseOptions(baseLanguage);
   } else if (type === 'matching') {
     base.options = [
       { id: uuidv4(), text: '', isCorrect: true, matchPair: '' },
@@ -249,6 +271,30 @@ function createQuestion(type = 'single-choice') {
     ];
   }
   return base;
+}
+
+function normalizeTrueFalseQuestion(question = {}, enabledLanguages = []) {
+  if (question.type !== 'true-false') return question;
+
+  const currentOptions = Array.isArray(question.options) ? question.options : [];
+  const correctIndex = Math.max(0, currentOptions.findIndex(option => option?.isCorrect));
+  const baseLanguage = detectTrueFalseOptionLanguage(currentOptions);
+  const normalizedLanguages = [...new Set(['en', 'ru', 'kz', 'es', ...enabledLanguages])];
+  const translations = { ...(question.translations || {}) };
+
+  normalizedLanguages.forEach((langCode) => {
+    if (!translations[langCode]) return;
+    translations[langCode] = {
+      ...translations[langCode],
+      options: [...(TRUE_FALSE_OPTION_LABELS[langCode] || TRUE_FALSE_OPTION_LABELS.ru)]
+    };
+  });
+
+  return {
+    ...question,
+    options: createTrueFalseOptions(baseLanguage, correctIndex),
+    translations
+  };
 }
 
 export default function CreateTest() {
@@ -646,7 +692,7 @@ export default function CreateTest() {
   };
 
   const addQuestion = (type = 'single-choice') => {
-    const newQ = createQuestion(type);
+    const newQ = createQuestion(type, lang);
     setTest(prev => ({ ...prev, questions: [...prev.questions, newQ] }));
     setActiveQuestion(test.questions.length);
     setShowAddMenu(false);
@@ -755,6 +801,11 @@ export default function CreateTest() {
     try {
       const { tagInput, ...data } = test;
       data.description = limitWords(data.description || '', DESCRIPTION_WORD_LIMIT);
+      data.questions = (data.questions || []).map(question => (
+        question.type === 'true-false'
+          ? normalizeTrueFalseQuestion(question, data.settings?.multiLanguage?.languages || [])
+          : question
+      ));
       if (editId) {
         await api.put(`/tests/${editId}`, data);
         toast.success(t('testUpdated'));
@@ -783,7 +834,10 @@ export default function CreateTest() {
         
         const [questionText, type, correctIdx, ...optTexts] = cols;
         const qType = type || 'single-choice';
-        const q = createQuestion(qType === 'essay' || qType === 'fill-blank' || qType === 'matching' ? qType : 'single-choice');
+        const q = createQuestion(
+          qType === 'essay' || qType === 'fill-blank' || qType === 'matching' ? qType : 'single-choice',
+          lang
+        );
         q.questionText = questionText;
         
         if (qType === 'fill-blank') {
@@ -1550,7 +1604,7 @@ export default function CreateTest() {
                         <select
                           value={question.type}
                           onChange={e => {
-                            const newQ = createQuestion(e.target.value);
+                            const newQ = createQuestion(e.target.value, lang);
                             newQ.questionText = question.questionText;
                             newQ.points = question.points;
                             newQ.media = question.media;

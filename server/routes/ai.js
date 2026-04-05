@@ -7,6 +7,39 @@ const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const AiHistory = require('../models/AiHistory');
+const SUPPORTED_AI_LANGUAGES = {
+  ru: 'Russian',
+  en: 'English',
+  kz: 'Kazakh',
+  es: 'Spanish'
+};
+
+const TRUE_FALSE_LABELS = {
+  ru: ['Верно', 'Неверно', 'Не указано'],
+  en: ['True', 'False', 'Not given'],
+  kz: ['Дұрыс', 'Бұрыс', 'Берілмеген'],
+  es: ['Verdadero', 'Falso', 'No se indica']
+};
+
+const TRUE_FALSE_CATEGORY_KEYWORDS = {
+  true: ['true', 'verdadero', 'верно', 'дұрыс'],
+  false: ['false', 'falso', 'неверно', 'бұрыс'],
+  notGiven: [
+    'not given',
+    'not stated',
+    'not specified',
+    'not mentioned',
+    'not provided',
+    'не указано',
+    'не дано',
+    'не уверен',
+    'берілмеген',
+    'көрсетілмеген',
+    'no se indica',
+    'no se menciona',
+    'no se especifica'
+  ]
+};
 
 // Multer for file uploads (PDF, DOCX, TXT, images) — max 20MB
 const fileUpload = multer({
@@ -46,6 +79,101 @@ function normalizeString(value) {
   return typeof value === 'string' ? value : '';
 }
 
+function normalizeComparisonText(value = '') {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-zа-яёқғүұөһáéíóúñ0-9]+/gi, ' ')
+    .trim();
+}
+
+function normalizeGeneratedType(value = '') {
+  const normalized = normalizeComparisonText(value);
+  if (!normalized) return 'single-choice';
+  if (normalized.includes('single')) return 'single-choice';
+  if (normalized.includes('multiple')) return 'multiple-choice';
+  if (normalized.includes('true') || normalized.includes('false') || normalized.includes('verdadero') || normalized.includes('верно')) return 'true-false';
+  if (normalized.includes('fill')) return 'fill-blank';
+  if (normalized.includes('matching') || normalized.includes('match') || normalized.includes('сопостав')) return 'matching';
+  return 'single-choice';
+}
+
+function detectTrueFalseCategory(...candidates) {
+  for (const candidate of candidates) {
+    const normalized = normalizeComparisonText(candidate);
+    if (!normalized) continue;
+
+    for (const [category, keywords] of Object.entries(TRUE_FALSE_CATEGORY_KEYWORDS)) {
+      if (keywords.some(keyword => normalized.includes(keyword))) {
+        return category;
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildCanonicalTrueFalseOptions(options = [], language = 'ru') {
+  const labels = TRUE_FALSE_LABELS[language] || TRUE_FALSE_LABELS.ru;
+  const correctOption = options.find(option => option?.isCorrect);
+  const correctCategory = detectTrueFalseCategory(
+    correctOption?.text,
+    ...options.map(option => option?.text)
+  );
+  const orderedCategories = ['true', 'false', 'notGiven'];
+
+  return orderedCategories.map((category, index) => ({
+    id: uuidv4(),
+    text: labels[index],
+    isCorrect: correctCategory
+      ? correctCategory === category
+      : Boolean(options[index]?.isCorrect),
+    matchPair: '',
+  }));
+}
+
+function parseQuestionPlan(questionPlan, questionCount, questionTypes) {
+  let parsedPlan = {};
+
+  try {
+    parsedPlan = typeof questionPlan === 'string'
+      ? JSON.parse(questionPlan || '{}')
+      : (questionPlan || {});
+  } catch {
+    parsedPlan = {};
+  }
+
+  const normalizedPlan = Object.entries(parsedPlan).reduce((acc, [type, count]) => {
+    const normalizedType = normalizeGeneratedType(type);
+    const normalizedCount = Number(count);
+    if (!Number.isFinite(normalizedCount) || normalizedCount <= 0) return acc;
+    acc[normalizedType] = (acc[normalizedType] || 0) + Math.floor(normalizedCount);
+    return acc;
+  }, {});
+
+  if (Object.keys(normalizedPlan).length > 0) {
+    return normalizedPlan;
+  }
+
+  let parsedTypes;
+  try {
+    parsedTypes = typeof questionTypes === 'string' ? JSON.parse(questionTypes) : questionTypes;
+  } catch {
+    parsedTypes = ['single-choice'];
+  }
+
+  const fallbackTypes = Array.isArray(parsedTypes) && parsedTypes.length > 0
+    ? parsedTypes.map(type => normalizeGeneratedType(type))
+    : ['single-choice'];
+  const totalQuestions = Math.max(1, Number(questionCount) || 5);
+  const baseCount = Math.floor(totalQuestions / fallbackTypes.length);
+  const remainder = totalQuestions % fallbackTypes.length;
+
+  return fallbackTypes.reduce((acc, type, index) => {
+    acc[type] = (acc[type] || 0) + baseCount + (index < remainder ? 1 : 0);
+    return acc;
+  }, {});
+}
+
 // Initialize OpenAI client — supports both direct OpenAI API and Azure
 const getClient = () => {
   // Option 1: Direct OpenAI API (simplest — just OPENAI_API_KEY)
@@ -81,13 +209,22 @@ router.post('/generate', auth, fileUpload.single('file'), async (req, res) => {
       return res.status(403).json({ error: 'У вас нет доступа к AI функциям. Обратитесь к администратору.' });
     }
 
-    const { text, image, questionCount = 5, questionTypes = '["single-choice"]', language = 'ru' } = req.body;
-    
-    // Parse questionTypes (could be JSON string from FormData)
-    let parsedTypes;
-    try {
-      parsedTypes = typeof questionTypes === 'string' ? JSON.parse(questionTypes) : questionTypes;
-    } catch { parsedTypes = ['single-choice']; }
+    const {
+      text,
+      image,
+      questionCount = 5,
+      questionTypes = '["single-choice"]',
+      questionPlan = '{}',
+      difficultyLevel = 3,
+      language = 'ru'
+    } = req.body;
+    const normalizedPlan = parseQuestionPlan(questionPlan, questionCount, questionTypes);
+    const requestedTypeEntries = Object.entries(normalizedPlan).filter(([, count]) => count > 0);
+    const totalQuestions = requestedTypeEntries.reduce((sum, [, count]) => sum + count, 0);
+
+    if (totalQuestions <= 0) {
+      return res.status(400).json({ error: 'Select at least one question type with a positive count' });
+    }
 
     // Extract text from uploaded file
     let fileText = '';
@@ -110,26 +247,38 @@ router.post('/generate', auth, fileUpload.single('file'), async (req, res) => {
 
     const { client, model } = getClient();
 
-    const langMap = { ru: 'Russian', en: 'English', kz: 'Kazakh' };
-    const langName = langMap[language] || 'Russian';
+    const langName = SUPPORTED_AI_LANGUAGES[language] || SUPPORTED_AI_LANGUAGES.ru;
+    const normalizedDifficulty = Math.min(5, Math.max(1, Number(difficultyLevel) || 3));
+    const difficultyDescriptions = {
+      1: 'Very easy. Basic recall, direct facts, simple recognition.',
+      2: 'Easy. Introductory understanding with light reasoning.',
+      3: 'Medium. Balanced difficulty for standard assessment.',
+      4: 'Hard. Multi-step reasoning, inference, deeper understanding.',
+      5: 'Very hard. Expert-level nuance, synthesis, and edge cases.'
+    };
 
     const typeDescriptions = {
       'single-choice': 'Single choice (one correct answer, 4 options)',
       'multiple-choice': 'Multiple choice (2-3 correct answers, 4-5 options)',
-      'true-false': 'True/False with 3 options: True, False, Not stated',
+      'true-false': `True/False with 3 options in this exact order: ${TRUE_FALSE_LABELS[language]?.join(', ') || TRUE_FALSE_LABELS.ru.join(', ')}`,
       'fill-blank': 'Fill in the blank (student types the answer)',
       'matching': 'Matching pairs (4-5 pairs of left-right items)',
     };
 
-    const requestedTypes = parsedTypes
-      .map(t => typeDescriptions[t] || t)
+    const requestedTypes = requestedTypeEntries
+      .map(([type, count]) => `${count} x ${typeDescriptions[type] || type}`)
       .join('; ');
 
     const systemPrompt = `You are a professional test/quiz generator for an educational platform.
-Generate exactly ${questionCount} questions based on the provided content.
+Generate exactly ${totalQuestions} questions based on the provided content.
 
-QUESTION TYPES to use: ${requestedTypes}
-Distribute question types evenly across the requested types.
+QUESTION DISTRIBUTION:
+${requestedTypes}
+
+The distribution MUST match exactly.
+
+TARGET DIFFICULTY LEVEL: ${normalizedDifficulty}/5
+${difficultyDescriptions[normalizedDifficulty]}
 
 LANGUAGE: All question text, options, and answers MUST be in ${langName}.
 
@@ -158,7 +307,8 @@ Rules:
 - For multiple-choice, 2-3 options must have isCorrect:true
 - Provide 4 options for single/multiple choice
 - Make wrong options plausible (not obviously wrong)
-- Vary difficulty: mix easy, medium, and hard questions`;
+- Follow the requested difficulty level consistently
+- Do not add markdown, comments, or text outside the JSON object`;
 
     // Build message content
     const userContent = [];
@@ -166,7 +316,7 @@ Rules:
     if (combinedText) {
       userContent.push({
         type: 'text',
-        text: `Generate ${questionCount} test questions based on this content:\n\n${combinedText.substring(0, 15000)}`,
+        text: `Generate exactly ${totalQuestions} test questions with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5.\n\n${combinedText.substring(0, 15000)}`,
       });
     }
 
@@ -180,7 +330,7 @@ Rules:
       if (!combinedText) {
         userContent.push({
           type: 'text',
-          text: `Generate ${questionCount} test questions based on this image.`,
+          text: `Generate exactly ${totalQuestions} test questions from this image with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5.`,
         });
       }
     }
@@ -225,37 +375,57 @@ Rules:
     }
 
     // Add IDs and clean up
-    const formatted = questions.map((q, i) => ({
-      id: uuidv4(),
-      type: q.type || 'single-choice',
-      questionText: q.questionText || q.question || '',
-      passage: q.passage || '',
-      points: q.points || 1,
-      options: (q.options || []).map(o => ({
+    const formatted = questions.map((q, i) => {
+      const type = normalizeGeneratedType(q.type || q.questionType || '');
+      const normalizedOptions = type === 'true-false'
+        ? buildCanonicalTrueFalseOptions(Array.isArray(q.options) ? q.options : [], language)
+        : (q.options || []).map(option => ({
+            id: uuidv4(),
+            text: normalizeString(option?.text),
+            isCorrect: !!option?.isCorrect,
+            matchPair: normalizeString(option?.matchPair),
+          }));
+
+      return {
         id: uuidv4(),
-        text: o.text || '',
-        isCorrect: !!o.isCorrect,
-        matchPair: o.matchPair || '',
-      })),
-      correctAnswer: q.correctAnswer || '',
-      explanation: q.explanation || '',
-      media: { type: '', url: '', fileName: '' },
-      order: i,
-    }));
+        type,
+        questionText: q.questionText || q.question || '',
+        passage: q.passage || '',
+        points: q.points || 1,
+        options: normalizedOptions,
+        correctAnswer: q.correctAnswer || '',
+        explanation: q.explanation || '',
+        media: { type: '', url: '', fileName: '' },
+        order: i,
+      };
+    });
+
+    const remainingByType = { ...normalizedPlan };
+    const filteredQuestions = [];
+
+    for (const question of formatted) {
+      if (!remainingByType[question.type]) continue;
+      filteredQuestions.push(question);
+      remainingByType[question.type] -= 1;
+    }
+
+    if (filteredQuestions.length !== totalQuestions || Object.values(remainingByType).some(count => count > 0)) {
+      return res.status(500).json({ error: 'AI returned an invalid question mix. Please try again.' });
+    }
 
     // Save history
     try {
       await AiHistory.create({
         user: req.user._id,
         prompt: combinedText ? combinedText.substring(0, 100) : (req.file?.originalname || 'Generated Test'),
-        questions: formatted,
-        count: formatted.length
+        questions: filteredQuestions,
+        count: filteredQuestions.length
       });
     } catch (dbErr) {
       console.error('Failed to save AI history:', dbErr);
     }
 
-    res.json({ questions: formatted });
+    res.json({ questions: filteredQuestions });
   } catch (err) {
     console.error('AI generate error:', err);
     if (err.message?.includes('not configured')) {
@@ -335,8 +505,7 @@ router.post('/translate', auth, async (req, res) => {
 
     const { client, model } = getClient();
 
-    const langMap = { ru: 'Russian', en: 'English', kz: 'Kazakh' };
-    const langs = normalizedTargets.map(l => langMap[l] || l).join(', ');
+    const langs = normalizedTargets.map(l => SUPPORTED_AI_LANGUAGES[l] || l).join(', ');
 
     // Build content to translate
     let contentToTranslate = `Question HTML/Text:\n${normalizeString(questionText)}`;
@@ -365,7 +534,10 @@ ${correctAnswer ? '- "correctAnswer": translated correct answer' : ''}
 
 Rules:
 - Keep the meaning and tone identical
-- Preserve HTML tags and formatting when they are present in the source
+- Preserve HTML tags, paragraph structure, lists, and line breaks when they are present in the source
+- Do not add markdown, bullet markers, code fences, or stray symbols
+- Keep the options array length exactly ${normalizedOptions.length}
+- Keep the matchPairs array length exactly ${normalizedMatchingPairs.length}
 - For Kazakh: use proper Қazaq grammar, not transliteration
 - Translate naturally, not word-by-word`;
 

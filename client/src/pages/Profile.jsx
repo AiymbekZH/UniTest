@@ -46,7 +46,7 @@ export default function Profile() {
           totalScore: stat.data.totalScore || 0
         });
       } catch (err) {
-        toast.error('Не удалось загрузить данные профиля');
+        toast.error(t('profileLoadError'));
       }
     };
     fetchProfileData();
@@ -54,7 +54,7 @@ export default function Profile() {
 
   const handleSave = async () => {
     if (!firstName?.trim() || !lastName?.trim()) {
-      toast.error('Имя и Фамилия обязательны к заполнению');
+      toast.error(t('profileNameRequired'));
       return;
     }
     setSaving(true);
@@ -92,15 +92,15 @@ export default function Profile() {
 
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error('Пожалуйста, заполните все поля пароля');
+      toast.error(t('passwordFieldsRequired'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error('Новые пароли не совпадают');
+      toast.error(t('passwordsMismatch'));
       return;
     }
     if (newPassword.length < 6) {
-      toast.error('Новый пароль должен быть минимум 6 символов');
+      toast.error(t('passwordMinLength'));
       return;
     }
     try {
@@ -123,7 +123,7 @@ export default function Profile() {
     navigator.clipboard.writeText(user?.uniqueId || '');
     setCopiedId(true);
     setTimeout(() => setCopiedId(false), 2000);
-    toast.success('Скопировано!');
+    toast.success(t('copied'));
   };
 
   const roleLabel = user?.role === 'admin' ? t('adminRole') : user?.role === 'teacher' ? t('teacher') : t('student');
@@ -132,9 +132,9 @@ export default function Profile() {
     try {
       await api.delete(`/comments/${commentId}`);
       setMyComments(prev => prev.filter(c => c._id !== commentId));
-      toast.success('Комментарий удалён');
+      toast.success(t('commentDeleted'));
     } catch {
-      toast.error('Ошибка удаления');
+      toast.error(t('deleteError'));
     }
   };
 
@@ -203,7 +203,7 @@ export default function Profile() {
               <div className="divider-vertical h-10" />
               <div className="flex-1 text-center">
                 <p className="stat-value">{stats.totalScore}<span className="text-lg text-gray-400 ml-0.5">%</span></p>
-                <p className="stat-label mt-1">Средний балл</p>
+                <p className="stat-label mt-1">{t('avgScore')}</p>
               </div>
             </div>
           </div>
@@ -266,7 +266,8 @@ export default function Profile() {
                     {[
                       { code: 'en', label: 'English', flag: '🇬🇧' },
                       { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-                      { code: 'kz', label: 'Қазақша', flag: '🇰🇿' }
+                      { code: 'kz', label: 'Қазақша', flag: '🇰🇿' },
+                      { code: 'es', label: 'Español', flag: '🇪🇸' }
                     ].map(l => (
                       <button key={l.code} onClick={() => handleLanguageChange(l.code)}
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
@@ -280,30 +281,70 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Warnings — timeline style */}
-                {warnings.length > 0 && (
-                  <div className="glass-card-solid p-6 mb-5">
-                    <p className="section-title mb-4 flex items-center gap-2">
-                      <AlertTriangle size={14} className="text-amber-500" /> {t('warnings')} ({warnings.length})
-                    </p>
-                    <div className="relative pl-6">
-                      {/* Vertical timeline line */}
-                      <div className="absolute left-[7px] top-2 bottom-2 w-px bg-amber-200 dark:bg-amber-800" />
-                      <div className="space-y-4">
+                <div className="glass-card-solid p-6 mb-5 overflow-hidden relative">
+                  <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-amber-100/70 via-transparent to-orange-100/70 dark:from-amber-900/20 dark:to-orange-900/10 pointer-events-none" />
+                  <div className="relative">
+                    <div className="flex items-start justify-between gap-4 mb-5">
+                      <div>
+                        <p className="section-title mb-1 flex items-center gap-2">
+                          <AlertTriangle size={14} className="text-amber-500" /> {t('warnings')}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {warnings.length > 0
+                            ? `${warnings.length} ${t('warnings').toLowerCase()}`
+                            : (t('warningsEmptyDesc') || 'Administrator messages will appear here.')}
+                        </p>
+                      </div>
+                      <span className={`inline-flex min-w-[52px] justify-center rounded-2xl px-3 py-2 text-sm font-semibold ${
+                        warnings.length > 0
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                          : 'bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-gray-300'
+                      }`}>
+                        {warnings.length}
+                      </span>
+                    </div>
+
+                    {warnings.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-800/40 p-5 text-center">
+                        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-slate-700 dark:text-slate-300">
+                          <AlertTriangle size={18} />
+                        </div>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                          {t('warningsEmptyTitle') || 'No warnings'}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                          {t('warningsEmptyDesc') || 'Administrator messages will appear here.'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
                         {warnings.map((w, i) => (
-                          <div key={i} className="relative">
-                            {/* Timeline dot */}
-                            <div className="absolute -left-6 top-1.5 w-3.5 h-3.5 rounded-full bg-amber-100 dark:bg-amber-900/40 border-2 border-amber-400 dark:border-amber-600" />
-                            <div>
-                              <p className="text-sm text-gray-700 dark:text-gray-300">{w.message}</p>
-                              <p className="text-[11px] text-gray-400 mt-1">{new Date(w.createdAt).toLocaleString()}</p>
+                          <div
+                            key={i}
+                            className="rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50 to-white px-4 py-4 shadow-sm dark:border-amber-900/30 dark:from-amber-950/20 dark:to-slate-900"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
+                                <AlertTriangle size={18} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2 mb-2">
+                                  <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                    Admin
+                                  </span>
+                                  <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                                    {new Date(w.createdAt).toLocaleString()}
+                                  </span>
+                                </div>
+                                <p className="text-sm leading-6 text-gray-700 dark:text-gray-200">{w.message}</p>
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    )}
                   </div>
-                )}
+                </div>
               </motion.div>
             )}
 
@@ -330,7 +371,7 @@ export default function Profile() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Повторите новый пароль</label>
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">{t('repeatNewPassword')}</label>
                       <div className="relative">
                         <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input type="password" className="input-field text-sm pl-10" placeholder="••••••••"
@@ -355,7 +396,7 @@ export default function Profile() {
                   {myComments.length === 0 ? (
                     <div className="text-center py-10">
                       <MessageSquare size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                      <p className="text-sm text-gray-400">Комментариев пока нет</p>
+                      <p className="text-sm text-gray-400">{t('noCommentsYet')}</p>
                     </div>
                   ) : (
                     <div className="space-y-3 max-h-[500px] overflow-y-auto">
