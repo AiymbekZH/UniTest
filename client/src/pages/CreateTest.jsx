@@ -507,6 +507,9 @@ export default function CreateTest() {
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [draftStatus, setDraftStatus] = useState(''); // '' | 'saving' | 'saved'
   const [openTranslationPanels, setOpenTranslationPanels] = useState({});
+  const [bulkTranslateMode, setBulkTranslateMode] = useState(false);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+  const [bulkTranslateState, setBulkTranslateState] = useState(null);
   const [coverEditor, setCoverEditor] = useState(null);
   const [showCoverPanel, setShowCoverPanel] = useState(true);
   const questionRefs = useRef({});
@@ -518,6 +521,8 @@ export default function CreateTest() {
   const hasAIAccess = user?.role === 'admin' || Boolean(user?.aiAccess);
   const settingHelp = SETTING_HELP_TEXT[lang] || SETTING_HELP_TEXT.en;
   const getSettingHelp = useCallback((key) => settingHelp[key] || SETTING_HELP_TEXT.en[key] || '', [settingHelp]);
+  const selectedQuestionCount = selectedQuestionIds.length;
+  const isBulkTranslating = Boolean(bulkTranslateState);
 
   const checkAIAccess = (callback) => {
     if (!hasAIAccess) {
@@ -570,6 +575,13 @@ export default function CreateTest() {
     }
   }, [editId]);
 
+  useEffect(() => {
+    setSelectedQuestionIds(prev => {
+      const next = prev.filter(id => test.questions.some(question => question.id === id));
+      return next.length === prev.length && next.every((id, index) => id === prev[index]) ? prev : next;
+    });
+  }, [test.questions]);
+
   // Auto-save draft (debounced 2s)
   useEffect(() => {
     if (editId) return; // Don't auto-save when editing existing test
@@ -618,6 +630,13 @@ export default function CreateTest() {
       return next;
     });
   }, [test.questions, test.settings.multiLanguage?.enabled, test.settings.multiLanguage?.languages]);
+
+  useEffect(() => {
+    if (test.settings.multiLanguage?.enabled && test.settings.multiLanguage?.languages?.length) return;
+    setBulkTranslateMode(false);
+    setSelectedQuestionIds([]);
+    setBulkTranslateState(null);
+  }, [test.settings.multiLanguage?.enabled, test.settings.multiLanguage?.languages]);
 
   useEffect(() => {
     if (!test.coverImage) {
@@ -763,39 +782,72 @@ export default function CreateTest() {
 
   // AI translate a single question
   const [translatingState, setTranslatingState] = useState(null);
+  const getTranslationLanguages = useCallback((targetLanguages = test.settings.multiLanguage?.languages || []) => {
+    const langs = [...new Set((targetLanguages || []).filter(Boolean))];
+    if (!test.settings.multiLanguage?.enabled || !langs.length) {
+      toast.error(t('aiTranslationNeedsLanguages') || 'Enable translations and choose languages in settings first');
+      return [];
+    }
+    return langs;
+  }, [t, test.settings.multiLanguage]);
+
+  const applyQuestionTranslations = useCallback((questionId, langs, incomingTranslations, overwriteExisting = false) => {
+    if (!questionId || !langs?.length) return;
+
+    setTest(prev => ({
+      ...prev,
+      questions: prev.questions.map(question => {
+        if (question.id !== questionId) return question;
+
+        const nextTranslations = { ...(question.translations || {}) };
+        langs.forEach(langCode => {
+          if (incomingTranslations?.[langCode]) {
+            nextTranslations[langCode] = mergeTranslationPayload(
+              nextTranslations[langCode],
+              incomingTranslations[langCode],
+              overwriteExisting
+            );
+          }
+        });
+
+        return {
+          ...question,
+          translations: nextTranslations
+        };
+      })
+    }));
+
+    setOpenTranslationPanels(prev => {
+      const next = { ...prev };
+      langs.forEach(langCode => {
+        next[`${questionId}:${langCode}`] = true;
+      });
+      return next;
+    });
+  }, []);
+
+  const requestAITranslations = useCallback(async (question, langs) => {
+    const res = await api.post('/ai/translate', {
+      questionText: question.questionText || '',
+      options: question.options?.map(option => ({ text: option.text })) || [],
+      matchingPairs: question.options?.map(option => option.matchPair || '') || [],
+      passage: question.passage || '',
+      explanation: question.explanation || '',
+      correctAnswer: question.correctAnswer || '',
+      targetLanguages: langs
+    });
+
+    return res.data.translations || {};
+  }, []);
+
   const aiTranslateQuestion = async (qIndex, targetLanguages = test.settings.multiLanguage?.languages || [], overwriteExisting = false) => {
     const q = test.questions[qIndex];
-    const langs = [...new Set((targetLanguages || []).filter(Boolean))];
-    if (!langs.length) { toast.error('Выберите языки в настройках'); return; }
+    const langs = getTranslationLanguages(targetLanguages);
+    if (!q || !langs.length) return;
     setTranslatingState({ qIndex, languages: langs });
     try {
-      const res = await api.post('/ai/translate', {
-        questionText: q.questionText || '',
-        options: q.options?.map(o => ({ text: o.text })) || [],
-        matchingPairs: q.options?.map(o => o.matchPair || '') || [],
-        passage: q.passage || '',
-        explanation: q.explanation || '',
-        correctAnswer: q.correctAnswer || '',
-        targetLanguages: langs
-      });
-      const translations = res.data.translations || {};
-      const updated = [...test.questions];
-      const newTranslations = { ...(q.translations || {}) };
-      for (const lang of langs) {
-        if (translations[lang]) {
-          newTranslations[lang] = mergeTranslationPayload(newTranslations[lang], translations[lang], overwriteExisting);
-        }
-      }
-      updated[qIndex] = { ...q, translations: newTranslations };
-      setTest(prev => ({ ...prev, questions: updated }));
-
-      setOpenTranslationPanels(prev => {
-        const next = { ...prev };
-        langs.forEach(langCode => {
-          next[getTranslationPanelKey(q.id, langCode)] = true;
-        });
-        return next;
-      });
+      const translations = await requestAITranslations(q, langs);
+      applyQuestionTranslations(q.id, langs, translations, overwriteExisting);
 
       toast.success(langs.length === 1
         ? `Перевод обновлён: ${langs[0].toUpperCase()}`
@@ -805,6 +857,78 @@ export default function CreateTest() {
     } finally {
       setTranslatingState(null);
     }
+  };
+
+  const toggleBulkTranslateMode = () => {
+    if (!bulkTranslateMode) {
+      const langs = getTranslationLanguages();
+      if (!langs.length) return;
+    }
+    setBulkTranslateMode(prev => !prev);
+    setSelectedQuestionIds([]);
+  };
+
+  const toggleQuestionSelection = (questionId) => {
+    setSelectedQuestionIds(prev => (
+      prev.includes(questionId)
+        ? prev.filter(id => id !== questionId)
+        : [...prev, questionId]
+    ));
+  };
+
+  const selectAllQuestionsForBulkTranslate = () => {
+    setSelectedQuestionIds(test.questions.map(question => question.id));
+  };
+
+  const clearBulkQuestionSelection = () => {
+    setSelectedQuestionIds([]);
+  };
+
+  const aiTranslateSelectedQuestions = async () => {
+    const langs = getTranslationLanguages();
+    if (!langs.length) return;
+
+    const selectedQuestions = test.questions.filter(question => selectedQuestionIds.includes(question.id));
+    if (!selectedQuestions.length) {
+      toast.error(t('aiSelectAtLeastOneQuestion') || 'Select at least one question');
+      return;
+    }
+
+    setBulkTranslateState({ current: 0, total: selectedQuestions.length });
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (let index = 0; index < selectedQuestions.length; index += 1) {
+      const question = selectedQuestions[index];
+      setBulkTranslateState({ current: index + 1, total: selectedQuestions.length });
+
+      try {
+        const translations = await requestAITranslations(question, langs);
+        applyQuestionTranslations(question.id, langs, translations, false);
+        successCount += 1;
+      } catch (_) {
+        failedCount += 1;
+      }
+    }
+
+    setBulkTranslateState(null);
+
+    if (successCount > 0) {
+      toast.success(
+        t('aiSelectedQuestionsTranslated', { count: successCount })
+        || `Переведено вопросов: ${successCount}`
+      );
+    }
+    if (failedCount > 0) {
+      toast.error(
+        t('aiSelectedQuestionsFailed', { count: failedCount })
+        || `Не удалось перевести вопросов: ${failedCount}`
+      );
+    }
+
+    setBulkTranslateMode(false);
+    setSelectedQuestionIds([]);
   };
   const updateSettings = (field, value) => setTest(prev => ({
     ...prev, settings: { ...prev.settings, [field]: value }
@@ -1189,6 +1313,19 @@ export default function CreateTest() {
                     : 'text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/10'
                 }`}>
                 <Sparkles size={14} /> {t('aiGenerate') || 'AI Generate'}
+              </button>
+              <button
+                onClick={() => checkAIAccess(toggleBulkTranslateMode)}
+                disabled={isBulkTranslating}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  bulkTranslateMode
+                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300'
+                    : hasAIAccess
+                      ? 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
+                      : 'text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/10'
+                } disabled:opacity-50`}
+              >
+                <Globe size={14} /> {t('aiTranslateSelected') || 'AI translate selected'}
               </button>
               <button onClick={saveToBank}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
@@ -1774,6 +1911,19 @@ export default function CreateTest() {
             }`}>
               <Sparkles size={12} /> {t('aiGenerate') || 'AI Generate'}
             </button>
+            <button
+              onClick={() => checkAIAccess(toggleBulkTranslateMode)}
+              disabled={isBulkTranslating}
+              className={`btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap ${
+                bulkTranslateMode
+                  ? 'text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                  : hasAIAccess
+                    ? 'text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
+                    : 'text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+              } disabled:opacity-50`}
+            >
+              <Globe size={12} /> {t('aiTranslateSelected') || 'AI translate selected'}
+            </button>
             <button onClick={saveToBank} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
               <Save size={12} /> {t('saveToBank')}
             </button>
@@ -1781,6 +1931,60 @@ export default function CreateTest() {
 
           {/* Questions */}
           <div className="space-y-4">
+            {(bulkTranslateMode || selectedQuestionCount > 0) && (
+              <div className="glass-card-solid p-3 sm:p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500 dark:text-indigo-300">
+                      {t('aiTranslationSelectionTitle') || 'AI translation selection'}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                      {bulkTranslateState
+                        ? `${t('aiTranslatingSelectedProgress') || 'Translating selected questions'} ${bulkTranslateState.current}/${bulkTranslateState.total}`
+                        : `${t('questionsCount') || 'Questions'}: ${selectedQuestionCount}`
+                      }
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={selectAllQuestionsForBulkTranslate}
+                      disabled={isBulkTranslating}
+                      className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
+                    >
+                      {t('selectAll') || 'Select all'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearBulkQuestionSelection}
+                      disabled={isBulkTranslating}
+                      className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
+                    >
+                      {t('clearAll') || 'Clear all'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => checkAIAccess(aiTranslateSelectedQuestions)}
+                      disabled={isBulkTranslating || !selectedQuestionCount}
+                      className="rounded-xl bg-indigo-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-50"
+                    >
+                      {isBulkTranslating
+                        ? (t('aiTranslatingSelected') || 'AI translating...')
+                        : (t('aiTranslateSelected') || 'AI translate selected')
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      onClick={toggleBulkTranslateMode}
+                      disabled={isBulkTranslating}
+                      className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
+                    >
+                      {t('cancel') || 'Cancel'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <AnimatePresence>
               {test.questions.map((question, qIndex) => (
                 <motion.div
@@ -1797,6 +2001,20 @@ export default function CreateTest() {
                   <div className="flex items-center justify-between p-4 cursor-pointer select-none"
                     onClick={e => { e.stopPropagation(); setCollapsed(prev => ({ ...prev, [qIndex]: !prev[qIndex] })); }}>
                     <div className="flex items-center gap-3 min-w-0">
+                      {bulkTranslateMode && (
+                        <label
+                          className="flex items-center"
+                          onClick={event => event.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedQuestionIds.includes(question.id)}
+                            disabled={isBulkTranslating}
+                            onChange={() => toggleQuestionSelection(question.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                          />
+                        </label>
+                      )}
                       <span className="flex items-center justify-center w-7 h-7 bg-primary-50 dark:bg-primary-900/30 text-primary-600 rounded-lg font-bold text-xs flex-shrink-0">
                         {qIndex + 1}
                       </span>
@@ -1882,7 +2100,7 @@ export default function CreateTest() {
                                 e.stopPropagation();
                                 checkAIAccess(() => aiTranslateQuestion(qIndex));
                               }}
-                              disabled={translatingState?.qIndex === qIndex}
+                              disabled={translatingState?.qIndex === qIndex || isBulkTranslating}
                               className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition ${
                                 hasAIAccess
                                   ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'

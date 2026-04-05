@@ -104,9 +104,6 @@ function AnimatedPlaceholder({ title = '', showCaption = true }) {
               <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
                 {title?.trim() || 'UniTest'}
               </p>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-300">
-                Красивая обложка появится автоматически после загрузки
-              </p>
             </div>
           </div>
         </div>

@@ -41,6 +41,8 @@ const TRUE_FALSE_CATEGORY_KEYWORDS = {
   ]
 };
 
+const MAX_AI_GENERATED_QUESTIONS = 20;
+
 // Multer for file uploads (PDF, DOCX, TXT, images) — max 20MB
 const fileUpload = multer({
   storage: multer.memoryStorage(),
@@ -224,6 +226,10 @@ router.post('/generate', auth, fileUpload.single('file'), async (req, res) => {
 
     if (totalQuestions <= 0) {
       return res.status(400).json({ error: 'Select at least one question type with a positive count' });
+    }
+
+    if (totalQuestions > MAX_AI_GENERATED_QUESTIONS) {
+      return res.status(400).json({ error: `You can generate up to ${MAX_AI_GENERATED_QUESTIONS} questions at once` });
     }
 
     // Extract text from uploaded file

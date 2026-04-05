@@ -251,6 +251,7 @@ function toRichTextHtml(value = '') {
 }
 
 const TEST_SESSION_PREFIX = 'testSession_';
+const SAVED_SESSION_TTL_MS = 5 * 60 * 1000;
 
 function createSessionId() {
   return `session_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -268,6 +269,17 @@ function readSavedSession(shareLink = '') {
   } catch {
     return null;
   }
+}
+
+function getSavedSessionAgeMs(savedSession) {
+  if (!savedSession?.updatedAt) return Number.POSITIVE_INFINITY;
+  const updatedAtMs = new Date(savedSession.updatedAt).getTime();
+  if (!Number.isFinite(updatedAtMs)) return Number.POSITIVE_INFINITY;
+  return Date.now() - updatedAtMs;
+}
+
+function isSavedSessionExpired(savedSession) {
+  return getSavedSessionAgeMs(savedSession) > SAVED_SESSION_TTL_MS;
 }
 
 function readCookie(name) {
@@ -529,6 +541,16 @@ export default function TakeTest() {
     onViolation: handleViolation
   });
 
+  const refreshAttemptInfo = useCallback(async (currentTest) => {
+    if (!currentTest?._id) return;
+    try {
+      const guestId = !user ? getGuestId() : '';
+      const attUrl = `/results/my-attempts/${currentTest._id}${guestId ? `?guestId=${guestId}` : ''}`;
+      const attRes = await api.get(attUrl);
+      setAttemptInfo({ attempts: attRes.data.attempts, maxAttempts: currentTest.settings?.maxAttempts || 0 });
+    } catch (_) {}
+  }, [user]);
+
   const fetchTest = async (variantNum) => {
     try {
       const savedSession = !variantNum && !isPractice ? readSavedSession(shareLink) : null;
@@ -554,12 +576,7 @@ export default function TakeTest() {
       }
 
       if (!user) setShowGuestForm(true);
-      try {
-        const guestId = !user ? getGuestId() : '';
-        const attUrl = `/results/my-attempts/${res.data._id}${guestId ? `?guestId=${guestId}` : ''}`;
-        const attRes = await api.get(attUrl);
-        setAttemptInfo({ attempts: attRes.data.attempts, maxAttempts: res.data.settings?.maxAttempts || 0 });
-      } catch (_) {}
+      await refreshAttemptInfo(res.data);
     } catch (err) {
       if (err.response?.status === 403 && err.response?.data?.code) {
         setDeadlineError(err.response.data);
@@ -592,38 +609,6 @@ export default function TakeTest() {
       }
     };
   }, [isPractice, persistSessionSnapshot]);
-
-  useEffect(() => {
-    if (!test || isPractice || restoredSessionRef.current) return;
-    const restored = readSavedSession(shareLink);
-    if (!restored || restored.testId !== test._id || !restored.started) return;
-
-    restoredSessionRef.current = true;
-
-    if (restored.resumeBlocked) {
-      clearSavedSession();
-      toast.error(t('savedSessionClosed'));
-      return;
-    }
-
-    setAnswers(restored.answers || {});
-    setCurrentQ(restored.currentQ || 0);
-    setViolations(restored.violations || []);
-    setGuestName(restored.guestName || '');
-    setTimeLeft(typeof restored.timeLeft === 'number' ? restored.timeLeft : null);
-    setSelectedVariant(restored.selectedVariant || null);
-    setElapsedActiveSeconds(restored.elapsedActiveSeconds || 0);
-    setSessionId(restored.sessionId || createSessionId());
-    setTestLang(restored.testLang || null);
-    setSessionPaused(false);
-    runtimeRef.current.started = true;
-    runtimeRef.current.sessionPaused = false;
-    leaveGuardRef.current = false;
-    setStarted(true);
-    setShowGuestForm(false);
-    resetActivity();
-    toast.success(t('savedSessionRestored'));
-  }, [test, isPractice, shareLink, clearSavedSession, resetActivity, t]);
 
   useEffect(() => {
     if (!started || !test?.settings?.timeLimit || typeof timeLeft === 'number') return;
@@ -852,9 +837,9 @@ export default function TakeTest() {
     }
   }, [answers, currentQ, test, feedback]);
 
-  const buildSubmissionPayload = useCallback(() => {
-    const current = runtimeRef.current;
-    const currentTest = current.test;
+  const createSubmissionPayload = useCallback((sourceState) => {
+    const current = sourceState || runtimeRef.current;
+    const currentTest = current?.test;
     if (!currentTest) return null;
 
     const formattedAnswers = currentTest.questions.map(q => {
@@ -870,12 +855,12 @@ export default function TakeTest() {
       variantNumber: current.selectedVariant || 0,
       violations: current.violations || [],
       timeSpent: Math.max(0, Math.round(current.elapsedActiveSeconds || 0)),
-      sessionId: ensureSessionId()
+      sessionId: current.sessionId || ensureSessionId()
     };
   }, [ensureSessionId, user]);
 
-  const submitResultRequest = useCallback(async ({ keepalive = false } = {}) => {
-    const payload = buildSubmissionPayload();
+  const submitResultRequest = useCallback(async ({ keepalive = false, sourceState = null } = {}) => {
+    const payload = createSubmissionPayload(sourceState);
     if (!payload) return null;
 
     if (!keepalive) {
@@ -905,7 +890,66 @@ export default function TakeTest() {
     }
 
     return response.json();
-  }, [buildSubmissionPayload]);
+  }, [createSubmissionPayload]);
+
+  const expireSavedSession = useCallback(async (savedSession, currentTest) => {
+    if (!savedSession?.started || !currentTest || isPractice) return false;
+
+    try {
+      await submitResultRequest({
+        sourceState: {
+          ...savedSession,
+          test: currentTest
+        }
+      });
+      await refreshAttemptInfo(currentTest);
+      clearSavedSession();
+      toast.error(t('savedSessionExpired'));
+      return true;
+    } catch (_) {
+      clearSavedSession();
+      toast.error(t('savedSessionExpired'));
+      await refreshAttemptInfo(currentTest);
+      return false;
+    }
+  }, [clearSavedSession, isPractice, refreshAttemptInfo, submitResultRequest, t]);
+
+  useEffect(() => {
+    if (!test || isPractice || restoredSessionRef.current) return;
+    const restored = readSavedSession(shareLink);
+    if (!restored || restored.testId !== test._id || !restored.started) return;
+
+    restoredSessionRef.current = true;
+
+    if (restored.resumeBlocked) {
+      clearSavedSession();
+      toast.error(t('savedSessionClosed'));
+      return;
+    }
+
+    if (isSavedSessionExpired(restored)) {
+      expireSavedSession(restored, test);
+      return;
+    }
+
+    setAnswers(restored.answers || {});
+    setCurrentQ(restored.currentQ || 0);
+    setViolations(restored.violations || []);
+    setGuestName(restored.guestName || '');
+    setTimeLeft(typeof restored.timeLeft === 'number' ? restored.timeLeft : null);
+    setSelectedVariant(restored.selectedVariant || null);
+    setElapsedActiveSeconds(restored.elapsedActiveSeconds || 0);
+    setSessionId(restored.sessionId || createSessionId());
+    setTestLang(restored.testLang || null);
+    setSessionPaused(false);
+    runtimeRef.current.started = true;
+    runtimeRef.current.sessionPaused = false;
+    leaveGuardRef.current = false;
+    setStarted(true);
+    setShowGuestForm(false);
+    resetActivity();
+    toast.success(t('savedSessionRestored'));
+  }, [test, isPractice, shareLink, clearSavedSession, expireSavedSession, resetActivity, t]);
 
   const finishSessionOnLeave = useCallback(async ({ keepalive = false } = {}) => {
     if (!runtimeRef.current.started || isPractice || hardExitInFlightRef.current) return null;

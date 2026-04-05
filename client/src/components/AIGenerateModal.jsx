@@ -20,8 +20,8 @@ const DEFAULT_QUESTION_PLAN = {
   'matching': 0,
 };
 
-const MAX_TYPE_COUNT = 40;
-const MAX_TOTAL_COUNT = MAX_TYPE_COUNT * QUESTION_TYPES.length;
+const MAX_TYPE_COUNT = 20;
+const MAX_TOTAL_COUNT = 20;
 
 const FILE_ACCEPT = '.pdf,.docx,.doc,.txt,image/jpeg,image/png,image/gif,image/webp';
 
@@ -152,10 +152,17 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
   };
 
   const updateTypeCount = (type, nextValue) => {
-    setQuestionPlan(prev => ({
-      ...prev,
-      [type]: Math.max(0, Math.min(MAX_TYPE_COUNT, nextValue))
-    }));
+    setQuestionPlan(prev => {
+      const otherTotal = Object.entries(prev).reduce((sum, [currentType, count]) => (
+        currentType === type ? sum : sum + count
+      ), 0);
+      const maxForType = Math.max(0, Math.min(MAX_TYPE_COUNT, MAX_TOTAL_COUNT - otherTotal));
+
+      return {
+        ...prev,
+        [type]: Math.max(0, Math.min(maxForType, nextValue))
+      };
+    });
   };
 
   const updateTotalQuestions = (nextValue) => {
@@ -169,6 +176,10 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
     }
     if (totalQuestions <= 0) {
       setError(t('aiUseAtLeastOneType') || 'Select at least one question type');
+      return;
+    }
+    if (totalQuestions > MAX_TOTAL_COUNT) {
+      setError(`Maximum ${MAX_TOTAL_COUNT} questions per generation`);
       return;
     }
     setLoading(true);
