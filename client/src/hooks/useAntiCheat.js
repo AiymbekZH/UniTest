@@ -24,17 +24,6 @@ export default function useAntiCheat({ enabled, settings, onViolation }) {
     if (!enabled) return;
     const cleanup = [];
 
-    // === НАРУШЕНИЕ: только уход со страницы ===
-    const handleVisibility = () => {
-      if (document.hidden) {
-        addViolation('tab-switch', 'Пользователь покинул страницу теста');
-      }
-    };
-    if (settingsRef.current?.blockTabSwitch) {
-      document.addEventListener('visibilitychange', handleVisibility);
-      cleanup.push(() => document.removeEventListener('visibilitychange', handleVisibility));
-    }
-
     // === БЛОКИРОВКА (без нарушения): копирование/вставка/вырезка ===
     if (settingsRef.current?.blockCopyPaste) {
       const blockCopy = (e) => e.preventDefault();

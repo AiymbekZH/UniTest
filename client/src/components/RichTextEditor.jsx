@@ -166,7 +166,16 @@ const MenuBar = ({ editor, disableLinks }) => {
   );
 };
 
-export default function RichTextEditor({ content, onChange, placeholder = '', className = '', disableLinks = false }) {
+export default function RichTextEditor({
+  content,
+  onChange,
+  placeholder = '',
+  className = '',
+  contentClassName = '',
+  editorClassName = '',
+  contentStyle,
+  disableLinks = false
+}) {
   const normalizedContent = normalizeEditorContent(content);
   const editor = useEditor({
     extensions: [
@@ -197,7 +206,7 @@ export default function RichTextEditor({ content, onChange, placeholder = '', cl
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none px-3 py-2 min-h-[80px] focus:outline-none text-sm',
+        class: `prose prose-sm dark:prose-invert max-w-none px-3 py-2 min-h-[80px] h-full focus:outline-none text-sm ${editorClassName}`.trim(),
       },
     },
   });
@@ -214,7 +223,9 @@ export default function RichTextEditor({ content, onChange, placeholder = '', cl
   return (
     <div className={`border border-gray-200 dark:border-slate-600 rounded-xl overflow-hidden bg-white dark:bg-slate-800 focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-300 dark:focus-within:border-primary-600 transition-all ${className}`}>
       <MenuBar editor={editor} disableLinks={disableLinks} />
-      <EditorContent editor={editor} />
+      <div className={contentClassName} style={contentStyle}>
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

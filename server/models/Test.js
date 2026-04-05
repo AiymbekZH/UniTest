@@ -85,6 +85,8 @@ const testSchema = new mongoose.Schema({
     isPublic: { type: Boolean, default: false },
     antiCheat: {
       blockTabSwitch: { type: Boolean, default: true },
+      warnOnLeave: { type: Boolean, default: true },
+      finishOnLeave: { type: Boolean, default: false },
       blockCopyPaste: { type: Boolean, default: true },
       blockScreenshot: { type: Boolean, default: true },
       maxViolations: { type: Number, default: 5 }

@@ -29,6 +29,7 @@ const resultSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   guestName: { type: String, default: '' }, // For unregistered users
   guestId: { type: String, default: '' }, // Persistent guest browser ID for attempt tracking
+  sessionId: { type: String, default: '' }, // Browser session id for idempotent completion/recovery
   variantNumber: { type: Number, default: 0 }, // Which ticket/variant was used (0 = none)
   answers: [answerSchema],
   score: { type: Number, default: 0 },
@@ -59,5 +60,6 @@ resultSchema.pre('save', function(next) {
 resultSchema.index({ test: 1, status: 1 });
 resultSchema.index({ user: 1, status: 1 });
 resultSchema.index({ test: 1, user: 1, status: 1 });
+resultSchema.index({ test: 1, sessionId: 1 });
 
 module.exports = mongoose.model('Result', resultSchema);

@@ -28,15 +28,131 @@ function getAcceptedFillBlankAnswers(question) {
   return values;
 }
 
+function gradeAnswers(test, answers = []) {
+  const usePartialCredit = test.settings?.partialCredit === true;
+  let score = 0;
+  let variantTotalPoints = 0;
+
+  const gradedAnswers = answers.map(answer => {
+    const question = test.questions.find(q => q.id === answer.questionId);
+    if (!question) return { ...answer, isCorrect: false, pointsEarned: 0 };
+
+    variantTotalPoints += question.points;
+
+    let isCorrect = false;
+    let pointsEarned = 0;
+
+    let userAnswer = '';
+    if (answer.selectedOptions?.length > 0) {
+      userAnswer = answer.selectedOptions.map(optId => {
+        const opt = question.options.find(o => o.id === optId);
+        return opt ? opt.text : optId;
+      }).join(', ');
+    } else if (answer.textAnswer) {
+      userAnswer = answer.textAnswer;
+    }
+
+    const baseAnswer = {
+      ...answer,
+      type: question.type,
+      questionText: question.questionText,
+      maxPoints: question.points,
+      userAnswer
+    };
+
+    switch (question.type) {
+      case 'single-choice': {
+        const correctOpt = question.options.find(o => o.isCorrect);
+        isCorrect = correctOpt && answer.selectedOptions[0] === correctOpt.id;
+        break;
+      }
+      case 'multiple-choice': {
+        const correctIds = question.options.filter(o => o.isCorrect).map(o => o.id).sort();
+        const selectedIds = (answer.selectedOptions || []).sort();
+        isCorrect = correctIds.length === selectedIds.length &&
+          correctIds.every((id, i) => id === selectedIds[i]);
+
+        if (!isCorrect && usePartialCredit && correctIds.length > 0) {
+          const correctSelected = selectedIds.filter(id => correctIds.includes(id)).length;
+          const wrongSelected = selectedIds.filter(id => !correctIds.includes(id)).length;
+          const ratio = Math.max(0, (correctSelected - wrongSelected) / correctIds.length);
+          if (ratio > 0) {
+            pointsEarned = Math.round(question.points * ratio * 100) / 100;
+            score += pointsEarned;
+            return { ...baseAnswer, isCorrect: false, pointsEarned };
+          }
+        }
+        break;
+      }
+      case 'true-false': {
+        const correctOpt = question.options.find(o => o.isCorrect);
+        isCorrect = correctOpt && answer.selectedOptions[0] === correctOpt.id;
+        break;
+      }
+      case 'matching': {
+        const correctPairs = question.options.reduce((acc, o) => {
+          if (o.matchPair) acc[o.id] = o.matchPair;
+          return acc;
+        }, {});
+        const userPairs = (answer.matchingPairs || []).reduce((acc, p) => {
+          acc[p.left] = p.right;
+          return acc;
+        }, {});
+        isCorrect = Object.keys(correctPairs).length === Object.keys(userPairs).length &&
+          Object.entries(correctPairs).every(([k, v]) => userPairs[k] === v);
+
+        if (!isCorrect && usePartialCredit && Object.keys(correctPairs).length > 0) {
+          const totalPairs = Object.keys(correctPairs).length;
+          const correctCount = Object.entries(correctPairs).filter(([k, v]) => userPairs[k] === v).length;
+          const ratio = correctCount / totalPairs;
+          if (ratio > 0) {
+            pointsEarned = Math.round(question.points * ratio * 100) / 100;
+            score += pointsEarned;
+            return { ...baseAnswer, isCorrect: false, pointsEarned };
+          }
+        }
+        break;
+      }
+      case 'fill-blank': {
+        const acceptedAnswers = getAcceptedFillBlankAnswers(question);
+        isCorrect = acceptedAnswers.has(normalizeFreeText(answer.textAnswer));
+        break;
+      }
+      case 'essay': {
+        return { ...baseAnswer, isCorrect: false, pointsEarned: 0 };
+      }
+    }
+
+    if (isCorrect) {
+      pointsEarned = question.points;
+      score += pointsEarned;
+    }
+
+    return { ...baseAnswer, isCorrect, pointsEarned };
+  });
+
+  return {
+    gradedAnswers,
+    score,
+    totalPoints: variantTotalPoints > 0 ? variantTotalPoints : test.totalPoints
+  };
+}
+
 // Submit test result
 router.post('/', optionalAuth, async (req, res) => {
   try {
-    const { testId, answers, guestName, guestId, violations, timeSpent, variantNumber } = req.body;
+    const { testId, answers, guestName, guestId, violations, timeSpent, variantNumber, sessionId } = req.body;
 
     const test = await Test.findById(testId);
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
 
-    // Check attempt limit
+    if (sessionId) {
+      const existingResult = await Result.findOne({ test: testId, sessionId, status: 'completed' });
+      if (existingResult) {
+        return res.json(existingResult);
+      }
+    }
+
     if (test.settings?.maxAttempts > 0) {
       const query = { test: testId, status: 'completed' };
       if (req.user?._id) {
@@ -52,119 +168,18 @@ router.post('/', optionalAuth, async (req, res) => {
       }
     }
 
-    const usePartialCredit = test.settings?.partialCredit === true;
-
-    // Grade answers
-    let score = 0;
-    let variantTotalPoints = 0;
-    const gradedAnswers = answers.map(answer => {
-      const question = test.questions.find(q => q.id === answer.questionId);
-      if (!question) return { ...answer, isCorrect: false, pointsEarned: 0 };
-
-      variantTotalPoints += question.points;
-
-      let isCorrect = false;
-      let pointsEarned = 0;
-      
-      // Build user-readable answer text
-      let userAnswer = '';
-      if (answer.selectedOptions?.length > 0) {
-        userAnswer = answer.selectedOptions.map(optId => {
-          const opt = question.options.find(o => o.id === optId);
-          return opt ? opt.text : optId;
-        }).join(', ');
-      } else if (answer.textAnswer) {
-        userAnswer = answer.textAnswer;
-      }
-      
-      const baseAnswer = { ...answer, type: question.type, questionText: question.questionText, maxPoints: question.points, userAnswer };
-
-      switch (question.type) {
-        case 'single-choice': {
-          const correctOpt = question.options.find(o => o.isCorrect);
-          isCorrect = correctOpt && answer.selectedOptions[0] === correctOpt.id;
-          break;
-        }
-        case 'multiple-choice': {
-          const correctIds = question.options.filter(o => o.isCorrect).map(o => o.id).sort();
-          const selectedIds = (answer.selectedOptions || []).sort();
-          isCorrect = correctIds.length === selectedIds.length &&
-            correctIds.every((id, i) => id === selectedIds[i]);
-
-          // Partial credit: award proportional points for partially correct answers
-          if (!isCorrect && usePartialCredit && correctIds.length > 0) {
-            const correctSelected = selectedIds.filter(id => correctIds.includes(id)).length;
-            const wrongSelected = selectedIds.filter(id => !correctIds.includes(id)).length;
-            // Formula: (correct_selected - wrong_selected) / total_correct, minimum 0
-            const ratio = Math.max(0, (correctSelected - wrongSelected) / correctIds.length);
-            if (ratio > 0) {
-              pointsEarned = Math.round(question.points * ratio * 100) / 100;
-              score += pointsEarned;
-              return { ...baseAnswer, isCorrect: false, pointsEarned };
-            }
-          }
-          break;
-        }
-        case 'true-false': {
-          const correctOpt = question.options.find(o => o.isCorrect);
-          isCorrect = correctOpt && answer.selectedOptions[0] === correctOpt.id;
-          break;
-        }
-        case 'matching': {
-          const correctPairs = question.options.reduce((acc, o) => {
-            if (o.matchPair) acc[o.id] = o.matchPair;
-            return acc;
-          }, {});
-          const userPairs = (answer.matchingPairs || []).reduce((acc, p) => {
-            acc[p.left] = p.right;
-            return acc;
-          }, {});
-          isCorrect = Object.keys(correctPairs).length === Object.keys(userPairs).length &&
-            Object.entries(correctPairs).every(([k, v]) => userPairs[k] === v);
-
-          // Partial credit for matching
-          if (!isCorrect && usePartialCredit && Object.keys(correctPairs).length > 0) {
-            const totalPairs = Object.keys(correctPairs).length;
-            const correctCount = Object.entries(correctPairs).filter(([k, v]) => userPairs[k] === v).length;
-            const ratio = correctCount / totalPairs;
-            if (ratio > 0) {
-              pointsEarned = Math.round(question.points * ratio * 100) / 100;
-              score += pointsEarned;
-              return { ...baseAnswer, isCorrect: false, pointsEarned };
-            }
-          }
-          break;
-        }
-        case 'fill-blank': {
-          const acceptedAnswers = getAcceptedFillBlankAnswers(question);
-          isCorrect = acceptedAnswers.has(normalizeFreeText(answer.textAnswer));
-          break;
-        }
-        case 'essay': {
-          // Essays need manual grading; mark as pending (0 points until graded)
-          isCorrect = false;
-          pointsEarned = 0;
-          return { ...baseAnswer, isCorrect, pointsEarned };
-        }
-      }
-
-      if (isCorrect) {
-        pointsEarned = question.points;
-        score += pointsEarned;
-      }
-
-      return { ...baseAnswer, isCorrect, pointsEarned };
-    });
+    const { gradedAnswers, score, totalPoints } = gradeAnswers(test, answers);
 
     const result = new Result({
       test: testId,
       user: req.user?._id || null,
       guestName: !req.user ? guestName : '',
       guestId: !req.user ? (guestId || '') : '',
+      sessionId: sessionId || '',
       variantNumber: variantNumber || 0,
       answers: gradedAnswers,
       score,
-      totalPoints: variantTotalPoints > 0 ? variantTotalPoints : test.totalPoints,
+      totalPoints,
       violations: violations || [],
       timeSpent: timeSpent || 0,
       completedAt: new Date(),

@@ -250,6 +250,40 @@ function toRichTextHtml(value = '') {
   return `<p>${escapeHtml(normalized).replace(/\n/g, '<br />')}</p>`;
 }
 
+const TEST_SESSION_PREFIX = 'testSession_';
+
+function createSessionId() {
+  return `session_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getSessionStorageKey(shareLink = '') {
+  return `${TEST_SESSION_PREFIX}${shareLink}`;
+}
+
+function readSavedSession(shareLink = '') {
+  if (!shareLink || typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(getSessionStorageKey(shareLink));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readCookie(name) {
+  const prefix = `${name}=`;
+  const parts = document.cookie ? document.cookie.split('; ') : [];
+  const found = parts.find(part => part.startsWith(prefix));
+  return found ? decodeURIComponent(found.slice(prefix.length)) : '';
+}
+
+function getQuestionPreviewText(question, testLang, t, fallbackIndex = 0) {
+  const translatedText = testLang && question?.translations?.[testLang]?.questionText;
+  const text = stripHtml(translatedText || question?.questionText || '');
+  if (text) return text;
+  return `${t('question') || 'Question'} ${fallbackIndex + 1}`;
+}
+
 export default function TakeTest() {
   const { shareLink } = useParams();
   const [searchParams] = useSearchParams();
@@ -275,12 +309,18 @@ export default function TakeTest() {
   const [attemptInfo, setAttemptInfo] = useState({ attempts: 0, maxAttempts: 0 });
   const [isPublicTest, setIsPublicTest] = useState(false);
   const [testLang, setTestLang] = useState(null); // null = original, 'en'/'ru'/'kz'/'es' = translated
-  const startTimeRef = useRef(null);
+  const [elapsedActiveSeconds, setElapsedActiveSeconds] = useState(0);
+  const [sessionPaused, setSessionPaused] = useState(false);
+  const [sessionId, setSessionId] = useState(() => createSessionId());
   const dialogOpenRef = useRef(false);
   const navScrollRef = useRef(null);
   const submittingRef = useRef(false);
   const leaveGuardRef = useRef(false);
   const forceSubmitRef = useRef(null);
+  const runtimeRef = useRef({});
+  const restoredSessionRef = useRef(false);
+  const leaveViolationLockRef = useRef(0);
+  const hardExitInFlightRef = useRef(false);
 
   // Persistent guest ID for attempt tracking (browser fingerprint)
   const getGuestId = () => {
@@ -318,12 +358,81 @@ export default function TakeTest() {
     }
   }, [showInactivityWarning]);
 
+  const sessionStorageKey = getSessionStorageKey(shareLink);
+  const warnOnLeaveEnabled = Boolean(test?.settings?.antiCheat?.warnOnLeave ?? test?.settings?.antiCheat?.blockTabSwitch);
+  const finishOnLeaveEnabled = Boolean(test?.settings?.antiCheat?.finishOnLeave);
+  const leaveMonitoringEnabled = warnOnLeaveEnabled || finishOnLeaveEnabled;
+
+  const clearSavedSession = useCallback(() => {
+    if (isPractice) return;
+    try {
+      localStorage.removeItem(sessionStorageKey);
+    } catch {}
+  }, [isPractice, sessionStorageKey]);
+
+  const persistSessionSnapshot = useCallback((overrides = {}) => {
+    if (!shareLink || isPractice) return null;
+
+    const current = runtimeRef.current;
+    const snapshot = {
+      testId: current.test?._id || '',
+      answers: current.answers || {},
+      currentQ: current.currentQ || 0,
+      violations: current.violations || [],
+      guestName: current.guestName || '',
+      timeLeft: typeof current.timeLeft === 'number' ? current.timeLeft : null,
+      selectedVariant: current.selectedVariant || 0,
+      elapsedActiveSeconds: current.elapsedActiveSeconds || 0,
+      sessionId: current.sessionId || sessionId,
+      started: Boolean(current.started),
+      testLang: current.testLang || null,
+      sessionPaused: Boolean(current.sessionPaused),
+      updatedAt: new Date().toISOString(),
+      ...overrides
+    };
+
+    try {
+      localStorage.setItem(sessionStorageKey, JSON.stringify(snapshot));
+    } catch {}
+
+    return snapshot;
+  }, [isPractice, sessionId, sessionStorageKey, shareLink]);
+
+  const ensureSessionId = useCallback(() => {
+    const existing = runtimeRef.current.sessionId || sessionId;
+    if (existing) return existing;
+    const nextSessionId = createSessionId();
+    setSessionId(nextSessionId);
+    runtimeRef.current = {
+      ...runtimeRef.current,
+      sessionId: nextSessionId
+    };
+    return nextSessionId;
+  }, [sessionId]);
+
   useEffect(() => {
     submittingRef.current = submitting;
   }, [submitting]);
 
   useEffect(() => {
-    if (!started || !test?.settings?.inactivityTimeout) return;
+    runtimeRef.current = {
+      test,
+      answers,
+      currentQ,
+      violations,
+      guestName,
+      timeLeft,
+      selectedVariant,
+      elapsedActiveSeconds,
+      sessionId,
+      started,
+      testLang,
+      sessionPaused
+    };
+  }, [test, answers, currentQ, violations, guestName, timeLeft, selectedVariant, elapsedActiveSeconds, sessionId, started, testLang, sessionPaused]);
+
+  useEffect(() => {
+    if (!started || sessionPaused || !test?.settings?.inactivityTimeout) return;
     const timeoutMs = test.settings.inactivityTimeout * 60 * 1000;
     inactivityTimerRef.current = setInterval(() => {
       const idle = Date.now() - lastActivityRef.current;
@@ -335,7 +444,7 @@ export default function TakeTest() {
             if (prev <= 1) {
               clearInterval(countdownRef.current);
               setShowInactivityWarning(false);
-              handleSubmit(true);
+              forceSubmitRef.current?.();
               return 0;
             }
             return prev - 1;
@@ -352,12 +461,13 @@ export default function TakeTest() {
       clearInterval(countdownRef.current);
       events.forEach(e => window.removeEventListener(e, resetActivity));
     };
-  }, [started, test, showInactivityWarning, resetActivity]);
+  }, [started, sessionPaused, test, showInactivityWarning, resetActivity]);
 
-  // Anti-cheat
-  const handleViolation = useCallback((violation, count) => {
+  const applyViolationFeedback = useCallback((violation, count, shouldAppend = true) => {
     if (dialogOpenRef.current) return;
-    setViolations(prev => [...prev, violation]);
+    if (shouldAppend) {
+      setViolations(prev => [...prev, violation]);
+    }
     setLastViolationText(violation.details);
     setShowViolationWarning(true);
     if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
@@ -366,73 +476,177 @@ export default function TakeTest() {
       setTimeout(() => {
         setShowViolationWarning(false);
         toast.error(t('violationLimitExceeded'), { duration: 5000 });
-        handleSubmit(true);
+        forceSubmitRef.current?.();
       }, 1500);
     }
-  }, [test]);
+  }, [test, t]);
+
+  const handleViolation = useCallback((violation, count) => {
+    applyViolationFeedback(violation, count, true);
+  }, [applyViolationFeedback]);
+
+  const recordLeaveViolation = useCallback((details) => {
+    const now = Date.now();
+    if (now - leaveViolationLockRef.current < 1200) return null;
+    leaveViolationLockRef.current = now;
+
+    const violation = { type: 'tab-switch', timestamp: new Date().toISOString(), details };
+    const nextViolations = [...(runtimeRef.current.violations || []), violation];
+    runtimeRef.current.violations = nextViolations;
+    setViolations(nextViolations);
+    persistSessionSnapshot({ violations: nextViolations, sessionPaused: true });
+    applyViolationFeedback(violation, nextViolations.length, false);
+    return violation;
+  }, [applyViolationFeedback, persistSessionSnapshot]);
+
+  const pauseActiveSession = useCallback(() => {
+    if (!runtimeRef.current.started || hardExitInFlightRef.current) return;
+    runtimeRef.current.sessionPaused = true;
+    setSessionPaused(true);
+    clearInterval(countdownRef.current);
+    setShowInactivityWarning(false);
+    setInactivityCountdown(60);
+    persistSessionSnapshot({ sessionPaused: true });
+  }, [persistSessionSnapshot]);
+
+  const resumeActiveSession = useCallback(() => {
+    if (!runtimeRef.current.started || hardExitInFlightRef.current) return;
+    runtimeRef.current.sessionPaused = false;
+    setSessionPaused(false);
+    resetActivity();
+    persistSessionSnapshot({ sessionPaused: false });
+  }, [persistSessionSnapshot, resetActivity]);
 
   useAntiCheat({
-    enabled: started && (test?.settings?.antiCheat?.blockTabSwitch || test?.settings?.antiCheat?.blockCopyPaste || test?.settings?.antiCheat?.blockScreenshot),
+    enabled: started && (test?.settings?.antiCheat?.blockCopyPaste || test?.settings?.antiCheat?.blockScreenshot),
     settings: test?.settings?.antiCheat,
     onViolation: handleViolation
   });
 
+  const fetchTest = async (variantNum) => {
+    try {
+      const savedSession = !variantNum && !isPractice ? readSavedSession(shareLink) : null;
+      const effectiveVariant = variantNum || savedSession?.selectedVariant || 0;
+      const url = effectiveVariant
+        ? `/tests/share/${shareLink}?variant=${effectiveVariant}`
+        : `/tests/share/${shareLink}`;
+      const res = await api.get(url);
+      setTest(res.data);
+      setIsPublicTest(res.data.settings?.isPublic === true);
+      if (effectiveVariant) setSelectedVariant(effectiveVariant);
+
+      if (res.data.settings?.variants?.enabled && !isPractice) {
+        try {
+          const ticketRes = await api.get(`/tests/${res.data._id}/tickets`);
+          setTicketState(ticketRes.data);
+          if (savedSession?.selectedVariant) {
+            setSelectedVariant(savedSession.selectedVariant);
+          } else if (ticketRes.data.myVariant && !ticketRes.data.isPublic) {
+            setSelectedVariant(ticketRes.data.myVariant);
+          }
+        } catch (_) {}
+      }
+
+      if (!user) setShowGuestForm(true);
+      try {
+        const guestId = !user ? getGuestId() : '';
+        const attUrl = `/results/my-attempts/${res.data._id}${guestId ? `?guestId=${guestId}` : ''}`;
+        const attRes = await api.get(attUrl);
+        setAttemptInfo({ attempts: attRes.data.attempts, maxAttempts: res.data.settings?.maxAttempts || 0 });
+      } catch (_) {}
+    } catch (err) {
+      if (err.response?.status === 403 && err.response?.data?.code) {
+        setDeadlineError(err.response.data);
+      } else {
+        toast.error(t('testNotFound'));
+        navigate('/');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
+    restoredSessionRef.current = false;
+    hardExitInFlightRef.current = false;
+    leaveGuardRef.current = false;
+    setLoading(true);
     fetchTest();
   }, [shareLink]);
 
-  // Session Recovery
   useEffect(() => {
     if (!test || !started || isPractice) return;
-    const storageKey = 'testSession_' + shareLink;
-    localStorage.setItem(storageKey, JSON.stringify({
-      testId: test._id,
-      answers,
-      currentQ,
-      violations,
-      guestName,
-      timeLeft
-    }));
-  }, [test, started, isPractice, answers, currentQ, violations, guestName, timeLeft]);
-  
-  useEffect(() => {
-    if (!test || isPractice) return;
-    const storageKey = 'testSession_' + shareLink;
-    const restored = localStorage.getItem(storageKey);
-    if (restored) {
-      try {
-        const parsed = JSON.parse(restored);
-        if (parsed.testId === test._id) {
-          setAnswers(parsed.answers || {});
-          setCurrentQ(parsed.currentQ || 0);
-          setViolations(parsed.violations || []);
-          if (parsed.guestName) setGuestName(parsed.guestName);
-          if (parsed.timeLeft) setTimeLeft(parsed.timeLeft);
-        }
-      } catch(e) {}
-    }
-  }, [test, isPractice]);
+    persistSessionSnapshot();
+  }, [test, started, isPractice, answers, currentQ, violations, guestName, timeLeft, selectedVariant, elapsedActiveSeconds, testLang, sessionPaused, persistSessionSnapshot]);
 
-  // Timer
   useEffect(() => {
-    if (!started || !test?.settings?.timeLimit) return;
-    const totalSeconds = test.settings.timeLimit * 60;
-    setTimeLeft(totalSeconds);
+    return () => {
+      if (!isPractice && runtimeRef.current.started && !leaveGuardRef.current) {
+        persistSessionSnapshot({ sessionPaused: true });
+      }
+    };
+  }, [isPractice, persistSessionSnapshot]);
+
+  useEffect(() => {
+    if (!test || isPractice || restoredSessionRef.current) return;
+    const restored = readSavedSession(shareLink);
+    if (!restored || restored.testId !== test._id || !restored.started) return;
+
+    restoredSessionRef.current = true;
+
+    if (restored.resumeBlocked) {
+      clearSavedSession();
+      toast.error(t('savedSessionClosed'));
+      return;
+    }
+
+    setAnswers(restored.answers || {});
+    setCurrentQ(restored.currentQ || 0);
+    setViolations(restored.violations || []);
+    setGuestName(restored.guestName || '');
+    setTimeLeft(typeof restored.timeLeft === 'number' ? restored.timeLeft : null);
+    setSelectedVariant(restored.selectedVariant || null);
+    setElapsedActiveSeconds(restored.elapsedActiveSeconds || 0);
+    setSessionId(restored.sessionId || createSessionId());
+    setTestLang(restored.testLang || null);
+    setSessionPaused(false);
+    runtimeRef.current.started = true;
+    runtimeRef.current.sessionPaused = false;
+    leaveGuardRef.current = false;
+    setStarted(true);
+    setShowGuestForm(false);
+    resetActivity();
+    toast.success(t('savedSessionRestored'));
+  }, [test, isPractice, shareLink, clearSavedSession, resetActivity, t]);
+
+  useEffect(() => {
+    if (!started || !test?.settings?.timeLimit || typeof timeLeft === 'number') return;
+    setTimeLeft(test.settings.timeLimit * 60);
+  }, [started, test, timeLeft]);
+
+  useEffect(() => {
+    if (!started || !test || sessionPaused || submitting) return;
+    const hasTimeLimit = Boolean(test.settings?.timeLimit);
 
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          toast.error(t('timeUp'));
-          handleSubmit(true);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setElapsedActiveSeconds(prev => prev + 1);
+
+      if (hasTimeLimit) {
+        setTimeLeft(prev => {
+          const nextValue = typeof prev === 'number' ? prev : test.settings.timeLimit * 60;
+          if (nextValue <= 1) {
+            clearInterval(timer);
+            toast.error(t('timeUp'));
+            forceSubmitRef.current?.();
+            return 0;
+          }
+          return nextValue - 1;
+        });
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [started, test]);
+  }, [started, test, sessionPaused, submitting, t]);
 
   // Auto-scroll navigator to current question
   useEffect(() => {
@@ -507,47 +721,6 @@ export default function TakeTest() {
     return () => window.removeEventListener('keydown', handler);
   }, [started, test, currentQ, feedback, showSubmitConfirm, showViolationWarning, showInactivityWarning]);
 
-  const fetchTest = async (variantNum) => {
-    try {
-      const url = variantNum
-        ? `/tests/share/${shareLink}?variant=${variantNum}`
-        : `/tests/share/${shareLink}`;
-      const res = await api.get(url);
-      setTest(res.data);
-      setIsPublicTest(res.data.settings?.isPublic === true);
-
-      // Check if test has variant system enabled
-      if (res.data.settings?.variants?.enabled && !isPractice) {
-        // Fetch ticket status
-        try {
-          const ticketRes = await api.get(`/tests/${res.data._id}/tickets`);
-          setTicketState(ticketRes.data);
-          // For private tests, restore saved variant
-          if (ticketRes.data.myVariant && !ticketRes.data.isPublic) {
-            setSelectedVariant(ticketRes.data.myVariant);
-          }
-        } catch (_) { }
-      }
-
-      if (!user) setShowGuestForm(true);
-      try {
-        const guestId = !user ? getGuestId() : '';
-        const attUrl = `/results/my-attempts/${res.data._id}${guestId ? `?guestId=${guestId}` : ''}`;
-        const attRes = await api.get(attUrl);
-        setAttemptInfo({ attempts: attRes.data.attempts, maxAttempts: res.data.settings?.maxAttempts || 0 });
-      } catch (_) { }
-    } catch (err) {
-      if (err.response?.status === 403 && err.response?.data?.code) {
-        setDeadlineError(err.response.data);
-      } else {
-        toast.error(t('testNotFound'));
-        navigate('/');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Ticket polling: refresh every 2 seconds when ticket picker is open
   useEffect(() => {
     if (!test?.settings?.variants?.enabled || selectedVariant || started || isPractice) return;
@@ -594,7 +767,12 @@ export default function TakeTest() {
       return;
     }
     leaveGuardRef.current = false;
-    startTimeRef.current = Date.now();
+    ensureSessionId();
+    runtimeRef.current.started = true;
+    runtimeRef.current.sessionPaused = false;
+    runtimeRef.current.guestName = guestName;
+    setElapsedActiveSeconds(prev => prev || 0);
+    setSessionPaused(false);
     setStarted(true);
     setShowGuestForm(false);
   };
@@ -668,7 +846,94 @@ export default function TakeTest() {
     }
   }, [answers, currentQ, test, feedback]);
 
-  const handleSubmit = async (force = false) => {
+  const buildSubmissionPayload = useCallback(() => {
+    const current = runtimeRef.current;
+    const currentTest = current.test;
+    if (!currentTest) return null;
+
+    const formattedAnswers = currentTest.questions.map(q => {
+      const answer = current.answers?.[q.id] || { questionId: q.id, selectedOptions: [], textAnswer: '', matchingPairs: [] };
+      return { ...answer, questionId: q.id };
+    });
+
+    return {
+      testId: currentTest._id,
+      answers: formattedAnswers,
+      guestName: !user ? (current.guestName || '') : '',
+      guestId: !user ? getGuestId() : '',
+      variantNumber: current.selectedVariant || 0,
+      violations: current.violations || [],
+      timeSpent: Math.max(0, Math.round(current.elapsedActiveSeconds || 0)),
+      sessionId: ensureSessionId()
+    };
+  }, [ensureSessionId, user]);
+
+  const submitResultRequest = useCallback(async ({ keepalive = false } = {}) => {
+    const payload = buildSubmissionPayload();
+    if (!payload) return null;
+
+    if (!keepalive) {
+      const res = await api.post('/results', payload);
+      return res.data;
+    }
+
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    const token = localStorage.getItem('unitest_token');
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const csrfToken = readCookie('csrf_token');
+    if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
+    const response = await fetch('/api/results', {
+      method: 'POST',
+      credentials: 'include',
+      keepalive: true,
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error('submit_failed');
+    }
+
+    return response.json();
+  }, [buildSubmissionPayload]);
+
+  const finishSessionOnLeave = useCallback(async ({ keepalive = false } = {}) => {
+    if (!runtimeRef.current.started || isPractice || hardExitInFlightRef.current) return null;
+
+    hardExitInFlightRef.current = true;
+    leaveGuardRef.current = true;
+    runtimeRef.current.sessionPaused = true;
+    setSessionPaused(true);
+    setSubmitting(true);
+    persistSessionSnapshot({
+      sessionPaused: true,
+      resumeBlocked: true,
+      blockedReason: 'finishOnLeave'
+    });
+
+    try {
+      const result = await submitResultRequest({ keepalive });
+      clearSavedSession();
+      if (result?._id) {
+        navigate(`/result/${result._id}`);
+      }
+      return result;
+    } catch (err) {
+      if (!keepalive) {
+        leaveGuardRef.current = false;
+        hardExitInFlightRef.current = false;
+        setSubmitting(false);
+        toast.error(t('errorSubmitting'));
+      }
+      return null;
+    }
+  }, [clearSavedSession, isPractice, navigate, persistSessionSnapshot, submitResultRequest, t]);
+
+  const handleSubmit = useCallback(async (force = false) => {
     if (!force) {
       dialogOpenRef.current = true;
       setShowSubmitConfirm(true);
@@ -684,33 +949,18 @@ export default function TakeTest() {
 
     setSubmitting(true);
     leaveGuardRef.current = true;
-    const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
 
     try {
-      const formattedAnswers = test.questions.map(q => {
-        const a = answers[q.id] || { questionId: q.id, selectedOptions: [], textAnswer: '', matchingPairs: [] };
-        return { ...a, questionId: q.id };
-      });
-
-      const res = await api.post('/results', {
-        testId: test._id,
-        answers: formattedAnswers,
-        guestName: !user ? guestName : '',
-        guestId: !user ? getGuestId() : '',
-        variantNumber: selectedVariant || 0,
-        violations,
-        timeSpent
-      });
-
-      localStorage.removeItem('testSession_' + shareLink);
-      navigate(`/result/${res.data._id}`);
+      const result = await submitResultRequest();
+      clearSavedSession();
+      navigate(`/result/${result._id}`);
     } catch (err) {
       leaveGuardRef.current = false;
       toast.error(t('errorSubmitting'));
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [clearSavedSession, isPractice, navigate, shareLink, submitResultRequest, t]);
 
   useEffect(() => {
     forceSubmitRef.current = () => handleSubmit(true);
@@ -720,43 +970,90 @@ export default function TakeTest() {
     if (!started || isPractice) return;
 
     const guardState = { unitestGuard: true, shareLink, ts: Date.now() };
-    window.history.pushState(guardState, '', window.location.href);
+    if (finishOnLeaveEnabled) {
+      window.history.pushState(guardState, '', window.location.href);
+    }
+
+    const handleVisibilityChange = () => {
+      if (leaveGuardRef.current || submittingRef.current) return;
+
+      if (document.hidden) {
+        pauseActiveSession();
+        if (finishOnLeaveEnabled) {
+          finishSessionOnLeave({ keepalive: true });
+        } else if (warnOnLeaveEnabled) {
+          recordLeaveViolation(t('leaveWarningRecorded'));
+        }
+        return;
+      }
+
+      if (!finishOnLeaveEnabled) {
+        resumeActiveSession();
+      }
+    };
+
+    const handlePageHide = () => {
+      if (leaveGuardRef.current || submittingRef.current) return;
+      pauseActiveSession();
+      if (finishOnLeaveEnabled) {
+        finishSessionOnLeave({ keepalive: true });
+      } else {
+        persistSessionSnapshot({ sessionPaused: true });
+      }
+    };
 
     const handlePopState = () => {
       if (leaveGuardRef.current || submittingRef.current) return;
 
-      leaveGuardRef.current = true;
-      window.history.pushState(guardState, '', window.location.href);
+      pauseActiveSession();
 
-      const exitMessage = t('leaveTestAutoSubmit') || 'You tried to leave the test. Your attempt is being submitted automatically.';
-      setLastViolationText(exitMessage);
-      setViolations(prev => [
-        ...prev,
-        { type: 'tab-switch', timestamp: new Date().toISOString(), details: exitMessage }
-      ]);
-      setShowViolationWarning(true);
+      if (finishOnLeaveEnabled) {
+        window.history.pushState(guardState, '', window.location.href);
+        finishSessionOnLeave();
+        return;
+      }
 
-      window.setTimeout(() => {
-        setShowViolationWarning(false);
-        forceSubmitRef.current?.();
-      }, 900);
+      if (warnOnLeaveEnabled) {
+        recordLeaveViolation(t('leaveWarningRecorded'));
+      } else {
+        persistSessionSnapshot({ sessionPaused: true });
+      }
     };
 
-    const handleBeforeUnload = (event) => {
-      if (leaveGuardRef.current || submittingRef.current) return undefined;
-      event.preventDefault();
-      event.returnValue = '';
-      return '';
+    const handleBeforeUnload = () => {
+      if (leaveGuardRef.current || submittingRef.current) return;
+      pauseActiveSession();
+      if (finishOnLeaveEnabled) {
+        finishSessionOnLeave({ keepalive: true });
+      } else {
+        persistSessionSnapshot({ sessionPaused: true });
+      }
     };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [started, isPractice, shareLink, t]);
+  }, [
+    started,
+    isPractice,
+    shareLink,
+    finishOnLeaveEnabled,
+    warnOnLeaveEnabled,
+    finishSessionOnLeave,
+    pauseActiveSession,
+    persistSessionSnapshot,
+    recordLeaveViolation,
+    resumeActiveSession,
+    t
+  ]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -913,7 +1210,7 @@ export default function TakeTest() {
                 {t('attempts')}: {attemptInfo.attempts}/{test.settings.maxAttempts}
               </span>
             )}
-            {test.settings?.antiCheat?.blockTabSwitch && (
+            {leaveMonitoringEnabled && (
               <span className="badge-danger flex items-center gap-1">
                 <AlertTriangle size={12} /> Anti-cheat
               </span>
@@ -926,15 +1223,15 @@ export default function TakeTest() {
           </div>
 
           {/* Anti-cheat rules warning */}
-          {test.settings?.antiCheat?.blockTabSwitch && (
+          {leaveMonitoringEnabled && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 text-left">
               <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
                 <Shield size={16} /> {t('testRules')}
               </h3>
               <ul className="text-xs text-red-600 dark:text-red-300 space-y-1.5">
-                <li>-- {t('ruleNoLeave')}</li>
-                <li>-- {t('ruleViolationsTracked')}</li>
-                <li>-- {t('ruleMaxViolations', { max: test.settings.antiCheat.maxViolations })}</li>
+                {warnOnLeaveEnabled && <li>-- {t('ruleLeaveWarning')}</li>}
+                {warnOnLeaveEnabled && <li>-- {t('ruleMaxViolations', { max: test.settings.antiCheat.maxViolations })}</li>}
+                {finishOnLeaveEnabled && <li>-- {t('ruleLeaveEndsTest')}</li>}
               </ul>
             </div>
           )}
@@ -1155,33 +1452,56 @@ export default function TakeTest() {
       {/* Question area - grows to fill available space */}
       <div className="flex-1 w-full lg:max-w-5xl mx-auto flex gap-6 px-3 sm:px-4 py-4 sm:py-8 pb-28 sm:pb-32">
         {/* Desktop Left Sidebar Navigator */}
-        <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky top-24 glass-card-solid p-5 rounded-2xl border border-gray-200 dark:border-slate-700 max-h-[calc(100vh-120px)] flex flex-col">
+        <aside className="hidden lg:block w-[320px] flex-shrink-0">
+          <div className="sticky top-24 glass-card-solid p-6 rounded-[28px] border border-gray-200 dark:border-slate-700 max-h-[calc(100vh-120px)] flex flex-col shadow-[0_28px_80px_-48px_rgba(15,23,42,0.55)]">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">{t('navigation') || 'Навигатор'}</h3>
-            <div className="flex flex-wrap gap-2 overflow-y-auto pr-1 pb-4" style={{maxHeight:'400px'}}>
+            <div className="space-y-2 overflow-y-auto pr-2 pb-4">
               {test.questions.map((q, i) => {
                 const answered = !!answers[q.id];
                 const fb = feedback[q.id];
                 const isCurrent = i === currentQ;
+                const previewText = getQuestionPreviewText(q, testLang, t, i);
                 return (
                   <button
                     key={i}
                     onClick={() => setCurrentQ(i)}
-                    className={`w-9 h-9 rounded-lg text-xs font-semibold transition-all flex-shrink-0 relative ${
+                    className={`w-full rounded-[22px] px-4 py-3 text-left transition-all relative border ${
                       isCurrent
-                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30 scale-110 z-10'
+                        ? 'bg-primary-600 text-white border-primary-500 shadow-lg shadow-primary-600/25'
                         : fb?.checked
                           ? fb.isCorrect
-                            ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                            : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                            : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
                           : answered
-                            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 border border-primary-200 dark:border-primary-800'
-                            : 'bg-gray-100 dark:bg-slate-700/50 text-gray-500 hover:bg-gray-200 dark:hover:bg-slate-600 border border-transparent'
+                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800'
+                            : 'bg-gray-50 dark:bg-slate-800/60 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700'
                     }`}
                   >
-                    {i + 1}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`h-11 w-11 rounded-[16px] flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                        isCurrent
+                          ? 'bg-white/18 text-white border border-white/20'
+                          : fb?.checked
+                            ? fb.isCorrect
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-red-500 text-white'
+                            : answered
+                              ? 'bg-primary-500 text-white'
+                              : 'bg-white dark:bg-slate-700 text-gray-500 border border-gray-200 dark:border-slate-600'
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-[10px] uppercase tracking-[0.16em] ${isCurrent ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}`}>
+                          {t('question') || 'Question'} {i + 1}
+                        </p>
+                        <p className={`mt-1 truncate text-sm font-semibold ${isCurrent ? 'text-white' : 'text-dark'}`} title={previewText}>
+                          {previewText}
+                        </p>
+                      </div>
+                    </div>
                     {fb?.checked && !isCurrent && (
-                      <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800 ${
+                      <div className={`absolute right-3 top-3 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${
                         fb.isCorrect ? 'bg-emerald-500' : 'bg-red-500'
                       }`} />
                     )}
@@ -1278,7 +1598,7 @@ export default function TakeTest() {
                 const link = e.target.closest('a');
                 if (!link) return;
                 e.preventDefault();
-                if (test?.settings?.antiCheat?.blockTabSwitch) return;
+                if (leaveMonitoringEnabled) return;
                 window.open(link.href, '_blank', 'noopener,noreferrer');
               }}
             />

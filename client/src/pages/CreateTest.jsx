@@ -140,7 +140,9 @@ function createDefaultSettings() {
     maxAttempts: 1,
     isPublic: false,
     antiCheat: {
-      blockTabSwitch: true,
+      blockTabSwitch: false,
+      warnOnLeave: false,
+      finishOnLeave: false,
       blockCopyPaste: true,
       blockScreenshot: true,
       maxViolations: 5,
@@ -154,13 +156,21 @@ function createDefaultSettings() {
 
 function mergeSettings(settings = {}) {
   const defaults = createDefaultSettings();
+  const mergedAntiCheat = {
+    ...defaults.antiCheat,
+    ...(settings.antiCheat || {})
+  };
+
+  if (settings.antiCheat?.warnOnLeave === undefined && typeof settings.antiCheat?.blockTabSwitch === 'boolean') {
+    mergedAntiCheat.warnOnLeave = settings.antiCheat.blockTabSwitch;
+  }
+
+  mergedAntiCheat.blockTabSwitch = mergedAntiCheat.warnOnLeave;
+
   return {
     ...defaults,
     ...settings,
-    antiCheat: {
-      ...defaults.antiCheat,
-      ...(settings.antiCheat || {})
-    },
+    antiCheat: mergedAntiCheat,
     variants: {
       ...defaults.variants,
       ...(settings.variants || {})
@@ -414,7 +424,7 @@ export default function CreateTest() {
         (test.settings.multiLanguage.languages || []).forEach(langCode => {
           const panelKey = getTranslationPanelKey(question.id, langCode);
           if (next[panelKey] === undefined) {
-            next[panelKey] = !hasTranslationContent(question.translations?.[langCode]);
+            next[panelKey] = false;
           }
         });
       });
@@ -614,8 +624,14 @@ export default function CreateTest() {
     ...prev, settings: { ...prev.settings, [field]: value }
   }));
   const updateAntiCheat = (field, value) => setTest(prev => ({
-    ...prev, settings: {
-      ...prev.settings, antiCheat: { ...prev.settings.antiCheat, [field]: value }
+    ...prev,
+    settings: {
+      ...prev.settings,
+      antiCheat: {
+        ...prev.settings.antiCheat,
+        [field]: value,
+        ...(field === 'warnOnLeave' ? { blockTabSwitch: value } : null)
+      }
     }
   }));
 
@@ -661,7 +677,7 @@ export default function CreateTest() {
     const panelKey = getTranslationPanelKey(questionId, langCode);
     setOpenTranslationPanels(prev => ({
       ...prev,
-      [panelKey]: !(prev[panelKey] ?? true)
+      [panelKey]: !(prev[panelKey] ?? false)
     }));
   };
 
@@ -1263,17 +1279,10 @@ export default function CreateTest() {
                       <Shield size={13} />
                       {t('securityLabel') || 'Security'}
                     </h4>
-                    <div className="mb-3">
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('maxViolations')}</label>
-                      <div className="relative max-w-[200px]">
-                        <Shield size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
-                        <input type="number" className="input-field text-sm py-2.5 pl-9" min="1" value={test.settings.antiCheat.maxViolations}
-                          onChange={e => updateAntiCheat('maxViolations', parseInt(e.target.value) || 5)} />
-                      </div>
-                    </div>
                     <div className="space-y-2">
                       {[
-                        { key: 'blockTabSwitch', label: t('blockTabSwitch'), icon: Lock },
+                        { key: 'warnOnLeave', label: t('warnOnLeave') || 'Warn on leave', icon: Shield },
+                        { key: 'finishOnLeave', label: t('finishOnLeave') || 'Finish on leave', icon: Lock },
                         { key: 'blockCopyPaste', label: t('blockCopyPaste'), icon: Copy },
                         { key: 'blockScreenshot', label: t('blockScreenshot'), icon: Camera },
                       ].map(opt => {
@@ -1299,6 +1308,16 @@ export default function CreateTest() {
                         );
                       })}
                     </div>
+                    {test.settings.antiCheat.warnOnLeave && (
+                      <div className="mt-3">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('maxViolations')}</label>
+                        <div className="relative max-w-[200px]">
+                          <Shield size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
+                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="1" value={test.settings.antiCheat.maxViolations}
+                            onChange={e => updateAntiCheat('maxViolations', parseInt(e.target.value) || 5)} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -1632,7 +1651,7 @@ export default function CreateTest() {
                           content={question.questionText}
                           onChange={val => updateQuestion(qIndex, 'questionText', val)}
                           placeholder={t('questionTextPlaceholder')}
-                          disableLinks={test.settings.antiCheat.blockTabSwitch}
+                          disableLinks={test.settings.antiCheat.warnOnLeave || test.settings.antiCheat.finishOnLeave}
                         />
                       </Suspense>
 
@@ -1672,7 +1691,7 @@ export default function CreateTest() {
                               const trans = normalizeTranslation(question.translations?.[langCode]);
                               const hasTranslation = hasTranslationContent(trans);
                               const panelKey = getTranslationPanelKey(question.id, langCode);
-                              const isOpen = openTranslationPanels[panelKey] ?? true;
+                              const isOpen = openTranslationPanels[panelKey] ?? false;
                               const isLangTranslating = translatingState?.qIndex === qIndex
                                 && translatingState.languages?.length === 1
                                 && translatingState.languages[0] === langCode;
@@ -1776,6 +1795,8 @@ export default function CreateTest() {
                                                 onChange={value => updateQuestionTranslation(qIndex, langCode, current => ({ ...current, passage: value }))}
                                                 placeholder="Перевод текста / passage"
                                                 className="text-xs"
+                                                contentClassName="min-h-[180px] max-h-[420px] overflow-auto resize-y"
+                                                editorClassName="min-h-[180px] h-full"
                                                 disableLinks
                                               />
                                             </Suspense>
@@ -1876,13 +1897,18 @@ export default function CreateTest() {
                                 {t('delete')}
                               </button>
                             </div>
-                            <textarea
-                              className="input-field resize-none text-sm py-2"
-                              rows="4"
-                              placeholder={t('passagePlaceholder')}
-                              value={question.passage.trim() === '' ? '' : question.passage}
-                              onChange={e => updateQuestion(qIndex, 'passage', e.target.value || ' ')}
-                            />
+                            <div onClick={e => e.stopPropagation()}>
+                              <Suspense fallback={<div className="h-24 rounded-xl border border-dashed border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/60" />}>
+                                <RichTextEditor
+                                  content={question.passage}
+                                  onChange={value => updateQuestion(qIndex, 'passage', value || ' ')}
+                                  placeholder={t('passagePlaceholder')}
+                                  contentClassName="min-h-[180px] max-h-[420px] overflow-auto resize-y"
+                                  editorClassName="min-h-[180px] h-full"
+                                  disableLinks={test.settings.antiCheat.warnOnLeave || test.settings.antiCheat.finishOnLeave}
+                                />
+                              </Suspense>
+                            </div>
                           </>
                         )}
                       </div>

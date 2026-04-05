@@ -1148,7 +1148,14 @@ Object.assign(translations.en, {
   avgScore: 'Average score',
   repeatNewPassword: 'Repeat new password',
   noCommentsYet: 'No comments yet',
+  warnOnLeave: 'Warn on leave',
+  finishOnLeave: 'Finish test on leave',
   leaveTestAutoSubmit: 'You tried to leave the test. Your attempt is being submitted automatically.',
+  leaveWarningRecorded: 'You left the test page. A warning was recorded, but your progress was saved.',
+  ruleLeaveWarning: 'Leaving the test saves your progress, pauses the timer, and records a warning',
+  ruleLeaveEndsTest: 'Leaving the test immediately ends the attempt and uses one attempt',
+  savedSessionClosed: 'The previous session was already closed because strict leave protection was enabled.',
+  savedSessionRestored: 'Saved progress restored.',
   warningsEmptyTitle: 'No warnings',
   warningsEmptyDesc: 'Messages from administrators will appear here.'
 });
@@ -1193,7 +1200,14 @@ Object.assign(translations.ru, {
   avgScore: 'Средний балл',
   repeatNewPassword: 'Повторите новый пароль',
   noCommentsYet: 'Комментариев пока нет',
+  warnOnLeave: 'Предупреждать за выход',
+  finishOnLeave: 'Завершать тест при выходе',
   leaveTestAutoSubmit: 'Вы попытались покинуть тест. Попытка автоматически отправляется.',
+  leaveWarningRecorded: 'Вы покинули страницу теста. Нарушение зафиксировано, но прогресс сохранён.',
+  ruleLeaveWarning: 'При выходе прогресс сохраняется, таймер ставится на паузу, а нарушение записывается',
+  ruleLeaveEndsTest: 'При выходе попытка сразу завершается и расходует одну попытку',
+  savedSessionClosed: 'Предыдущая сессия уже была завершена, потому что был включён жёсткий режим выхода.',
+  savedSessionRestored: 'Сохранённый прогресс восстановлен.',
   warningsEmptyTitle: 'Предупреждений нет',
   warningsEmptyDesc: 'Сообщения от администраторов будут появляться здесь.'
 });
@@ -1238,7 +1252,14 @@ Object.assign(translations.kz, {
   avgScore: 'Орташа ұпай',
   repeatNewPassword: 'Жаңа құпия сөзді қайталаңыз',
   noCommentsYet: 'Әзірге пікір жоқ',
+  warnOnLeave: 'Шыққанда ескерту беру',
+  finishOnLeave: 'Шыққанда тесті аяқтау',
   leaveTestAutoSubmit: 'Сіз тесттен шығуға әрекет жасадыңыз. Әрекет автоматты түрде жіберілуде.',
+  leaveWarningRecorded: 'Сіз тест бетінен шықтыңыз. Бұзушылық тіркелді, бірақ прогресс сақталды.',
+  ruleLeaveWarning: 'Тесттен шыққанда прогресс сақталады, таймер тоқтайды және ескерту тіркеледі',
+  ruleLeaveEndsTest: 'Тесттен шыққанда әрекет бірден аяқталып, бір мүмкіндік жұмсалады',
+  savedSessionClosed: 'Алдыңғы сессия қатаң шығу қорғанысы қосылғандықтан аяқталып қойған.',
+  savedSessionRestored: 'Сақталған прогресс қалпына келтірілді.',
   warningsEmptyTitle: 'Ескерту жоқ',
   warningsEmptyDesc: 'Әкімшілердің хабарламалары осы жерде көрсетіледі.'
 });
@@ -1474,7 +1495,14 @@ translations.es = {
   ticketHintPublic: 'Puedes elegir cualquier boleto. Todos están disponibles para todos.',
   practiceMode: 'Modo práctica',
   practiceModeDesc: 'Modo entrenamiento: intentos ilimitados y resultados no guardados',
+  warnOnLeave: 'Advertir al salir',
+  finishOnLeave: 'Finalizar al salir',
   leaveTestAutoSubmit: 'Intentaste salir del examen. Tu intento se está enviando automáticamente.',
+  leaveWarningRecorded: 'Saliste de la página del examen. Se registró una advertencia, pero tu progreso fue guardado.',
+  ruleLeaveWarning: 'Al salir del examen se guarda el progreso, el temporizador se pausa y se registra una advertencia',
+  ruleLeaveEndsTest: 'Al salir del examen el intento termina de inmediato y consume una oportunidad',
+  savedSessionClosed: 'La sesión anterior ya se cerró porque estaba activada la protección estricta al salir.',
+  savedSessionRestored: 'Se restauró el progreso guardado.',
   warningsEmptyTitle: 'Sin advertencias',
   warningsEmptyDesc: 'Los mensajes de los administradores aparecerán aquí.'
 };
