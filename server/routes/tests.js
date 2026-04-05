@@ -254,7 +254,7 @@ router.get('/share/:shareLink', optionalAuth, async (req, res) => {
 
     sanitized.questions = sanitized.questions.map((q, questionIndex) => {
       const { correctAnswer, ...rest } = q;
-      const shouldShuffleOptions = Boolean(test.settings?.shuffleOptions);
+      const shouldShuffleOptions = Boolean(test.settings?.shuffleOptions) && q.type !== 'true-false';
       const optionSeedBase = useSeededShuffle ? variantNum * 10000 + (questionIndex + 1) * 131 : null;
 
       if (q.type === 'matching') {

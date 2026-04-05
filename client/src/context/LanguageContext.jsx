@@ -1119,7 +1119,7 @@ export const useLanguage = () => {
 export const LanguageProvider = ({ children }) => {
   const [lang, setLang] = useState(() => {
     const saved = localStorage.getItem('unitest_lang');
-    if (saved && ['en', 'ru', 'kz'].includes(saved)) return saved;
+    if (saved && ['en', 'ru', 'kz', 'es'].includes(saved)) return saved;
     return 'en';
   });
 
@@ -1138,7 +1138,7 @@ export const LanguageProvider = ({ children }) => {
   }, [lang]);
 
   const setLanguage = useCallback((newLang) => {
-    if (['en', 'ru', 'kz'].includes(newLang)) {
+    if (['en', 'ru', 'kz', 'es'].includes(newLang)) {
       setLang(newLang);
     }
   }, []);
