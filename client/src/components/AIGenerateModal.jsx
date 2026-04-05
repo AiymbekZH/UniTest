@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Upload, FileText, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, File, History, Trash2, Clock } from 'lucide-react';
+import { X, Sparkles, Upload, FileText, Loader2, AlertCircle, Plus, Minus, Check, CheckCheck, RotateCcw, ChevronDown, File, History, Trash2, Clock, Hash } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
@@ -13,16 +13,76 @@ const QUESTION_TYPES = [
 ];
 
 const DEFAULT_QUESTION_PLAN = {
-  'single-choice': 5,
+  'single-choice': 10,
   'multiple-choice': 0,
   'true-false': 0,
   'fill-blank': 0,
   'matching': 0,
 };
 
-const MAX_TYPE_COUNT = 20;
+const MAX_TYPE_COUNT = 40;
+const MAX_TOTAL_COUNT = MAX_TYPE_COUNT * QUESTION_TYPES.length;
 
 const FILE_ACCEPT = '.pdf,.docx,.doc,.txt,image/jpeg,image/png,image/gif,image/webp';
+
+function createEmptyPlan() {
+  return QUESTION_TYPES.reduce((acc, { value }) => {
+    acc[value] = 0;
+    return acc;
+  }, {});
+}
+
+function scaleQuestionPlan(plan, requestedTotal) {
+  const nextTotal = Math.max(0, Math.min(MAX_TOTAL_COUNT, Number(requestedTotal) || 0));
+  const emptyPlan = createEmptyPlan();
+  if (nextTotal === 0) return emptyPlan;
+
+  const activeEntries = Object.entries(plan).filter(([, count]) => count > 0);
+  if (activeEntries.length === 0) {
+    return { ...emptyPlan, 'single-choice': nextTotal };
+  }
+
+  if (activeEntries.length === 1) {
+    return { ...emptyPlan, [activeEntries[0][0]]: nextTotal };
+  }
+
+  if (nextTotal < activeEntries.length) {
+    return activeEntries.reduce((acc, [type], index) => {
+      acc[type] = index < nextTotal ? 1 : 0;
+      return acc;
+    }, { ...emptyPlan });
+  }
+
+  const result = { ...emptyPlan };
+  activeEntries.forEach(([type]) => {
+    result[type] = 1;
+  });
+
+  const remainingTotal = nextTotal - activeEntries.length;
+  const weightTotal = activeEntries.reduce((sum, [, count]) => sum + count, 0);
+  const weighted = activeEntries.map(([type, count]) => ({
+    type,
+    raw: weightTotal > 0 ? (count / weightTotal) * remainingTotal : 0,
+  }));
+
+  let distributed = activeEntries.length;
+  weighted.forEach(({ type, raw }) => {
+    const addition = Math.floor(raw);
+    result[type] += addition;
+    distributed += addition;
+  });
+
+  let remainder = nextTotal - distributed;
+  weighted
+    .sort((a, b) => (b.raw % 1) - (a.raw % 1))
+    .forEach(({ type }) => {
+      if (remainder <= 0) return;
+      result[type] += 1;
+      remainder -= 1;
+    });
+
+  return result;
+}
 
 export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentLanguage = 'ru' }) {
   const { t } = useLanguage();
@@ -96,6 +156,10 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
       ...prev,
       [type]: Math.max(0, Math.min(MAX_TYPE_COUNT, nextValue))
     }));
+  };
+
+  const updateTotalQuestions = (nextValue) => {
+    setQuestionPlan(prev => scaleQuestionPlan(prev, nextValue));
   };
 
   const handleGenerate = async () => {
@@ -480,6 +544,51 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                   <div className="rounded-2xl border border-gray-200/80 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 space-y-5 shadow-sm">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                        {t('aiTotalQuestions') || 'Total questions'}
+                      </p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                        {t('aiTargetCountDesc') || 'Change the overall amount quickly. The current mix will scale automatically.'}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-indigo-100 dark:border-indigo-900/50 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="h-11 w-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+                          <Hash size={18} className="text-indigo-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs uppercase tracking-[0.18em] text-gray-400">
+                            {t('aiTotalQuestions') || 'Total questions'}
+                          </p>
+                          <p className="text-lg font-semibold text-gray-900 dark:text-white">{totalQuestions}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => updateTotalQuestions(totalQuestions - 1)}
+                            className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <input
+                            type="number"
+                            min={1}
+                            max={MAX_TOTAL_COUNT}
+                            value={totalQuestions}
+                            onChange={(e) => updateTotalQuestions(e.target.value)}
+                            className="w-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-2 text-center text-sm font-semibold text-gray-800 dark:text-gray-100 outline-none focus:border-indigo-300 dark:focus:border-indigo-700"
+                          />
+                          <button
+                            onClick={() => updateTotalQuestions(totalQuestions + 1)}
+                            className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors flex items-center justify-center"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
                         {t('aiDifficulty') || 'Difficulty'}
                       </p>
                       <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
@@ -523,6 +632,15 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                         {questionMixSummary || (t('aiUseAtLeastOneType') || 'Select at least one question type')}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-amber-100 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-500 mb-2">
+                        {t('aiFreshQuestions') || 'Fresh generation'}
+                      </p>
+                      <p className="text-sm leading-relaxed text-amber-700 dark:text-amber-200/90">
+                        {t('aiFreshQuestionsDesc') || 'The AI should use the file as source material, but generate new questions instead of copying ready-made ones verbatim.'}
                       </p>
                     </div>
                   </div>

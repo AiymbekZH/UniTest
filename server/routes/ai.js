@@ -308,6 +308,9 @@ Rules:
 - Provide 4 options for single/multiple choice
 - Make wrong options plausible (not obviously wrong)
 - Follow the requested difficulty level consistently
+- If the source already contains ready-made questions or answer keys, use them only as reference material
+- Do NOT copy existing questions, answer options, numbering, or answer keys verbatim
+- Create fresh paraphrased questions that test the same ideas in a new way
 - Do not add markdown, comments, or text outside the JSON object`;
 
     // Build message content
@@ -316,7 +319,7 @@ Rules:
     if (combinedText) {
       userContent.push({
         type: 'text',
-        text: `Generate exactly ${totalQuestions} test questions with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5.\n\n${combinedText.substring(0, 15000)}`,
+        text: `Generate exactly ${totalQuestions} test questions with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5. If the material already contains questions or answers, do not copy them verbatim. Use the content only as source material and write fresh questions.\n\n${combinedText.substring(0, 15000)}`,
       });
     }
 
@@ -330,7 +333,7 @@ Rules:
       if (!combinedText) {
         userContent.push({
           type: 'text',
-          text: `Generate exactly ${totalQuestions} test questions from this image with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5.`,
+          text: `Generate exactly ${totalQuestions} test questions from this image with this exact distribution: ${requestedTypes}. Difficulty level: ${normalizedDifficulty}/5. If the image contains ready-made questions or answer keys, use them only as reference and create fresh questions instead of copying them.`,
         });
       }
     }

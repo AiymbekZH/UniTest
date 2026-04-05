@@ -1450,9 +1450,9 @@ export default function TakeTest() {
       </div>
 
       {/* Question area - grows to fill available space */}
-      <div className="flex-1 w-full lg:max-w-5xl mx-auto flex gap-6 px-3 sm:px-4 py-4 sm:py-8 pb-28 sm:pb-32">
+      <div className="flex-1 w-full lg:max-w-[1120px] mx-auto flex justify-center gap-5 px-3 sm:px-4 py-4 sm:py-8 pb-28 sm:pb-32">
         {/* Desktop Left Sidebar Navigator */}
-        <aside className="hidden lg:block w-[320px] flex-shrink-0">
+        <aside className="hidden lg:block w-[290px] flex-shrink-0">
           <div className="sticky top-24 glass-card-solid p-6 rounded-[28px] border border-gray-200 dark:border-slate-700 max-h-[calc(100vh-120px)] flex flex-col shadow-[0_28px_80px_-48px_rgba(15,23,42,0.55)]">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">{t('navigation') || 'Навигатор'}</h3>
             <div className="space-y-2 overflow-y-auto pr-2 pb-4">
@@ -1465,7 +1465,7 @@ export default function TakeTest() {
                   <button
                     key={i}
                     onClick={() => setCurrentQ(i)}
-                    className={`w-full rounded-[22px] px-4 py-3 text-left transition-all relative border ${
+                    className={`w-full rounded-[20px] px-3.5 py-2.5 text-left transition-all relative border ${
                       isCurrent
                         ? 'bg-primary-600 text-white border-primary-500 shadow-lg shadow-primary-600/25'
                         : fb?.checked
@@ -1478,7 +1478,7 @@ export default function TakeTest() {
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`h-11 w-11 rounded-[16px] flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                      <div className={`h-9 w-9 rounded-[14px] flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                         isCurrent
                           ? 'bg-white/18 text-white border border-white/20'
                           : fb?.checked
@@ -1492,10 +1492,10 @@ export default function TakeTest() {
                         {i + 1}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className={`text-[10px] uppercase tracking-[0.16em] ${isCurrent ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}`}>
+                        <p className={`text-[9px] uppercase tracking-[0.14em] ${isCurrent ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}`}>
                           {t('question') || 'Question'} {i + 1}
                         </p>
-                        <p className={`mt-1 truncate text-sm font-semibold ${isCurrent ? 'text-white' : 'text-dark'}`} title={previewText}>
+                        <p className={`mt-1 truncate text-xs font-semibold ${isCurrent ? 'text-white' : 'text-dark'}`} title={previewText}>
                           {previewText}
                         </p>
                       </div>
@@ -1518,7 +1518,7 @@ export default function TakeTest() {
           </div>
         </aside>
 
-        <main className="flex-1 min-w-0 max-w-3xl w-full mx-auto lg:mx-0">
+        <main className="flex-1 min-w-0 max-w-[760px] w-full mx-auto lg:mx-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentQ}

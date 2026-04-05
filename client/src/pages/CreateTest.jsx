@@ -7,7 +7,7 @@ import {
   FileText, Link2, Settings, Upload, ChevronUp, ChevronDown,
   Database, FileSpreadsheet, Eye, EyeOff, Ticket, Sparkles,
   Clock, Repeat, Calendar, Shield, Hash, Shuffle, Layers, Zap, Lock, Copy, Camera, Globe, GraduationCap,
-  Move, ZoomIn, RotateCcw
+  Move, ZoomIn, RotateCcw, CircleHelp
 } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -49,6 +49,97 @@ const COVER_FRAME_HEIGHT = 450;
 const COVER_MIN_ZOOM = 1;
 const COVER_MAX_ZOOM = 3;
 const DESCRIPTION_WORD_LIMIT = 200;
+
+const SETTING_HELP_TEXT = {
+  en: {
+    timeLimit: 'Sets the total time for the attempt. Use 0 for an unlimited test.',
+    maxAttempts: 'Limits how many completed attempts one student can have.',
+    inactivityTimeout: 'If the student is inactive for this many minutes, the test will warn and then submit automatically.',
+    startDate: 'Students will not be able to start the test before this date and time.',
+    endDate: 'After this date and time the test becomes unavailable.',
+    questionPoolSize: 'If greater than 0, the system will pick only this many questions from the full pool.',
+    variantsEnabled: 'Creates ticket-style variants so students receive different question orders.',
+    shuffleQuestions: 'Shuffles the order of questions for each attempt.',
+    shuffleOptions: 'Shuffles answer options where it is allowed. True/False questions keep a fixed order.',
+    partialCredit: 'Awards part of the points for partially correct multiple-choice or matching answers.',
+    showResults: 'Lets the student see the final score after finishing the test.',
+    instantFeedback: 'Shows correctness immediately after answering instead of only at the end.',
+    practiceMode: 'Training mode with unlimited attempts and without saving real results.',
+    isPublic: 'Public tests are visible in the catalog and can be opened by anyone with access.',
+    multiLanguageEnabled: 'Adds translation tabs for questions so students can switch languages during the test.',
+    warnOnLeave: 'Leaving the page saves progress, pauses the timer, and records a warning.',
+    finishOnLeave: 'Leaving the page immediately finishes the attempt and uses one available attempt.',
+    blockCopyPaste: 'Blocks copy, paste, context menu, and text selection during the test.',
+    blockScreenshot: 'Blocks print and common screenshot shortcuts where possible.',
+    maxViolations: 'After this many warnings for leaving the page, the test is submitted automatically.',
+  },
+  ru: {
+    timeLimit: 'Задаёт общее время попытки. `0` означает тест без ограничения по времени.',
+    maxAttempts: 'Ограничивает, сколько завершённых попыток может быть у одного ученика.',
+    inactivityTimeout: 'Если ученик бездействует указанное число минут, тест предупредит его и затем отправится автоматически.',
+    startDate: 'До этой даты и времени студенты не смогут начать тест.',
+    endDate: 'После этой даты и времени тест станет недоступным.',
+    questionPoolSize: 'Если значение больше нуля, система возьмёт только это количество вопросов из общего банка теста.',
+    variantsEnabled: 'Создаёт билеты/варианты, чтобы студенты получали разные наборы или порядок вопросов.',
+    shuffleQuestions: 'Перемешивает порядок вопросов для каждой попытки.',
+    shuffleOptions: 'Перемешивает варианты ответов там, где это допустимо. Для True/False порядок остаётся фиксированным.',
+    partialCredit: 'Даёт часть баллов за частично верные ответы в multiple-choice и matching.',
+    showResults: 'Разрешает студенту увидеть итоговый результат после завершения теста.',
+    instantFeedback: 'Показывает правильность ответа сразу после выбора, а не только в конце.',
+    practiceMode: 'Режим тренировки: без лимита попыток и без сохранения реальных результатов.',
+    isPublic: 'Публичный тест виден в каталоге и доступен всем, у кого есть доступ к сайту.',
+    multiLanguageEnabled: 'Добавляет вкладки переводов у вопросов, чтобы студент мог переключать язык во время теста.',
+    warnOnLeave: 'При уходе со страницы прогресс сохраняется, таймер ставится на паузу и записывается предупреждение.',
+    finishOnLeave: 'При уходе со страницы попытка сразу завершается и списывает одну попытку.',
+    blockCopyPaste: 'Блокирует копирование, вставку, контекстное меню и выделение текста во время теста.',
+    blockScreenshot: 'Блокирует печать и популярные горячие клавиши для скриншотов, где это возможно.',
+    maxViolations: 'После такого количества предупреждений за выход со страницы тест отправится автоматически.',
+  },
+  kz: {
+    timeLimit: 'Әрекетке берілетін жалпы уақыт. `0` болса, уақыт шектелмейді.',
+    maxAttempts: 'Бір студенттің қанша аяқталған әрекеті болатынын шектейді.',
+    inactivityTimeout: 'Студент осы минуттар бойы белсенді болмаса, жүйе ескертіп, тесті автоматты түрде жібереді.',
+    startDate: 'Осы күн мен уақытқа дейін студенттер тестті бастай алмайды.',
+    endDate: 'Осы күн мен уақыттан кейін тест қолжетімсіз болады.',
+    questionPoolSize: 'Егер мәні 0-ден үлкен болса, жүйе барлық қордан тек осы мөлшерде сұрақ таңдайды.',
+    variantsEnabled: 'Студенттерге әртүрлі билет/нұсқа беру үшін сұрақтардың әртүрлі ретін жасайды.',
+    shuffleQuestions: 'Әр әрекет үшін сұрақтардың ретін араластырады.',
+    shuffleOptions: 'Мүмкін болған жерде жауап нұсқаларын араластырады. True/False сұрақтарында реттілік өзгермейді.',
+    partialCredit: 'Multiple-choice және matching үшін жартылай дұрыс жауаптарға да балл береді.',
+    showResults: 'Тест аяқталғаннан кейін студентке қорытынды нәтижені көруге мүмкіндік береді.',
+    instantFeedback: 'Жауаптың дұрыстығын соңында емес, бірден көрсетеді.',
+    practiceMode: 'Жаттығу режимі: әрекет саны шектелмейді және нақты нәтижелер сақталмайды.',
+    isPublic: 'Жария тест каталогта көрінеді және қолжетімділігі бар кез келген адам аша алады.',
+    multiLanguageEnabled: 'Сұрақтарға аударма қойындыларын қосады, сонда студент тест ішінде тілді ауыстыра алады.',
+    warnOnLeave: 'Беттен шыққанда прогресс сақталады, таймер тоқтайды және ескерту жазылады.',
+    finishOnLeave: 'Беттен шыққанда әрекет бірден аяқталып, бір мүмкіндік жұмсалады.',
+    blockCopyPaste: 'Тест кезінде көшіруді, қоюды, контекстік мәзірді және мәтін таңдауды бұғаттайды.',
+    blockScreenshot: 'Мүмкін болған жерде басып шығару мен скриншот пернелерін бұғаттайды.',
+    maxViolations: 'Беттен шыққаны үшін осынша ескерту жиналса, тест автоматты түрде жіберіледі.',
+  },
+  es: {
+    timeLimit: 'Define el tiempo total del intento. `0` significa sin límite de tiempo.',
+    maxAttempts: 'Limita cuántos intentos completados puede tener un estudiante.',
+    inactivityTimeout: 'Si el estudiante está inactivo durante estos minutos, el examen avisará y luego se enviará automáticamente.',
+    startDate: 'Antes de esta fecha y hora los estudiantes no podrán iniciar el examen.',
+    endDate: 'Después de esta fecha y hora el examen dejará de estar disponible.',
+    questionPoolSize: 'Si es mayor que 0, el sistema tomará solo esta cantidad de preguntas del banco completo.',
+    variantsEnabled: 'Crea variantes tipo boleto para que los estudiantes reciban órdenes diferentes de preguntas.',
+    shuffleQuestions: 'Mezcla el orden de las preguntas en cada intento.',
+    shuffleOptions: 'Mezcla las opciones de respuesta cuando está permitido. True/False mantiene un orden fijo.',
+    partialCredit: 'Otorga parte de los puntos por respuestas parcialmente correctas en multiple-choice o matching.',
+    showResults: 'Permite al estudiante ver la nota final al terminar el examen.',
+    instantFeedback: 'Muestra si la respuesta es correcta inmediatamente, no solo al final.',
+    practiceMode: 'Modo de práctica con intentos ilimitados y sin guardar resultados reales.',
+    isPublic: 'Los exámenes públicos aparecen en el catálogo y cualquiera con acceso puede abrirlos.',
+    multiLanguageEnabled: 'Añade pestañas de traducción a las preguntas para que el estudiante cambie de idioma durante el examen.',
+    warnOnLeave: 'Salir de la página guarda el progreso, pausa el temporizador y registra una advertencia.',
+    finishOnLeave: 'Salir de la página finaliza el intento de inmediato y consume una oportunidad.',
+    blockCopyPaste: 'Bloquea copiar, pegar, menú contextual y selección de texto durante el examen.',
+    blockScreenshot: 'Bloquea la impresión y los atajos comunes de capturas cuando es posible.',
+    maxViolations: 'Después de esta cantidad de advertencias por salir de la página, el examen se enviará automáticamente.',
+  }
+};
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -120,6 +211,58 @@ function clampCoverEditorState(coverState) {
     offsetX: clamp(coverState.offsetX, metrics.minOffsetX, metrics.maxOffsetX),
     offsetY: clamp(coverState.offsetY, metrics.minOffsetY, metrics.maxOffsetY),
   };
+}
+
+function HelpHint({ text }) {
+  const [hovered, setHovered] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const rootRef = useRef(null);
+  const visible = hovered || pinned;
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    const handleOutside = (event) => {
+      if (!rootRef.current?.contains(event.target)) {
+        setHovered(false);
+        setPinned(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside, true);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside, true);
+    };
+  }, [visible]);
+
+  if (!text) return null;
+
+  return (
+    <div
+      ref={rootRef}
+      className="relative inline-flex"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <button
+        type="button"
+        aria-label="Help"
+        onClick={(event) => {
+          event.stopPropagation();
+          setPinned(prev => !prev);
+        }}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 transition hover:border-primary-200 hover:text-primary-500 dark:border-slate-600 dark:bg-slate-800 dark:text-gray-500 dark:hover:border-primary-700 dark:hover:text-primary-300"
+      >
+        <CircleHelp size={11} />
+      </button>
+      {visible && (
+        <div className="absolute right-0 top-full z-30 mt-2 w-56 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-[11px] font-medium leading-5 text-gray-500 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900 dark:text-gray-300 sm:left-full sm:right-auto sm:top-1/2 sm:mt-0 sm:ml-2 sm:-translate-y-1/2">
+          {text}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function createDefaultSettings() {
@@ -332,6 +475,8 @@ export default function CreateTest() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const hasAIAccess = user?.role === 'admin' || Boolean(user?.aiAccess);
+  const settingHelp = SETTING_HELP_TEXT[lang] || SETTING_HELP_TEXT.en;
+  const getSettingHelp = useCallback((key) => settingHelp[key] || SETTING_HELP_TEXT.en[key] || '', [settingHelp]);
 
   const checkAIAccess = (callback) => {
     if (!hasAIAccess) {
@@ -1073,7 +1218,10 @@ export default function CreateTest() {
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('timeLimitMin')}</label>
+                        <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <span>{t('timeLimitMin')}</span>
+                          <HelpHint text={getSettingHelp('timeLimit')} />
+                        </label>
                         <div className="relative">
                           <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
                           <input type="number" className="input-field text-sm py-2.5 pl-9" min="0" value={test.settings.timeLimit}
@@ -1081,7 +1229,10 @@ export default function CreateTest() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('maxAttempts')}</label>
+                        <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <span>{t('maxAttempts')}</span>
+                          <HelpHint text={getSettingHelp('maxAttempts')} />
+                        </label>
                         <div className="relative">
                           <Repeat size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
                           <input type="number" className="input-field text-sm py-2.5 pl-9" min="1" value={test.settings.maxAttempts}
@@ -1089,7 +1240,10 @@ export default function CreateTest() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('inactivityTimeout')}</label>
+                        <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <span>{t('inactivityTimeout')}</span>
+                          <HelpHint text={getSettingHelp('inactivityTimeout')} />
+                        </label>
                         <div className="relative">
                           <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
                           <input type="number" className="input-field text-sm py-2.5 pl-9" min="0" value={test.settings.inactivityTimeout || 0}
@@ -1101,7 +1255,10 @@ export default function CreateTest() {
                     {/* Dates */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                       <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('startDate')}</label>
+                        <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <span>{t('startDate')}</span>
+                          <HelpHint text={getSettingHelp('startDate')} />
+                        </label>
                         <div className="relative">
                           <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
                           <input type="datetime-local" className="input-field text-sm py-2.5 pl-9" value={test.settings.startDate || ''}
@@ -1109,7 +1266,10 @@ export default function CreateTest() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('endDate')}</label>
+                        <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <span>{t('endDate')}</span>
+                          <HelpHint text={getSettingHelp('endDate')} />
+                        </label>
                         <div className="relative">
                           <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
                           <input type="datetime-local" className="input-field text-sm py-2.5 pl-9" value={test.settings.endDate || ''}
@@ -1129,7 +1289,10 @@ export default function CreateTest() {
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                       <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('questionPoolSize')}</label>
+                        <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <span>{t('questionPoolSize')}</span>
+                          <HelpHint text={getSettingHelp('questionPoolSize')} />
+                        </label>
                         <div className="relative">
                           <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
                           <input type="number" className="input-field text-sm py-2.5 pl-9" min="0" value={test.settings.questionPoolSize || 0}
@@ -1142,7 +1305,8 @@ export default function CreateTest() {
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                             <Ticket size={13} />
-                            {t('variantsEnabled') || 'Ticket system'}
+                            <span>{t('variantsEnabled') || 'Ticket system'}</span>
+                            <HelpHint text={getSettingHelp('variantsEnabled')} />
                           </label>
                           <button
                             onClick={() => updateSettings('variants', { ...test.settings.variants, enabled: !test.settings.variants?.enabled })}
@@ -1178,13 +1342,13 @@ export default function CreateTest() {
                     {/* Question toggles */}
                     <div className="space-y-2">
                       {[
-                        { key: 'shuffleQuestions', label: t('shuffleQuestions'), icon: Shuffle, update: updateSettings },
-                        { key: 'shuffleOptions', label: t('shuffleOptions'), icon: Shuffle, update: updateSettings },
-                        { key: 'partialCredit', label: t('partialCredit') || 'Partial credit', icon: Zap, update: updateSettings },
-                        { key: 'showResults', label: t('showResults'), icon: Eye, update: updateSettings },
-                        { key: 'instantFeedback', label: t('instantFeedback'), icon: Zap, update: updateSettings },
-                        { key: 'practiceMode', label: t('practiceModeLabel'), icon: GraduationCap, update: updateSettings },
-                        { key: 'isPublic', label: t('isPublic'), icon: Globe, update: updateSettings },
+                        { key: 'shuffleQuestions', label: t('shuffleQuestions'), icon: Shuffle, update: updateSettings, helpKey: 'shuffleQuestions' },
+                        { key: 'shuffleOptions', label: t('shuffleOptions'), icon: Shuffle, update: updateSettings, helpKey: 'shuffleOptions' },
+                        { key: 'partialCredit', label: t('partialCredit') || 'Partial credit', icon: Zap, update: updateSettings, helpKey: 'partialCredit' },
+                        { key: 'showResults', label: t('showResults'), icon: Eye, update: updateSettings, helpKey: 'showResults' },
+                        { key: 'instantFeedback', label: t('instantFeedback'), icon: Zap, update: updateSettings, helpKey: 'instantFeedback' },
+                        { key: 'practiceMode', label: t('practiceModeLabel'), icon: GraduationCap, update: updateSettings, helpKey: 'practiceMode' },
+                        { key: 'isPublic', label: t('isPublic'), icon: Globe, update: updateSettings, helpKey: 'isPublic' },
                       ].map(opt => {
                         const val = test.settings[opt.key];
                         const Icon = opt.icon;
@@ -1192,7 +1356,8 @@ export default function CreateTest() {
                           <div key={opt.key} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                             <span className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
                               <Icon size={14} className="text-gray-400 dark:text-gray-500" />
-                              {opt.label}
+                              <span>{opt.label}</span>
+                              <HelpHint text={getSettingHelp(opt.helpKey)} />
                             </span>
                             <button
                               onClick={() => opt.update(opt.key, !val)}
@@ -1221,7 +1386,8 @@ export default function CreateTest() {
                     <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors mb-2">
                       <span className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
                         <Globe size={14} className="text-gray-400 dark:text-gray-500" />
-                        {t('multiLanguageEnabled') || 'Enable translations'}
+                        <span>{t('multiLanguageEnabled') || 'Enable translations'}</span>
+                        <HelpHint text={getSettingHelp('multiLanguageEnabled')} />
                       </span>
                       <button
                         onClick={() => updateSettings('multiLanguage', {
@@ -1281,10 +1447,10 @@ export default function CreateTest() {
                     </h4>
                     <div className="space-y-2">
                       {[
-                        { key: 'warnOnLeave', label: t('warnOnLeave') || 'Warn on leave', icon: Shield },
-                        { key: 'finishOnLeave', label: t('finishOnLeave') || 'Finish on leave', icon: Lock },
-                        { key: 'blockCopyPaste', label: t('blockCopyPaste'), icon: Copy },
-                        { key: 'blockScreenshot', label: t('blockScreenshot'), icon: Camera },
+                        { key: 'warnOnLeave', label: t('warnOnLeave') || 'Warn on leave', icon: Shield, helpKey: 'warnOnLeave' },
+                        { key: 'finishOnLeave', label: t('finishOnLeave') || 'Finish on leave', icon: Lock, helpKey: 'finishOnLeave' },
+                        { key: 'blockCopyPaste', label: t('blockCopyPaste'), icon: Copy, helpKey: 'blockCopyPaste' },
+                        { key: 'blockScreenshot', label: t('blockScreenshot'), icon: Camera, helpKey: 'blockScreenshot' },
                       ].map(opt => {
                         const val = test.settings.antiCheat[opt.key];
                         const Icon = opt.icon;
@@ -1292,7 +1458,8 @@ export default function CreateTest() {
                           <div key={opt.key} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                             <span className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
                               <Icon size={14} className="text-gray-400 dark:text-gray-500" />
-                              {opt.label}
+                              <span>{opt.label}</span>
+                              <HelpHint text={getSettingHelp(opt.helpKey)} />
                             </span>
                             <button
                               onClick={() => updateAntiCheat(opt.key, !val)}
@@ -1310,7 +1477,10 @@ export default function CreateTest() {
                     </div>
                     {test.settings.antiCheat.warnOnLeave && (
                       <div className="mt-3">
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('maxViolations')}</label>
+                        <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <span>{t('maxViolations')}</span>
+                          <HelpHint text={getSettingHelp('maxViolations')} />
+                        </label>
                         <div className="relative max-w-[200px]">
                           <Shield size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
                           <input type="number" className="input-field text-sm py-2.5 pl-9" min="1" value={test.settings.antiCheat.maxViolations}
