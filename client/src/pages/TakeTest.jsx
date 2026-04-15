@@ -489,7 +489,7 @@ export default function TakeTest() {
     if (test?.settings?.antiCheat?.maxViolations && count >= test.settings.antiCheat.maxViolations) {
       setTimeout(() => {
         setShowViolationWarning(false);
-        toast.error(t('violationLimitExceeded'), { duration: 5000 });
+        toast.error(t('violationLimitExceeded'), { duration: 3200 });
         forceSubmitRef.current?.();
       }, 1500);
     }
@@ -1472,7 +1472,7 @@ export default function TakeTest() {
       <div className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-gray-100 dark:border-slate-700 safe-area-top">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-xs sm:text-sm font-semibold text-dark truncate max-w-[40%] sm:max-w-none">
+            <h2 className="text-xs sm:text-sm font-semibold text-dark truncate max-w-[42%] lg:max-w-[46%]">
               {test.title}
               {selectedVariant > 0 && (
                 <span className="ml-2 inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
@@ -1495,6 +1495,20 @@ export default function TakeTest() {
               <span className="text-xs text-gray-400 font-medium bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
                 {currentQ + 1}/{test.questions.length}
               </span>
+              <button
+                onClick={() => handleSubmit()}
+                disabled={submitting}
+                className="hidden lg:inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Send size={14} />
+                    <span>{t('finishTest')}</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
           {/* Progress bar */}

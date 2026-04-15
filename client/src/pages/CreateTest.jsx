@@ -12,7 +12,6 @@ import {
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
 import Navbar from '../components/Navbar';
-import ConfirmDialog from '../components/ConfirmDialog';
 import { lazy, Suspense } from 'react';
 const RichTextEditor = lazy(() => import('../components/RichTextEditor'));
 import { useLanguage } from '../context/LanguageContext';
@@ -146,6 +145,15 @@ const SETTING_HELP_TEXT = {
 };
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const settingsNumberInputClass = 'input-field w-full min-w-0 py-2.5 pl-9 pr-3 text-sm [appearance:textfield]';
+const compactNumberInputClass = 'input-field w-16 sm:w-20 min-w-0 py-1 px-1.5 text-center text-xs [appearance:textfield]';
+
+function parseBoundedInt(rawValue, { min = 0, max = Number.MAX_SAFE_INTEGER, fallback = min } = {}) {
+  const parsed = parseInt(rawValue, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return clamp(parsed, min, max);
+}
 
 function getPlainText(html = '') {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -503,7 +511,7 @@ export default function CreateTest() {
   const [bankQuestions, setBankQuestions] = useState([]);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, index: null });
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [draftStatus, setDraftStatus] = useState(''); // '' | 'saving' | 'saved'
   const [openTranslationPanels, setOpenTranslationPanels] = useState({});
@@ -528,7 +536,7 @@ export default function CreateTest() {
     if (!hasAIAccess) {
       toast.error('AI-функции доступны только по разрешению администратора.', {
         icon: '🔒',
-        duration: 4000
+        duration: 2800
       });
       return;
     }
@@ -1030,6 +1038,7 @@ export default function CreateTest() {
   const removeQuestion = (index) => {
     if (test.questions.length <= 1) { toast.error(t('minOneQuestion')); return; }
     setTest(prev => ({ ...prev, questions: prev.questions.filter((_, i) => i !== index) }));
+    setDeleteConfirmIndex(null);
     if (activeQuestion >= test.questions.length - 1) setActiveQuestion(Math.max(0, test.questions.length - 2));
   };
 
@@ -1247,16 +1256,6 @@ export default function CreateTest() {
       
       <Navbar />
 
-      <ConfirmDialog
-        isOpen={deleteConfirm.open}
-        onClose={() => setDeleteConfirm({ open: false, index: null })}
-        onConfirm={() => removeQuestion(deleteConfirm.index)}
-        title={t('deleteQuestion')}
-        message={t('deleteQuestionConfirm', { num: (deleteConfirm.index || 0) + 1 })}
-        confirmText={t('delete')}
-        variant="danger"
-      />
-
       <div className="mx-auto flex max-w-7xl flex-col gap-6 overflow-x-clip px-4 py-6 sm:px-6 lg:flex-row">
         {/* Left Sidebar: Question Navigator */}
         <div className="hidden lg:block w-64 flex-shrink-0">
@@ -1394,37 +1393,37 @@ export default function CreateTest() {
                       {t('testSettings')}
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
+                      <div className="min-w-0">
                         <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
                           <span>{t('timeLimitMin')}</span>
                           <HelpHint text={getSettingHelp('timeLimit')} />
                         </label>
                         <div className="relative">
                           <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
-                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="0" value={test.settings.timeLimit}
-                            onChange={e => updateSettings('timeLimit', parseInt(e.target.value) || 0)} placeholder={t('noLimitPlaceholder')} />
+                          <input type="number" inputMode="numeric" className={settingsNumberInputClass} min="0" max="99999" value={test.settings.timeLimit}
+                            onChange={e => updateSettings('timeLimit', parseBoundedInt(e.target.value, { min: 0, max: 99999, fallback: 0 }))} placeholder={t('noLimitPlaceholder')} />
                         </div>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
                           <span>{t('maxAttempts')}</span>
                           <HelpHint text={getSettingHelp('maxAttempts')} />
                         </label>
                         <div className="relative">
                           <Repeat size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
-                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="1" value={test.settings.maxAttempts}
-                            onChange={e => updateSettings('maxAttempts', parseInt(e.target.value) || 1)} />
+                          <input type="number" inputMode="numeric" className={settingsNumberInputClass} min="1" max="9999" value={test.settings.maxAttempts}
+                            onChange={e => updateSettings('maxAttempts', parseBoundedInt(e.target.value, { min: 1, max: 9999, fallback: 1 }))} />
                         </div>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
                           <span>{t('inactivityTimeout')}</span>
                           <HelpHint text={getSettingHelp('inactivityTimeout')} />
                         </label>
                         <div className="relative">
                           <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
-                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="0" value={test.settings.inactivityTimeout || 0}
-                            onChange={e => updateSettings('inactivityTimeout', parseInt(e.target.value) || 0)} placeholder={t('inactivityHint')} />
+                          <input type="number" inputMode="numeric" className={settingsNumberInputClass} min="0" max="99999" value={test.settings.inactivityTimeout || 0}
+                            onChange={e => updateSettings('inactivityTimeout', parseBoundedInt(e.target.value, { min: 0, max: 99999, fallback: 0 }))} placeholder={t('inactivityHint')} />
                         </div>
                         <p className="text-[10px] text-gray-400 mt-1">{t('inactivityHint')}</p>
                       </div>
@@ -1465,15 +1464,15 @@ export default function CreateTest() {
                       {t('questionsLabel') || 'Questions'}
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                      <div>
+                      <div className="min-w-0">
                         <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
                           <span>{t('questionPoolSize')}</span>
                           <HelpHint text={getSettingHelp('questionPoolSize')} />
                         </label>
                         <div className="relative">
                           <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
-                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="0" value={test.settings.questionPoolSize || 0}
-                            onChange={e => updateSettings('questionPoolSize', parseInt(e.target.value) || 0)} placeholder={t('poolSizeHint')} />
+                          <input type="number" inputMode="numeric" className={settingsNumberInputClass} min="0" max="99999" value={test.settings.questionPoolSize || 0}
+                            onChange={e => updateSettings('questionPoolSize', parseBoundedInt(e.target.value, { min: 0, max: 99999, fallback: 0 }))} placeholder={t('poolSizeHint')} />
                         </div>
                         <p className="text-[10px] text-gray-400 mt-1">{t('poolSizeHint')}</p>
                       </div>
@@ -1500,9 +1499,9 @@ export default function CreateTest() {
                           <div>
                             <div className="relative">
                               <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
-                              <input type="number" className="input-field text-sm py-2.5 pl-9" min="2" max="100"
+                              <input type="number" inputMode="numeric" className={settingsNumberInputClass} min="2" max="100"
                                 value={test.settings.variants?.count || 0}
-                                onChange={e => updateSettings('variants', { ...test.settings.variants, count: parseInt(e.target.value) || 0 })}
+                                onChange={e => updateSettings('variants', { ...test.settings.variants, count: parseBoundedInt(e.target.value, { min: 2, max: 100, fallback: 2 }) })}
                                 placeholder={t('variantCount') || 'Number of variants'} />
                             </div>
                             <p className="text-[10px] text-gray-400 mt-1">
@@ -1661,8 +1660,8 @@ export default function CreateTest() {
                         </label>
                         <div className="relative max-w-[200px]">
                           <Shield size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600" />
-                          <input type="number" className="input-field text-sm py-2.5 pl-9" min="1" value={test.settings.antiCheat.maxViolations}
-                            onChange={e => updateAntiCheat('maxViolations', parseInt(e.target.value) || 5)} />
+                          <input type="number" inputMode="numeric" className={settingsNumberInputClass} min="1" max="999" value={test.settings.antiCheat.maxViolations}
+                            onChange={e => updateAntiCheat('maxViolations', parseBoundedInt(e.target.value, { min: 1, max: 999, fallback: 5 }))} />
                         </div>
                       </div>
                     )}
@@ -2028,10 +2027,29 @@ export default function CreateTest() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={e => { e.stopPropagation(); setDeleteConfirm({ open: true, index: qIndex }); }}
-                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors">
-                        <Trash2 size={14} />
-                      </button>
+                      {deleteConfirmIndex === qIndex ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={e => { e.stopPropagation(); removeQuestion(qIndex); }}
+                            className="rounded-lg bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
+                          >
+                            {t('delete')}
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); setDeleteConfirmIndex(null); }}
+                            className="rounded-lg px-2 py-1 text-[11px] font-semibold text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-slate-700"
+                          >
+                            {t('cancel')}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={e => { e.stopPropagation(); setDeleteConfirmIndex(qIndex); }}
+                          className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                       {collapsed[qIndex] ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronUp size={16} className="text-gray-400" />}
                     </div>
                   </div>
@@ -2068,8 +2086,8 @@ export default function CreateTest() {
                           ))}
                         </select>
                         <div className="flex items-center gap-1">
-                          <input type="number" min="0" className="w-14 text-center input-field py-1 px-1 text-xs"
-                            value={question.points} onChange={e => updateQuestion(qIndex, 'points', parseInt(e.target.value) || 0)} />
+                          <input type="number" inputMode="numeric" min="0" max="999" className={compactNumberInputClass}
+                            value={question.points} onChange={e => updateQuestion(qIndex, 'points', parseBoundedInt(e.target.value, { min: 0, max: 999, fallback: 0 }))} />
                           <span className="text-[10px] text-gray-500">{t('points')}</span>
                         </div>
                       </div>
