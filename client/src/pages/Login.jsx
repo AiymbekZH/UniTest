@@ -73,7 +73,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
-      <Toaster position="top-right" />
+      
       
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

@@ -292,7 +292,7 @@ export default function ResultPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-8">
-      <Toaster position="top-right" />
+      
 
       <div className="max-w-4xl mx-auto">
         {/* Back */}

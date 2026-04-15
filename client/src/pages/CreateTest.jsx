@@ -1244,7 +1244,7 @@ export default function CreateTest() {
 
   return (
     <div className="min-h-screen overflow-x-clip bg-surface">
-      <Toaster position="top-right" />
+      
       <Navbar />
 
       <ConfirmDialog

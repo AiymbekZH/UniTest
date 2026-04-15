@@ -107,7 +107,7 @@ export default function MyTests() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Toaster position="top-right" />
+      
       <Navbar />
 
       <ConfirmDialog

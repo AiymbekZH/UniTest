@@ -276,7 +276,7 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Toaster position="top-right" />
+      
       <Navbar />
       <ConfirmDialog
         isOpen={bulkAiResetConfirm}

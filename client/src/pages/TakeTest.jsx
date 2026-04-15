@@ -1131,7 +1131,7 @@ export default function TakeTest() {
       : new Date(deadlineError.endDate).toLocaleString();
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
-        <Toaster position="top-right" />
+        
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
           className="max-w-sm w-full glass-card p-8 text-center">
           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg
@@ -1226,7 +1226,7 @@ export default function TakeTest() {
   if (!started) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
-        <Toaster position="top-right" />
+        
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1426,7 +1426,7 @@ export default function TakeTest() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
-      <Toaster position="top-right" />
+      
 
       <ConfirmDialog
         isOpen={showSubmitConfirm}

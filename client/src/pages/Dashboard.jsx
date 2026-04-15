@@ -92,7 +92,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Toaster position="top-right" />
+      
       <Navbar />
 
       <ConfirmDialog

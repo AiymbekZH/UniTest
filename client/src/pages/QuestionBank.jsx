@@ -102,7 +102,7 @@ export default function QuestionBank() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Toaster position="top-right" />
+      
       <Navbar />
 
       <ConfirmDialog isOpen={deleteConfirm.open}

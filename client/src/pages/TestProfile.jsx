@@ -154,7 +154,7 @@ export default function TestProfile() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Toaster position="top-right" />
+      
       <Navbar />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">

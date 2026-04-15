@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import toast, { Toaster, ToastBar } from 'react-hot-toast';
 
 // Lazy-loaded pages (code splitting)
 const Login = lazy(() => import('./pages/Login'));
