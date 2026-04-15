@@ -4,8 +4,7 @@ import { useAuth } from './context/AuthContext';
 import toast, { Toaster, ToastBar } from 'react-hot-toast';
 
 // Lazy-loaded pages (code splitting)
-const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -40,8 +39,8 @@ export default function App() {
     <Suspense fallback={<PageLoader />}>
       <Routes>
       {/* Public routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<AuthPage />} />
+      <Route path="/register" element={<AuthPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/*" element={<ResetPassword />} />
       <Route path="/test/:shareLink" element={<TakeTest />} />

@@ -197,7 +197,9 @@ router.post('/', optionalAuth, async (req, res) => {
     test.averageScore = Math.round(aggResult[0]?.avg || 0);
     await test.save();
 
-    // Email notification to test creator (non-blocking)
+    // Email notification to test creator — only for PRIVATE tests (non-blocking)
+    // Public tests skip email to avoid spamming teacher's inbox
+    if (!test.isPublic) {
     try {
       const creator = await User.findById(test.creator);
       if (creator?.email) {
@@ -216,6 +218,7 @@ router.post('/', optionalAuth, async (req, res) => {
         }).catch(() => {}); // fire-and-forget
       }
     } catch (_) { /* email errors should never break result submission */ }
+    }
 
     res.status(201).json(result);
   } catch (error) {
