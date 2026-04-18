@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap, Plus, LogOut, Menu, X,
   LayoutDashboard, FileText, BarChart3, Database, Sun, Moon, Sunset,
-  User, Shield, Globe, Users, RefreshCw, Trash2, UserPlus
+  User, Shield, Globe, Users, RefreshCw, Trash2, UserPlus, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -58,6 +58,7 @@ export default memo(function Navbar() {
     { to: '/my-tests', label: t('myTests'), icon: FileText },
     { to: '/my-results', label: t('results'), icon: BarChart3 },
     { to: '/groups', label: t('groups'), icon: Users },
+    { to: '/messages', label: t('messages') || 'Сообщения', icon: MessageSquare },
     { to: '/question-bank', label: t('questionBank'), icon: Database },
   ];
 

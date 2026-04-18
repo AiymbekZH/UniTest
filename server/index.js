@@ -1,12 +1,16 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { ensureCsrfCookie, csrfProtection } = require('./middleware/csrf');
+const User = require('./models/User');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -117,6 +121,9 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/ai', aiRoutes);
 
+const dmRoutes = require('./routes/dm');
+app.use('/api/dm', dmRoutes);
+
 // Serve frontend build
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist');
 const indexHtmlPath = path.join(clientDistPath, 'index.html');
@@ -138,7 +145,37 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected successfully'))
   .catch(err => console.error('MongoDB connection error:', err));
 
+// ── Socket.IO ──
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
+    methods: ['GET', 'POST'],
+  },
+  maxHttpBufferSize: 5 * 1024 * 1024,
+});
+
+// Socket auth middleware
+io.use(async (socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error('AUTH_REQUIRED'));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+    if (!user || user.isBanned) return next(new Error('AUTH_FAILED'));
+    socket.user = user;
+    next();
+  } catch (e) { next(new Error('AUTH_FAILED')); }
+});
+
+// Attach socket handlers
+require('./socket/chat')(io);
+require('./socket/dm')(io);
+
+// Make io available to routes
+app.set('io', io);
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`UniTest server running on port ${PORT}`);
 });

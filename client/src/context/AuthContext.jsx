@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import { connectSocket, disconnectSocket } from '../services/socket';
 
 const AuthContext = createContext(null);
 
@@ -54,6 +55,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem(ACTIVE_TOKEN_KEY);
     localStorage.removeItem(ACTIVE_USER_KEY);
     setUser(null);
+    disconnectSocket();
   }, []);
 
   const applyCookieOnlySession = useCallback((nextUser) => {
@@ -83,6 +85,8 @@ export const AuthProvider = ({ children }) => {
   const persistSession = useCallback((token, nextUser) => {
     applyActiveSession(token, nextUser);
     upsertSavedSession(token, nextUser);
+    // Connect socket when user is authenticated
+    connectSocket();
   }, [applyActiveSession, upsertSavedSession]);
 
   const removeSavedSession = useCallback((sessionId) => {
@@ -150,6 +154,7 @@ export const AuthProvider = ({ children }) => {
       api.get('/auth/me')
         .then(res => {
           syncCurrentSession(res.data.user);
+          connectSocket();
         })
         .catch(() => {
           clearActiveSession();

@@ -21,6 +21,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Groups = lazy(() => import('./pages/Groups'));
+const Messages = lazy(() => import('./pages/Messages'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-surface">
@@ -59,6 +60,7 @@ export default function App() {
       <Route path="/question-bank" element={<PrivateRoute><QuestionBank /></PrivateRoute>} />
       <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       <Route path="/groups" element={<PrivateRoute><Groups /></PrivateRoute>} />
+      <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
       <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
 
       {/* Default redirect */}
