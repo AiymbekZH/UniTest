@@ -51,7 +51,7 @@ const dashboardCopy = {
     latestResultDesc: 'Jump back into your recent activity and keep the pace.',
     openResult: 'Open result',
     noRecentActivity: 'No recent activity yet',
-    noRecentActivityDesc: 'Start with a public test or launch a practice run.',
+    noRecentActivityDesc: 'Start with a public test and begin a new streak.',
     dailyChallenge: 'Daily Challenge',
     dailyChallengeDesc: 'One focused test today. Finish it to keep momentum.',
     rewardXp: '+{{xp}} XP',
@@ -62,7 +62,7 @@ const dashboardCopy = {
     progressDesc: 'Level up with steady work, not one lucky result.',
     currentStreak: 'Current streak',
     longestStreak: 'Best streak',
-    completedExams: 'Exams',
+    completedExams: 'Completed tests',
     completedPractice: 'Practice runs',
     perfectScores: 'Perfect scores',
     badgesTitle: 'Unlocked badges',
@@ -90,6 +90,7 @@ const dashboardCopy = {
     doneLabel: 'Done',
     noDailyChallenge: "No public tests available for today's challenge.",
     scoreLabel: 'Score',
+    questionsLabel: 'Questions',
     modeLabel: 'Mode',
     timeLabel: 'Time',
     rewardCollected: 'XP collected',
@@ -122,7 +123,7 @@ const dashboardCopy = {
     latestResultDesc: 'Быстро вернись к недавней активности и не теряй темп.',
     openResult: 'Открыть результат',
     noRecentActivity: 'Пока нет недавней активности',
-    noRecentActivityDesc: 'Начни с публичного теста или запусти тренировку.',
+    noRecentActivityDesc: 'Начни с публичного теста и запусти новую серию.',
     dailyChallenge: 'Челлендж дня',
     dailyChallengeDesc: 'Один точный тест на сегодня. Пройди его и поддержи темп.',
     rewardXp: '+{{xp}} XP',
@@ -133,7 +134,7 @@ const dashboardCopy = {
     progressDesc: 'Уровень растёт от стабильной работы, а не от одной удачи.',
     currentStreak: 'Текущая серия',
     longestStreak: 'Лучшая серия',
-    completedExams: 'Экзамены',
+    completedExams: 'Завершённые тесты',
     completedPractice: 'Тренировки',
     perfectScores: 'Идеальные результаты',
     badgesTitle: 'Открытые достижения',
@@ -161,6 +162,7 @@ const dashboardCopy = {
     doneLabel: 'Готово',
     noDailyChallenge: 'Сегодня нет подходящего публичного челленджа.',
     scoreLabel: 'Результат',
+    questionsLabel: 'Вопросы',
     modeLabel: 'Режим',
     timeLabel: 'Время',
     rewardCollected: 'XP получен',
@@ -193,7 +195,7 @@ const dashboardCopy = {
     latestResultDesc: 'Жақындағы әрекетке тез оралып, қарқынды жоғалтпа.',
     openResult: 'Нәтижені ашу',
     noRecentActivity: 'Соңғы белсенділік әлі жоқ',
-    noRecentActivityDesc: 'Қоғамдық тесттен баста немесе жаттығуды іске қос.',
+    noRecentActivityDesc: 'Қоғамдық тесттен бастап, жаңа серияны іске қос.',
     dailyChallenge: 'Күн челленджі',
     dailyChallengeDesc: 'Бүгінге бір нақты тест. Оны өтіп, қарқынды сақта.',
     rewardXp: '+{{xp}} XP',
@@ -204,7 +206,7 @@ const dashboardCopy = {
     progressDesc: 'Деңгей бір реттік сәттіліктен емес, тұрақты жұмыстан өседі.',
     currentStreak: 'Қазіргі серия',
     longestStreak: 'Ең ұзақ серия',
-    completedExams: 'Емтихандар',
+    completedExams: 'Аяқталған тесттер',
     completedPractice: 'Жаттығулар',
     perfectScores: 'Мінсіз нәтижелер',
     badgesTitle: 'Ашылған жетістіктер',
@@ -232,6 +234,7 @@ const dashboardCopy = {
     doneLabel: 'Дайын',
     noDailyChallenge: 'Бүгінге лайық қоғамдық челлендж табылмады.',
     scoreLabel: 'Нәтиже',
+    questionsLabel: 'Сұрақтар',
     modeLabel: 'Режим',
     timeLabel: 'Уақыт',
     rewardCollected: 'XP алынды',
@@ -264,7 +267,7 @@ const dashboardCopy = {
     latestResultDesc: 'Vuelve rápido a tu actividad reciente y mantén el ritmo.',
     openResult: 'Abrir resultado',
     noRecentActivity: 'Todavía no hay actividad reciente',
-    noRecentActivityDesc: 'Empieza con un test público o abre una práctica.',
+    noRecentActivityDesc: 'Empieza con un test público y lanza una nueva racha.',
     dailyChallenge: 'Desafío diario',
     dailyChallengeDesc: 'Un test concreto para hoy. Complétalo y mantén el ritmo.',
     rewardXp: '+{{xp}} XP',
@@ -275,7 +278,7 @@ const dashboardCopy = {
     progressDesc: 'El nivel crece con constancia, no con una sola suerte.',
     currentStreak: 'Racha actual',
     longestStreak: 'Mejor racha',
-    completedExams: 'Exámenes',
+    completedExams: 'Tests completados',
     completedPractice: 'Prácticas',
     perfectScores: 'Resultados perfectos',
     badgesTitle: 'Insignias desbloqueadas',
@@ -303,6 +306,7 @@ const dashboardCopy = {
     doneLabel: 'Hecho',
     noDailyChallenge: 'No hay un desafío público disponible para hoy.',
     scoreLabel: 'Resultado',
+    questionsLabel: 'Preguntas',
     modeLabel: 'Modo',
     timeLabel: 'Tiempo',
     rewardCollected: 'XP recibido',
@@ -713,8 +717,8 @@ export default function Dashboard() {
                 <p className="text-[11px] text-emerald-500">{copy.scoreLabel}</p>
               </div>
               <div className="rounded-2xl bg-blue-50 p-3 text-center dark:bg-blue-900/15">
-                <p className="text-xl font-bold text-blue-600">{recentResult.isPractice ? copy.completedPractice : copy.completedExams}</p>
-                <p className="text-[11px] text-blue-500">{copy.modeLabel}</p>
+                <p className="text-xl font-bold text-blue-600">{recentResult.answers?.length || 0}</p>
+                <p className="text-[11px] text-blue-500">{copy.questionsLabel}</p>
               </div>
               <div className="rounded-2xl bg-amber-50 p-3 text-center dark:bg-amber-900/15">
                 <p className="text-xl font-bold text-amber-600">{recentResult.timeSpent || 0}s</p>
@@ -993,7 +997,7 @@ export default function Dashboard() {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <SummaryMetric icon={Flame} label={copy.currentStreak} value={progressData?.progress?.currentStreakDays || 0} tone="amber" />
-              <SummaryMetric icon={Medal} label={copy.completedExams} value={progressData?.progress?.stats?.completedExams || 0} tone="emerald" />
+              <SummaryMetric icon={Medal} label={copy.completedExams} value={progressData?.progress?.stats?.totalCompleted || 0} tone="emerald" />
               <SummaryMetric icon={Crown} label={copy.perfectScores} value={progressData?.progress?.stats?.perfectScores || 0} tone="blue" />
             </div>
 
@@ -1259,11 +1263,6 @@ export default function Dashboard() {
                         <span className="badge-info flex items-center gap-1 px-2 py-0.5 text-[10px]"><Eye size={10} /> {t('publicTest')}</span>
                       ) : (
                         <span className="badge-warning flex items-center gap-1 px-2 py-0.5 text-[10px]"><EyeOff size={10} /> {t('privateTest')}</span>
-                      )}
-                      {test.settings?.practiceMode && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:bg-blue-900/20 dark:text-blue-300">
-                          <Dumbbell size={10} /> Practice
-                        </span>
                       )}
                       <span className="text-[10px] text-gray-400">
                         {test.questions?.length || 0} {t('questions')}

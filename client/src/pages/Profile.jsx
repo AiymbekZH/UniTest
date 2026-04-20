@@ -346,7 +346,7 @@ export default function Profile() {
             <SummaryCard icon={Trophy} label={copy.xp} value={progress?.xp || 0} tone="blue" />
             <SummaryCard icon={Flame} label={copy.currentStreak} value={progress?.currentStreakDays || 0} tone="amber" />
             <SummaryCard icon={Medal} label={copy.bestStreak} value={progress?.longestStreakDays || 0} tone="emerald" />
-            <SummaryCard icon={Target} label={copy.completedExams} value={progress?.stats?.completedExams || 0} tone="blue" />
+            <SummaryCard icon={Target} label={copy.completedExams} value={progress?.stats?.totalCompleted || 0} tone="blue" />
             <SummaryCard icon={Star} label={copy.perfectScores} value={progress?.stats?.perfectScores || 0} tone="amber" />
           </div>
 

@@ -312,11 +312,6 @@ export default function ResultPage() {
           transition={{ duration: 0.6 }}
           className="glass-card p-8 sm:p-10 text-center mb-6"
         >
-          {result.isPractice && (
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-blue-600 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-              Practice Mode
-            </div>
-          )}
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}

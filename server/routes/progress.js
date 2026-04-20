@@ -2,6 +2,7 @@ const express = require('express');
 const Result = require('../models/Result');
 const UserProgress = require('../models/UserProgress');
 const { auth } = require('../middleware/auth');
+const { syncGamificationNotifications } = require('../utils/gamification');
 const { ensureUserProgress, getDayKey, getLevelMeta } = require('../utils/progress');
 
 const router = express.Router();
@@ -17,6 +18,8 @@ function getRecentDayKeys(days = 7) {
 
 router.get('/me', auth, async (req, res) => {
   try {
+    await syncGamificationNotifications(req.user._id);
+
     const progress = await ensureUserProgress(req.user._id);
     const recentResults = await Result.find({
       user: req.user._id,

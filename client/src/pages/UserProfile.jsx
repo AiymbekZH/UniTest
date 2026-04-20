@@ -231,7 +231,7 @@ export default function UserProfile() {
             <StatCard icon={Trophy} label={copy.xp} value={progress?.xp || 0} tone="blue" />
             <StatCard icon={Flame} label={copy.currentStreak} value={progress?.currentStreakDays || 0} tone="amber" />
             <StatCard icon={Medal} label={copy.bestStreak} value={progress?.longestStreakDays || 0} tone="emerald" />
-            <StatCard icon={Target} label={copy.completedExams} value={progress?.stats?.completedExams || 0} tone="blue" />
+            <StatCard icon={Target} label={copy.completedExams} value={progress?.stats?.totalCompleted || 0} tone="blue" />
             <StatCard icon={Star} label={copy.perfectScores} value={progress?.stats?.perfectScores || 0} tone="amber" />
           </div>
 
