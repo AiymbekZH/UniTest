@@ -9,6 +9,18 @@ const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
+async function ensureGroupReadBaseline(group, userId) {
+  const member = group.members.find(m => m.user.toString() === userId.toString());
+  if (!member) return null;
+
+  if (!member.lastReadAt) {
+    member.lastReadAt = new Date();
+    await group.save();
+  }
+
+  return member.lastReadAt;
+}
+
 // ── Create group ──
 router.post('/', auth, async (req, res) => {
   try {
@@ -19,7 +31,7 @@ router.post('/', auth, async (req, res) => {
       name: name.trim(),
       description: description?.trim() || '',
       creator: req.user._id,
-      members: [{ user: req.user._id, roleId: 'owner' }]
+      members: [{ user: req.user._id, roleId: 'owner', lastReadAt: new Date() }]
     });
 
     await group.save();
@@ -49,6 +61,40 @@ router.get('/my', auth, async (req, res) => {
 });
 
 // ── Get single group ──
+router.get('/unread-summary', auth, async (req, res) => {
+  try {
+    const groups = await Group.find({
+      isDeleted: false,
+      'members.user': req.user._id
+    }).select('members updatedAt');
+
+    const unreadGroupIds = [];
+
+    for (const group of groups) {
+      const lastReadAt = await ensureGroupReadBaseline(group, req.user._id);
+      if (!lastReadAt) continue;
+
+      const hasUnread = await Message.exists({
+        group: group._id,
+        sender: { $ne: req.user._id },
+        type: { $ne: 'system' },
+        isDeleted: false,
+        deletedFor: { $ne: req.user._id },
+        createdAt: { $gt: lastReadAt }
+      });
+
+      if (hasUnread) unreadGroupIds.push(group._id.toString());
+    }
+
+    res.json({
+      hasUnread: unreadGroupIds.length > 0,
+      unreadGroupIds
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 router.get('/:id', auth, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
@@ -84,7 +130,7 @@ router.post('/join/:code', auth, async (req, res) => {
     const alreadyMember = group.members.some(m => m.user.toString() === req.user._id.toString());
     if (alreadyMember) return res.status(400).json({ message: 'Вы уже в этой группе' });
 
-    group.members.push({ user: req.user._id, roleId: 'member' });
+    group.members.push({ user: req.user._id, roleId: 'member', lastReadAt: new Date() });
     await group.save();
 
     await group.populate('members.user', 'firstName lastName email avatar uniqueId');
@@ -176,8 +222,37 @@ router.delete('/:id/members/:userId', auth, async (req, res) => {
       return res.status(403).json({ message: 'Нельзя удалить участника с равной или более высокой ролью' });
     }
 
+    const targetUser = await User.findById(req.params.userId).select('firstName lastName avatar uniqueId');
     group.members = group.members.filter(m => m.user.toString() !== req.params.userId);
     await group.save();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${req.params.userId}`).emit('group:kicked', {
+        groupId: group._id.toString(),
+      });
+      io.to(`group:${group._id}`).emit('group:memberRemoved', {
+        groupId: group._id.toString(),
+        userId: req.params.userId,
+      });
+    }
+
+    if (targetUser) {
+      try {
+        const sysMsg = new Message({
+          group: group._id,
+          sender: req.user._id,
+          type: 'system',
+          text: `${req.user.firstName} ${req.user.lastName} выгнал ${targetUser.firstName} ${targetUser.lastName}`,
+        });
+        await sysMsg.save();
+        if (io) {
+          await sysMsg.populate('sender', 'firstName lastName avatar');
+          io.to(`group:${group._id}`).emit('group:message', sysMsg);
+        }
+      } catch (_) {}
+    }
+
     res.json({ message: 'Участник удалён' });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка' });
@@ -345,7 +420,7 @@ router.get('/:id/messages', auth, async (req, res) => {
     if (!isMember) return res.status(403).json({ message: 'Вы не участник' });
 
     const { before, limit = 50 } = req.query;
-    const query = { group: req.params.id, isDeleted: false };
+    const query = { group: req.params.id, deletedFor: { $ne: req.user._id } };
     if (before) query._id = { $lt: before };
 
     const messages = await Message.find(query)
@@ -354,7 +429,7 @@ router.get('/:id/messages', auth, async (req, res) => {
       .populate('sender', 'firstName lastName avatar uniqueId')
       .populate({
         path: 'replyTo',
-        select: 'text sender type',
+        select: 'text sender type isDeleted',
         populate: { path: 'sender', select: 'firstName lastName' }
       });
 
@@ -371,6 +446,7 @@ router.get('/:id/messages/pinned', auth, async (req, res) => {
       group: req.params.id,
       isPinned: true,
       isDeleted: false,
+      deletedFor: { $ne: req.user._id },
     })
       .sort({ createdAt: -1 })
       .populate('sender', 'firstName lastName avatar')

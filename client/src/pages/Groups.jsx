@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useChatInbox } from '../context/ChatInboxContext';
 import { connectSocket, getSocket } from '../services/socket';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
@@ -18,6 +19,7 @@ import TypingIndicator from '../components/chat/TypingIndicator';
 
 export default function Groups() {
   const { user } = useAuth();
+  const { openChat, clearActiveChat, markGroupRead, refreshChatSummary } = useChatInbox();
   const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,8 +34,12 @@ export default function Groups() {
   const [showAssignTest, setShowAssignTest] = useState(false);
   const [myTests, setMyTests] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [confirmRemoveAssignedTestId, setConfirmRemoveAssignedTestId] = useState(null);
+  const [confirmRoleDeleteId, setConfirmRoleDeleteId] = useState(null);
   const [activeTab, setActiveTab] = useState('chat');
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [kickConfirmId, setKickConfirmId] = useState(null);
 
   // Chat state
   const [messages, setMessages] = useState([]);
@@ -43,6 +49,7 @@ export default function Groups() {
   const [typingUsers, setTypingUsers] = useState([]);
   const typingTimeoutRef = useRef({});
   const socketRef = useRef(null);
+  const activeTabRef = useRef(activeTab);
 
   // Settings state
   const [editName, setEditName] = useState('');
@@ -55,6 +62,21 @@ export default function Groups() {
   const [assignRoleUser, setAssignRoleUser] = useState(null);
 
   useEffect(() => { fetchGroups(); }, []);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (selectedGroup?._id && activeTab === 'chat') {
+      openChat('group', selectedGroup._id);
+      markGroupRead(selectedGroup._id);
+      return;
+    }
+    clearActiveChat();
+  }, [activeTab, clearActiveChat, markGroupRead, openChat, selectedGroup?._id]);
+
+  useEffect(() => () => clearActiveChat(), [clearActiveChat]);
 
   // Socket connection
   useEffect(() => {
@@ -73,17 +95,51 @@ export default function Groups() {
     if (selectedGroup) {
       s.emit('group:join', selectedGroup._id);
       loadMessages(selectedGroup._id, true);
+      if (activeTabRef.current === 'chat') {
+        markGroupRead(selectedGroup._id);
+      }
 
       const handleMsg = (msg) => {
         if (msg.group === selectedGroup._id || msg.group?._id === selectedGroup._id) {
           setMessages(prev => [...prev, msg]);
+          const senderId = msg.sender?._id || msg.sender;
+          if (activeTabRef.current === 'chat' && msg.type !== 'system' && senderId !== user?._id) {
+            markGroupRead(selectedGroup._id);
+          }
         }
       };
-      const handleDeleted = ({ messageId }) => {
-        setMessages(prev => prev.map(m => m._id === messageId ? { ...m, isDeleted: true, text: '', attachments: [] } : m));
+      const handleDeleted = ({ messageId, mode }) => {
+        setMessages(prev => (
+          mode === 'self'
+            ? prev.filter(m => m._id !== messageId)
+            : prev.map(m => m._id === messageId ? { ...m, isDeleted: true, isPinned: false, text: '', attachments: [] } : m)
+        ));
       };
       const handlePinned = ({ messageId, isPinned }) => {
         setMessages(prev => prev.map(m => m._id === messageId ? { ...m, isPinned } : m));
+      };
+      const handleMemberRemoved = ({ groupId, userId }) => {
+        if (groupId !== selectedGroup._id) return;
+        setSelectedGroup(prev => prev ? {
+          ...prev,
+          members: prev.members?.filter(member => (member.user?._id || member.user) !== userId)
+        } : prev);
+      };
+      const handleKicked = ({ groupId }) => {
+        if (groupId !== selectedGroup._id) {
+          fetchGroups();
+          refreshChatSummary();
+          return;
+        }
+
+        toast.error('Вас выгнали из группы');
+        setSelectedGroup(null);
+        setMessages([]);
+        setReplyTo(null);
+        setKickConfirmId(null);
+        clearActiveChat();
+        fetchGroups();
+        refreshChatSummary();
       };
       const handleTyping = ({ userId, name }) => {
         if (userId === user?._id) return;
@@ -99,23 +155,32 @@ export default function Groups() {
       const handleStopTyping = ({ userId }) => {
         setTypingUsers(prev => prev.filter(u => u.userId !== userId));
       };
+      const handleError = ({ message }) => {
+        if (message) toast.error(message);
+      };
 
       s.on('group:message', handleMsg);
       s.on('group:messageDeleted', handleDeleted);
       s.on('group:messagePinned', handlePinned);
+      s.on('group:memberRemoved', handleMemberRemoved);
+      s.on('group:kicked', handleKicked);
       s.on('group:typing', handleTyping);
       s.on('group:stopTyping', handleStopTyping);
+      s.on('group:error', handleError);
 
       return () => {
         s.emit('group:leave', selectedGroup._id);
         s.off('group:message', handleMsg);
         s.off('group:messageDeleted', handleDeleted);
         s.off('group:messagePinned', handlePinned);
+        s.off('group:memberRemoved', handleMemberRemoved);
+        s.off('group:kicked', handleKicked);
         s.off('group:typing', handleTyping);
         s.off('group:stopTyping', handleStopTyping);
+        s.off('group:error', handleError);
       };
     }
-  }, [selectedGroup?._id]);
+  }, [clearActiveChat, markGroupRead, refreshChatSummary, selectedGroup?._id, user?._id]);
 
   const loadMessages = async (groupId, reset = false) => {
     setChatLoading(true);
@@ -146,10 +211,10 @@ export default function Groups() {
     s.emit('group:stopTyping', { groupId: selectedGroup._id });
   };
 
-  const deleteMessage = (msg) => {
+  const deleteMessage = (msg, mode) => {
     const s = socketRef.current || getSocket();
     if (!s || !selectedGroup) return;
-    s.emit('group:deleteMessage', { groupId: selectedGroup._id, messageId: msg._id });
+    s.emit('group:deleteMessage', { groupId: selectedGroup._id, messageId: msg._id, mode });
   };
 
   const pinMessage = (msg) => {
@@ -206,11 +271,29 @@ export default function Groups() {
   };
 
   const leaveGroup = async (id) => {
-    try { await api.post(`/groups/${id}/leave`); setGroups(p => p.filter(g => g._id !== id)); if (selectedGroup?._id === id) setSelectedGroup(null); toast.success('Вы вышли'); } catch (e) { toast.error(e.response?.data?.message || 'Ошибка'); }
+    try {
+      await api.post(`/groups/${id}/leave`);
+      setGroups(p => p.filter(g => g._id !== id));
+      if (selectedGroup?._id === id) setSelectedGroup(null);
+      setConfirmLeave(false);
+      clearActiveChat();
+      refreshChatSummary();
+      toast.success('Вы вышли');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    }
   };
 
   const removeMember = async (userId) => {
-    try { await api.delete(`/groups/${selectedGroup._id}/members/${userId}`); const res = await api.get(`/groups/${selectedGroup._id}`); setSelectedGroup(res.data); toast.success('Удалён'); } catch (e) { toast.error(e.response?.data?.message || 'Ошибка'); }
+    try {
+      await api.delete(`/groups/${selectedGroup._id}/members/${userId}`);
+      const res = await api.get(`/groups/${selectedGroup._id}`);
+      setSelectedGroup(res.data);
+      setKickConfirmId(null);
+      toast.success('Участник удалён');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    }
   };
 
   const copyCode = (c) => { navigator.clipboard.writeText(c); toast.success('Скопировано'); };
@@ -229,7 +312,15 @@ export default function Groups() {
   };
 
   const removeAssignedTest = async (testId) => {
-    try { await api.delete(`/groups/${selectedGroup._id}/assigned-tests/${testId}`); const res = await api.get(`/groups/${selectedGroup._id}`); setSelectedGroup(res.data); toast.success('Убран'); } catch (e) { toast.error('Ошибка'); }
+    try {
+      await api.delete(`/groups/${selectedGroup._id}/assigned-tests/${testId}`);
+      const res = await api.get(`/groups/${selectedGroup._id}`);
+      setSelectedGroup(res.data);
+      setConfirmRemoveAssignedTestId(null);
+      toast.success('Тест убран');
+    } catch (e) {
+      toast.error('Ошибка');
+    }
   };
 
   // Roles
@@ -239,7 +330,14 @@ export default function Groups() {
   };
 
   const deleteRole = async (roleId) => {
-    try { const res = await api.delete(`/groups/${selectedGroup._id}/roles/${roleId}`); setSelectedGroup(p => ({ ...p, roles: res.data })); toast.success('Удалена'); } catch (e) { toast.error(e.response?.data?.message || 'Ошибка'); }
+    try {
+      const res = await api.delete(`/groups/${selectedGroup._id}/roles/${roleId}`);
+      setSelectedGroup(p => ({ ...p, roles: res.data }));
+      setConfirmRoleDeleteId(null);
+      toast.success('Роль удалена');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    }
   };
 
   const assignRole = async (userId, roleId) => {
@@ -316,7 +414,7 @@ export default function Groups() {
             {/* Sidebar: group info + member list (desktop only) */}
             <div className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-800 rounded-l-2xl border border-r-0 border-gray-200 dark:border-slate-700">
               <div className="p-4 border-b border-gray-100 dark:border-slate-700">
-                <button onClick={() => { setSelectedGroup(null); setMessages([]); setActiveTab('chat'); }} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-3 transition">
+                <button onClick={() => { setSelectedGroup(null); setMessages([]); setActiveTab('chat'); setKickConfirmId(null); setConfirmLeave(false); setConfirmRemoveAssignedTestId(null); setConfirmRoleDeleteId(null); }} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-3 transition">
                   <ArrowLeft size={14} /> Все группы
                 </button>
                 <div className="flex items-center gap-3">
@@ -355,7 +453,7 @@ export default function Groups() {
             <div className="flex-1 flex flex-col bg-white dark:bg-slate-800 lg:rounded-r-2xl rounded-2xl lg:rounded-l-none border border-gray-200 dark:border-slate-700 overflow-hidden">
               {/* Header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-slate-700">
-                <button onClick={() => { setSelectedGroup(null); setMessages([]); setActiveTab('chat'); }} className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition">
+                <button onClick={() => { setSelectedGroup(null); setMessages([]); setActiveTab('chat'); setKickConfirmId(null); setConfirmLeave(false); setConfirmRemoveAssignedTestId(null); setConfirmRoleDeleteId(null); }} className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition">
                   <ArrowLeft size={16} className="text-gray-400" />
                 </button>
                 <Hash size={16} className="text-gray-400 hidden sm:block" />
@@ -374,16 +472,19 @@ export default function Groups() {
               {/* Tab content */}
               {activeTab === 'chat' && (
                 <div className="flex-1 flex flex-col overflow-hidden">
-                  <MessageList
-                    messages={messages}
-                    currentUserId={user?._id}
-                    onReply={setReplyTo}
-                    onDelete={deleteMessage}
-                    onPin={pinMessage}
-                    canDelete={hasPermission(selectedGroup, 'deleteMessages')}
-                    canPin={hasPermission(selectedGroup, 'pinMessages')}
-                    onLoadMore={loadMoreMessages}
-                    hasMore={hasMore}
+                <MessageList
+                  messages={messages}
+                  currentUserId={user?._id}
+                  onReply={setReplyTo}
+                  onDelete={deleteMessage}
+                  onPin={pinMessage}
+                  getDeleteOptions={(message, isOwn) => ({
+                    self: true,
+                    everyone: isOwn || hasPermission(selectedGroup, 'deleteMessages'),
+                  })}
+                  canPin={hasPermission(selectedGroup, 'pinMessages')}
+                  onLoadMore={loadMoreMessages}
+                  hasMore={hasMore}
                     loading={chatLoading}
                     getMemberRoleColor={getMemberRoleColor}
                   />
@@ -434,9 +535,26 @@ export default function Groups() {
                           )}
                           {/* Kick */}
                           {hasPermission(selectedGroup, 'kickMembers') && m.user?._id !== user?._id && m.roleId !== 'owner' && (
-                            <button onClick={() => removeMember(m.user?._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition">
-                              <X size={14} />
-                            </button>
+                            kickConfirmId === m.user?._id ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => removeMember(m.user?._id)}
+                                  className="rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30"
+                                >
+                                  Выгнать
+                                </button>
+                                <button
+                                  onClick={() => setKickConfirmId(null)}
+                                  className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-400 transition hover:bg-gray-100 dark:hover:bg-slate-700"
+                                >
+                                  Отмена
+                                </button>
+                              </div>
+                            ) : (
+                              <button onClick={() => setKickConfirmId(m.user?._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition">
+                                <X size={14} />
+                              </button>
+                            )
                           )}
                         </div>
                       );
@@ -466,7 +584,24 @@ export default function Groups() {
                           </div>
                           <button onClick={() => at.test?.shareLink && navigate(`/test-profile/${at.test.shareLink}`)} className="btn-secondary py-1.5 px-3 text-xs"><ExternalLink size={12} /></button>
                           {hasPermission(selectedGroup, 'assignTests') && (
-                            <button onClick={() => removeAssignedTest(at.test?._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition"><X size={14} /></button>
+                            confirmRemoveAssignedTestId === (at.test?._id || at._id) ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => removeAssignedTest(at.test?._id)}
+                                  className="rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30"
+                                >
+                                  Убрать
+                                </button>
+                                <button
+                                  onClick={() => setConfirmRemoveAssignedTestId(null)}
+                                  className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-400 transition hover:bg-gray-100 dark:hover:bg-slate-700"
+                                >
+                                  Отмена
+                                </button>
+                              </div>
+                            ) : (
+                              <button onClick={() => setConfirmRemoveAssignedTestId(at.test?._id || at._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition"><X size={14} /></button>
+                            )
                           )}
                         </div>
                       ))}
@@ -541,7 +676,24 @@ export default function Groups() {
                             <span className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-1">{r.name}</span>
                             <span className="text-[10px] text-gray-400">pos: {r.position}</span>
                             {!['owner', 'admin', 'member'].includes(r._id) && (
-                              <button onClick={() => deleteRole(r._id)} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition"><Trash2 size={13} /></button>
+                              confirmRoleDeleteId === r._id ? (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => deleteRole(r._id)}
+                                    className="rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30"
+                                  >
+                                    Удалить
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmRoleDeleteId(null)}
+                                    className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-400 transition hover:bg-gray-100 dark:hover:bg-slate-700"
+                                  >
+                                    Отмена
+                                  </button>
+                                </div>
+                              ) : (
+                                <button onClick={() => setConfirmRoleDeleteId(r._id)} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition"><Trash2 size={13} /></button>
+                              )
                             )}
                           </div>
                         ))}
@@ -552,7 +704,7 @@ export default function Groups() {
                   {/* Leave / Delete */}
                   <div className="flex gap-3">
                     {!isOwner(selectedGroup) && (
-                      <button onClick={() => leaveGroup(selectedGroup._id)} className="inline-flex items-center gap-2 text-sm font-medium text-red-500 border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl px-4 py-2.5 transition">
+                      <button onClick={() => setConfirmLeave(true)} className="inline-flex items-center gap-2 text-sm font-medium text-red-500 border border-red-200 dark:border-red-800/50 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl px-4 py-2.5 transition">
                         <LogOut size={15} /> Покинуть
                       </button>
                     )}
@@ -596,7 +748,7 @@ export default function Groups() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
                 {groups.map((g, i) => (
                   <motion.div key={g._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                    onClick={() => setSelectedGroup(g)} className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer group">
+                    onClick={() => { setSelectedGroup(g); setKickConfirmId(null); setConfirmLeave(false); setConfirmRemoveAssignedTestId(null); setConfirmRoleDeleteId(null); }} className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer group">
                     <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getGrad(g.name)} flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm overflow-hidden`}>
                       {g.avatar ? <img src={g.avatar} alt="" className="w-full h-full object-cover" /> : (g.name?.[0] || 'G').toUpperCase()}
                     </div>
@@ -676,7 +828,8 @@ export default function Groups() {
           )}
         </AnimatePresence>
 
-        <ConfirmDialog isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => deleteGroup(confirmDelete)} title="Удалить группу?" message="Все данные будут утеряны." confirmText="Удалить" type="danger" />
+        <ConfirmDialog isOpen={confirmLeave} onClose={() => setConfirmLeave(false)} onConfirm={() => leaveGroup(selectedGroup?._id)} title="Покинуть группу?" message="Вы потеряете доступ к чату и назначенным тестам этой группы." confirmText="Покинуть" variant="warning" />
+        <ConfirmDialog isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => deleteGroup(confirmDelete)} title="Удалить группу?" message="Все данные будут утеряны." confirmText="Удалить" variant="danger" />
       </main>
     </div>
   );

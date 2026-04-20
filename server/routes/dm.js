@@ -6,6 +6,21 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+async function findVisibleConversationMessage(conversationId, userId) {
+  return DMMessage.findOne({
+    conversation: conversationId,
+    isDeleted: false,
+    deletedFor: { $ne: userId },
+  })
+    .sort({ createdAt: -1 })
+    .populate('sender', 'firstName lastName avatar uniqueId')
+    .populate({
+      path: 'replyTo',
+      select: 'text sender type isDeleted',
+      populate: { path: 'sender', select: 'firstName lastName' }
+    });
+}
+
 // ── Search users (for starting DMs) ──
 router.get('/search/users', auth, async (req, res) => {
   try {
@@ -33,6 +48,35 @@ router.get('/search/users', auth, async (req, res) => {
 });
 
 // ── Get my conversations ──
+router.get('/unread-summary', auth, async (req, res) => {
+  try {
+    const conversations = await DirectMessage.find({
+      participants: req.user._id,
+    }).select('_id');
+
+    const unreadConversationIds = [];
+
+    for (const conversation of conversations) {
+      const hasUnread = await DMMessage.exists({
+        conversation: conversation._id,
+        sender: { $ne: req.user._id },
+        readBy: { $ne: req.user._id },
+        isDeleted: false,
+        deletedFor: { $ne: req.user._id },
+      });
+
+      if (hasUnread) unreadConversationIds.push(conversation._id.toString());
+    }
+
+    res.json({
+      hasUnread: unreadConversationIds.length > 0,
+      unreadConversationIds
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 router.get('/conversations', auth, async (req, res) => {
   try {
     const conversations = await DirectMessage.find({
@@ -41,7 +85,7 @@ router.get('/conversations', auth, async (req, res) => {
       .populate('participants', 'firstName lastName email avatar uniqueId')
       .populate({
         path: 'lastMessage',
-        select: 'text type sender createdAt readBy',
+        select: 'text type sender createdAt readBy isDeleted deletedFor attachments',
         populate: { path: 'sender', select: 'firstName lastName' }
       })
       .sort({ lastActivity: -1 });
@@ -53,8 +97,19 @@ router.get('/conversations', auth, async (req, res) => {
         sender: { $ne: req.user._id },
         readBy: { $ne: req.user._id },
         isDeleted: false,
+        deletedFor: { $ne: req.user._id },
       });
-      return { ...conv.toJSON(), unreadCount };
+
+      const isLastMessageVisible =
+        conv.lastMessage &&
+        !conv.lastMessage.isDeleted &&
+        !conv.lastMessage.deletedFor?.some(id => id.toString() === req.user._id.toString());
+
+      const visibleLastMessage = isLastMessageVisible
+        ? conv.lastMessage
+        : await findVisibleConversationMessage(conv._id, req.user._id);
+
+      return { ...conv.toJSON(), lastMessage: visibleLastMessage, unreadCount };
     }));
 
     res.json(result);
@@ -82,7 +137,7 @@ router.post('/conversations', auth, async (req, res) => {
       .populate('participants', 'firstName lastName email avatar uniqueId')
       .populate({
         path: 'lastMessage',
-        select: 'text type sender createdAt',
+        select: 'text type sender createdAt isDeleted deletedFor attachments',
         populate: { path: 'sender', select: 'firstName lastName' }
       });
 
@@ -112,7 +167,7 @@ router.get('/conversations/:id/messages', auth, async (req, res) => {
     if (!isParticipant) return res.status(403).json({ message: 'Нет доступа' });
 
     const { before, limit = 50 } = req.query;
-    const query = { conversation: req.params.id, isDeleted: false };
+    const query = { conversation: req.params.id, deletedFor: { $ne: req.user._id } };
     if (before) query._id = { $lt: before };
 
     const messages = await DMMessage.find(query)
@@ -121,7 +176,7 @@ router.get('/conversations/:id/messages', auth, async (req, res) => {
       .populate('sender', 'firstName lastName avatar uniqueId')
       .populate({
         path: 'replyTo',
-        select: 'text sender type',
+        select: 'text sender type isDeleted',
         populate: { path: 'sender', select: 'firstName lastName' }
       });
 

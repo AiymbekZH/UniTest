@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Send, Paperclip, X, Image as ImageIcon } from 'lucide-react';
+import { Send, Paperclip, X } from 'lucide-react';
 import VoiceRecorder from './VoiceRecorder';
 
 export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) {
@@ -14,6 +14,7 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
     if (attachments.length > 0) {
       const att = attachments[0];
       const type = att.mimetype.startsWith('image/') ? 'image'
+        : att.mimetype.startsWith('video/') ? 'video'
         : att.mimetype.startsWith('audio/') ? 'audio' : 'file';
       onSend({ text: trimmed, type, attachments, replyTo: replyTo?._id });
     } else {
@@ -46,7 +47,7 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
         mimetype: file.type,
         filename: file.name,
         size: file.size,
-        preview: file.type.startsWith('image/') ? reader.result : null,
+        preview: file.type.startsWith('image/') || file.type.startsWith('video/') ? reader.result : null,
       }]);
     };
     reader.readAsDataURL(file);
@@ -81,8 +82,10 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
       {/* Attachment preview */}
       {attachments.length > 0 && (
         <div className="mb-2 flex items-center gap-2">
-          {attachments[0].preview ? (
+          {attachments[0].preview && attachments[0].mimetype.startsWith('image/') ? (
             <img src={attachments[0].preview} alt="" className="h-16 w-16 rounded-xl object-cover" />
+          ) : attachments[0].preview && attachments[0].mimetype.startsWith('video/') ? (
+            <video src={attachments[0].preview} className="h-16 w-16 rounded-xl bg-black object-cover" muted playsInline />
           ) : (
             <div className="h-10 px-3 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
               <Paperclip size={14} /> {attachments[0].filename}
@@ -99,7 +102,7 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
         <button onClick={() => fileRef.current?.click()} className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition" title="Прикрепить файл">
           <Paperclip size={18} />
         </button>
-        <input ref={fileRef} type="file" className="hidden" accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar" onChange={handleFile} />
+        <input ref={fileRef} type="file" className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar" onChange={handleFile} />
 
         <div className="flex-1 min-w-0">
           <textarea

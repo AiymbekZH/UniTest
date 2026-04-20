@@ -6,7 +6,7 @@ const messageSchema = new mongoose.Schema({
 
   type: {
     type: String,
-    enum: ['text', 'image', 'file', 'audio', 'system'],
+    enum: ['text', 'image', 'video', 'file', 'audio', 'system'],
     default: 'text'
   },
 
@@ -24,6 +24,7 @@ const messageSchema = new mongoose.Schema({
   isEdited: { type: Boolean, default: false },
   isPinned: { type: Boolean, default: false },
   isDeleted: { type: Boolean, default: false },
+  deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
 messageSchema.index({ group: 1, createdAt: -1 });

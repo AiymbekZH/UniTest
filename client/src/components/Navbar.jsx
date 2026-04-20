@@ -7,6 +7,7 @@ import {
   User, Shield, Globe, Users, RefreshCw, Trash2, UserPlus, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useChatInbox } from '../context/ChatInboxContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import NotificationBell from './NotificationBell';
@@ -15,6 +16,7 @@ import toast from 'react-hot-toast';
 
 export default memo(function Navbar() {
   const { user, logout, savedSessions, switchAccount, removeSavedSession, isAuthenticated } = useAuth();
+  const { hasUnreadMessages, hasUnreadGroups, hasAnyChatUnread } = useChatInbox();
   const { dark, mode, cycleTheme } = useTheme();
   const { t, lang, setLanguage } = useLanguage();
   const navigate = useNavigate();
@@ -65,6 +67,10 @@ export default memo(function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   const langLabels = { en: 'EN', ru: 'RU', kz: 'KZ', es: 'ES' };
+  const hasUnreadForPath = (path) => (
+    (path === '/messages' && hasUnreadMessages) ||
+    (path === '/groups' && hasUnreadGroups)
+  );
 
   return (
     <>
@@ -97,13 +103,16 @@ export default memo(function Navbar() {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all duration-200
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all duration-200
                     ${isActive(link.to)
                       ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600'
                       : 'text-gray-500 dark:text-gray-400 hover:text-dark dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                 >
                   <link.icon size={15} />
                   {link.label}
+                  {hasUnreadForPath(link.to) && (
+                    <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
+                  )}
                 </Link>
               ))}
               {user?.role === 'admin' && (
@@ -323,9 +332,12 @@ export default memo(function Navbar() {
             {/* Mobile menu toggle */}
             {isAuthenticated && (
               <button
-                className="lg:hidden p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all"
+                className="relative lg:hidden p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all"
                 onClick={() => setShowMobile(!showMobile)}
               >
+                {hasAnyChatUnread && (
+                  <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500" />
+                )}
                 {showMobile ? <X size={20} className="text-dark" /> : <Menu size={20} className="text-dark" />}
               </button>
             )}
@@ -347,11 +359,14 @@ export default memo(function Navbar() {
                     key={link.to}
                     to={link.to}
                     onClick={() => setShowMobile(false)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all
+                    className={`relative flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all
                       ${isActive(link.to) ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                   >
                     <link.icon size={16} />
                     {link.label}
+                    {hasUnreadForPath(link.to) && (
+                      <span className="ml-auto h-2.5 w-2.5 rounded-full bg-red-500" />
+                    )}
                   </Link>
                 ))}
                 {user?.role === 'admin' && (

@@ -89,7 +89,8 @@ const groupSchema = new mongoose.Schema({
   members: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     roleId: { type: String, default: 'member' },
-    joinedAt: { type: Date, default: Date.now }
+    joinedAt: { type: Date, default: Date.now },
+    lastReadAt: { type: Date, default: Date.now }
   }],
 
   // Custom roles (Discord-style)

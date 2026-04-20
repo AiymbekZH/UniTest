@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import MessageBubble from './MessageBubble';
+import MediaViewerModal from './MediaViewerModal';
 import { Loader2 } from 'lucide-react';
 
 export default function MessageList({
   messages, currentUserId, onReply, onDelete, onPin,
-  canDelete, canPin, onLoadMore, hasMore, loading,
+  getDeleteOptions, canPin, onLoadMore, hasMore, loading,
   getMemberRoleColor,
 }) {
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const prevLenRef = useRef(0);
+  const [mediaViewer, setMediaViewer] = useState(null);
 
   // Auto scroll to bottom on new messages
   useEffect(() => {
@@ -65,12 +67,14 @@ export default function MessageList({
           onReply={onReply}
           onDelete={onDelete}
           onPin={onPin}
-          canDelete={canDelete}
+          deleteOptions={getDeleteOptions?.(msg, msg.sender?._id === currentUserId)}
           canPin={canPin}
           roleColor={getMemberRoleColor?.(msg.sender?._id)}
+          onPreviewMedia={setMediaViewer}
         />
       ))}
       <div ref={bottomRef} />
+      <MediaViewerModal media={mediaViewer} onClose={() => setMediaViewer(null)} />
     </div>
   );
 }

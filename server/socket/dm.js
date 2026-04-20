@@ -1,6 +1,17 @@
 const DMMessage = require('../models/DMMessage');
 const DirectMessage = require('../models/DirectMessage');
 
+async function resolveLastVisibleMessageId(conversationId) {
+  const latest = await DMMessage.findOne({
+    conversation: conversationId,
+    isDeleted: false,
+  })
+    .sort({ createdAt: -1 })
+    .select('_id');
+
+  return latest?._id || null;
+}
+
 module.exports = function (io) {
   io.on('connection', (socket) => {
     // Join personal room for DMs
@@ -23,6 +34,7 @@ module.exports = function (io) {
 
         // Validate
         if (type === 'text' && (!text || !text.trim())) return;
+        if (['image', 'video', 'file', 'audio'].includes(type) && (!attachments || attachments.length === 0)) return;
 
         // Size check
         if (attachments?.length > 0) {
@@ -48,7 +60,7 @@ module.exports = function (io) {
         if (message.replyTo) {
           await message.populate({
             path: 'replyTo',
-            select: 'text sender type',
+            select: 'text sender type isDeleted',
             populate: { path: 'sender', select: 'firstName lastName' }
           });
         }
@@ -76,6 +88,8 @@ module.exports = function (io) {
         await DMMessage.updateMany(
           {
             conversation: conversationId,
+            isDeleted: false,
+            deletedFor: { $ne: socket.user._id },
             readBy: { $ne: socket.user._id },
           },
           { $addToSet: { readBy: socket.user._id } }
@@ -95,6 +109,60 @@ module.exports = function (io) {
         }
       } catch (e) {
         console.error('dm:read error:', e.message);
+      }
+    });
+
+    socket.on('dm:deleteMessage', async ({ conversationId, messageId, mode = 'everyone' }) => {
+      try {
+        const conversation = await DirectMessage.findById(conversationId);
+        if (!conversation) return;
+
+        const isParticipant = conversation.participants.some(
+          p => p.toString() === socket.user._id.toString()
+        );
+        if (!isParticipant) return;
+
+        const message = await DMMessage.findById(messageId);
+        if (!message || message.conversation.toString() !== conversationId) return;
+
+        if (mode === 'self') {
+          if (!message.deletedFor.some(id => id.toString() === socket.user._id.toString())) {
+            message.deletedFor.push(socket.user._id);
+            await message.save();
+          }
+
+          socket.emit('dm:messageDeleted', {
+            conversationId,
+            messageId,
+            mode: 'self',
+          });
+          return;
+        }
+
+        if (message.sender.toString() !== socket.user._id.toString()) {
+          return socket.emit('dm:error', { message: 'Можно удалить у всех только своё сообщение' });
+        }
+
+        message.isDeleted = true;
+        message.text = '';
+        message.attachments = [];
+        message.deletedFor = [];
+        await message.save();
+
+        if (conversation.lastMessage?.toString() === messageId) {
+          conversation.lastMessage = await resolveLastVisibleMessageId(conversationId);
+          await conversation.save();
+        }
+
+        for (const pid of conversation.participants) {
+          io.to(`user:${pid}`).emit('dm:messageDeleted', {
+            conversationId,
+            messageId,
+            mode: 'everyone',
+          });
+        }
+      } catch (e) {
+        console.error('dm:deleteMessage error:', e.message);
       }
     });
 

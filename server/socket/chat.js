@@ -1,6 +1,18 @@
 const Message = require('../models/Message');
 const Group = require('../models/Group');
 
+async function markGroupAsRead(groupId, userId) {
+  const group = await Group.findById(groupId);
+  if (!group || group.isDeleted) return null;
+
+  const member = group.members.find(m => m.user.toString() === userId.toString());
+  if (!member) return null;
+
+  member.lastReadAt = new Date();
+  await group.save();
+  return group;
+}
+
 module.exports = function (io) {
   io.on('connection', (socket) => {
     // ── JOIN GROUP ROOM ──
@@ -38,7 +50,7 @@ module.exports = function (io) {
 
         // Validate
         if (type === 'text' && (!text || !text.trim())) return;
-        if (['image', 'file', 'audio'].includes(type) && (!attachments || attachments.length === 0)) return;
+        if (['image', 'video', 'file', 'audio'].includes(type) && (!attachments || attachments.length === 0)) return;
 
         // Size check on attachments
         if (attachments?.length > 0) {
@@ -63,12 +75,23 @@ module.exports = function (io) {
         if (message.replyTo) {
           await message.populate({
             path: 'replyTo',
-            select: 'text sender type',
+            select: 'text sender type isDeleted',
             populate: { path: 'sender', select: 'firstName lastName' }
           });
         }
 
         io.to(`group:${groupId}`).emit('group:message', message);
+
+        if (type !== 'system') {
+          for (const member of group.members) {
+            if (member.user.toString() === socket.user._id.toString()) continue;
+            io.to(`user:${member.user}`).emit('group:inbox', {
+              groupId,
+              messageId: message._id,
+              senderId: socket.user._id.toString(),
+            });
+          }
+        }
       } catch (e) {
         console.error('group:message error:', e.message);
       }
@@ -77,12 +100,24 @@ module.exports = function (io) {
     // ── DELETE MESSAGE ──
     socket.on('group:deleteMessage', async (data) => {
       try {
-        const { groupId, messageId } = data;
+        const { groupId, messageId, mode = 'everyone' } = data;
         const message = await Message.findById(messageId);
         if (!message || message.group.toString() !== groupId) return;
 
         const group = await Group.findById(groupId);
         if (!group) return;
+
+        const isMember = group.members.some(m => m.user.toString() === socket.user._id.toString());
+        if (!isMember) return;
+
+        if (mode === 'self') {
+          if (!message.deletedFor.some(id => id.toString() === socket.user._id.toString())) {
+            message.deletedFor.push(socket.user._id);
+            await message.save();
+          }
+          socket.emit('group:messageDeleted', { messageId, groupId, mode: 'self' });
+          return;
+        }
 
         const isAuthor = message.sender.toString() === socket.user._id.toString();
         const canDelete = group.hasPermission(socket.user._id, 'deleteMessages');
@@ -92,11 +127,17 @@ module.exports = function (io) {
         }
 
         message.isDeleted = true;
+        message.isPinned = false;
         message.text = '';
         message.attachments = [];
+        message.deletedFor = [];
         await message.save();
 
-        io.to(`group:${groupId}`).emit('group:messageDeleted', { messageId, groupId });
+        io.to(`group:${groupId}`).emit('group:messageDeleted', {
+          messageId,
+          groupId,
+          mode: 'everyone',
+        });
       } catch (e) {
         console.error('group:deleteMessage error:', e.message);
       }
@@ -137,6 +178,14 @@ module.exports = function (io) {
       socket.to(`group:${groupId}`).emit('group:stopTyping', {
         userId: socket.user._id,
       });
+    });
+
+    socket.on('group:read', async ({ groupId }) => {
+      try {
+        await markGroupAsRead(groupId, socket.user._id);
+      } catch (e) {
+        console.error('group:read error:', e.message);
+      }
     });
   });
 };

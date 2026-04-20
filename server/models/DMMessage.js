@@ -6,7 +6,7 @@ const dmMessageSchema = new mongoose.Schema({
 
   type: {
     type: String,
-    enum: ['text', 'image', 'file', 'audio'],
+    enum: ['text', 'image', 'video', 'file', 'audio'],
     default: 'text'
   },
 
@@ -23,6 +23,7 @@ const dmMessageSchema = new mongoose.Schema({
 
   isEdited: { type: Boolean, default: false },
   isDeleted: { type: Boolean, default: false },
+  deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 

@@ -4,6 +4,7 @@ import { ArrowLeft, Search, MessageSquare, User as UserIcon } from 'lucide-react
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useChatInbox } from '../context/ChatInboxContext';
 import { connectSocket, getSocket } from '../services/socket';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
@@ -13,6 +14,7 @@ import TypingIndicator from '../components/chat/TypingIndicator';
 
 export default function Messages() {
   const { user } = useAuth();
+  const { openChat, clearActiveChat, markConversationRead } = useChatInbox();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [selectedConv, setSelectedConv] = useState(null);
@@ -27,6 +29,11 @@ export default function Messages() {
   const [searching, setSearching] = useState(false);
   const typingTimeoutRef = useRef({});
   const socketRef = useRef(null);
+  const selectedConversationIdRef = useRef(null);
+
+  useEffect(() => {
+    selectedConversationIdRef.current = selectedConv?._id || null;
+  }, [selectedConv?._id]);
 
   useEffect(() => {
     const s = connectSocket();
@@ -35,6 +42,9 @@ export default function Messages() {
 
     if (s) {
       const handleMsg = (msg) => {
+        const senderId = msg.sender?._id || msg.sender;
+        const isOpenConversation = selectedConversationIdRef.current === msg.conversationId;
+
         // Update conversations list
         setConversations(prev => {
           const idx = prev.findIndex(c => c._id === msg.conversationId);
@@ -47,19 +57,21 @@ export default function Messages() {
             ...updated[idx],
             lastMessage: msg,
             lastActivity: new Date().toISOString(),
-            unreadCount: msg.sender?._id !== user?._id ? (updated[idx].unreadCount || 0) + 1 : updated[idx].unreadCount,
+            unreadCount: senderId !== user?._id && !isOpenConversation
+              ? (updated[idx].unreadCount || 0) + 1
+              : 0,
           };
           updated.sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity));
           return updated;
         });
 
         // Add to messages if this conversation is open
-        setSelectedConv(curr => {
-          if (curr && curr._id === msg.conversationId) {
-            setMessages(prev => [...prev, msg]);
+        if (isOpenConversation) {
+          setMessages(prev => [...prev, msg]);
+          if (senderId !== user?._id) {
+            markConversationRead(msg.conversationId);
           }
-          return curr;
-        });
+        }
       };
 
       const handleTyping = ({ conversationId, userId, name }) => {
@@ -78,23 +90,47 @@ export default function Messages() {
         setTypingUsers(prev => prev.filter(u => u.userId !== userId));
       };
 
-      const handleRead = ({ conversationId }) => {
-        setConversations(prev => prev.map(c => c._id === conversationId ? { ...c, unreadCount: 0 } : c));
+      const handleDeleted = ({ conversationId, messageId, mode }) => {
+        if (selectedConversationIdRef.current === conversationId) {
+          setMessages(prev => (
+            mode === 'self'
+              ? prev.filter(msg => msg._id !== messageId)
+              : prev.map(msg => msg._id === messageId ? { ...msg, isDeleted: true, text: '', attachments: [] } : msg)
+          ));
+        }
+        fetchConversations();
+      };
+
+      const handleError = ({ message }) => {
+        if (message) toast.error(message);
       };
 
       s.on('dm:message', handleMsg);
       s.on('dm:typing', handleTyping);
       s.on('dm:stopTyping', handleStopTyping);
-      s.on('dm:read', handleRead);
+      s.on('dm:messageDeleted', handleDeleted);
+      s.on('dm:error', handleError);
 
       return () => {
         s.off('dm:message', handleMsg);
         s.off('dm:typing', handleTyping);
         s.off('dm:stopTyping', handleStopTyping);
-        s.off('dm:read', handleRead);
+        s.off('dm:messageDeleted', handleDeleted);
+        s.off('dm:error', handleError);
       };
     }
   }, []);
+
+  useEffect(() => {
+    if (selectedConv?._id) {
+      openChat('dm', selectedConv._id);
+      markConversationRead(selectedConv._id);
+      return;
+    }
+    clearActiveChat();
+  }, [clearActiveChat, markConversationRead, openChat, selectedConv?._id]);
+
+  useEffect(() => () => clearActiveChat(), [clearActiveChat]);
 
   const fetchConversations = async () => {
     try {
@@ -121,9 +157,7 @@ export default function Messages() {
     setMessages([]);
     setTypingUsers([]);
     loadMessages(conv._id, true);
-    // Mark as read
-    const s = socketRef.current || getSocket();
-    if (s) s.emit('dm:read', { conversationId: conv._id });
+    markConversationRead(conv._id);
     setConversations(prev => prev.map(c => c._id === conv._id ? { ...c, unreadCount: 0 } : c));
   };
 
@@ -137,6 +171,16 @@ export default function Messages() {
     if (!s || !selectedConv) return;
     s.emit('dm:message', { conversationId: selectedConv._id, ...data });
     s.emit('dm:stopTyping', { conversationId: selectedConv._id });
+  };
+
+  const deleteMessage = (message, mode) => {
+    const s = socketRef.current || getSocket();
+    if (!s || !selectedConv) return;
+    s.emit('dm:deleteMessage', {
+      conversationId: selectedConv._id,
+      messageId: message._id,
+      mode,
+    });
   };
 
   const searchUsers = async (q) => {
@@ -298,9 +342,9 @@ export default function Messages() {
                   messages={messages}
                   currentUserId={user?._id}
                   onReply={setReplyTo}
-                  onDelete={() => {}}
+                  onDelete={deleteMessage}
                   onPin={() => {}}
-                  canDelete={false}
+                  getDeleteOptions={(message, isOwn) => ({ self: true, everyone: isOwn })}
                   canPin={false}
                   onLoadMore={loadMore}
                   hasMore={hasMore}
