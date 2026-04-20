@@ -8,6 +8,7 @@ const SOUND_URL = '/message-sounds/sound_17216.mp3';
 
 export function ChatInboxProvider({ children }) {
   const { user, isAuthenticated } = useAuth();
+  const currentUserId = user?._id || user?.id;
   const [activeChat, setActiveChat] = useState({ kind: null, id: null });
   const [unreadConversationIds, setUnreadConversationIds] = useState([]);
   const [unreadGroupIds, setUnreadGroupIds] = useState([]);
@@ -23,7 +24,7 @@ export function ChatInboxProvider({ children }) {
 
     audioRef.current = new Audio(SOUND_URL);
     audioRef.current.preload = 'auto';
-  }, [isAuthenticated, user?._id]);
+  }, [currentUserId, isAuthenticated]);
 
   const fetchSummaries = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -43,7 +44,7 @@ export function ChatInboxProvider({ children }) {
 
   useEffect(() => {
     fetchSummaries();
-  }, [fetchSummaries, isAuthenticated, user?._id]);
+  }, [fetchSummaries, isAuthenticated, currentUserId]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) return undefined;
@@ -59,7 +60,7 @@ export function ChatInboxProvider({ children }) {
 
     const handleDmMessage = (message) => {
       const senderId = message.sender?._id || message.sender;
-      if (!message.conversationId || senderId === user._id) return;
+      if (!message.conversationId || senderId === currentUserId) return;
 
       if (activeChat.kind === 'dm' && activeChat.id === message.conversationId) {
         return;
@@ -72,7 +73,7 @@ export function ChatInboxProvider({ children }) {
     };
 
     const handleGroupInbox = ({ groupId, senderId }) => {
-      if (!groupId || senderId === user._id) return;
+      if (!groupId || senderId === currentUserId) return;
 
       if (activeChat.kind === 'group' && activeChat.id === groupId) {
         return;
@@ -117,7 +118,7 @@ export function ChatInboxProvider({ children }) {
       socket.off('dm:messageDeleted', handleDmDeleted);
       socket.off('group:messageDeleted', handleGroupDeleted);
     };
-  }, [activeChat.id, activeChat.kind, isAuthenticated, user?._id]);
+  }, [activeChat.id, activeChat.kind, currentUserId, isAuthenticated]);
 
   const openChat = useCallback((kind, id) => {
     setActiveChat({ kind, id });

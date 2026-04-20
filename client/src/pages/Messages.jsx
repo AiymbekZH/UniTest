@@ -16,6 +16,7 @@ export default function Messages() {
   const { user } = useAuth();
   const { openChat, clearActiveChat, markConversationRead } = useChatInbox();
   const navigate = useNavigate();
+  const currentUserId = user?._id || user?.id;
   const [conversations, setConversations] = useState([]);
   const [selectedConv, setSelectedConv] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +58,7 @@ export default function Messages() {
             ...updated[idx],
             lastMessage: msg,
             lastActivity: new Date().toISOString(),
-            unreadCount: senderId !== user?._id && !isOpenConversation
+            unreadCount: senderId !== currentUserId && !isOpenConversation
               ? (updated[idx].unreadCount || 0) + 1
               : 0,
           };
@@ -68,14 +69,14 @@ export default function Messages() {
         // Add to messages if this conversation is open
         if (isOpenConversation) {
           setMessages(prev => [...prev, msg]);
-          if (senderId !== user?._id) {
+          if (senderId !== currentUserId) {
             markConversationRead(msg.conversationId);
           }
         }
       };
 
       const handleTyping = ({ conversationId, userId, name }) => {
-        if (userId === user?._id) return;
+        if (userId === currentUserId) return;
         setTypingUsers(prev => {
           if (prev.find(u => u.userId === userId)) return prev;
           return [...prev, { userId, name }];
@@ -208,9 +209,9 @@ export default function Messages() {
     } catch (e) { toast.error(e.response?.data?.message || 'Ошибка'); }
   };
 
-  const getOtherUser = (conv) => {
-    return conv.participants?.find(p => p._id !== user?._id) || conv.participants?.[0];
-  };
+  const getOtherUser = (conv) => (
+    conv.participants?.find(p => p._id !== currentUserId) || conv.participants?.[0]
+  );
 
   const timeAgo = (date) => {
     if (!date) return '';
@@ -340,7 +341,7 @@ export default function Messages() {
                 {/* Messages */}
                 <MessageList
                   messages={messages}
-                  currentUserId={user?._id}
+                  currentUserId={currentUserId}
                   onReply={setReplyTo}
                   onDelete={deleteMessage}
                   onPin={() => {}}

@@ -21,6 +21,7 @@ export default function Groups() {
   const { user } = useAuth();
   const { openChat, clearActiveChat, markGroupRead, refreshChatSummary } = useChatInbox();
   const navigate = useNavigate();
+  const currentUserId = user?._id || user?.id;
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -103,7 +104,7 @@ export default function Groups() {
         if (msg.group === selectedGroup._id || msg.group?._id === selectedGroup._id) {
           setMessages(prev => [...prev, msg]);
           const senderId = msg.sender?._id || msg.sender;
-          if (activeTabRef.current === 'chat' && msg.type !== 'system' && senderId !== user?._id) {
+          if (activeTabRef.current === 'chat' && msg.type !== 'system' && senderId !== currentUserId) {
             markGroupRead(selectedGroup._id);
           }
         }
@@ -142,7 +143,7 @@ export default function Groups() {
         refreshChatSummary();
       };
       const handleTyping = ({ userId, name }) => {
-        if (userId === user?._id) return;
+        if (userId === currentUserId) return;
         setTypingUsers(prev => {
           if (prev.find(u => u.userId === userId)) return prev;
           return [...prev, { userId, name }];
@@ -180,7 +181,7 @@ export default function Groups() {
         s.off('group:error', handleError);
       };
     }
-  }, [clearActiveChat, markGroupRead, refreshChatSummary, selectedGroup?._id, user?._id]);
+  }, [clearActiveChat, currentUserId, markGroupRead, refreshChatSummary, selectedGroup?._id]);
 
   const loadMessages = async (groupId, reset = false) => {
     setChatLoading(true);
@@ -366,13 +367,13 @@ export default function Groups() {
 
   // Helpers
   const getMyRole = (group) => {
-    if (!group || !user) return null;
-    const member = group.members?.find(m => (m.user?._id || m.user) === user._id);
+    if (!group || !currentUserId) return null;
+    const member = group.members?.find(m => (m.user?._id || m.user) === currentUserId);
     return group.roles?.find(r => r._id === member?.roleId);
   };
   const hasPermission = (group, perm) => getMyRole(group)?.permissions?.[perm] === true;
   const isOwner = (group) => {
-    const m = group?.members?.find(m => (m.user?._id || m.user) === user?._id);
+    const m = group?.members?.find(m => (m.user?._id || m.user) === currentUserId);
     return m?.roleId === 'owner';
   };
   const getMemberRoleColor = (userId) => {
@@ -474,7 +475,7 @@ export default function Groups() {
                 <div className="flex-1 flex flex-col overflow-hidden">
                 <MessageList
                   messages={messages}
-                  currentUserId={user?._id}
+                  currentUserId={currentUserId}
                   onReply={setReplyTo}
                   onDelete={deleteMessage}
                   onPin={pinMessage}
@@ -515,7 +516,7 @@ export default function Groups() {
                           </div>
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: (role?.color || '#6366f1') + '20', color: role?.color || '#6366f1' }}>{role?.name || 'Участник'}</span>
                           {/* Assign role dropdown */}
-                          {hasPermission(selectedGroup, 'manageRoles') && m.user?._id !== user?._id && (
+                          {hasPermission(selectedGroup, 'manageRoles') && (m.user?._id || m.user) !== currentUserId && (
                             <div className="relative">
                               <button onClick={() => setAssignRoleUser(assignRoleUser === m.user?._id ? null : m.user?._id)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-400 transition">
                                 <Shield size={13} />
@@ -534,7 +535,7 @@ export default function Groups() {
                             </div>
                           )}
                           {/* Kick */}
-                          {hasPermission(selectedGroup, 'kickMembers') && m.user?._id !== user?._id && m.roleId !== 'owner' && (
+                          {hasPermission(selectedGroup, 'kickMembers') && (m.user?._id || m.user) !== currentUserId && m.roleId !== 'owner' && (
                             kickConfirmId === m.user?._id ? (
                               <div className="flex items-center gap-1">
                                 <button

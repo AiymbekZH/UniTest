@@ -37,6 +37,7 @@ function clearAuthCookie(res) {
 function buildAuthPayload(user) {
   return {
     id: user._id,
+    _id: user._id,
     firstName: user.firstName,
     lastName: user.lastName,
     middleName: user.middleName,
