@@ -2,7 +2,7 @@ import { useState, memo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  GraduationCap, Plus, LogOut, Menu, X,
+  Plus, LogOut, Menu, X,
   LayoutDashboard, FileText, BarChart3, Database, Sun, Moon, Sunset,
   User, Shield, Globe, Users, RefreshCw, Trash2, UserPlus, MessageSquare
 } from 'lucide-react';
@@ -88,52 +88,32 @@ export default memo(function Navbar() {
       <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-100/50 dark:border-slate-700/50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2.5 group">
-            <BrandLogo
-              size={36}
-              showWordmark
-              className="transition-transform duration-300 group-hover:scale-[1.03]"
-              wordmarkClassName="hidden text-lg text-dark sm:block"
-            />
-          </Link>
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {isAuthenticated && (
+              <button
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-gray-100 bg-white/90 text-gray-600 shadow-sm transition hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900/80 dark:text-gray-300 dark:hover:bg-slate-800"
+                onClick={() => setShowMobile(true)}
+                aria-label="Open navigation menu"
+              >
+                {hasAnyChatUnread && (
+                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
+                )}
+                <Menu size={18} />
+              </button>
+            )}
 
-          {/* Desktop Nav */}
-          {isAuthenticated && (
-            <div className="hidden lg:flex items-center gap-0.5">
-              {navLinks.map(link => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all duration-200
-                    ${isActive(link.to)
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-dark dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
-                >
-                  <link.icon size={15} />
-                  {link.label}
-                  {hasUnreadForPath(link.to) && (
-                    <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
-                  )}
-                </Link>
-              ))}
-              {user?.role === 'admin' && (
-                <Link
-                  to="/admin"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all duration-200
-                    ${isActive('/admin')
-                      ? 'bg-red-50 dark:bg-red-900/30 text-red-600'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-dark dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800'}`}
-                >
-                  <Shield size={15} />
-                  {t('admin')}
-                </Link>
-              )}
-            </div>
-          )}
+            <Link to="/dashboard" className="flex min-w-0 items-center gap-2.5 group">
+              <BrandLogo
+                size={36}
+                showWordmark
+                className="transition-transform duration-300 group-hover:scale-[1.03]"
+                wordmarkClassName="text-lg text-dark"
+              />
+            </Link>
+          </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Language switcher */}
             <div className="relative">
               <button
@@ -141,7 +121,7 @@ export default memo(function Navbar() {
                 className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-all flex items-center gap-1 text-xs font-medium"
               >
                 <Globe size={16} />
-                <span className="hidden sm:inline">{langLabels[lang]}</span>
+                <span className="hidden md:inline">{langLabels[lang]}</span>
               </button>
               <AnimatePresence>
                 {showLang && (
@@ -187,10 +167,10 @@ export default memo(function Navbar() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => navigate('/create-test')}
-                  className="btn-primary hidden sm:flex items-center gap-2 py-2 px-4 text-sm whitespace-nowrap"
+                  className="btn-primary hidden sm:flex items-center gap-2 py-2 px-3 lg:px-4 text-sm whitespace-nowrap"
                 >
                   <Plus size={16} />
-                  {t('createTest')}
+                  <span className="hidden xl:inline">{t('createTest')}</span>
                 </motion.button>
 
                 {/* User menu */}
@@ -206,7 +186,7 @@ export default memo(function Navbar() {
                         <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
                       )}
                     </div>
-                    <span className="text-sm font-medium text-dark hidden xl:block">
+                    <span className="text-sm font-medium text-dark hidden 2xl:block max-w-40 truncate">
                       {user?.firstName} {user?.lastName}
                     </span>
                   </button>
@@ -331,67 +311,254 @@ export default memo(function Navbar() {
               </div>
             )}
 
-            {/* Mobile menu toggle */}
-            {isAuthenticated && (
-              <button
-                className="relative lg:hidden p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all"
-                onClick={() => setShowMobile(!showMobile)}
-              >
-                {hasAnyChatUnread && (
-                  <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500" />
-                )}
-                {showMobile ? <X size={20} className="text-dark" /> : <Menu size={20} className="text-dark" />}
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Mobile Nav */}
-        <AnimatePresence>
-          {showMobile && isAuthenticated && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="lg:hidden overflow-hidden pb-4"
+      </div>
+      </nav>
+
+      <AnimatePresence>
+        {showMobile && isAuthenticated && (
+          <>
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMobile(false)}
+              className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm"
+              aria-label="Close navigation menu"
+            />
+            <motion.aside
+              initial={{ x: -360, opacity: 0.7 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -360, opacity: 0.7 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+              className="fixed left-0 top-0 z-[60] flex h-full w-[min(88vw,360px)] flex-col border-r border-gray-100 bg-white/95 px-4 pb-5 pt-4 shadow-2xl backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95"
             >
-              <div className="flex flex-col gap-1 pt-2">
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-4 dark:border-slate-700">
+                <Link
+                  to="/dashboard"
+                  onClick={() => setShowMobile(false)}
+                  className="flex min-w-0 items-center gap-2.5"
+                >
+                  <BrandLogo
+                    size={34}
+                    showWordmark
+                    wordmarkClassName="text-lg text-dark"
+                  />
+                </Link>
+                <button
+                  onClick={() => setShowMobile(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-100 text-gray-500 transition hover:bg-gray-50 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-1">
                 {navLinks.map(link => (
                   <Link
                     key={link.to}
                     to={link.to}
                     onClick={() => setShowMobile(false)}
-                    className={`relative flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all
-                      ${isActive(link.to) ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                    className={`relative flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all
+                      ${isActive(link.to)
+                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30'
+                        : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-800'}`}
                   >
-                    <link.icon size={16} />
-                    {link.label}
+                    <link.icon size={17} />
+                    <span>{link.label}</span>
                     {hasUnreadForPath(link.to) && (
                       <span className="ml-auto h-2.5 w-2.5 rounded-full bg-red-500" />
                     )}
                   </Link>
                 ))}
+
                 {user?.role === 'admin' && (
-                  <Link to="/admin" onClick={() => setShowMobile(false)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all
-                      ${isActive('/admin') ? 'bg-red-50 dark:bg-red-900/30 text-red-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                  <Link
+                    to="/admin"
+                    onClick={() => setShowMobile(false)}
+                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all
+                      ${isActive('/admin')
+                        ? 'bg-red-50 text-red-600 dark:bg-red-900/30'
+                        : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-800'}`}
                   >
-                    <Shield size={16} /> {t('admin')}
+                    <Shield size={17} />
+                    <span>{t('admin')}</span>
                   </Link>
                 )}
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-gray-100 bg-gray-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 overflow-hidden rounded-2xl bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-sm font-semibold">
+                        {user?.firstName?.[0]}{user?.lastName?.[0]}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-dark">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                      {user?.email}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      navigate('/profile');
+                      setShowMobile(false);
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-gray-200 dark:hover:bg-slate-800"
+                  >
+                    <User size={15} />
+                    {t('profile')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/create-test');
+                      setShowMobile(false);
+                    }}
+                    className="btn-primary flex items-center justify-center gap-2 px-3 py-2 text-sm"
+                  >
+                    <Plus size={15} />
+                    {t('createTest')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-gray-100 p-3 dark:border-slate-700">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                  <Globe size={14} />
+                  Language
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { code: 'en', label: 'EN' },
+                    { code: 'ru', label: 'RU' },
+                    { code: 'kz', label: 'KZ' },
+                    { code: 'es', label: 'ES' }
+                  ].map(l => (
+                    <button
+                      key={l.code}
+                      onClick={() => setLanguage(l.code)}
+                      className={`rounded-xl px-3 py-2 text-sm font-medium transition
+                        ${lang === l.code
+                          ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30'
+                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700'}`}
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-gray-100 p-3 dark:border-slate-700">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                  {mode === 'light' ? <Moon size={14} /> : mode === 'dark' ? <Sunset size={14} /> : <Sun size={14} />}
+                  Theme
+                </div>
                 <button
-                  onClick={() => { navigate('/create-test'); setShowMobile(false); }}
-                  className="btn-primary flex items-center justify-center gap-2 mt-2"
+                  onClick={cycleTheme}
+                  className="flex w-full items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 dark:bg-slate-800 dark:text-gray-200 dark:hover:bg-slate-700"
                 >
-                  <Plus size={16} />
-                  {t('createTest')}
+                  <span>
+                    {mode === 'light'
+                      ? t('darkTheme')
+                      : mode === 'dark'
+                        ? (t('autoTheme') || 'Auto')
+                        : t('lightTheme')}
+                  </span>
+                  <RefreshCw size={15} />
                 </button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-      </nav>
+
+              <div className="mt-4 border-t border-gray-100 pt-4 dark:border-slate-700">
+                <div className="px-1 pb-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                    Быстрый доступ
+                  </p>
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    Сохранённые аккаунты для мгновенного переключения
+                  </p>
+                </div>
+
+                {quickSwitchSessions.length > 0 ? (
+                  <div className="space-y-1">
+                    {quickSwitchSessions.map(session => (
+                      <div
+                        key={session.id}
+                        className="flex items-center gap-2 rounded-xl px-2 py-2 hover:bg-gray-50 dark:hover:bg-slate-800/80"
+                      >
+                        <button
+                          onClick={() => handleSwitchAccount(session.id)}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-primary-100 text-[11px] font-semibold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
+                            {session.user?.avatar ? (
+                              <img src={session.user.avatar} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <>{session.user?.firstName?.[0]}{session.user?.lastName?.[0]}</>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-200">
+                              {session.user?.firstName} {session.user?.lastName}
+                            </p>
+                            <p className="truncate text-[11px] text-gray-400">
+                              {session.user?.email}
+                            </p>
+                          </div>
+                          <RefreshCw size={13} className="flex-shrink-0 text-primary-500" />
+                        </button>
+                        <button
+                          onClick={(event) => handleRemoveSavedSession(event, session.id)}
+                          className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                          title="Убрать из быстрого доступа"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-1 text-[11px] text-gray-400">
+                    После входа во второй аккаунт он появится здесь.
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    setShowMobile(false);
+                    navigate('/login');
+                  }}
+                  className="mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-800"
+                >
+                  <UserPlus size={16} />
+                  Добавить аккаунт
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMobile(false);
+                    handleLogout();
+                  }}
+                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <LogOut size={16} />
+                  {t('logout')}
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 })
