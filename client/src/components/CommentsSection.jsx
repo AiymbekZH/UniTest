@@ -187,7 +187,7 @@ export default function CommentsSection({ testId }) {
 
   const Avatar = ({ u, size = 36 }) => (
     <button
-      onClick={() => u?._id && navigate(`/user/${u._id}`)}
+      onClick={() => u?._id && navigate(`/profile/${u._id}`)}
       className="flex-shrink-0"
     >
       <div
@@ -256,7 +256,7 @@ export default function CommentsSection({ testId }) {
           {/* Name row */}
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={() => comment.user?._id && navigate(`/user/${comment.user._id}`)}
+              onClick={() => comment.user?._id && navigate(`/profile/${comment.user._id}`)}
               className={`${isReply ? 'text-[13px]' : 'text-sm'} font-semibold text-dark hover:text-primary-600 transition`}
             >
               @{comment.user?.firstName}{comment.user?.lastName ? ` ${comment.user.lastName}` : ''}
@@ -275,7 +275,7 @@ export default function CommentsSection({ testId }) {
           {/* Reply mention */}
           {isReply && replyToUser && (
             <button
-              onClick={() => replyToUser._id && navigate(`/user/${replyToUser._id}`)}
+              onClick={() => replyToUser._id && navigate(`/profile/${replyToUser._id}`)}
               className="text-[13px] text-primary-500 hover:text-primary-600 font-medium mt-0.5 transition"
             >
               @{replyToUser.firstName}{replyToUser.lastName ? ` ${replyToUser.lastName}` : ''}

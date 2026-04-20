@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useChatInbox } from '../context/ChatInboxContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import BrandLogo from './BrandLogo';
 import NotificationBell from './NotificationBell';
 import ConfirmDialog from './ConfirmDialog';
 import toast from 'react-hot-toast';
@@ -85,15 +86,16 @@ export default memo(function Navbar() {
       />
 
       <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-100/50 dark:border-slate-700/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center
-                          group-hover:shadow-lg group-hover:shadow-primary-600/25 transition-all duration-300">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-bold text-dark hidden sm:block">UniTest</span>
+            <BrandLogo
+              size={36}
+              showWordmark
+              className="transition-transform duration-300 group-hover:scale-[1.03]"
+              wordmarkClassName="hidden text-lg text-dark sm:block"
+            />
           </Link>
 
           {/* Desktop Nav */}

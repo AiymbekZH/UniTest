@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, LogIn, UserPlus, UserRound, Users, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import BrandLogo from '../components/BrandLogo';
 import SliderCaptcha from '../components/SliderCaptcha';
 
 /* ─── Google SVG ─── */
@@ -14,16 +15,6 @@ function GoogleIcon() {
       <path fill="#34A853" d="M12 22c2.7 0 4.963-.894 6.617-2.403l-3.332-2.548c-.924.621-2.104.993-3.285.993-2.53 0-4.674-1.708-5.44-4.001H3.115v2.628A9.996 9.996 0 0 0 12 22Z" />
       <path fill="#FBBC05" d="M6.56 14.041a5.992 5.992 0 0 1-.304-1.89c0-.655.11-1.292.304-1.89V7.633H3.115A10 10 0 0 0 2 12.151c0 1.61.386 3.135 1.115 4.518l3.445-2.628Z" />
       <path fill="#EA4335" d="M12 6.26c1.47 0 2.79.506 3.828 1.498l2.87-2.87C16.957 3.268 14.695 2.303 12 2.303A9.996 9.996 0 0 0 3.115 7.633L6.56 10.26C7.326 7.968 9.47 6.26 12 6.26Z" />
-    </svg>
-  );
-}
-
-/* ─── UniTest Logo ─── */
-function Logo({ size = 32, white = false }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 72 72" fill="none">
-      <rect x="6" y="6" width="60" height="60" rx="16" fill={white ? 'rgba(255,255,255,0.2)' : '#3b82f6'} />
-      <path d="M22 24L34 46L41 35L50 49" fill="none" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -53,8 +44,7 @@ function BluePanel({ isRegister }) {
       {/* Top: Logo + Welcome */}
       <div className="relative z-10">
         <div className="mb-6 flex items-center gap-2.5">
-          <Logo white />
-          <span className="text-lg font-bold text-white/90">UniTest</span>
+          <BrandLogo size={34} showWordmark wordmarkClassName="text-lg text-white/90" />
         </div>
         <AnimatePresence mode="wait">
           <motion.div key={isRegister ? 'reg' : 'log'} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
@@ -413,9 +403,8 @@ export default function AuthPage() {
               className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-blue-300/25" />
 
             <div className="relative z-10">
-              <div className="mb-4 flex items-center gap-2">
-                <Logo white size={28} />
-                <span className="font-bold text-white/90">UniTest</span>
+            <div className="mb-4 flex items-center gap-2">
+                <BrandLogo size={28} showWordmark wordmarkClassName="text-base text-white/90" />
               </div>
               <h2 className="text-xl font-bold italic text-white">WELCOME</h2>
               <p className="mt-1 text-sm text-white/70">

@@ -93,7 +93,7 @@ export default function FollowListModal({
                   {users.map((entry) => (
                     <Link
                       key={entry._id || entry.id}
-                      to={`/user/${entry._id || entry.id}`}
+                      to={`/profile/${entry._id || entry.id}`}
                       onClick={onClose}
                       className="flex items-center gap-4 rounded-[1.5rem] border border-gray-100 bg-gray-50/80 px-4 py-4 transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700 dark:hover:bg-slate-800"
                     >

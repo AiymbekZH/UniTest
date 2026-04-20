@@ -4,6 +4,7 @@ import { Bell, Check, CheckCheck, Trash2, MessageCircle, AlertTriangle, Flag, In
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import AnimatedIcon from './AnimatedIcon';
 
 const typeIcons = {
   comment_reply: { icon: MessageCircle, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/30' },
@@ -104,7 +105,7 @@ export default function NotificationBell() {
         onClick={handleOpen}
         className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-all"
       >
-        <Bell size={18} />
+        <AnimatedIcon icon={Bell} size={18} active={unreadCount > 0} preset="bell-ring" hover={false} />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -118,7 +119,7 @@ export default function NotificationBell() {
             initial={{ opacity: 0, y: -5, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -5, scale: 0.95 }}
-            className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50"
+            className="absolute right-0 mt-2 w-[min(92vw,24rem)] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50"
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-700">
               <h3 className="text-sm font-semibold text-dark">{t('notifications')}</h3>

@@ -33,6 +33,54 @@ const animateByPreset = {
       repeatDelay: 2.4,
       ease: 'easeInOut'
     }
+  },
+  'flame-flicker': {
+    animate: {
+      scale: [1, 1.06, 0.98, 1.08, 1],
+      y: [0, -1.5, 0, -2.5, 0],
+      rotate: [0, -2, 2, -1, 0],
+      opacity: [0.92, 1, 0.9, 1, 0.94]
+    },
+    transition: {
+      duration: 1.6,
+      repeat: Infinity,
+      ease: 'easeInOut'
+    }
+  },
+  'bell-ring': {
+    animate: {
+      rotate: [0, 0, -12, 12, -8, 8, 0],
+      y: [0, 0, -1, 0, -1, 0, 0]
+    },
+    transition: {
+      duration: 1.35,
+      repeat: Infinity,
+      repeatDelay: 2.2,
+      ease: 'easeInOut'
+    }
+  },
+  'trophy-pop': {
+    animate: {
+      scale: [1, 1.12, 1],
+      y: [0, -2, 0]
+    },
+    transition: {
+      duration: 2.1,
+      repeat: Infinity,
+      ease: 'easeInOut'
+    }
+  },
+  'orbit-drift': {
+    animate: {
+      x: [0, 1.5, 0, -1.5, 0],
+      y: [0, -1.5, 0, 1.5, 0],
+      rotate: [0, 4, 0, -4, 0]
+    },
+    transition: {
+      duration: 3.2,
+      repeat: Infinity,
+      ease: 'easeInOut'
+    }
   }
 };
 

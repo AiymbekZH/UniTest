@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import AudioPlayer from './AudioPlayer';
 import { Download, FileText, Pin, Reply, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const CHAT_COLORS = [
   '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4',
@@ -35,6 +36,7 @@ export default function MessageBubble({
   onPreviewMedia,
 }) {
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+  const navigate = useNavigate();
 
   const sender = message.sender;
   const nameColor = useMemo(() => getUserColor(sender?._id, roleColor), [sender?._id, roleColor]);
@@ -64,13 +66,17 @@ export default function MessageBubble({
   return (
     <div className={`group relative mb-2 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
       {!isOwn && (
-        <div className="mr-2 mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-xs font-bold text-gray-500 dark:bg-slate-600 dark:text-gray-300">
+        <button
+          type="button"
+          onClick={() => sender?._id && navigate(`/profile/${sender._id}`)}
+          className="mr-2 mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-xs font-bold text-gray-500 transition hover:scale-[1.03] dark:bg-slate-600 dark:text-gray-300"
+        >
           {sender?.avatar ? (
             <img src={sender.avatar} alt="" className="h-full w-full object-cover" />
           ) : (
             (sender?.firstName?.[0] || '?').toUpperCase()
           )}
-        </div>
+        </button>
       )}
 
       <div className={`min-w-[120px] max-w-[70%] ${isOwn ? 'order-1' : ''}`}>
@@ -80,7 +86,13 @@ export default function MessageBubble({
               ? 'border-blue-300 text-blue-100'
               : 'border-gray-300 text-gray-500 dark:border-slate-500 dark:text-gray-400'
           }`}>
-            <span className="font-medium">{message.replyTo.sender?.firstName}</span>
+            <button
+              type="button"
+              onClick={() => message.replyTo.sender?._id && navigate(`/profile/${message.replyTo.sender._id}`)}
+              className="font-medium transition hover:opacity-80"
+            >
+              {message.replyTo.sender?.firstName}
+            </button>
             : {message.replyTo.text?.slice(0, 60) || '(вложение)'}
           </div>
         )}
@@ -91,9 +103,14 @@ export default function MessageBubble({
             : 'rounded-bl-md bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-gray-100'
         }`}>
           {!isOwn && (
-            <p className="mb-0.5 text-[11px] font-semibold" style={{ color: nameColor }}>
+            <button
+              type="button"
+              onClick={() => sender?._id && navigate(`/profile/${sender._id}`)}
+              className="mb-0.5 text-[11px] font-semibold transition hover:opacity-80"
+              style={{ color: nameColor }}
+            >
               {sender?.firstName} {sender?.lastName}
-            </p>
+            </button>
           )}
 
           {message.text && (

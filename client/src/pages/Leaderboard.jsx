@@ -139,7 +139,7 @@ export default function Leaderboard() {
                   </div>
 
                   <button
-                    onClick={() => entry.userId && navigate(`/user/${entry.userId}`)}
+                    onClick={() => entry.userId && navigate(`/profile/${entry.userId}`)}
                     className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-sm font-bold text-primary-600 flex-shrink-0 overflow-hidden"
                   >
                     {entry.avatar ? (
@@ -151,7 +151,7 @@ export default function Leaderboard() {
 
                   <div className="flex-1 min-w-0">
                     <button
-                      onClick={() => entry.userId && navigate(`/user/${entry.userId}`)}
+                      onClick={() => entry.userId && navigate(`/profile/${entry.userId}`)}
                       className="text-sm font-medium text-dark truncate block hover:text-primary-600 transition"
                     >
                       {entry.userName}

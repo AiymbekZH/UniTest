@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, LogIn, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import BrandLogo from '../components/BrandLogo';
 import SliderCaptcha from '../components/SliderCaptcha';
 
 /* ─── Google "G" SVG ─── */
@@ -58,11 +59,7 @@ function LeftPanel() {
       <div className="relative z-10">
         {/* Logo */}
         <div className="mb-12 flex items-center gap-2">
-          <svg width="32" height="32" viewBox="0 0 72 72" fill="none">
-            <rect x="6" y="6" width="60" height="60" rx="16" fill="rgba(255,255,255,0.2)" />
-            <path d="M22 24L34 46L41 35L50 49" fill="none" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="text-lg font-bold text-white/90">UniTest</span>
+          <BrandLogo size={32} showWordmark wordmarkClassName="text-lg text-white/90" />
         </div>
       </div>
 
@@ -139,11 +136,7 @@ export default function Login() {
         <div className="flex flex-1 flex-col justify-center bg-white px-8 py-10 dark:bg-slate-800 sm:px-12 lg:rounded-r-3xl lg:rounded-l-none rounded-3xl lg:rounded-none">
           {/* Mobile logo */}
           <div className="mb-6 flex items-center gap-2 lg:hidden">
-            <svg width="28" height="28" viewBox="0 0 72 72" fill="none">
-              <rect x="6" y="6" width="60" height="60" rx="16" fill="#3b82f6" />
-              <path d="M22 24L34 46L41 35L50 49" fill="none" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="text-lg font-bold text-gray-800 dark:text-white">UniTest</span>
+            <BrandLogo size={28} showWordmark wordmarkClassName="text-lg text-gray-800 dark:text-white" />
           </div>
 
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Вход</h1>

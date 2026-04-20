@@ -34,6 +34,7 @@ import Pagination from '../components/Pagination';
 import ConfirmDialog from '../components/ConfirmDialog';
 import TestCoverArtwork from '../components/TestCoverArtwork';
 import AnimatedIcon from '../components/AnimatedIcon';
+import BrandLogo from '../components/BrandLogo';
 
 const ACTIVE_SESSION_TTL_MS = 5 * 60 * 1000;
 const DASHBOARD_TAB_KEY = 'unitest_dashboard_tab';
@@ -779,11 +780,11 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <button
                 type="button"
                 onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)}
-                className="btn-primary inline-flex items-center gap-2"
+                className="btn-primary inline-flex w-full items-center justify-center gap-2 sm:w-auto"
               >
                 <AnimatedIcon icon={Play} size={14} className="text-white" />
                 {copy.startChallenge}
@@ -791,7 +792,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => setActiveTab('challenges')}
-                className="btn-secondary inline-flex items-center gap-2"
+                className="btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto"
               >
                 {copy.openChallenges}
                 <AnimatedIcon icon={ArrowRight} size={16} />
@@ -816,7 +817,7 @@ export default function Dashboard() {
             <p className="mt-1 text-sm text-gray-500">{copy.progressDesc}</p>
           </div>
           <div className="rounded-2xl bg-primary-50 p-3 text-primary-500 dark:bg-primary-900/20 dark:text-primary-300">
-            <AnimatedIcon icon={Sparkles} size={22} active preset="soft-pulse" hover={false} />
+            <AnimatedIcon icon={Sparkles} size={22} active preset="orbit-drift" hover={false} />
           </div>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -870,18 +871,18 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="mt-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
               {dailyChallenge.completed ? (
                 <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
                   {dailyChallenge.rewardClaimed ? copy.doneLabel : copy.rewardReady}
                 </span>
               ) : (
-                <button type="button" onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)} className="btn-primary inline-flex items-center gap-2">
+                <button type="button" onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)} className="btn-primary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
                   <AnimatedIcon icon={Play} size={14} className="text-white" />
                   {copy.startChallenge}
                 </button>
               )}
-              <button type="button" onClick={() => navigate(`/test-profile/${dailyChallenge.test.shareLink}`)} className="btn-secondary inline-flex items-center gap-2">
+              <button type="button" onClick={() => navigate(`/test-profile/${dailyChallenge.test.shareLink}`)} className="btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
                 {copy.exploreTests}
                 <AnimatedIcon icon={ArrowRight} size={16} />
               </button>
@@ -906,7 +907,7 @@ export default function Dashboard() {
               icon={Dumbbell}
               size={22}
               active={Boolean(weeklySprint && !weeklySprint.completed)}
-              preset="soft-pulse"
+              preset="orbit-drift"
               hover={false}
             />
           </div>
@@ -1049,7 +1050,7 @@ export default function Dashboard() {
             <h3 className="mt-2 text-lg font-semibold text-dark">{copy.topLearnersDesc}</h3>
           </div>
           <div className="rounded-2xl bg-amber-50 p-3 text-amber-500 dark:bg-amber-900/20 dark:text-amber-300">
-            <AnimatedIcon icon={Trophy} size={22} active preset="soft-pulse" hover={false} />
+            <AnimatedIcon icon={Trophy} size={22} active preset="trophy-pop" hover={false} />
           </div>
         </div>
 
@@ -1067,11 +1068,21 @@ export default function Dashboard() {
               }`}>
                 {entry.rank}
               </div>
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-primary-100 font-semibold text-primary-600">
+              <button
+                type="button"
+                onClick={() => entry.user?._id && navigate(`/profile/${entry.user._id}`)}
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-primary-100 font-semibold text-primary-600 transition hover:scale-[1.03]"
+              >
                 {entry.user?.avatar ? <img src={entry.user.avatar} alt="" className="h-full w-full object-cover" /> : `${entry.user?.firstName?.[0] || ''}${entry.user?.lastName?.[0] || ''}`}
-              </div>
+              </button>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-dark">{entry.user?.firstName} {entry.user?.lastName}</p>
+                <button
+                  type="button"
+                  onClick={() => entry.user?._id && navigate(`/profile/${entry.user._id}`)}
+                  className="truncate text-left text-sm font-semibold text-dark transition hover:text-primary-600"
+                >
+                  {entry.user?.firstName} {entry.user?.lastName}
+                </button>
                 <p className="text-xs text-gray-500">
                   {copy.leaderboardEntry
                     .replace('{{level}}', String(entry.level))
@@ -1291,16 +1302,30 @@ export default function Dashboard() {
 
                     <div className="flex items-center justify-between border-t border-gray-100 pt-3 dark:border-slate-700">
                       <div className="flex min-w-0 items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-md bg-primary-100 text-[10px] font-semibold text-primary-600">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (test.creator?._id) navigate(`/profile/${test.creator._id}`);
+                          }}
+                          className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-md bg-primary-100 text-[10px] font-semibold text-primary-600 transition hover:scale-[1.03]"
+                        >
                           {test.creator?.avatar ? (
                             <img src={test.creator.avatar} alt="" className="h-full w-full rounded-md object-cover" />
                           ) : (
                             <>{test.creator?.firstName?.[0]}{test.creator?.lastName?.[0]}</>
                           )}
-                        </div>
-                        <span className="truncate text-xs text-gray-500">
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (test.creator?._id) navigate(`/profile/${test.creator._id}`);
+                          }}
+                          className="truncate text-xs text-gray-500 transition hover:text-primary-600"
+                        >
                           {test.creator?.firstName} {test.creator?.lastName?.[0]}.
-                        </span>
+                        </button>
                       </div>
                       <div className="flex flex-shrink-0 items-center gap-2.5">
                         {renderStars(test.rating)}
@@ -1349,18 +1374,18 @@ export default function Dashboard() {
         variant="danger"
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8">
         <motion.section
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-[32px] border border-primary-100 bg-gradient-to-br from-white via-primary-50/60 to-blue-50 p-6 shadow-[0_30px_80px_-50px_rgba(79,70,229,0.35)] dark:border-slate-700 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"
+          className="relative overflow-hidden rounded-[28px] border border-primary-100 bg-gradient-to-br from-white via-primary-50/60 to-blue-50 p-5 shadow-[0_30px_80px_-50px_rgba(79,70,229,0.35)] dark:border-slate-700 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 sm:rounded-[32px] sm:p-6"
         >
           <div className="absolute -right-14 -top-14 h-44 w-44 rounded-full bg-primary-500/10 blur-3xl" />
           <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-sky-400/10 blur-3xl" />
           <div className="relative grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-primary-200/70 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-600 dark:border-primary-900/50 dark:bg-slate-800/70 dark:text-primary-300">
-                <AnimatedIcon icon={Sparkles} size={13} active preset="soft-pulse" hover={false} />
+                <BrandLogo size={18} />
                 UniTest
               </div>
               <h1 className="mt-4 text-3xl font-bold tracking-tight text-dark sm:text-4xl">
@@ -1370,25 +1395,25 @@ export default function Dashboard() {
                 {isAuthenticated ? copy.heroDesc : copy.guestHeroDesc}
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 {isAuthenticated ? (
                   <>
-                    <button type="button" onClick={() => navigate('/create-test')} className="btn-primary inline-flex items-center gap-2">
+                    <button type="button" onClick={() => navigate('/create-test')} className="btn-primary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
                       <AnimatedIcon icon={Plus} size={16} className="text-white" />
                       {t('createTest')}
                     </button>
-                    <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2">
+                    <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
                       <AnimatedIcon icon={Search} size={16} />
                       {copy.exploreTests}
                     </button>
                   </>
                 ) : (
                   <>
-                    <button type="button" onClick={() => navigate('/register')} className="btn-primary inline-flex items-center gap-2">
+                    <button type="button" onClick={() => navigate('/register')} className="btn-primary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
                       <AnimatedIcon icon={Plus} size={16} className="text-white" />
                       {copy.guestCta}
                     </button>
-                    <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2">
+                    <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
                       <AnimatedIcon icon={Play} size={16} />
                       {copy.exploreTests}
                     </button>
@@ -1406,7 +1431,7 @@ export default function Dashboard() {
               <div className="rounded-[24px] border border-white/70 bg-white/85 p-4 dark:border-slate-700 dark:bg-slate-800/70">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.currentStreak}</p>
                 <div className="mt-2 flex items-center gap-2">
-                  <AnimatedIcon icon={Flame} size={22} active={Boolean(progressData?.progress?.currentStreakDays)} preset="soft-pulse" className="text-amber-500" hover={false} />
+                  <AnimatedIcon icon={Flame} size={22} active={Boolean(progressData?.progress?.currentStreakDays)} preset="flame-flicker" className="text-amber-500" hover={false} />
                   <span className="text-3xl font-black text-dark">{progressData?.progress?.currentStreakDays || 0}</span>
                 </div>
                 <p className="text-sm text-gray-500">{copy.heroStreakHint}</p>
@@ -1420,8 +1445,8 @@ export default function Dashboard() {
           </div>
         </motion.section>
 
-        <div className="mt-6 rounded-[28px] border border-gray-200/70 bg-gray-100/80 p-2 dark:border-slate-700 dark:bg-slate-800/80">
-          <div className="flex gap-1 overflow-x-auto">
+        <div className="mt-6 rounded-[24px] border border-gray-200/70 bg-gray-100/80 p-1.5 dark:border-slate-700 dark:bg-slate-800/80 sm:rounded-[28px] sm:p-2">
+          <div className="flex gap-1 overflow-x-auto pb-1">
             {availableTabs.map((tabKey) => (
               <DashboardTabButton
                 key={tabKey}

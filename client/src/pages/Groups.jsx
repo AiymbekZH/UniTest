@@ -801,7 +801,12 @@ export default function Groups() {
                             {m.user?.avatar ? <img src={m.user.avatar} alt="" className="w-full h-full object-cover" /> : (m.user?.firstName?.[0] || '?').toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{m.user?.lastName} {m.user?.firstName}</p>
+                            <p
+                              onClick={() => m.user?._id && navigate(`/profile/${m.user._id}`)}
+                              className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate transition hover:text-primary-600"
+                            >
+                              {m.user?.lastName} {m.user?.firstName}
+                            </p>
                             <p className="text-xs text-gray-400">{m.user?.email}</p>
                           </div>
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: (role?.color || '#6366f1') + '20', color: role?.color || '#6366f1' }}>{role?.name || 'Участник'}</span>
@@ -1156,7 +1161,12 @@ export default function Groups() {
                                   {entry.user?.avatar ? <img src={entry.user.avatar} alt="" className="w-full h-full object-cover" /> : (entry.user?.firstName?.[0] || '?').toUpperCase()}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{entry.user?.lastName} {entry.user?.firstName}</p>
+                                  <p
+                                    onClick={() => entry.user?._id && navigate(`/profile/${entry.user._id}`)}
+                                    className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate transition hover:text-primary-600"
+                                  >
+                                    {entry.user?.lastName} {entry.user?.firstName}
+                                  </p>
                                   <p className="text-xs text-gray-400">Забанил: {bannedByName}</p>
                                 </div>
                                 {unbanConfirmId === bannedUserId ? (

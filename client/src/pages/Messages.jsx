@@ -265,7 +265,12 @@ export default function Messages() {
                         {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : (u.firstName?.[0] || '?').toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{u.lastName} {u.firstName}</p>
+                        <p
+                          onClick={(e) => { e.stopPropagation(); navigate(`/profile/${u._id}`); }}
+                          className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate transition hover:text-primary-600"
+                        >
+                          {u.lastName} {u.firstName}
+                        </p>
                         <p className="text-[11px] text-gray-400 truncate">{u.email}</p>
                       </div>
                     </button>
@@ -296,7 +301,15 @@ export default function Messages() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{other?.firstName} {other?.lastName}</p>
+                          <p
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (other?._id) navigate(`/profile/${other._id}`);
+                            }}
+                            className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate transition hover:text-primary-600"
+                          >
+                            {other?.firstName} {other?.lastName}
+                          </p>
                           <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">{timeAgo(conv.lastActivity)}</span>
                         </div>
                         <div className="flex items-center justify-between mt-0.5">
@@ -330,7 +343,15 @@ export default function Messages() {
                           {other?.avatar ? <img src={other.avatar} className="w-full h-full object-cover" /> : (other?.firstName?.[0] || '?').toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{other?.firstName} {other?.lastName}</p>
+                          <p
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (other?._id) navigate(`/profile/${other._id}`);
+                            }}
+                            className="text-sm font-semibold text-gray-900 dark:text-gray-100 transition hover:text-primary-600"
+                          >
+                            {other?.firstName} {other?.lastName}
+                          </p>
                           <p className="text-[10px] text-gray-400">{other?.email}</p>
                         </div>
                       </>

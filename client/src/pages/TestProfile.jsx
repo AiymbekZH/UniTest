@@ -309,7 +309,7 @@ export default function TestProfile() {
 
               {/* Creator info */}
               <div className="flex items-center gap-3 pt-4 border-t border-gray-100 dark:border-slate-700">
-                <Link to={test.creator?._id ? `/user/${test.creator._id}` : '#'}
+                <Link to={test.creator?._id ? `/profile/${test.creator._id}` : '#'}
                   className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-xl flex items-center justify-center font-semibold text-sm overflow-hidden flex-shrink-0">
                   {test.creator?.avatar ? (
                     <img src={test.creator.avatar} alt="" className="w-full h-full object-cover" />
@@ -318,7 +318,7 @@ export default function TestProfile() {
                   )}
                 </Link>
                 <div className="flex-1">
-                  <Link to={test.creator?._id ? `/user/${test.creator._id}` : '#'}
+                  <Link to={test.creator?._id ? `/profile/${test.creator._id}` : '#'}
                     className="text-sm font-medium text-dark hover:text-primary-600 transition">
                     {test.creator?.firstName} {test.creator?.lastName}
                   </Link>
