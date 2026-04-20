@@ -7,11 +7,11 @@ import { useLanguage } from '../context/LanguageContext';
 import AnimatedIcon from './AnimatedIcon';
 
 const typeIcons = {
-  comment_reply: { icon: MessageCircle, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+  comment_reply: { icon: MessageCircle, color: 'text-primary-500', bg: 'bg-primary-50 dark:bg-primary-900/30' },
   test_completed: { icon: Check, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
   warning: { icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/30' },
   report_status: { icon: Flag, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/30' },
-  challenge_available: { icon: Trophy, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-900/30' },
+  challenge_available: { icon: Trophy, color: 'text-primary-500', bg: 'bg-primary-50 dark:bg-primary-900/30' },
   streak_risk: { icon: Flame, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/30' },
   creator_new_test: { icon: Sparkles, color: 'text-fuchsia-500', bg: 'bg-fuchsia-50 dark:bg-fuchsia-900/30' },
   system: { icon: Info, color: 'text-primary-500', bg: 'bg-primary-50 dark:bg-primary-900/30' },

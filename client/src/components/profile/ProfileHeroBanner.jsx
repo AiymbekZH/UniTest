@@ -4,14 +4,14 @@ import { Camera, ImagePlus, Trash2 } from 'lucide-react';
 function PresetBackdrop({ preset = 'aurora' }) {
   if (preset === 'mesh') {
     return (
-      <div className="absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_18%_24%,rgba(250,204,21,0.38),transparent_30%),radial-gradient(circle_at_78%_18%,rgba(59,130,246,0.35),transparent_28%),radial-gradient(circle_at_65%_78%,rgba(16,185,129,0.3),transparent_30%),linear-gradient(135deg,#f8fafc_0%,#dbeafe_35%,#ede9fe_100%)]">
+      <div className="absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_18%_24%,rgba(251,146,60,0.42),transparent_30%),radial-gradient(circle_at_78%_18%,rgba(17,17,17,0.28),transparent_28%),radial-gradient(circle_at_65%_78%,rgba(245,158,11,0.24),transparent_30%),linear-gradient(135deg,#fffaf2_0%,#ffedd5_38%,#fde68a_100%)]">
         <motion.div
           className="absolute -left-10 top-8 h-48 w-48 rounded-full bg-white/30 blur-3xl"
           animate={{ x: [0, 24, 0], y: [0, 10, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
-          className="absolute right-0 top-10 h-52 w-52 rounded-full bg-sky-300/25 blur-3xl"
+          className="absolute right-0 top-10 h-52 w-52 rounded-full bg-orange-300/25 blur-3xl"
           animate={{ x: [0, -18, 0], y: [0, -12, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
         />
@@ -21,12 +21,12 @@ function PresetBackdrop({ preset = 'aurora' }) {
 
   if (preset === 'wave') {
     return (
-      <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#eff6ff_0%,#dbeafe_28%,#e0e7ff_58%,#dcfce7_100%)]">
+      <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#fff7ed_0%,#ffedd5_28%,#fde68a_58%,#fffaf0_100%)]">
         <svg className="absolute inset-0 h-full w-full opacity-80" viewBox="0 0 1200 400" preserveAspectRatio="none">
           <motion.path
             d="M0,240 C180,180 280,300 460,240 C640,180 760,80 920,150 C1020,195 1110,230 1200,210"
             fill="none"
-            stroke="rgba(99,102,241,0.26)"
+            stroke="rgba(249,115,22,0.28)"
             strokeWidth="6"
             animate={{ d: [
               'M0,240 C180,180 280,300 460,240 C640,180 760,80 920,150 C1020,195 1110,230 1200,210',
@@ -55,7 +55,7 @@ function PresetBackdrop({ preset = 'aurora' }) {
 
   if (preset === 'grid') {
     return (
-      <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#f8fafc_0%,#e0f2fe_40%,#ede9fe_100%)]">
+      <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#fffaf4_0%,#ffedd5_42%,#fde68a_100%)]">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.34)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.34)_1px,transparent_1px)] bg-[size:42px_42px]" />
         <motion.div
           className="absolute left-[8%] top-[18%] h-24 w-24 rounded-3xl border border-white/50 bg-white/20 backdrop-blur-xl"
@@ -63,7 +63,7 @@ function PresetBackdrop({ preset = 'aurora' }) {
           transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
-          className="absolute right-[10%] top-[12%] h-20 w-20 rounded-3xl border border-white/50 bg-indigo-200/20 backdrop-blur-xl"
+          className="absolute right-[10%] top-[12%] h-20 w-20 rounded-3xl border border-white/50 bg-orange-200/20 backdrop-blur-xl"
           animate={{ y: [0, 12, 0], rotate: [0, 4, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         />
@@ -77,14 +77,14 @@ function PresetBackdrop({ preset = 'aurora' }) {
   }
 
   return (
-    <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#eff6ff_0%,#bfdbfe_28%,#c4b5fd_58%,#d1fae5_100%)]">
+    <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#fff7ed_0%,#fdba74_28%,#fb923c_58%,#fef3c7_100%)]">
       <motion.div
         className="absolute -left-16 top-12 h-52 w-52 rounded-full bg-white/35 blur-3xl"
         animate={{ x: [0, 34, 0], y: [0, -10, 0] }}
         transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
-        className="absolute right-6 top-10 h-56 w-56 rounded-full bg-indigo-300/25 blur-3xl"
+        className="absolute right-6 top-10 h-56 w-56 rounded-full bg-orange-300/25 blur-3xl"
         animate={{ x: [0, -26, 0], y: [0, 16, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
       />

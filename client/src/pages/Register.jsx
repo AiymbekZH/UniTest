@@ -22,13 +22,13 @@ function GoogleIcon() {
 /* ─── Left panel ─── */
 function LeftPanel() {
   return (
-    <div className="relative hidden overflow-hidden rounded-l-3xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 p-10 lg:flex lg:w-[46%] lg:flex-col lg:justify-between">
+    <div className="relative hidden overflow-hidden rounded-l-3xl bg-gradient-to-br from-primary-500 via-orange-500 to-neutral-950 p-10 lg:flex lg:w-[46%] lg:flex-col lg:justify-between">
       <motion.div animate={{ y: [0, -14, 0], x: [0, 6, 0] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-blue-400/40" />
+        className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-orange-300/35" />
       <motion.div animate={{ y: [0, 12, 0], x: [0, -8, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-        className="absolute -right-10 top-20 h-40 w-40 rounded-full bg-blue-300/30" />
+        className="absolute -right-10 top-20 h-40 w-40 rounded-full bg-amber-200/25" />
       <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        className="absolute left-1/3 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-blue-400/25" />
+        className="absolute left-1/3 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-orange-400/20" />
       <motion.div animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.25, 0.15] }} transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
         className="absolute right-8 bottom-12 h-24 w-24 rounded-full bg-white/10" />
 
@@ -89,11 +89,11 @@ export default function Register() {
     } finally { setLoading(false); }
   };
 
-  const inputCls = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-11 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-500 dark:focus:ring-blue-900/30';
-  const inputNoPad = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-500 dark:focus:ring-blue-900/30';
+  const inputCls = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-11 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary-400 focus:bg-white focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-primary-500 dark:focus:ring-primary-900/30';
+  const inputNoPad = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary-400 focus:bg-white focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-primary-500 dark:focus:ring-primary-900/30';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0f1623] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#120c07] p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -120,7 +120,7 @@ export default function Register() {
               <button key={r.value} type="button" onClick={() => set('role', r.value)}
                 className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
                   form.role === r.value
-                    ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-600 dark:text-blue-300'
+                    ? 'bg-white text-primary-600 shadow-sm dark:bg-slate-600 dark:text-primary-300'
                     : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}>
                 <r.icon size={15} />
@@ -179,7 +179,7 @@ export default function Register() {
 
             {/* Submit */}
             <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.98 }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-500/30 transition hover:from-primary-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><UserPlus size={16} /> Создать аккаунт</>}
             </motion.button>
 
@@ -200,7 +200,7 @@ export default function Register() {
 
           <p className="mt-5 text-center text-sm text-gray-500 dark:text-slate-400">
             Уже есть аккаунт?{' '}
-            <Link to="/login" className="font-semibold text-blue-500 hover:text-blue-600 transition">Войти</Link>
+            <Link to="/login" className="font-semibold text-primary-500 hover:text-primary-600 transition">Войти</Link>
           </p>
         </div>
       </motion.div>

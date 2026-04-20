@@ -20,16 +20,16 @@ function GoogleIcon() {
 }
 
 /* ─── Blue panel with spheres ─── */
-function BluePanel({ isRegister }) {
+function AccentPanel({ isRegister }) {
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 p-8 lg:p-10">
+    <div className="relative flex h-full flex-col justify-between overflow-hidden bg-gradient-to-br from-primary-500 via-orange-500 to-neutral-950 p-8 lg:p-10">
       {/* Animated spheres */}
       <motion.div animate={{ y: [0, -14, 0], x: [0, 6, 0] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-blue-400/40" />
+        className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-orange-300/35" />
       <motion.div animate={{ y: [0, 12, 0], x: [0, -8, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-        className="absolute -right-10 top-20 h-40 w-40 rounded-full bg-blue-300/30" />
+        className="absolute -right-10 top-20 h-40 w-40 rounded-full bg-amber-200/25" />
       <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        className="absolute left-1/3 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-blue-400/25" />
+        className="absolute left-1/3 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-orange-400/20" />
       <motion.div animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.25, 0.15] }} transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
         className="absolute right-8 bottom-12 h-24 w-24 rounded-full bg-white/10" />
 
@@ -74,8 +74,8 @@ function BluePanel({ isRegister }) {
 }
 
 /* ─── Input styles ─── */
-const inputCls = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-500 dark:focus:ring-blue-900/30';
-const inputWithIcon = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-11 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-500 dark:focus:ring-blue-900/30';
+const inputCls = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary-400 focus:bg-white focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-primary-500 dark:focus:ring-primary-900/30';
+const inputWithIcon = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-11 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary-400 focus:bg-white focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-primary-500 dark:focus:ring-primary-900/30';
 
 /* ─── LOGIN FORM ─── */
 function LoginForm({ onSwitch }) {
@@ -132,19 +132,19 @@ function LoginForm({ onSwitch }) {
           </svg>
           <input type={showPw ? 'text' : 'password'} className={`${inputWithIcon} pr-20`} placeholder="Пароль" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
           <button type="button" onClick={() => setShowPw(v => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold uppercase tracking-wide text-blue-500 hover:text-blue-600 transition">
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold uppercase tracking-wide text-primary-500 hover:text-primary-600 transition">
             {showPw ? 'Скрыть' : 'Показать'}
           </button>
         </div>
 
         <div className="flex justify-end">
-          <Link to="/forgot-password" className="text-xs font-medium text-blue-500 hover:text-blue-600 transition">Забыли пароль?</Link>
+          <Link to="/forgot-password" className="text-xs font-medium text-primary-500 hover:text-primary-600 transition">Забыли пароль?</Link>
         </div>
 
         <SliderCaptcha onVerify={setCaptchaOk} resetKey={captchaKey} />
 
         <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.98 }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-500/30 transition hover:from-primary-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><LogIn size={16} /> Войти</>}
         </motion.button>
 
@@ -166,15 +166,15 @@ function LoginForm({ onSwitch }) {
           <div className="space-y-1.5">
             {savedSessions.map(s => (
               <button key={s.id} type="button" onClick={() => quickLogin(s.id)} disabled={switchingId === s.id}
-                className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-blue-300 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:hover:border-blue-500">
-                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-blue-100 text-xs font-bold text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+                className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-primary-300 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:hover:border-primary-500">
+                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-primary-100 text-xs font-bold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
                   {s.user?.avatar ? <img src={s.user.avatar} alt="" className="h-full w-full object-cover" /> : <>{s.user?.firstName?.[0]}{s.user?.lastName?.[0]}</>}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-gray-800 dark:text-white">{s.user?.firstName} {s.user?.lastName}</p>
                   <p className="truncate text-xs text-gray-400">{s.user?.email}</p>
                 </div>
-                {switchingId === s.id ? <div className="h-3.5 w-3.5 rounded-full border-2 border-blue-300 border-t-blue-600 animate-spin" /> : <RefreshCw size={13} className="text-gray-400" />}
+                {switchingId === s.id ? <div className="h-3.5 w-3.5 rounded-full border-2 border-primary-300 border-t-primary-600 animate-spin" /> : <RefreshCw size={13} className="text-gray-400" />}
               </button>
             ))}
           </div>
@@ -183,7 +183,7 @@ function LoginForm({ onSwitch }) {
 
       <p className="mt-6 text-center text-sm text-gray-500 dark:text-slate-400">
         Нет аккаунта?{' '}
-        <button type="button" onClick={onSwitch} className="font-semibold text-blue-500 hover:text-blue-600 transition">Зарегистрироваться</button>
+        <button type="button" onClick={onSwitch} className="font-semibold text-primary-500 hover:text-primary-600 transition">Зарегистрироваться</button>
       </p>
     </div>
   );
@@ -232,7 +232,7 @@ function RegisterForm({ onSwitch }) {
         {[{ value: 'student', label: 'Студент', icon: UserRound }, { value: 'teacher', label: 'Преподаватель', icon: Users }].map(r => (
           <button key={r.value} type="button" onClick={() => set('role', r.value)}
             className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
-              form.role === r.value ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-600 dark:text-blue-300' : 'text-gray-500 hover:text-gray-700 dark:text-slate-400'
+              form.role === r.value ? 'bg-white text-primary-600 shadow-sm dark:bg-slate-600 dark:text-primary-300' : 'text-gray-500 hover:text-gray-700 dark:text-slate-400'
             }`}>
             <r.icon size={15} /> {r.label}
           </button>
@@ -282,7 +282,7 @@ function RegisterForm({ onSwitch }) {
         <SliderCaptcha onVerify={setCaptchaOk} resetKey={captchaKey} />
 
         <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.98 }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-500/30 transition hover:from-primary-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><UserPlus size={16} /> Создать аккаунт</>}
         </motion.button>
 
@@ -300,7 +300,7 @@ function RegisterForm({ onSwitch }) {
 
       <p className="mt-5 text-center text-sm text-gray-500 dark:text-slate-400">
         Уже есть аккаунт?{' '}
-        <button type="button" onClick={onSwitch} className="font-semibold text-blue-500 hover:text-blue-600 transition">Войти</button>
+        <button type="button" onClick={onSwitch} className="font-semibold text-primary-500 hover:text-primary-600 transition">Войти</button>
       </p>
     </div>
   );
@@ -321,12 +321,12 @@ function BackgroundPattern() {
       </svg>
 
       {/* Subtle radial glows */}
-      <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-blue-400/[0.08] blur-[120px]" />
-      <div className="absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-indigo-400/[0.06] blur-[120px]" />
+      <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-orange-400/[0.10] blur-[120px]" />
+      <div className="absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-neutral-950/[0.08] blur-[120px]" />
       <motion.div
         animate={{ opacity: [0.03, 0.07, 0.03] }}
         transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-300/10 blur-[80px]" />
+        className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-300/12 blur-[80px]" />
     </div>
   );
 }
@@ -348,7 +348,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 p-3 sm:p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-[#fff8ef] via-white to-[#fff1df] p-3 sm:p-4">
       <BackgroundPattern />
 
       <motion.div
@@ -367,7 +367,7 @@ export default function AuthPage() {
             style={{ order: isRegister ? 2 : 1 }}
             className="w-[44%] flex-shrink-0"
           >
-            <BluePanel isRegister={isRegister} />
+            <AccentPanel isRegister={isRegister} />
           </motion.div>
 
           {/* White form panel */}
@@ -395,12 +395,12 @@ export default function AuthPage() {
 
         {/* ── MOBILE: single column ── */}
         <div className="flex w-full flex-col lg:hidden">
-          {/* Compact blue header */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 px-6 py-8">
+          {/* Compact accent header */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-primary-500 via-orange-500 to-neutral-950 px-6 py-8">
             <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-blue-400/30" />
+              className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-orange-300/30" />
             <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-              className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-blue-300/25" />
+              className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-amber-200/25" />
 
             <div className="relative z-10">
             <div className="mb-4 flex items-center gap-2">

@@ -15,18 +15,18 @@ function AnimatedPlaceholder({ title = '', showCaption = true }) {
       <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f8fbff" />
-            <stop offset="35%" stopColor="#dbeafe" />
-            <stop offset="68%" stopColor="#c4b5fd" />
-            <stop offset="100%" stopColor="#c7f9e6" />
+            <stop offset="0%" stopColor="#fffaf2" />
+            <stop offset="35%" stopColor="#ffedd5" />
+            <stop offset="68%" stopColor="#fdba74" />
+            <stop offset="100%" stopColor="#fde68a" />
           </linearGradient>
           <radialGradient id={glowPrimaryId} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+            <stop offset="0%" stopColor="#f97316" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
           </radialGradient>
           <radialGradient id={glowSecondaryId} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0" />
+            <stop offset="0%" stopColor="#111111" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#111111" stopOpacity="0" />
           </radialGradient>
           <pattern id={patternId} width="48" height="48" patternUnits="userSpaceOnUse">
             <path d="M48 0H0V48" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
@@ -63,7 +63,7 @@ function AnimatedPlaceholder({ title = '', showCaption = true }) {
             <path
               d="M-40 320C152 240 282 416 472 372C636 334 724 178 922 184C1136 190 1212 454 1410 442C1496 436 1554 390 1640 334"
               fill="none"
-              stroke="rgba(99,102,241,0.32)"
+              stroke="rgba(249,115,22,0.26)"
               strokeWidth="12"
               strokeLinecap="round"
             />
@@ -83,11 +83,11 @@ function AnimatedPlaceholder({ title = '', showCaption = true }) {
 
           <g transform="translate(192 570)">
             <rect width="310" height="168" rx="28" fill="rgba(255,255,255,0.84)" />
-            <rect x="28" y="32" width="124" height="18" rx="9" fill="rgba(99,102,241,0.18)" />
+            <rect x="28" y="32" width="124" height="18" rx="9" fill="rgba(249,115,22,0.18)" />
             <rect x="28" y="74" width="190" height="22" rx="11" fill="rgba(15,23,42,0.14)" />
             <rect x="28" y="110" width="244" height="18" rx="9" fill="rgba(15,23,42,0.08)" />
-            <circle cx="252" cy="44" r="28" fill="rgba(99,102,241,0.14)" />
-            <text x="252" y="51" textAnchor="middle" fontSize="28" fontWeight="700" fill="#4f46e5">
+            <circle cx="252" cy="44" r="28" fill="rgba(249,115,22,0.14)" />
+            <text x="252" y="51" textAnchor="middle" fontSize="28" fontWeight="700" fill="#ea580c">
               {initial}
             </text>
           </g>
@@ -137,7 +137,7 @@ export default function TestCoverArtwork({
           <div className={imageOverlayClassName} />
           <div className="pointer-events-none absolute inset-0">
             <motion.div
-              className="absolute -left-12 top-[-18%] h-36 w-36 rounded-full bg-sky-300/12 blur-3xl"
+              className="absolute -left-12 top-[-18%] h-36 w-36 rounded-full bg-orange-300/12 blur-3xl"
               animate={{ x: [0, 20, 0], y: [0, 12, 0], opacity: [0.16, 0.28, 0.16] }}
               transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
             />

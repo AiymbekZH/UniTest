@@ -22,13 +22,13 @@ export default function BrandLogo({
         aria-hidden="true"
       >
         <defs>
-          <linearGradient id="unitest-blue" x1="28" y1="20" x2="72" y2="98" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#0B3E86" />
-            <stop offset="1" stopColor="#072F69" />
+          <linearGradient id="unitest-black" x1="28" y1="20" x2="72" y2="98" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#262626" />
+            <stop offset="1" stopColor="#09090B" />
           </linearGradient>
           <linearGradient id="unitest-orange" x1="45" y1="52" x2="101" y2="92" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#FF6A00" />
-            <stop offset="1" stopColor="#FFB200" />
+            <stop stopColor="#F97316" />
+            <stop offset="1" stopColor="#FDBA74" />
           </linearGradient>
           <filter id="unitest-glow" x="24" y="18" width="82" height="82" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
             <feGaussianBlur stdDeviation="6" result="blur" />
@@ -41,7 +41,7 @@ export default function BrandLogo({
 
         <path
           d="M36 28V71C36 86.464 48.536 99 64 99C79.464 99 92 86.464 92 71V60.5"
-          stroke="url(#unitest-blue)"
+          stroke="url(#unitest-black)"
           strokeWidth="18"
           strokeLinecap="round"
           strokeLinejoin="round"

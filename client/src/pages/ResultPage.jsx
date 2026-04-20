@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -54,7 +54,7 @@ export default function ResultPage() {
 
   const getGradeInfo = (pct) => {
     if (pct >= 90) return { label: 'Отлично', color: 'text-emerald-600', bg: 'bg-emerald-50', icon: 'trophy' };
-    if (pct >= 75) return { label: 'Хорошо', color: 'text-blue-600', bg: 'bg-blue-50', icon: 'award' };
+    if (pct >= 75) return { label: 'Хорошо', color: 'text-primary-600', bg: 'bg-primary-50', icon: 'award' };
     if (pct >= 50) return { label: 'Удовлетворительно', color: 'text-amber-600', bg: 'bg-amber-50', icon: 'filetext' };
     return { label: 'Неудовлетворительно', color: 'text-red-600', bg: 'bg-red-50', icon: 'alert' };
   };
@@ -127,10 +127,10 @@ export default function ResultPage() {
     ctx.fillRect(0, 0, W, H);
 
     // Border
-    ctx.strokeStyle = '#6366f1';
+    ctx.strokeStyle = '#ea580c';
     ctx.lineWidth = 4;
     ctx.strokeRect(20, 20, W - 40, H - 40);
-    ctx.strokeStyle = '#c7d2fe';
+    ctx.strokeStyle = '#fed7aa';
     ctx.lineWidth = 1;
     ctx.strokeRect(30, 30, W - 60, H - 60);
 
@@ -140,7 +140,7 @@ export default function ResultPage() {
       ctx.moveTo(x, y + dy * 40);
       ctx.lineTo(x, y);
       ctx.lineTo(x + dx * 40, y);
-      ctx.strokeStyle = '#6366f1';
+      ctx.strokeStyle = '#ea580c';
       ctx.lineWidth = 3;
       ctx.stroke();
     };
@@ -151,7 +151,7 @@ export default function ResultPage() {
 
     // Title
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#6366f1';
+    ctx.fillStyle = '#ea580c';
     ctx.font = '600 14px Inter, sans-serif';
     ctx.letterSpacing = '4px';
     ctx.fillText('CERTIFICATE OF COMPLETION', W / 2, 100);
@@ -160,7 +160,7 @@ export default function ResultPage() {
     ctx.beginPath();
     ctx.moveTo(W / 2 - 80, 115);
     ctx.lineTo(W / 2 + 80, 115);
-    ctx.strokeStyle = '#c7d2fe';
+    ctx.strokeStyle = '#fed7aa';
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -193,7 +193,7 @@ export default function ResultPage() {
 
     // Test title
     const testTitle = result.test?.title || 'Test';
-    ctx.fillStyle = '#4f46e5';
+    ctx.fillStyle = '#c2410c';
     ctx.font = '600 28px Inter, sans-serif';
     // Truncate if too long
     let displayTitle = testTitle;
@@ -246,7 +246,7 @@ export default function ResultPage() {
     ctx.fillText(dateStr, W / 2, 620);
 
     // Platform
-    ctx.fillStyle = '#c7d2fe';
+    ctx.fillStyle = '#fed7aa';
     ctx.font = '600 12px Inter, sans-serif';
     ctx.fillText('UniTest Platform', W / 2, 780);
 
@@ -291,7 +291,7 @@ export default function ResultPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-8">
       
 
       <div className="max-w-4xl mx-auto">
@@ -319,7 +319,7 @@ export default function ResultPage() {
             className="mb-4 flex justify-center"
           >
             {grade.icon === 'trophy' && <Trophy size={56} className="text-emerald-500" />}
-            {grade.icon === 'award' && <Award size={56} className="text-blue-500" />}
+            {grade.icon === 'award' && <Award size={56} className="text-primary-500" />}
             {grade.icon === 'filetext' && <FileText size={56} className="text-amber-500" />}
             {grade.icon === 'alert' && <AlertTriangle size={56} className="text-red-500" />}
           </motion.div>
@@ -355,10 +355,10 @@ export default function ResultPage() {
               <p className="text-2xl font-bold text-red-700">{wrong}</p>
               <p className="text-xs text-red-600">Неверно</p>
             </div>
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
-              <Clock className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-              <p className="text-2xl font-bold text-blue-700">{formatTime(result.timeSpent)}</p>
-              <p className="text-xs text-blue-600">Время</p>
+            <div className="rounded-2xl bg-primary-50 p-4 dark:bg-primary-900/20">
+              <Clock className="w-6 h-6 text-primary-600 mx-auto mb-1" />
+              <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{formatTime(result.timeSpent)}</p>
+              <p className="text-xs text-primary-600 dark:text-primary-400">Время</p>
             </div>
             <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
               <AlertTriangle className="w-6 h-6 text-amber-600 mx-auto mb-1" />
@@ -377,7 +377,7 @@ export default function ResultPage() {
             >
               <button
                 onClick={downloadCertificate}
-                className="flex items-center justify-center gap-2 mx-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-primary-500 to-purple-500 text-white text-sm font-medium hover:from-primary-600 hover:to-purple-600 transition-all shadow-lg shadow-primary-500/20"
+                className="flex items-center justify-center gap-2 mx-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-primary-500 to-orange-500 text-white text-sm font-medium hover:from-primary-600 hover:to-orange-600 transition-all shadow-lg shadow-primary-500/20"
               >
                 <Download size={16} /> Скачать сертификат
               </button>
@@ -560,8 +560,8 @@ export default function ResultPage() {
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="earned" fill="#4F46E5" radius={[4, 4, 0, 0]} name="Набрано" />
-                <Bar dataKey="max" fill="#E0E7FF" radius={[4, 4, 0, 0]} name="Максимум" />
+                <Bar dataKey="earned" fill="#EA580C" radius={[4, 4, 0, 0]} name="Набрано" />
+                <Bar dataKey="max" fill="#FED7AA" radius={[4, 4, 0, 0]} name="Максимум" />
               </BarChart>
             </ResponsiveContainer>
           </motion.div>
@@ -738,9 +738,9 @@ export default function ResultPage() {
 
                       {/* Explanation */}
                       {question?.explanation && (
-                        <div className="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-500">Пояснение:</span>
-                          <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">{question.explanation}</p>
+                        <div className="mt-2 p-2.5 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+                          <span className="text-[10px] uppercase tracking-wider font-semibold text-primary-500">Пояснение:</span>
+                          <p className="text-xs text-primary-700 dark:text-primary-300 mt-0.5">{question.explanation}</p>
                         </div>
                       )}
                     </div>

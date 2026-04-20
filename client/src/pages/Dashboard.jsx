@@ -446,7 +446,7 @@ function SummaryMetric({ icon: Icon, label, value, tone = 'primary' }) {
     primary: 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300',
     amber: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300',
     emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300',
-    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+    blue: 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
   };
 
   return (
@@ -717,9 +717,9 @@ export default function Dashboard() {
                 <p className="text-xl font-bold text-emerald-600">{recentResult.percentage}%</p>
                 <p className="text-[11px] text-emerald-500">{copy.scoreLabel}</p>
               </div>
-              <div className="rounded-2xl bg-blue-50 p-3 text-center dark:bg-blue-900/15">
-                <p className="text-xl font-bold text-blue-600">{recentResult.answers?.length || 0}</p>
-                <p className="text-[11px] text-blue-500">{copy.questionsLabel}</p>
+              <div className="rounded-2xl bg-primary-50 p-3 text-center dark:bg-primary-900/15">
+                <p className="text-xl font-bold text-primary-600">{recentResult.answers?.length || 0}</p>
+                <p className="text-[11px] text-primary-500">{copy.questionsLabel}</p>
               </div>
               <div className="rounded-2xl bg-amber-50 p-3 text-center dark:bg-amber-900/15">
                 <p className="text-xl font-bold text-amber-600">{recentResult.timeSpent || 0}s</p>
@@ -1378,7 +1378,7 @@ export default function Dashboard() {
         <motion.section
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-[28px] border border-primary-100 bg-gradient-to-br from-white via-primary-50/60 to-blue-50 p-5 shadow-[0_30px_80px_-50px_rgba(79,70,229,0.35)] dark:border-slate-700 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 sm:rounded-[32px] sm:p-6"
+          className="relative overflow-hidden rounded-[28px] border border-primary-100 bg-gradient-to-br from-white via-primary-50/60 to-orange-50 p-5 shadow-[0_30px_80px_-50px_rgba(234,88,12,0.28)] dark:border-slate-700 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 sm:rounded-[32px] sm:p-6"
         >
           <div className="absolute -right-14 -top-14 h-44 w-44 rounded-full bg-primary-500/10 blur-3xl" />
           <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-sky-400/10 blur-3xl" />

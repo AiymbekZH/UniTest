@@ -22,22 +22,22 @@ function GoogleIcon() {
 /* ─── Animated left panel with spheres (SVG) ─── */
 function LeftPanel() {
   return (
-    <div className="relative hidden overflow-hidden rounded-l-3xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 p-10 lg:flex lg:w-[46%] lg:flex-col lg:justify-between">
+    <div className="relative hidden overflow-hidden rounded-l-3xl bg-gradient-to-br from-primary-500 via-orange-500 to-neutral-950 p-10 lg:flex lg:w-[46%] lg:flex-col lg:justify-between">
       {/* Animated spheres */}
       <motion.div
         animate={{ y: [0, -14, 0], x: [0, 6, 0] }}
         transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-blue-400/40"
+        className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-orange-300/35"
       />
       <motion.div
         animate={{ y: [0, 12, 0], x: [0, -8, 0] }}
         transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-        className="absolute -right-10 top-20 h-40 w-40 rounded-full bg-blue-300/30"
+        className="absolute -right-10 top-20 h-40 w-40 rounded-full bg-amber-200/25"
       />
       <motion.div
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        className="absolute left-1/3 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-blue-400/25"
+        className="absolute left-1/3 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-orange-400/20"
       />
       <motion.div
         animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.25, 0.15] }}
@@ -119,10 +119,10 @@ export default function Login() {
     finally { setSwitchingId(''); }
   };
 
-  const inputCls = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-11 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-blue-500 dark:focus:ring-blue-900/30';
+  const inputCls = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-11 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary-400 focus:bg-white focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-primary-500 dark:focus:ring-primary-900/30';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0f1623] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#120c07] p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -158,14 +158,14 @@ export default function Login() {
               </svg>
               <input type={showPw ? 'text' : 'password'} className={`${inputCls} pr-20`} placeholder="Пароль" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
               <button type="button" onClick={() => setShowPw(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold uppercase tracking-wide text-blue-500 hover:text-blue-600 transition">
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold uppercase tracking-wide text-primary-500 hover:text-primary-600 transition">
                 {showPw ? 'Скрыть' : 'Показать'}
               </button>
             </div>
 
             {/* Forgot */}
             <div className="flex justify-end">
-              <Link to="/forgot-password" className="text-xs font-medium text-blue-500 hover:text-blue-600 transition">
+              <Link to="/forgot-password" className="text-xs font-medium text-primary-500 hover:text-primary-600 transition">
                 Забыли пароль?
               </Link>
             </div>
@@ -175,7 +175,7 @@ export default function Login() {
 
             {/* Submit */}
             <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.98 }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-500/30 transition hover:from-primary-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><LogIn size={16} /> Войти</>}
             </motion.button>
 
@@ -201,15 +201,15 @@ export default function Login() {
               <div className="space-y-2">
                 {savedSessions.map(s => (
                   <button key={s.id} type="button" onClick={() => quickLogin(s.id)} disabled={switchingId === s.id}
-                    className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left transition hover:border-blue-300 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:hover:border-blue-500">
-                    <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-blue-100 text-xs font-bold text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+                    className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left transition hover:border-primary-300 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:hover:border-primary-500">
+                    <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-primary-100 text-xs font-bold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
                       {s.user?.avatar ? <img src={s.user.avatar} alt="" className="h-full w-full object-cover" /> : <>{s.user?.firstName?.[0]}{s.user?.lastName?.[0]}</>}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-gray-800 dark:text-white">{s.user?.firstName} {s.user?.lastName}</p>
                       <p className="truncate text-xs text-gray-400">{s.user?.email}</p>
                     </div>
-                    {switchingId === s.id ? <div className="h-4 w-4 rounded-full border-2 border-blue-300 border-t-blue-600 animate-spin" /> : <RefreshCw size={14} className="text-gray-400" />}
+                    {switchingId === s.id ? <div className="h-4 w-4 rounded-full border-2 border-primary-300 border-t-primary-600 animate-spin" /> : <RefreshCw size={14} className="text-gray-400" />}
                   </button>
                 ))}
               </div>
@@ -219,7 +219,7 @@ export default function Login() {
           {/* Register link */}
           <p className="mt-6 text-center text-sm text-gray-500 dark:text-slate-400">
             Нет аккаунта?{' '}
-            <Link to="/register" className="font-semibold text-blue-500 hover:text-blue-600 transition">Зарегистрироваться</Link>
+            <Link to="/register" className="font-semibold text-primary-500 hover:text-primary-600 transition">Зарегистрироваться</Link>
           </p>
         </div>
       </motion.div>

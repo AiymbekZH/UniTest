@@ -68,9 +68,9 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
     <div className="border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3">
       {/* Reply preview */}
       {replyTo && (
-        <div className="flex items-center gap-2 mb-2 pl-3 border-l-2 border-blue-400 text-sm text-gray-600 dark:text-gray-300">
+        <div className="mb-2 flex items-center gap-2 border-l-2 border-primary-400 pl-3 text-sm text-gray-600 dark:text-gray-300">
           <div className="flex-1 min-w-0 truncate">
-            <span className="font-medium text-blue-500">{replyTo.sender?.firstName}</span>:{' '}
+            <span className="font-medium text-primary-500">{replyTo.sender?.firstName}</span>:{' '}
             <span className="text-gray-400">{replyTo.text?.slice(0, 80) || '(вложение)'}</span>
           </div>
           <button onClick={onCancelReply} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-400">
@@ -112,7 +112,7 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
             placeholder="Сообщение..."
             disabled={disabled}
             rows={1}
-            className="w-full resize-none rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition max-h-32 overflow-y-auto"
+            className="max-h-32 w-full resize-none overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 dark:focus:ring-primary-900/30"
             style={{ minHeight: '42px' }}
             onInput={(e) => {
               e.target.style.height = 'auto';
@@ -124,7 +124,7 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
         <VoiceRecorder onRecorded={handleVoice} onCancel={() => {}} />
 
         <button onClick={handleSend} disabled={disabled || (!text.trim() && attachments.length === 0)}
-          className="p-2.5 rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition">
+          className="rounded-xl bg-primary-500 p-2.5 text-white transition hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-40">
           <Send size={18} />
         </button>
       </div>

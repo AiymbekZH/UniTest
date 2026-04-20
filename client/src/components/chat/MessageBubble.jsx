@@ -4,12 +4,12 @@ import { Download, FileText, Pin, Reply, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const CHAT_COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4',
-  '#84cc16', '#f97316', '#6366f1', '#14b8a6', '#e11d48', '#a855f7',
+  '#f97316', '#ea580c', '#fb923c', '#10b981', '#f59e0b', '#ef4444',
+  '#84cc16', '#14b8a6', '#d97706', '#e11d48', '#a16207', '#b45309',
 ];
 
 function getUserColor(userId, roleColor) {
-  if (roleColor && roleColor !== '#6366f1') return roleColor;
+  if (roleColor && roleColor !== '#f97316') return roleColor;
   const hash = (userId || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return CHAT_COLORS[hash % CHAT_COLORS.length];
 }
@@ -83,7 +83,7 @@ export default function MessageBubble({
         {message.replyTo && !message.replyTo.isDeleted && (
           <div className={`mb-1 max-w-full truncate border-l-2 pl-3 text-[11px] ${
             isOwn
-              ? 'border-blue-300 text-blue-100'
+              ? 'border-primary-200 text-orange-100'
               : 'border-gray-300 text-gray-500 dark:border-slate-500 dark:text-gray-400'
           }`}>
             <button
@@ -99,7 +99,7 @@ export default function MessageBubble({
 
         <div className={`relative rounded-2xl px-4 py-2.5 ${
           isOwn
-            ? 'rounded-br-md bg-blue-500 text-white'
+            ? 'rounded-br-md bg-primary-500 text-white'
             : 'rounded-bl-md bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-gray-100'
         }`}>
           {!isOwn && (
@@ -165,7 +165,7 @@ export default function MessageBubble({
                     onClick={() => onPreviewMedia?.({ kind: 'pdf', attachment, label: 'PDF' })}
                     className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition ${
                       isOwn
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        ? 'bg-primary-600 text-white hover:bg-primary-700'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-600 dark:text-gray-200 dark:hover:bg-slate-500'
                     }`}
                   >
@@ -180,7 +180,7 @@ export default function MessageBubble({
                     download={attachment.filename}
                     className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition ${
                       isOwn
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        ? 'bg-primary-600 text-white hover:bg-primary-700'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-600 dark:text-gray-200 dark:hover:bg-slate-500'
                     }`}
                   >
@@ -194,8 +194,8 @@ export default function MessageBubble({
           })}
 
           <div className={`mt-1 flex items-center gap-1.5 ${isOwn ? 'justify-end' : ''}`}>
-            {message.isPinned && <Pin size={10} className={isOwn ? 'text-blue-200' : 'text-amber-500'} />}
-            <span className={`text-[10px] ${isOwn ? 'text-blue-200' : 'text-gray-400'}`}>
+            {message.isPinned && <Pin size={10} className={isOwn ? 'text-orange-100' : 'text-amber-500'} />}
+            <span className={`text-[10px] ${isOwn ? 'text-orange-100' : 'text-gray-400'}`}>
               {timeStr(message.createdAt)}
             </span>
           </div>

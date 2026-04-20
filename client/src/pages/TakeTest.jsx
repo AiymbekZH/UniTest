@@ -34,7 +34,7 @@ function MatchingQuestion({
     { bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-400', text: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500' },
     { bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-400', text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500' },
     { bg: 'bg-cyan-50 dark:bg-cyan-900/20', border: 'border-cyan-400', text: 'text-cyan-600 dark:text-cyan-400', dot: 'bg-cyan-500' },
-    { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-400', text: 'text-indigo-600 dark:text-indigo-400', dot: 'bg-indigo-500' },
+    { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-400', text: 'text-primary-600 dark:text-primary-400', dot: 'bg-indigo-500' },
     { bg: 'bg-teal-50 dark:bg-teal-900/20', border: 'border-teal-400', text: 'text-teal-600 dark:text-teal-400', dot: 'bg-teal-500' },
   ];
 
@@ -1137,7 +1137,7 @@ export default function TakeTest() {
       ? new Date(deadlineError.startDate).toLocaleString()
       : new Date(deadlineError.endDate).toLocaleString();
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 lg:items-start lg:pt-10">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 lg:items-start lg:pt-10">
         
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
           className="max-w-sm w-full glass-card p-8 text-center">
@@ -1232,7 +1232,7 @@ export default function TakeTest() {
   // Pre-start screen
   if (!started) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
         
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -1305,11 +1305,11 @@ export default function TakeTest() {
 
           {/* Instant feedback info */}
           {test.settings?.instantFeedback && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 text-left">
-              <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-2">
+            <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4 mb-4 text-left">
+              <h3 className="text-sm font-semibold text-primary-700 dark:text-primary-400 mb-1 flex items-center gap-2">
                 <Check size={16} /> {t('modeInstantFeedback')}
               </h3>
-              <p className="text-xs text-blue-600 dark:text-blue-300">
+              <p className="text-xs text-primary-600 dark:text-primary-300">
                 {t('instantFeedbackInfo')}
               </p>
             </div>
@@ -1330,19 +1330,19 @@ export default function TakeTest() {
 
           {/* Ticket/Variant picker */}
           {test.settings?.variants?.enabled && !isPractice && (
-            <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 mb-4">
+            <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4 mb-4">
               {selectedVariant ? (
                 <div className="text-center">
-                  <div className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-lg mb-2">
+                  <div className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg font-bold text-lg mb-2">
                     <Ticket size={20} />
                     {t('ticketN', { n: selectedVariant })}
                   </div>
-                  <p className="text-xs text-indigo-600 dark:text-indigo-400">{t('ticketReady')}</p>
+                  <p className="text-xs text-primary-600 dark:text-primary-400">{t('ticketReady')}</p>
                   {/* For public tests, allow changing ticket */}
                   {isPublicTest && (
                     <button
                       onClick={() => setSelectedVariant(null)}
-                      className="mt-2 text-xs text-indigo-500 hover:text-indigo-700 underline"
+                      className="mt-2 text-xs text-primary-500 hover:text-primary-700 underline"
                     >
                       {t('changeTicket') || 'Сменить билет'}
                     </button>
@@ -1350,7 +1350,7 @@ export default function TakeTest() {
                 </div>
               ) : (
                 <>
-                  <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-400 mb-3 flex items-center justify-center gap-2">
+                  <h3 className="text-sm font-semibold text-primary-700 dark:text-primary-400 mb-3 flex items-center justify-center gap-2">
                     <Ticket size={16} />
                     {t('chooseTicket')}
                   </h3>
@@ -1366,7 +1366,7 @@ export default function TakeTest() {
                           disabled={isDisabled || ticketLoading}
                           className={`relative aspect-square rounded-lg font-bold text-sm flex items-center justify-center transition-all ${isDisabled
                               ? 'bg-red-100 dark:bg-red-900/30 text-red-400 dark:text-red-500 cursor-not-allowed border border-red-200 dark:border-red-800'
-                              : 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 cursor-pointer border border-indigo-200 dark:border-indigo-700 shadow-sm hover:shadow-md'
+                              : 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-800/50 cursor-pointer border border-primary-200 dark:border-primary-700 shadow-sm hover:shadow-md'
                             }`}
                         >
                           {v.number}
@@ -1381,7 +1381,7 @@ export default function TakeTest() {
                   </div>
                   {ticketLoading && (
                     <div className="mt-3 text-center">
-                      <div className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-sm">
+                      <div className="inline-flex items-center gap-2 text-primary-600 dark:text-primary-400 text-sm">
                         <Loader2 size={14} className="animate-spin" />
                         {t('claimingTicket')}
                       </div>
@@ -1482,7 +1482,7 @@ export default function TakeTest() {
             <h2 className="text-xs sm:text-sm font-semibold text-dark truncate max-w-[42%] lg:max-w-[46%]">
               {test.title}
               {selectedVariant > 0 && (
-                <span className="ml-2 inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                <span className="ml-2 inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-900/40 text-primary-600 dark:text-primary-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
                   <Ticket size={10} />#{selectedVariant}
                 </span>
               )}
@@ -1522,7 +1522,7 @@ export default function TakeTest() {
           <div className="h-1 sm:h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7)' }}
+              style={{ background: 'linear-gradient(90deg, #f97316, #ea580c, #c2410c)' }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3 }}
             />
@@ -1903,9 +1903,9 @@ export default function TakeTest() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="mt-4 p-3 sm:p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                className="mt-4 p-3 sm:p-4 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800"
               >
-                <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">{t('explanationLabel')}</p>
+                <p className="text-xs font-semibold text-primary-700 dark:text-primary-400 mb-1">{t('explanationLabel')}</p>
                 <div
                   className="prose prose-sm max-w-none text-sm text-blue-600 dark:prose-invert dark:text-blue-300"
                   dangerouslySetInnerHTML={{ __html: displayedExplanationHtml }}
