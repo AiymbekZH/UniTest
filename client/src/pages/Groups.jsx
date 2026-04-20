@@ -82,6 +82,38 @@ export default function Groups() {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const avatarInputRef = useRef(null);
 
+  const syncGroupState = useCallback((group) => {
+    setSelectedGroup(group);
+    setGroups(prev => prev.map(item => item._id === group._id ? { ...item, ...group } : item));
+  }, []);
+
+  const resetGroupView = useCallback(() => {
+    setSelectedGroup(null);
+    setMessages([]);
+    setReplyTo(null);
+    setActiveTab('chat');
+    setKickConfirmId(null);
+    setBanConfirmId(null);
+    setUnbanConfirmId(null);
+    setAssignRoleUser(null);
+    setConfirmLeave(false);
+    setConfirmRemoveAssignedTestId(null);
+    setConfirmRoleDeleteId(null);
+    setEditingRoleId(null);
+    setRoleDrafts({});
+    setBannedMembers([]);
+    setShowRoleCreate(false);
+    setEditRoleName('');
+    setEditRoleColor('#6366f1');
+  }, []);
+
+  const reloadSelectedGroup = useCallback(async (groupId = selectedGroup?._id) => {
+    if (!groupId) return null;
+    const res = await api.get(`/groups/${groupId}`);
+    syncGroupState(res.data);
+    return res.data;
+  }, [selectedGroup?._id, syncGroupState]);
+
   useEffect(() => { fetchGroups(); }, []);
 
   useEffect(() => {
@@ -261,38 +293,6 @@ export default function Groups() {
     if (!s || !selectedGroup) return;
     s.emit('group:typing', { groupId: selectedGroup._id });
   };
-
-  const syncGroupState = useCallback((group) => {
-    setSelectedGroup(group);
-    setGroups(prev => prev.map(item => item._id === group._id ? { ...item, ...group } : item));
-  }, []);
-
-  const resetGroupView = useCallback(() => {
-    setSelectedGroup(null);
-    setMessages([]);
-    setReplyTo(null);
-    setActiveTab('chat');
-    setKickConfirmId(null);
-    setBanConfirmId(null);
-    setUnbanConfirmId(null);
-    setAssignRoleUser(null);
-    setConfirmLeave(false);
-    setConfirmRemoveAssignedTestId(null);
-    setConfirmRoleDeleteId(null);
-    setEditingRoleId(null);
-    setRoleDrafts({});
-    setBannedMembers([]);
-    setShowRoleCreate(false);
-    setEditRoleName('');
-    setEditRoleColor('#6366f1');
-  }, []);
-
-  const reloadSelectedGroup = useCallback(async (groupId = selectedGroup?._id) => {
-    if (!groupId) return null;
-    const res = await api.get(`/groups/${groupId}`);
-    syncGroupState(res.data);
-    return res.data;
-  }, [selectedGroup?._id, syncGroupState]);
 
   const fetchGroups = async () => {
     try {
