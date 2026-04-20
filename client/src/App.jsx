@@ -49,6 +49,7 @@ export default function App() {
       <Route path="/result/:id" element={<ResultPage />} />
       <Route path="/leaderboard/:testId" element={<Leaderboard />} />
       <Route path="/user/:id" element={<UserProfile />} />
+      <Route path="/profile/:id" element={<UserProfile />} />
       <Route path="/dashboard" element={<Dashboard />} />
 
       {/* Protected routes */}

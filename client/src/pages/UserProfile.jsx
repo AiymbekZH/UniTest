@@ -1,45 +1,112 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft, User, Calendar, FileText, BarChart3,
-  Star, Users, Tag, Flag
+  ArrowLeft, Calendar, Flag, Flame, Sparkles, Star, Target, Trophy, Users, Medal, BarChart3
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import toast, { Toaster } from 'react-hot-toast';
 import Navbar from '../components/Navbar';
+import ProfileHeroBanner from '../components/profile/ProfileHeroBanner';
+import FollowListModal from '../components/profile/FollowListModal';
+import { profileBadgeLabels, profileCopy } from '../components/profile/profileCopy';
+
+function StatCard({ icon: Icon, label, value, tone = 'primary' }) {
+  const toneMap = {
+    primary: 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300',
+    amber: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300',
+    emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300',
+    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+  };
+
+  return (
+    <div className="glass-card-solid rounded-[1.75rem] p-5">
+      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneMap[tone] || toneMap.primary}`}>
+        <Icon size={20} />
+      </div>
+      <p className="mt-4 text-3xl font-black text-dark">{value}</p>
+      <p className="mt-1 text-sm text-gray-500">{label}</p>
+    </div>
+  );
+}
 
 export default function UserProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
-  const { t } = useLanguage();
-  const [profile, setProfile] = useState(null);
-  const [stats, setStats] = useState({});
-  const [publicTests, setPublicTests] = useState([]);
+  const { t, lang } = useLanguage();
+  const copy = profileCopy[lang] || profileCopy.en;
+
+  const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [followLoading, setFollowLoading] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [followListType, setFollowListType] = useState('');
+
+  const currentUserId = currentUser?._id || currentUser?.id || '';
+  const isOwnProfile = currentUserId && id === currentUserId;
+  const profile = profileData?.user || null;
+  const progress = profileData?.progressSummary;
+  const creatorStats = profileData?.creatorStats;
+  const followCounts = profileData?.followCounts || { followersCount: 0, followingCount: 0 };
+  const publicTests = profileData?.publicTests || [];
+  const isFollowing = !!profileData?.followState?.isFollowing;
+
+  const formattedBadges = useMemo(() => {
+    return (progress?.badges || []).map((badge) => ({
+      ...badge,
+      label: profileBadgeLabels[badge.key]?.[lang] || badge.key
+    }));
+  }, [lang, progress?.badges]);
 
   useEffect(() => {
-    if (currentUser && id === currentUser.id) {
-      navigate('/profile');
+    if (isOwnProfile) {
+      navigate('/profile', { replace: true });
       return;
     }
-    api.get(`/profile/${id}`)
-      .then(res => {
-        setProfile(res.data.user);
-        setStats(res.data.stats || {});
-        setPublicTests(res.data.publicTests || []);
-      })
-      .catch(() => {
-        toast.error('Пользователь не найден');
+
+    const loadProfile = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/profile/${id}`);
+        setProfileData(res.data);
+      } catch {
+        toast.error(copy.profileLoadError);
         navigate('/dashboard');
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [copy.profileLoadError, id, isOwnProfile, navigate]);
+
+  const handleFollowToggle = async () => {
+    if (!currentUserId) {
+      navigate('/login');
+      return;
+    }
+
+    setFollowLoading(true);
+    try {
+      const res = isFollowing
+        ? await api.delete(`/profile/${id}/follow`)
+        : await api.post(`/profile/${id}/follow`);
+
+      setProfileData((prev) => prev ? {
+        ...prev,
+        followState: res.data.followState,
+        followCounts: res.data.followCounts
+      } : prev);
+    } catch (error) {
+      toast.error(error.response?.data?.message || copy.followError);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const handleReport = async () => {
     if (!reportReason.trim()) return;
@@ -48,19 +115,55 @@ export default function UserProfile() {
       toast.success(t('reportSent'));
       setShowReport(false);
       setReportReason('');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error');
     }
   };
 
-  const roleLabel = profile?.role === 'admin' ? t('adminRole') : profile?.role === 'teacher' ? t('teacher') : t('student');
+  const roleLabel = profile?.role === 'admin'
+    ? t('adminRole')
+    : profile?.role === 'teacher'
+      ? t('teacher')
+      : t('student');
+
+  const heroFooter = (
+    <div className="grid gap-3 sm:grid-cols-4">
+      <button
+        type="button"
+        onClick={() => setFollowListType('followers')}
+        className="rounded-[1.4rem] border border-gray-100 bg-gray-50/80 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.followers}</p>
+        <p className="mt-1 text-xl font-black text-dark">{followCounts.followersCount || 0}</p>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setFollowListType('following')}
+        className="rounded-[1.4rem] border border-gray-100 bg-gray-50/80 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.following}</p>
+        <p className="mt-1 text-xl font-black text-dark">{followCounts.followingCount || 0}</p>
+      </button>
+
+      <div className="rounded-[1.4rem] border border-gray-100 bg-gray-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/70">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.uniqueId}</p>
+        <p className="mt-1 text-xl font-black text-dark">{profile?.uniqueId || 'N/A'}</p>
+      </div>
+
+      <div className="rounded-[1.4rem] border border-gray-100 bg-gray-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/70">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.publishedTests}</p>
+        <p className="mt-1 text-xl font-black text-dark">{creatorStats?.publicTestsCount || 0}</p>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
       <div className="min-h-screen bg-surface">
         <Navbar />
-        <div className="flex items-center justify-center py-20">
-          <div className="w-10 h-10 border-3 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+        <div className="flex items-center justify-center py-24">
+          <div className="h-11 w-11 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
         </div>
       </div>
     );
@@ -70,149 +173,244 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-screen bg-surface">
-      
       <Navbar />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <button
+          type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-dark transition mb-6"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 transition hover:text-dark"
         >
-          <ArrowLeft size={16} /> {t('back')}
+          <ArrowLeft size={16} />
+          {t('back')}
         </button>
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Profile card */}
-          <div className="glass-card-solid p-6 sm:p-8 mb-6">
-            <div className="flex flex-col sm:flex-row items-center gap-5">
-              <div className="w-24 h-24 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-3xl font-bold text-primary-600 overflow-hidden flex-shrink-0">
-                {profile.avatar ? (
-                  <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span>{profile.firstName?.[0]}{profile.lastName?.[0]}</span>
-                )}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          <ProfileHeroBanner
+            user={profile}
+            title={`${profile.firstName || ''} ${profile.lastName || ''}`.trim()}
+            roleLabel={roleLabel}
+            meta={[
+              {
+                icon: <Calendar size={13} />,
+                label: `${copy.joined} ${new Date(profile.createdAt || Date.now()).toLocaleDateString()}`
+              }
+            ]}
+            footer={heroFooter}
+            actions={
+              <>
+                {currentUserId && currentUserId !== id ? (
+                  <button
+                    type="button"
+                    onClick={handleFollowToggle}
+                    disabled={followLoading}
+                    className={`rounded-full px-5 py-3 text-sm font-semibold transition ${
+                      isFollowing
+                        ? 'border border-white/30 bg-white/14 text-white backdrop-blur-xl hover:bg-white/20'
+                        : 'bg-white text-slate-900 shadow-xl hover:bg-slate-100'
+                    }`}
+                  >
+                    {followLoading ? '...' : isFollowing ? copy.unfollow : copy.follow}
+                  </button>
+                ) : null}
+                {currentUserId && currentUserId !== id ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowReport(true)}
+                    className="rounded-full border border-white/20 bg-slate-950/55 px-5 py-3 text-sm font-semibold text-white backdrop-blur-xl transition hover:bg-slate-950/70"
+                  >
+                    {t('report')}
+                  </button>
+                ) : null}
+              </>
+            }
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+            <StatCard icon={Sparkles} label={copy.level} value={progress?.level || 1} />
+            <StatCard icon={Trophy} label={copy.xp} value={progress?.xp || 0} tone="blue" />
+            <StatCard icon={Flame} label={copy.currentStreak} value={progress?.currentStreakDays || 0} tone="amber" />
+            <StatCard icon={Medal} label={copy.bestStreak} value={progress?.longestStreakDays || 0} tone="emerald" />
+            <StatCard icon={Target} label={copy.completedExams} value={progress?.stats?.completedExams || 0} tone="blue" />
+            <StatCard icon={Star} label={copy.perfectScores} value={progress?.stats?.perfectScores || 0} tone="amber" />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+            <section className="glass-card-solid rounded-[2rem] p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.creatorStats}</p>
+              <div className="mt-5 space-y-4">
+                <div className="flex items-center justify-between rounded-[1.4rem] bg-gray-50/80 px-4 py-4 dark:bg-slate-800/70">
+                  <div className="flex items-center gap-3">
+                    <BarChart3 size={18} className="text-primary-500" />
+                    <span className="text-sm text-gray-500">{t('testsCreated')}</span>
+                  </div>
+                  <span className="text-lg font-black text-dark">{creatorStats?.testsCreated || 0}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-[1.4rem] bg-gray-50/80 px-4 py-4 dark:bg-slate-800/70">
+                  <div className="flex items-center gap-3">
+                    <Users size={18} className="text-emerald-500" />
+                    <span className="text-sm text-gray-500">{copy.publicPlays}</span>
+                  </div>
+                  <span className="text-lg font-black text-dark">{creatorStats?.publicPlays || 0}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-[1.4rem] bg-gray-50/80 px-4 py-4 dark:bg-slate-800/70">
+                  <div className="flex items-center gap-3">
+                    <Star size={18} className="text-amber-500" />
+                    <span className="text-sm text-gray-500">{copy.publicRating}</span>
+                  </div>
+                  <span className="text-lg font-black text-dark">{creatorStats?.publicAverageRating || 0}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-[1.4rem] bg-gray-50/80 px-4 py-4 dark:bg-slate-800/70">
+                  <div className="flex items-center gap-3">
+                    <Trophy size={18} className="text-blue-500" />
+                    <span className="text-sm text-gray-500">{t('avgScore')}</span>
+                  </div>
+                  <span className="text-lg font-black text-dark">{creatorStats?.totalScore || 0}%</span>
+                </div>
               </div>
-              <div className="text-center sm:text-left flex-1">
-                <h1 className="text-2xl font-bold text-dark">
-                  {profile.firstName} {profile.lastName}
-                  {profile.middleName && <span className="text-gray-400 font-normal"> {profile.middleName}</span>}
-                </h1>
-                <span className={`inline-block mt-1 text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                  profile.role === 'admin' ? 'bg-red-100 text-red-600' :
-                  profile.role === 'teacher' ? 'bg-blue-100 text-blue-600' :
-                  'bg-gray-100 text-gray-600'
-                }`}>
-                  {roleLabel}
-                </span>
-                <p className="text-xs text-gray-400 mt-2 flex items-center gap-1 justify-center sm:justify-start">
-                  <Calendar size={12} /> {t('memberSince')} {new Date(profile.createdAt).toLocaleDateString()}
-                </p>
+            </section>
+
+            <section className="glass-card-solid rounded-[2rem] p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.publicProgress}</p>
+                  <h2 className="mt-2 text-2xl font-black text-dark">{formattedBadges.length}</h2>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300">
+                  <Sparkles size={18} />
+                </div>
               </div>
-              {currentUser && currentUser.id !== id && (
-                <button onClick={() => setShowReport(true)}
-                  className="p-2.5 rounded-xl text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition"
-                  title={t('report')}>
-                  <Flag size={18} />
-                </button>
+
+              {formattedBadges.length > 0 ? (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {formattedBadges.map((badge) => (
+                    <span
+                      key={`${badge.key}-${badge.unlockedAt}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-600 dark:border-primary-900/40 dark:bg-primary-900/10 dark:text-primary-300"
+                    >
+                      <Sparkles size={12} />
+                      {badge.label}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-gray-500">{copy.noBadges}</p>
               )}
-            </div>
+            </section>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="glass-card-solid p-5 text-center">
-              <FileText size={22} className="text-primary-600 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-dark">{stats.testsCreated || 0}</p>
-              <p className="text-xs text-gray-500">{t('testsCreated')}</p>
+          <section className="glass-card-solid rounded-[2rem] p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.creatorPortfolio}</p>
+                <h2 className="mt-2 text-2xl font-black text-dark">{copy.publicTests}</h2>
+              </div>
+              <div className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 dark:border-slate-700 dark:text-slate-200">
+                {publicTests.length}
+              </div>
             </div>
-            <div className="glass-card-solid p-5 text-center">
-              <BarChart3 size={22} className="text-emerald-600 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-dark">{stats.testsTaken || 0}</p>
-              <p className="text-xs text-gray-500">{t('testsTaken')}</p>
-            </div>
-          </div>
 
-          {/* Public tests */}
-          {publicTests.length > 0 && (
-            <div className="glass-card-solid p-6">
-              <h3 className="font-semibold text-dark mb-4 flex items-center gap-2">
-                <FileText size={16} className="text-primary-600" />
-                {t('publicTest')} ({publicTests.length})
-              </h3>
-              <div className="space-y-3">
-                {publicTests.map(test => (
-                  <Link key={test._id} to={`/test-profile/${test.shareLink}`}
-                    className="block p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-600 transition group">
-                    <h4 className="text-sm font-medium text-dark group-hover:text-primary-600 transition">{test.title}</h4>
-                    <div className="flex items-center gap-3 mt-2 text-[11px] text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <BarChart3 size={10} /> {test.questions?.length || 0} {t('questions')}
-                      </span>
-                      {test.rating > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Star size={10} className="fill-amber-400 text-amber-400" /> {test.rating.toFixed(1)}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Users size={10} /> {test.attemptCount || 0}
-                      </span>
+            {publicTests.length === 0 ? (
+              <p className="mt-5 text-sm text-gray-500">{copy.noPublicTests}</p>
+            ) : (
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {publicTests.map((test) => (
+                  <Link
+                    key={test._id}
+                    to={`/test-profile/${test.shareLink}`}
+                    className="rounded-[1.6rem] border border-gray-100 bg-gray-50/80 p-4 transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+                  >
+                    <p className="line-clamp-1 text-base font-semibold text-dark">{test.title}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                      <span>{test.questions?.length || 0} {t('questions')}</span>
+                      <span>{test.attemptCount || 0} plays</span>
+                      <span>{Number(test.rating || 0).toFixed(1)}</span>
                     </div>
-                    {test.tags?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {test.tags.slice(0, 3).map((tag, i) => (
-                          <span key={i} className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-gray-100 dark:bg-slate-600 rounded text-[10px] text-gray-500 dark:text-gray-300">
-                            <Tag size={8} /> {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </Link>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </section>
         </motion.div>
+      </main>
 
-        {/* Report modal */}
+      <FollowListModal
+        open={followListType === 'followers'}
+        onClose={() => setFollowListType('')}
+        endpoint={`/profile/${id}/followers`}
+        title={copy.followers}
+        emptyText={copy.noFollowers}
+        loadingText={copy.loadingProfiles}
+      />
+
+      <FollowListModal
+        open={followListType === 'following'}
+        onClose={() => setFollowListType('')}
+        endpoint={`/profile/${id}/following`}
+        title={copy.following}
+        emptyText={copy.noFollowing}
+        loadingText={copy.loadingProfiles}
+      />
+
+      <AnimatePresence>
         {showReport && (
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4"
             onClick={() => setShowReport(false)}
           >
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: 18 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              onClick={e => e.stopPropagation()}
-              className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6"
+              exit={{ opacity: 0, scale: 0.96, y: 18 }}
+              onClick={(event) => event.stopPropagation()}
+              className="relative w-full max-w-md rounded-[2rem] border border-white/70 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
             >
-              <h3 className="text-lg font-bold text-dark mb-4 flex items-center gap-2">
-                <Flag size={18} className="text-orange-500" />
-                {t('reportUser')}
-              </h3>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-900/20 dark:text-orange-300">
+                  <Flag size={18} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-dark">{t('reportUser')}</h3>
+                  <p className="text-sm text-gray-500">{profile.firstName} {profile.lastName}</p>
+                </div>
+              </div>
+
               <textarea
-                className="input-field text-sm w-full resize-none"
-                rows={3}
+                className="input-field mt-5 min-h-[130px] resize-y py-3 text-sm"
                 placeholder={t('reportReason')}
                 value={reportReason}
-                onChange={e => setReportReason(e.target.value)}
+                onChange={(event) => setReportReason(event.target.value)}
                 maxLength={500}
               />
-              <div className="flex gap-3 mt-4">
-                <button onClick={() => { setShowReport(false); setReportReason(''); }}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition">
+
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReport(false);
+                    setReportReason('');
+                  }}
+                  className="flex-1 rounded-full border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600 transition hover:border-gray-300 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500"
+                >
                   {t('cancel')}
                 </button>
-                <button onClick={handleReport} disabled={!reportReason.trim()}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition disabled:opacity-50">
+                <button
+                  type="button"
+                  onClick={handleReport}
+                  disabled={!reportReason.trim()}
+                  className="flex-1 rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
                   {t('report')}
                 </button>
               </div>
             </motion.div>
           </motion.div>
         )}
-      </main>
+      </AnimatePresence>
     </div>
   );
 }

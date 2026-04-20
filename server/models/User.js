@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema({
   uniqueId: { type: String, unique: true, default: generateUniqueId },
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
   avatar: { type: String, default: '' },
+  headline: { type: String, trim: true, default: '', maxlength: 120 },
+  bio: { type: String, trim: true, default: '', maxlength: 400 },
+  coverImage: { type: String, default: '' },
+  coverPreset: { type: String, enum: ['aurora', 'mesh', 'wave', 'grid'], default: 'aurora' },
   isBanned: { type: Boolean, default: false },
   banReason: { type: String, default: '' },
   aiAccess: { type: Boolean, default: false }, // AI generation and translation access

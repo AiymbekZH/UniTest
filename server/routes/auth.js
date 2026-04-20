@@ -46,8 +46,13 @@ function buildAuthPayload(user) {
     uniqueId: user.uniqueId,
     fullName: user.fullName,
     avatar: user.avatar,
+    headline: user.headline || '',
+    bio: user.bio || '',
+    coverImage: user.coverImage || '',
+    coverPreset: user.coverPreset || 'aurora',
     language: user.language,
-    aiAccess: !!user.aiAccess
+    aiAccess: !!user.aiAccess,
+    createdAt: user.createdAt
   };
 }
 

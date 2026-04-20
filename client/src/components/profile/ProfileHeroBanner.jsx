@@ -1,0 +1,218 @@
+import { motion } from 'framer-motion';
+import { Camera, ImagePlus, Trash2 } from 'lucide-react';
+
+function PresetBackdrop({ preset = 'aurora' }) {
+  if (preset === 'mesh') {
+    return (
+      <div className="absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_18%_24%,rgba(250,204,21,0.38),transparent_30%),radial-gradient(circle_at_78%_18%,rgba(59,130,246,0.35),transparent_28%),radial-gradient(circle_at_65%_78%,rgba(16,185,129,0.3),transparent_30%),linear-gradient(135deg,#f8fafc_0%,#dbeafe_35%,#ede9fe_100%)]">
+        <motion.div
+          className="absolute -left-10 top-8 h-48 w-48 rounded-full bg-white/30 blur-3xl"
+          animate={{ x: [0, 24, 0], y: [0, 10, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute right-0 top-10 h-52 w-52 rounded-full bg-sky-300/25 blur-3xl"
+          animate={{ x: [0, -18, 0], y: [0, -12, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
+    );
+  }
+
+  if (preset === 'wave') {
+    return (
+      <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#eff6ff_0%,#dbeafe_28%,#e0e7ff_58%,#dcfce7_100%)]">
+        <svg className="absolute inset-0 h-full w-full opacity-80" viewBox="0 0 1200 400" preserveAspectRatio="none">
+          <motion.path
+            d="M0,240 C180,180 280,300 460,240 C640,180 760,80 920,150 C1020,195 1110,230 1200,210"
+            fill="none"
+            stroke="rgba(99,102,241,0.26)"
+            strokeWidth="6"
+            animate={{ d: [
+              'M0,240 C180,180 280,300 460,240 C640,180 760,80 920,150 C1020,195 1110,230 1200,210',
+              'M0,228 C160,168 298,286 470,230 C620,182 780,92 930,162 C1034,212 1112,242 1200,220',
+              'M0,240 C180,180 280,300 460,240 C640,180 760,80 920,150 C1020,195 1110,230 1200,210'
+            ] }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.path
+            d="M0,300 C210,270 310,170 470,205 C620,238 760,334 920,310 C1050,292 1110,240 1200,250"
+            fill="none"
+            stroke="rgba(255,255,255,0.68)"
+            strokeDasharray="10 10"
+            strokeWidth="4"
+            animate={{ d: [
+              'M0,300 C210,270 310,170 470,205 C620,238 760,334 920,310 C1050,292 1110,240 1200,250',
+              'M0,286 C214,258 318,182 474,214 C620,242 750,326 910,302 C1032,282 1118,232 1200,242',
+              'M0,300 C210,270 310,170 470,205 C620,238 760,334 920,310 C1050,292 1110,240 1200,250'
+            ] }}
+            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </svg>
+      </div>
+    );
+  }
+
+  if (preset === 'grid') {
+    return (
+      <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#f8fafc_0%,#e0f2fe_40%,#ede9fe_100%)]">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.34)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.34)_1px,transparent_1px)] bg-[size:42px_42px]" />
+        <motion.div
+          className="absolute left-[8%] top-[18%] h-24 w-24 rounded-3xl border border-white/50 bg-white/20 backdrop-blur-xl"
+          animate={{ y: [0, -10, 0], rotate: [0, -3, 0] }}
+          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute right-[10%] top-[12%] h-20 w-20 rounded-3xl border border-white/50 bg-indigo-200/20 backdrop-blur-xl"
+          animate={{ y: [0, 12, 0], rotate: [0, 4, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute left-[58%] bottom-[18%] h-16 w-16 rounded-2xl border border-white/50 bg-white/18 backdrop-blur-xl"
+          animate={{ x: [0, 16, 0], y: [0, -8, 0] }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#eff6ff_0%,#bfdbfe_28%,#c4b5fd_58%,#d1fae5_100%)]">
+      <motion.div
+        className="absolute -left-16 top-12 h-52 w-52 rounded-full bg-white/35 blur-3xl"
+        animate={{ x: [0, 34, 0], y: [0, -10, 0] }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute right-6 top-10 h-56 w-56 rounded-full bg-indigo-300/25 blur-3xl"
+        animate={{ x: [0, -26, 0], y: [0, 16, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute -bottom-10 left-1/3 h-56 w-56 rounded-full bg-emerald-200/25 blur-3xl"
+        animate={{ x: [0, 16, 0], y: [0, -18, 0] }}
+        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+      />
+    </div>
+  );
+}
+
+export default function ProfileHeroBanner({
+  user,
+  title,
+  roleLabel,
+  meta = [],
+  actions = null,
+  footer = null,
+  editable = false,
+  onAvatarUpload,
+  onBannerUpload,
+  onBannerRemove,
+  uploadBannerLabel = 'Upload banner',
+  replaceBannerLabel = 'Replace banner',
+  removeBannerLabel = 'Remove banner'
+}) {
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.trim() || 'U';
+
+  return (
+    <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/95 shadow-[0_32px_80px_-42px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/90">
+      <div className="relative h-[320px] sm:h-[360px]">
+        {user?.coverImage ? (
+          <>
+            <img src={user.coverImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/10 via-slate-900/15 to-slate-950/70" />
+          </>
+        ) : (
+          <>
+            <PresetBackdrop preset={user?.coverPreset || 'aurora'} />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/8 via-white/0 to-slate-950/60" />
+          </>
+        )}
+
+        {editable && (
+          <div className="absolute right-4 top-4 z-20 flex flex-wrap items-center justify-end gap-2 sm:right-6 sm:top-6">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/30 bg-white/88 px-4 py-2 text-xs font-semibold text-slate-700 shadow-lg backdrop-blur-xl transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100">
+              <ImagePlus size={14} />
+              {user?.coverImage ? replaceBannerLabel : uploadBannerLabel}
+              <input type="file" accept="image/*" className="hidden" onChange={onBannerUpload} />
+            </label>
+            {user?.coverImage && (
+              <button
+                type="button"
+                onClick={onBannerRemove}
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-slate-950/55 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-xl transition hover:bg-slate-950/70"
+              >
+                <Trash2 size={14} />
+                {removeBannerLabel}
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex min-w-0 items-end gap-4 sm:gap-5">
+              <div className="relative flex-shrink-0">
+                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-[1.6rem] border-4 border-white/75 bg-white/95 text-2xl font-black text-primary-600 shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:text-primary-300 sm:h-28 sm:w-28 sm:text-3xl">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                {editable && (
+                  <label className="absolute -bottom-2 -right-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl border border-white/40 bg-slate-950/70 text-white shadow-lg backdrop-blur-xl transition hover:bg-slate-950/85">
+                    <Camera size={16} />
+                    <input type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} />
+                  </label>
+                )}
+              </div>
+
+              <div className="min-w-0 pb-1 text-white">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-2xl font-black sm:text-[2rem]">{title}</h1>
+                  {roleLabel && (
+                    <span className="inline-flex rounded-full border border-white/20 bg-white/16 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-xl">
+                      {roleLabel}
+                    </span>
+                  )}
+                </div>
+                {user?.headline ? (
+                  <p className="mt-2 max-w-3xl text-sm font-medium text-white/90 sm:text-base">{user.headline}</p>
+                ) : null}
+                {user?.bio ? (
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-white/80 line-clamp-2">{user.bio}</p>
+                ) : null}
+                {meta.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {meta.map((item) => (
+                      <div
+                        key={item.label}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/18 bg-white/14 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-xl"
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {actions ? (
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                {actions}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {footer ? (
+        <div className="border-t border-gray-100/90 bg-white/95 px-5 py-4 dark:border-slate-800 dark:bg-slate-950/85 sm:px-8">
+          {footer}
+        </div>
+      ) : null}
+    </div>
+  );
+}

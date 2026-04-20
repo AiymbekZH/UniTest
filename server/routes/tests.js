@@ -1,6 +1,8 @@
 const express = require('express');
 const Test = require('../models/Test');
 const TicketClaim = require('../models/TicketClaim');
+const Notification = require('../models/Notification');
+const UserFollow = require('../models/UserFollow');
 const { auth, optionalAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
@@ -144,6 +146,36 @@ function buildLangTranslations(question = {}, entries = [], key, fallbackField) 
   }, { ...baseTranslations });
 }
 
+async function notifyFollowersAboutNewPublicTest(test) {
+  if (!test?.creator || !test?.settings?.isPublic) return;
+
+  const followers = await UserFollow.find({ following: test.creator }).select('follower').lean();
+  if (!followers.length) return;
+
+  const notifications = followers
+    .filter((entry) => String(entry.follower) !== String(test.creator))
+    .map((entry) => ({
+      user: entry.follower,
+      type: 'creator_new_test',
+      title: 'Новый публичный тест',
+      message: `Автор опубликовал новый тест: ${test.title}`,
+      link: `/test-profile/${test.shareLink}`,
+      meta: {
+        creatorId: test.creator,
+        testId: test._id,
+        shareLink: test.shareLink
+      }
+    }));
+
+  if (!notifications.length) return;
+
+  try {
+    await Notification.insertMany(notifications, { ordered: false });
+  } catch (_) {
+    // Non-blocking notification fan-out
+  }
+}
+
 // Create test
 router.post('/', auth, async (req, res) => {
   try {
@@ -151,7 +183,13 @@ router.post('/', auth, async (req, res) => {
       ...sanitizeTestPayload(req.body),
       creator: req.user._id
     });
+    if (test.settings?.isPublic && !test.firstPublishedAt) {
+      test.firstPublishedAt = new Date();
+    }
     await test.save();
+    if (test.settings?.isPublic) {
+      await notifyFollowersAboutNewPublicTest(test);
+    }
     await test.populate('creator', 'firstName lastName email role avatar');
     res.status(201).json(test);
   } catch (error) {
@@ -432,8 +470,16 @@ router.put('/:id', auth, async (req, res) => {
       difficultyRatings,
       ...updateData
     } = sanitizedPayload;
+    const wasEverPublished = Boolean(test.firstPublishedAt);
     Object.assign(test, updateData);
+    const becamePublicFirstTime = test.settings?.isPublic === true && !wasEverPublished;
+    if (becamePublicFirstTime) {
+      test.firstPublishedAt = new Date();
+    }
     await test.save();
+    if (becamePublicFirstTime) {
+      await notifyFollowersAboutNewPublicTest(test);
+    }
     await test.populate('creator', 'firstName lastName email role avatar');
     res.json(test);
   } catch (error) {

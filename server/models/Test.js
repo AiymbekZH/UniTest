@@ -111,6 +111,7 @@ const testSchema = new mongoose.Schema({
   isDeleted: { type: Boolean, default: false },
   deleteReason: { type: String, default: '' },
   shareLink: { type: String, unique: true, default: () => uuidv4().slice(0, 8) },
+  firstPublishedAt: { type: Date, default: null },
   tags: [{ type: String, trim: true }],
   coverImage: { type: String, default: '' },
   totalPoints: { type: Number, default: 0 },
