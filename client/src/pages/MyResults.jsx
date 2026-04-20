@@ -117,7 +117,14 @@ export default function MyResults() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-dark truncate">{result.test?.title || 'Тест удалён'}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-dark truncate">{result.test?.title || 'Тест удалён'}</h3>
+                    {result.isPractice && (
+                      <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:bg-blue-900/20 dark:text-blue-300">
+                        Practice
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                     <span>{result.score}/{result.totalPoints} баллов</span>
                     <span className="flex items-center gap-1"><Clock size={11} /> {formatTime(result.timeSpent)}</span>

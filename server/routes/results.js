@@ -4,9 +4,36 @@ const Test = require('../models/Test');
 const User = require('../models/User');
 const { auth, optionalAuth } = require('../middleware/auth');
 const { notifyTestCompletion } = require('../utils/mailer');
+const { awardCompletionProgress } = require('../utils/progress');
 
 const router = express.Router();
 const SUPPORTED_TRANSLATION_LANGUAGES = ['en', 'ru', 'kz', 'es'];
+
+function buildOfficialResultMatch(testId) {
+  return {
+    test: testId,
+    status: 'completed',
+    isPractice: { $ne: true }
+  };
+}
+
+async function recalculateOfficialTestStats(test) {
+  const officialMatch = buildOfficialResultMatch(test._id);
+  const [stats] = await Result.aggregate([
+    { $match: officialMatch },
+    {
+      $group: {
+        _id: null,
+        avg: { $avg: '$percentage' },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  test.attemptCount = stats?.count || 0;
+  test.averageScore = Math.round(stats?.avg || 0);
+  await test.save();
+}
 
 function normalizeFreeText(value = '') {
   return String(value).trim().replace(/\s+/g, ' ').toLowerCase();
@@ -141,7 +168,7 @@ function gradeAnswers(test, answers = []) {
 // Submit test result
 router.post('/', optionalAuth, async (req, res) => {
   try {
-    const { testId, answers, guestName, guestId, violations, timeSpent, variantNumber, sessionId } = req.body;
+    const { testId, answers, guestName, guestId, violations, timeSpent, variantNumber, sessionId, isPractice = false } = req.body;
 
     const test = await Test.findById(testId);
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
@@ -153,7 +180,7 @@ router.post('/', optionalAuth, async (req, res) => {
       }
     }
 
-    if (test.settings?.maxAttempts > 0) {
+    if (!isPractice && test.settings?.maxAttempts > 0) {
       const query = { test: testId, status: 'completed' };
       if (req.user?._id) {
         query.user = req.user._id;
@@ -176,6 +203,7 @@ router.post('/', optionalAuth, async (req, res) => {
       guestName: !req.user ? guestName : '',
       guestId: !req.user ? (guestId || '') : '',
       sessionId: sessionId || '',
+      isPractice: isPractice === true,
       variantNumber: variantNumber || 0,
       answers: gradedAnswers,
       score,
@@ -188,36 +216,38 @@ router.post('/', optionalAuth, async (req, res) => {
 
     await result.save();
 
-    // Update test stats
-    test.attemptCount += 1;
-    const aggResult = await Result.aggregate([
-      { $match: { test: test._id, status: 'completed' } },
-      { $group: { _id: null, avg: { $avg: '$percentage' } } }
-    ]);
-    test.averageScore = Math.round(aggResult[0]?.avg || 0);
-    await test.save();
+    if (!result.isPractice) {
+      await recalculateOfficialTestStats(test);
+    }
+
+    await awardCompletionProgress({
+      userId: req.user?._id || null,
+      isPractice: result.isPractice,
+      percentage: result.percentage,
+      completedAt: result.completedAt || new Date()
+    });
 
     // Email notification to test creator — only for PRIVATE tests (non-blocking)
     // Public tests skip email to avoid spamming teacher's inbox
-    if (!test.isPublic) {
-    try {
-      const creator = await User.findById(test.creator);
-      if (creator?.email) {
-        const studentName = req.user
-          ? `${req.user.lastName} ${req.user.firstName}`
-          : (guestName || 'Гость');
-        const percentage = test.totalPoints > 0 ? Math.round((score / test.totalPoints) * 100) : 0;
-        notifyTestCompletion({
-          teacherEmail: creator.email,
-          teacherName: creator.firstName,
-          studentName,
-          testTitle: test.title,
-          score,
-          totalPoints: test.totalPoints,
-          percentage,
-        }).catch(() => {}); // fire-and-forget
-      }
-    } catch (_) { /* email errors should never break result submission */ }
+    if (!result.isPractice && !test.settings?.isPublic) {
+      try {
+        const creator = await User.findById(test.creator);
+        if (creator?.email) {
+          const studentName = req.user
+            ? `${req.user.lastName} ${req.user.firstName}`
+            : (guestName || 'Гость');
+          const percentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
+          notifyTestCompletion({
+            teacherEmail: creator.email,
+            teacherName: creator.firstName,
+            studentName,
+            testTitle: test.title,
+            score,
+            totalPoints,
+            percentage,
+          }).catch(() => {}); // fire-and-forget
+        }
+      } catch (_) { /* email errors should never break result submission */ }
     }
 
     res.status(201).json(result);
@@ -248,7 +278,7 @@ router.get('/test/:testId', auth, async (req, res) => {
     const test = await Test.findById(req.params.testId);
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
 
-    const results = await Result.find({ test: req.params.testId, status: 'completed' })
+    const results = await Result.find(buildOfficialResultMatch(req.params.testId))
       .populate('user', 'firstName lastName email role avatar')
       .sort({ percentage: -1 });
 
@@ -304,12 +334,9 @@ router.put('/:resultId/grade-essay', auth, async (req, res) => {
     await result.save();
 
     // Update test average
-    const aggResult = await Result.aggregate([
-      { $match: { test: result.test, status: 'completed' } },
-      { $group: { _id: null, avg: { $avg: '$percentage' } } }
-    ]);
-    test.averageScore = Math.round(aggResult[0]?.avg || 0);
-    await test.save();
+    if (!result.isPractice) {
+      await recalculateOfficialTestStats(test);
+    }
 
     res.json(result);
   } catch (error) {
@@ -323,7 +350,7 @@ router.get('/leaderboard/:testId', async (req, res) => {
     const test = await Test.findById(req.params.testId).select('title settings totalPoints');
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
 
-    const results = await Result.find({ test: req.params.testId, status: 'completed' })
+    const results = await Result.find(buildOfficialResultMatch(req.params.testId))
       .populate('user', 'firstName lastName avatar')
       .sort({ percentage: -1, timeSpent: 1 })
       .select('user guestName percentage score totalPoints timeSpent completedAt')
@@ -377,14 +404,16 @@ router.get('/my-attempts/:testId', optionalAuth, async (req, res) => {
       const count = await Result.countDocuments({
         test: req.params.testId,
         guestId: guestId,
-        status: 'completed'
+        status: 'completed',
+        isPractice: { $ne: true }
       });
       return res.json({ attempts: count });
     }
     const count = await Result.countDocuments({
       test: req.params.testId,
       user: req.user._id,
-      status: 'completed'
+      status: 'completed',
+      isPractice: { $ne: true }
     });
     res.json({ attempts: count });
   } catch (error) {
@@ -401,7 +430,7 @@ router.get('/analytics/:testId', auth, async (req, res) => {
       return res.status(403).json({ message: 'Доступ запрещён' });
     }
 
-    const results = await Result.find({ test: req.params.testId, status: 'completed' });
+    const results = await Result.find(buildOfficialResultMatch(req.params.testId));
     const totalResponses = results.length;
     if (totalResponses === 0) return res.json({ totalResponses: 0, questions: [] });
 

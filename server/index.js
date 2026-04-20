@@ -24,6 +24,8 @@ const notificationRoutes = require('./routes/notifications');
 const reportRoutes = require('./routes/reports');
 const groupRoutes = require('./routes/groups');
 const aiRoutes = require('./routes/ai');
+const progressRoutes = require('./routes/progress');
+const challengeRoutes = require('./routes/challenges');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -120,6 +122,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/progress', progressRoutes);
+app.use('/api/challenges', challengeRoutes);
 
 const dmRoutes = require('./routes/dm');
 app.use('/api/dm', dmRoutes);

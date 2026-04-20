@@ -30,6 +30,7 @@ const resultSchema = new mongoose.Schema({
   guestName: { type: String, default: '' }, // For unregistered users
   guestId: { type: String, default: '' }, // Persistent guest browser ID for attempt tracking
   sessionId: { type: String, default: '' }, // Browser session id for idempotent completion/recovery
+  isPractice: { type: Boolean, default: false },
   variantNumber: { type: Number, default: 0 }, // Which ticket/variant was used (0 = none)
   answers: [answerSchema],
   score: { type: Number, default: 0 },
@@ -61,5 +62,6 @@ resultSchema.index({ test: 1, status: 1 });
 resultSchema.index({ user: 1, status: 1 });
 resultSchema.index({ test: 1, user: 1, status: 1 });
 resultSchema.index({ test: 1, sessionId: 1 });
+resultSchema.index({ user: 1, isPractice: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Result', resultSchema);

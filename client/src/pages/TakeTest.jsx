@@ -21,7 +21,7 @@ function MatchingQuestion({
   getLeftText = (option) => option.text,
   getRightText = (text) => text
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [selectedLeft, setSelectedLeft] = useState(null);
   const pairs = currentAnswer?.matchingPairs || [];
   const rightSide = question.matchingRightSide || [];
@@ -360,6 +360,12 @@ export default function TakeTest() {
   const lastActivityRef = useRef(Date.now());
   const inactivityTimerRef = useRef(null);
   const countdownRef = useRef(null);
+  const practiceSavedToast = {
+    en: 'Practice result saved separately from official attempts',
+    ru: 'Результат тренировки сохранён отдельно от официальных попыток',
+    kz: 'Жаттығу нәтижесі ресми әрекеттерден бөлек сақталды',
+    es: 'El resultado de práctica se guardó aparte de los intentos oficiales'
+  };
 
   const resetActivity = useCallback(() => {
     lastActivityRef.current = Date.now();
@@ -390,6 +396,10 @@ export default function TakeTest() {
     const current = runtimeRef.current;
     const snapshot = {
       testId: current.test?._id || '',
+      shareLink,
+      testTitle: current.test?.title || '',
+      coverImage: current.test?.coverImage || '',
+      questionCount: current.test?.questions?.length || 0,
       answers: current.answers || {},
       currentQ: current.currentQ || 0,
       violations: current.violations || [],
@@ -852,12 +862,13 @@ export default function TakeTest() {
       answers: formattedAnswers,
       guestName: !user ? (current.guestName || '') : '',
       guestId: !user ? getGuestId() : '',
+      isPractice,
       variantNumber: current.selectedVariant || 0,
       violations: current.violations || [],
       timeSpent: Math.max(0, Math.round(current.elapsedActiveSeconds || 0)),
       sessionId: current.sessionId || ensureSessionId()
     };
-  }, [ensureSessionId, user]);
+  }, [ensureSessionId, isPractice, user]);
 
   const submitResultRequest = useCallback(async ({ keepalive = false, sourceState = null } = {}) => {
     const payload = createSubmissionPayload(sourceState);
@@ -990,19 +1001,15 @@ export default function TakeTest() {
       return;
     }
 
-    // Practice mode: don't save results, show score locally
-    if (isPractice) {
-      toast.success(t('practiceModeDesc') || 'Тренировка завершена — результат не сохраняется');
-      navigate(`/test-profile/${shareLink}`);
-      return;
-    }
-
     setSubmitting(true);
     leaveGuardRef.current = true;
 
     try {
       const result = await submitResultRequest();
       clearSavedSession();
+      if (isPractice) {
+        toast.success(practiceSavedToast[lang] || practiceSavedToast.en);
+      }
       navigate(`/result/${result._id}`);
     } catch (err) {
       leaveGuardRef.current = false;
@@ -1010,7 +1017,7 @@ export default function TakeTest() {
     } finally {
       setSubmitting(false);
     }
-  }, [clearSavedSession, isPractice, navigate, shareLink, submitResultRequest, t]);
+  }, [clearSavedSession, isPractice, lang, navigate, submitResultRequest, t]);
 
   useEffect(() => {
     forceSubmitRef.current = () => handleSubmit(true);
