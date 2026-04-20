@@ -1,10 +1,12 @@
 const express = require('express');
+const ChallengeReward = require('../models/ChallengeReward');
 const Result = require('../models/Result');
 const Test = require('../models/Test');
 const User = require('../models/User');
 const { auth, optionalAuth } = require('../middleware/auth');
 const { notifyTestCompletion } = require('../utils/mailer');
-const { awardCompletionProgress } = require('../utils/progress');
+const { awardCompletionProgress, awardXpBonus, getDayKey } = require('../utils/progress');
+const { getWeekStartKey, selectDailyChallenge, selectWeeklySprint } = require('../utils/challenges');
 
 const router = express.Router();
 const SUPPORTED_TRANSLATION_LANGUAGES = ['en', 'ru', 'kz', 'es'];
@@ -33,6 +35,132 @@ async function recalculateOfficialTestStats(test) {
   test.attemptCount = stats?.count || 0;
   test.averageScore = Math.round(stats?.avg || 0);
   await test.save();
+}
+
+async function awardChallengeRewards({ userId, resultId, completedAt = new Date() }) {
+  if (!userId) return [];
+
+  const challengeTests = await Test.find({
+    isDeleted: { $ne: true },
+    'settings.isPublic': true
+  })
+    .sort({ rating: -1, attemptCount: -1, createdAt: -1 })
+    .select('title shareLink')
+    .lean();
+
+  if (!challengeTests.length) return [];
+
+  const dailyChallenge = selectDailyChallenge(challengeTests, userId.toString(), completedAt);
+  const weeklySprint = selectWeeklySprint(challengeTests, userId.toString(), completedAt);
+  const todayKey = getDayKey(completedAt);
+  const weekKey = getWeekStartKey(completedAt);
+
+  const [dailyResults, weeklyResults] = await Promise.all([
+    dailyChallenge
+      ? Result.find({
+          user: userId,
+          status: 'completed',
+          createdAt: { $gte: new Date(`${todayKey}T00:00:00.000Z`) }
+        }).select('test').lean()
+      : [],
+    weeklySprint
+      ? Result.find({
+          user: userId,
+          status: 'completed',
+          createdAt: { $gte: new Date(`${weekKey}T00:00:00.000Z`) }
+        }).select('test').lean()
+      : []
+  ]);
+
+  const awardedRewards = [];
+  const dailyCompletedTestIds = new Set(dailyResults.map(result => result.test?.toString()));
+  const weeklyCompletedTestIds = new Set(weeklyResults.map(result => result.test?.toString()));
+
+  if (dailyChallenge && dailyCompletedTestIds.has(dailyChallenge.test._id.toString())) {
+    const upsertResult = await ChallengeReward.updateOne(
+      { user: userId, challengeKey: dailyChallenge.challengeKey },
+      {
+        $setOnInsert: {
+          challengeType: 'daily',
+          rewardXp: dailyChallenge.rewardXp,
+          awardedAt: completedAt,
+          relatedTestIds: [dailyChallenge.test._id],
+          result: resultId || null
+        }
+      },
+      { upsert: true }
+    );
+
+    if (upsertResult.upsertedCount > 0) {
+      await awardXpBonus({
+        userId,
+        xpGain: dailyChallenge.rewardXp,
+        type: 'challenge_available',
+        title: 'Награда за челлендж дня',
+        message: `Вы завершили челлендж дня и получили ${dailyChallenge.rewardXp} XP.`,
+        meta: {
+          source: 'challenge',
+          challengeType: 'daily',
+          challengeKey: dailyChallenge.challengeKey
+        },
+        link: '/dashboard',
+        awardedAt: completedAt
+      });
+
+      awardedRewards.push({
+        challengeKey: dailyChallenge.challengeKey,
+        challengeType: 'daily',
+        rewardXp: dailyChallenge.rewardXp
+      });
+    }
+  }
+
+  if (weeklySprint) {
+    const weeklyCompletedCount = weeklySprint.tests
+      .filter(test => weeklyCompletedTestIds.has(test._id.toString()))
+      .length;
+
+    if (weeklyCompletedCount >= weeklySprint.goalCount) {
+      const upsertResult = await ChallengeReward.updateOne(
+        { user: userId, challengeKey: weeklySprint.challengeKey },
+        {
+          $setOnInsert: {
+            challengeType: 'weekly',
+            rewardXp: weeklySprint.rewardXp,
+            awardedAt: completedAt,
+            relatedTestIds: weeklySprint.tests.map(test => test._id),
+            result: resultId || null
+          }
+        },
+        { upsert: true }
+      );
+
+      if (upsertResult.upsertedCount > 0) {
+        await awardXpBonus({
+          userId,
+          xpGain: weeklySprint.rewardXp,
+          type: 'challenge_available',
+          title: 'Награда за недельный спринт',
+          message: `Вы закрыли недельный спринт и получили ${weeklySprint.rewardXp} XP.`,
+          meta: {
+            source: 'challenge',
+            challengeType: 'weekly',
+            challengeKey: weeklySprint.challengeKey
+          },
+          link: '/dashboard',
+          awardedAt: completedAt
+        });
+
+        awardedRewards.push({
+          challengeKey: weeklySprint.challengeKey,
+          challengeType: 'weekly',
+          rewardXp: weeklySprint.rewardXp
+        });
+      }
+    }
+  }
+
+  return awardedRewards;
 }
 
 function normalizeFreeText(value = '') {
@@ -224,6 +352,12 @@ router.post('/', optionalAuth, async (req, res) => {
       userId: req.user?._id || null,
       isPractice: result.isPractice,
       percentage: result.percentage,
+      completedAt: result.completedAt || new Date()
+    });
+
+    await awardChallengeRewards({
+      userId: req.user?._id || null,
+      resultId: result._id,
       completedAt: result.completedAt || new Date()
     });
 

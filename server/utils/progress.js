@@ -50,18 +50,61 @@ async function ensureUserProgress(userId) {
   return progress;
 }
 
-async function createProgressNotification(userId, type, title, message, meta = {}) {
+async function createProgressNotification(userId, type, title, message, meta = {}, link = '') {
   try {
     await Notification.create({
       user: userId,
       type,
       title,
       message,
-      meta
+      meta,
+      link
     });
   } catch (_) {
     // Non-blocking
   }
+}
+
+async function awardXpBonus({
+  userId,
+  xpGain = 0,
+  title = '',
+  message = '',
+  type = 'system',
+  meta = {},
+  link = '',
+  awardedAt = new Date()
+}) {
+  if (!userId || xpGain <= 0) return null;
+
+  const progress = await ensureUserProgress(userId);
+  const previousLevel = progress.level;
+
+  progress.xp += xpGain;
+  progress.level = getLevelFromXp(progress.xp);
+  await progress.save();
+
+  if (title && message) {
+    await createProgressNotification(userId, type, title, message, meta, link);
+  }
+
+  if (progress.level > previousLevel) {
+    await createProgressNotification(
+      userId,
+      'system',
+      'Новый уровень',
+      `Вы достигли ${progress.level} уровня в UniTest.`,
+      { level: progress.level, source: meta?.source || 'bonus' },
+      link
+    );
+  }
+
+  return {
+    progress,
+    xpGain,
+    leveledUp: progress.level > previousLevel,
+    awardedAt
+  };
 }
 
 async function awardCompletionProgress({ userId, isPractice = false, percentage = 0, completedAt = new Date() }) {
@@ -150,6 +193,7 @@ module.exports = {
   BADGES,
   XP_PER_LEVEL,
   awardCompletionProgress,
+  awardXpBonus,
   ensureUserProgress,
   getDayKey,
   getLevelMeta,

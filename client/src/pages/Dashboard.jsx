@@ -69,7 +69,12 @@ const dashboardCopy = {
     noDailyChallenge: "No public tests available for today's challenge.",
     scoreLabel: 'Score',
     modeLabel: 'Mode',
-    timeLabel: 'Time'
+    timeLabel: 'Time',
+    rewardCollected: 'XP collected',
+    rewardReady: 'Reward ready',
+    rewardLocked: 'Finish to unlock reward',
+    sprintRewardHint: '+{{xp}} XP after completion',
+    sprintDoneTag: 'Completed'
   },
   ru: {
     heroTitle: 'Сделай UniTest местом, куда хочется возвращаться',
@@ -123,7 +128,12 @@ const dashboardCopy = {
     noDailyChallenge: 'Сегодня нет подходящего публичного челленджа.',
     scoreLabel: 'Результат',
     modeLabel: 'Режим',
-    timeLabel: 'Время'
+    timeLabel: 'Время',
+    rewardCollected: 'XP получен',
+    rewardReady: 'Награда готова',
+    rewardLocked: 'Заверши спринт, чтобы получить награду',
+    sprintRewardHint: '+{{xp}} XP после завершения',
+    sprintDoneTag: 'Выполнено'
   },
   kz: {
     heroTitle: 'UniTest-ті қайта оралғың келетін орынға айналдыр',
@@ -177,7 +187,12 @@ const dashboardCopy = {
     noDailyChallenge: 'Бүгінге лайық қоғамдық челлендж табылмады.',
     scoreLabel: 'Нәтиже',
     modeLabel: 'Режим',
-    timeLabel: 'Уақыт'
+    timeLabel: 'Уақыт',
+    rewardCollected: 'XP алынды',
+    rewardReady: 'Сыйлық дайын',
+    rewardLocked: 'Сыйлық алу үшін спринтті аяқта',
+    sprintRewardHint: 'Аяқтаған соң +{{xp}} XP',
+    sprintDoneTag: 'Орындалды'
   },
   es: {
     heroTitle: 'Haz de UniTest un lugar al que la gente quiera volver',
@@ -231,7 +246,12 @@ const dashboardCopy = {
     noDailyChallenge: 'No hay un desafío público disponible para hoy.',
     scoreLabel: 'Resultado',
     modeLabel: 'Modo',
-    timeLabel: 'Tiempo'
+    timeLabel: 'Tiempo',
+    rewardCollected: 'XP recibido',
+    rewardReady: 'Recompensa lista',
+    rewardLocked: 'Termina el sprint para desbloquear la recompensa',
+    sprintRewardHint: '+{{xp}} XP al completarlo',
+    sprintDoneTag: 'Completado'
   }
 };
 
@@ -424,6 +444,10 @@ export default function Dashboard() {
   const recentResult = progressData?.recentResults?.[0] || null;
   const dailyChallenge = challengeData?.dailyChallenge || null;
   const weeklySprint = challengeData?.weeklySprint || null;
+  const weeklyCompletedSet = useMemo(
+    () => new Set(weeklySprint?.completedTestIds || []),
+    [weeklySprint?.completedTestIds]
+  );
 
   const formattedBadges = useMemo(() => {
     return (progressData?.progress?.badges || []).slice(-4).reverse();
@@ -603,11 +627,19 @@ export default function Dashboard() {
                   <div className="mt-4 flex items-center justify-between rounded-2xl border border-amber-100 bg-amber-50/80 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
                     <div>
                       <p className="text-sm font-semibold text-dark">{copy.rewardXp.replace('{{xp}}', String(dailyChallenge.rewardXp || 40))}</p>
-                      <p className="text-xs text-gray-500">{dailyChallenge.completed ? copy.completedToday : copy.availableToday}</p>
+                      <p className="text-xs text-gray-500">
+                        {dailyChallenge.rewardClaimed
+                          ? copy.rewardCollected
+                          : dailyChallenge.rewardReady
+                            ? copy.rewardReady
+                            : dailyChallenge.completed
+                              ? copy.completedToday
+                              : copy.availableToday}
+                      </p>
                     </div>
                     {dailyChallenge.completed ? (
                       <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
-                        {copy.doneLabel}
+                        {dailyChallenge.rewardClaimed ? copy.doneLabel : copy.rewardReady}
                       </span>
                     ) : (
                       <button onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)} className="btn-primary py-2 px-4 text-sm inline-flex items-center gap-1.5">
@@ -639,12 +671,28 @@ export default function Dashboard() {
                   style={{ width: `${Math.min(100, Math.round((((weeklySprint?.completedCount || 0)) / (weeklySprint?.goalCount || 3)) * 100))}%` }}
                 />
               </div>
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+                <span className="font-semibold text-violet-600 dark:text-violet-300">
+                  {copy.sprintRewardHint.replace('{{xp}}', String(weeklySprint?.rewardXp || 120))}
+                </span>
+                <span className="text-gray-500">
+                  {weeklySprint?.rewardClaimed
+                    ? copy.rewardCollected
+                    : weeklySprint?.rewardReady
+                      ? copy.rewardReady
+                      : copy.rewardLocked}
+                </span>
+              </div>
               <div className="mt-4 space-y-2">
                 {(weeklySprint?.tests || []).map((test) => (
                   <button
                     key={test._id}
                     onClick={() => navigate(`/test-profile/${test.shareLink}`)}
-                    className="flex w-full items-center gap-3 rounded-2xl border border-gray-100 px-3 py-3 text-left transition hover:border-primary-200 hover:bg-primary-50/50 dark:border-slate-700 dark:hover:border-primary-900/50 dark:hover:bg-primary-900/10"
+                    className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+                      weeklyCompletedSet.has(test._id)
+                        ? 'border-emerald-200 bg-emerald-50/80 dark:border-emerald-800 dark:bg-emerald-900/10'
+                        : 'border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 dark:border-slate-700 dark:hover:border-primary-900/50 dark:hover:bg-primary-900/10'
+                    }`}
                   >
                     <div className="h-10 w-10 overflow-hidden rounded-xl bg-gradient-to-br from-primary-500 to-sky-500 text-white flex items-center justify-center font-semibold">
                       {test.coverImage ? <img src={test.coverImage} alt="" className="h-full w-full object-cover" /> : (test.title?.[0] || 'T').toUpperCase()}
@@ -653,7 +701,13 @@ export default function Dashboard() {
                       <p className="truncate text-sm font-semibold text-dark">{test.title}</p>
                       <p className="text-xs text-gray-500">{test.totalPoints || 0} pts</p>
                     </div>
-                    <ArrowRight size={16} className="text-gray-300" />
+                    {weeklyCompletedSet.has(test._id) ? (
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
+                        {copy.sprintDoneTag}
+                      </span>
+                    ) : (
+                      <ArrowRight size={16} className="text-gray-300" />
+                    )}
                   </button>
                 ))}
               </div>

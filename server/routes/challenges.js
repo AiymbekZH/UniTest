@@ -1,31 +1,12 @@
 const express = require('express');
+const ChallengeReward = require('../models/ChallengeReward');
 const Result = require('../models/Result');
 const Test = require('../models/Test');
 const { auth } = require('../middleware/auth');
 const { getDayKey } = require('../utils/progress');
+const { getWeekStartKey, selectDailyChallenge, selectWeeklySprint } = require('../utils/challenges');
 
 const router = express.Router();
-
-function stableHash(value = '') {
-  return String(value).split('').reduce((hash, char) => {
-    const next = ((hash << 5) - hash) + char.charCodeAt(0);
-    return next & next;
-  }, 0);
-}
-
-function getWeekStartKey(date = new Date()) {
-  const utc = new Date(date);
-  const day = utc.getUTCDay() || 7;
-  utc.setUTCDate(utc.getUTCDate() - day + 1);
-  utc.setUTCHours(0, 0, 0, 0);
-  return getDayKey(utc);
-}
-
-function rotateSelection(items, seed, count = 1) {
-  if (!items.length) return [];
-  const startIndex = Math.abs(seed) % items.length;
-  return Array.from({ length: Math.min(count, items.length) }, (_, offset) => items[(startIndex + offset) % items.length]);
-}
 
 router.get('/active', auth, async (req, res) => {
   try {
@@ -44,47 +25,74 @@ router.get('/active', auth, async (req, res) => {
 
     const todayKey = getDayKey();
     const weekKey = getWeekStartKey();
-    const dailySeed = stableHash(`${req.user._id}:${todayKey}`);
-    const weekSeed = stableHash(`${req.user._id}:${weekKey}`);
+    const dailyChallengeBase = selectDailyChallenge(tests, req.user._id.toString(), new Date());
+    const weeklySprintBase = selectWeeklySprint(tests, req.user._id.toString(), new Date());
 
-    const [dailyTest] = rotateSelection(tests, dailySeed, 1);
-    const weeklyTests = rotateSelection(
-      tests.filter(test => test._id.toString() !== dailyTest?._id?.toString()),
-      weekSeed,
-      3
-    );
+    if (!dailyChallengeBase && !weeklySprintBase) {
+      return res.json({ dailyChallenge: null, weeklySprint: null });
+    }
 
-    const [dailyResults, weeklyResults] = await Promise.all([
-      dailyTest ? Result.find({
+    const rewardKeys = [
+      dailyChallengeBase?.challengeKey,
+      weeklySprintBase?.challengeKey
+    ].filter(Boolean);
+
+    const [dailyResults, weeklyResults, claimedRewards] = await Promise.all([
+      dailyChallengeBase ? Result.find({
         user: req.user._id,
-        test: dailyTest._id,
         status: 'completed',
         createdAt: { $gte: new Date(`${todayKey}T00:00:00.000Z`) }
-      }).select('_id').lean() : [],
+      }).select('test').lean() : [],
       Result.find({
         user: req.user._id,
         status: 'completed',
         createdAt: { $gte: new Date(`${weekKey}T00:00:00.000Z`) }
-      }).select('test').lean()
+      }).select('test').lean(),
+      rewardKeys.length > 0
+        ? ChallengeReward.find({
+            user: req.user._id,
+            challengeKey: { $in: rewardKeys }
+          }).select('challengeKey awardedAt').lean()
+        : []
     ]);
 
-    const uniqueWeeklyTests = new Set(weeklyResults.map(result => result.test.toString()));
+    const dailyCompletedTestIds = new Set(dailyResults.map(result => result.test?.toString()));
+    const weeklyCompletedTestIds = new Set(weeklyResults.map(result => result.test?.toString()));
+    const rewardLookup = new Map(claimedRewards.map(reward => [reward.challengeKey, reward]));
+
+    const dailyChallenge = dailyChallengeBase ? {
+      ...dailyChallengeBase,
+      completed: dailyCompletedTestIds.has(dailyChallengeBase.test._id.toString()),
+      rewardClaimed: rewardLookup.has(dailyChallengeBase.challengeKey),
+      claimedAt: rewardLookup.get(dailyChallengeBase.challengeKey)?.awardedAt || null
+    } : null;
+
+    if (dailyChallenge) {
+      dailyChallenge.rewardReady = dailyChallenge.completed && !dailyChallenge.rewardClaimed;
+    }
+
+    const weeklyCompletedCount = weeklySprintBase
+      ? weeklySprintBase.tests.filter(test => weeklyCompletedTestIds.has(test._id.toString())).length
+      : 0;
+
+    const weeklySprint = weeklySprintBase ? {
+      ...weeklySprintBase,
+      completedCount: weeklyCompletedCount,
+      completed: weeklyCompletedCount >= weeklySprintBase.goalCount,
+      completedTestIds: weeklySprintBase.tests
+        .filter(test => weeklyCompletedTestIds.has(test._id.toString()))
+        .map(test => test._id.toString()),
+      rewardClaimed: rewardLookup.has(weeklySprintBase.challengeKey),
+      claimedAt: rewardLookup.get(weeklySprintBase.challengeKey)?.awardedAt || null
+    } : null;
+
+    if (weeklySprint) {
+      weeklySprint.rewardReady = weeklySprint.completed && !weeklySprint.rewardClaimed;
+    }
 
     res.json({
-      dailyChallenge: dailyTest ? {
-        challengeKey: `daily:${todayKey}`,
-        rewardXp: 40,
-        completed: dailyResults.length > 0,
-        test: dailyTest
-      } : null,
-      weeklySprint: {
-        challengeKey: `weekly:${weekKey}`,
-        rewardXp: 120,
-        goalCount: 3,
-        completedCount: Math.min(3, uniqueWeeklyTests.size),
-        completed: uniqueWeeklyTests.size >= 3,
-        tests: weeklyTests
-      }
+      dailyChallenge,
+      weeklySprint
     });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка загрузки челленджей' });
