@@ -4,12 +4,25 @@ const Result = require('../models/Result');
 const Test = require('../models/Test');
 const { auth } = require('../middleware/auth');
 const { getDayKey } = require('../utils/progress');
-const { getWeekStartKey, selectDailyChallenge, selectWeeklySprint } = require('../utils/challenges');
+const {
+  getNextDailyResetAt,
+  getNextWeeklyResetAt,
+  getWeekStartKey,
+  selectDailyChallenge,
+  selectWeeklySprint
+} = require('../utils/challenges');
 
 const router = express.Router();
 
 router.get('/active', auth, async (req, res) => {
   try {
+    const now = new Date();
+    const baseMeta = {
+      serverNow: now.toISOString(),
+      dailyResetAt: getNextDailyResetAt(now).toISOString(),
+      weeklyResetAt: getNextWeeklyResetAt(now).toISOString()
+    };
+
     const tests = await Test.find({
       isDeleted: { $ne: true },
       'settings.isPublic': true
@@ -20,16 +33,16 @@ router.get('/active', auth, async (req, res) => {
       .lean();
 
     if (tests.length === 0) {
-      return res.json({ dailyChallenge: null, weeklySprint: null });
+      return res.json({ ...baseMeta, dailyChallenge: null, weeklySprint: null });
     }
 
     const todayKey = getDayKey();
     const weekKey = getWeekStartKey();
-    const dailyChallengeBase = selectDailyChallenge(tests, req.user._id.toString(), new Date());
-    const weeklySprintBase = selectWeeklySprint(tests, req.user._id.toString(), new Date());
+    const dailyChallengeBase = selectDailyChallenge(tests, req.user._id.toString(), now);
+    const weeklySprintBase = selectWeeklySprint(tests, req.user._id.toString(), now);
 
     if (!dailyChallengeBase && !weeklySprintBase) {
-      return res.json({ dailyChallenge: null, weeklySprint: null });
+      return res.json({ ...baseMeta, dailyChallenge: null, weeklySprint: null });
     }
 
     const rewardKeys = [
@@ -91,6 +104,7 @@ router.get('/active', auth, async (req, res) => {
     }
 
     res.json({
+      ...baseMeta,
       dailyChallenge,
       weeklySprint
     });

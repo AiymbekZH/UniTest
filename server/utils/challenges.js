@@ -28,6 +28,21 @@ function getWeekStartKey(date = new Date()) {
   return getDayKey(utc);
 }
 
+function getNextDailyResetAt(date = new Date()) {
+  const utc = new Date(date);
+  utc.setUTCHours(24, 0, 0, 0);
+  return utc;
+}
+
+function getNextWeeklyResetAt(date = new Date()) {
+  const utc = new Date(date);
+  const day = utc.getUTCDay() || 7;
+  const daysUntilNextMonday = 8 - day;
+  utc.setUTCDate(utc.getUTCDate() + daysUntilNextMonday);
+  utc.setUTCHours(0, 0, 0, 0);
+  return utc;
+}
+
 function buildChallengeKey(type, periodKey) {
   return `${type}:${periodKey}`;
 }
@@ -72,6 +87,8 @@ module.exports = {
   WEEKLY_SPRINT_XP,
   WEEKLY_SPRINT_GOAL,
   buildChallengeKey,
+  getNextDailyResetAt,
+  getNextWeeklyResetAt,
   getWeekStartKey,
   rotateSelection,
   selectDailyChallenge,
