@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Copy, ExternalLink, ArrowLeft, X, Trash2,
   BookOpen, UserPlus, LogOut, RefreshCw, Link2, MessageSquare,
-  Settings, Shield, Hash, Search, ChevronDown
+  Settings, Shield, Hash, Search, ChevronDown, Ban, Check, Pencil, Upload, ImagePlus
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +16,17 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import MessageList from '../components/chat/MessageList';
 import ChatInput from '../components/chat/ChatInput';
 import TypingIndicator from '../components/chat/TypingIndicator';
+
+const ROLE_PERMISSION_OPTIONS = [
+  { key: 'sendMessages', label: 'Отправка сообщений' },
+  { key: 'deleteMessages', label: 'Удаление сообщений' },
+  { key: 'kickMembers', label: 'Выгонять участников' },
+  { key: 'banMembers', label: 'Банить участников' },
+  { key: 'manageRoles', label: 'Управлять ролями' },
+  { key: 'manageGroup', label: 'Управлять группой' },
+  { key: 'assignTests', label: 'Назначать тесты' },
+  { key: 'pinMessages', label: 'Закреплять сообщения' },
+];
 
 export default function Groups() {
   const { user } = useAuth();
@@ -41,6 +52,7 @@ export default function Groups() {
   const [activeTab, setActiveTab] = useState('chat');
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [kickConfirmId, setKickConfirmId] = useState(null);
+  const [banConfirmId, setBanConfirmId] = useState(null);
 
   // Chat state
   const [messages, setMessages] = useState([]);
@@ -61,6 +73,14 @@ export default function Groups() {
   const [editRoleColor, setEditRoleColor] = useState('#6366f1');
   const [showRoleCreate, setShowRoleCreate] = useState(false);
   const [assignRoleUser, setAssignRoleUser] = useState(null);
+  const [editingRoleId, setEditingRoleId] = useState(null);
+  const [roleDrafts, setRoleDrafts] = useState({});
+  const [savingRoleId, setSavingRoleId] = useState(null);
+  const [bannedMembers, setBannedMembers] = useState([]);
+  const [loadingBans, setLoadingBans] = useState(false);
+  const [unbanConfirmId, setUnbanConfirmId] = useState(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const avatarInputRef = useRef(null);
 
   useEffect(() => { fetchGroups(); }, []);
 
@@ -134,10 +154,20 @@ export default function Groups() {
         }
 
         toast.error('Вас выгнали из группы');
-        setSelectedGroup(null);
-        setMessages([]);
-        setReplyTo(null);
-        setKickConfirmId(null);
+        resetGroupView();
+        clearActiveChat();
+        fetchGroups();
+        refreshChatSummary();
+      };
+      const handleBanned = ({ groupId }) => {
+        if (groupId !== selectedGroup._id) {
+          fetchGroups();
+          refreshChatSummary();
+          return;
+        }
+
+        toast.error('Вас забанили в группе');
+        resetGroupView();
         clearActiveChat();
         fetchGroups();
         refreshChatSummary();
@@ -165,6 +195,7 @@ export default function Groups() {
       s.on('group:messagePinned', handlePinned);
       s.on('group:memberRemoved', handleMemberRemoved);
       s.on('group:kicked', handleKicked);
+      s.on('group:banned', handleBanned);
       s.on('group:typing', handleTyping);
       s.on('group:stopTyping', handleStopTyping);
       s.on('group:error', handleError);
@@ -176,12 +207,13 @@ export default function Groups() {
         s.off('group:messagePinned', handlePinned);
         s.off('group:memberRemoved', handleMemberRemoved);
         s.off('group:kicked', handleKicked);
+        s.off('group:banned', handleBanned);
         s.off('group:typing', handleTyping);
         s.off('group:stopTyping', handleStopTyping);
         s.off('group:error', handleError);
       };
     }
-  }, [clearActiveChat, currentUserId, markGroupRead, refreshChatSummary, selectedGroup?._id]);
+  }, [clearActiveChat, currentUserId, markGroupRead, refreshChatSummary, resetGroupView, selectedGroup?._id]);
 
   const loadMessages = async (groupId, reset = false) => {
     setChatLoading(true);
@@ -230,6 +262,38 @@ export default function Groups() {
     s.emit('group:typing', { groupId: selectedGroup._id });
   };
 
+  const syncGroupState = useCallback((group) => {
+    setSelectedGroup(group);
+    setGroups(prev => prev.map(item => item._id === group._id ? { ...item, ...group } : item));
+  }, []);
+
+  const resetGroupView = useCallback(() => {
+    setSelectedGroup(null);
+    setMessages([]);
+    setReplyTo(null);
+    setActiveTab('chat');
+    setKickConfirmId(null);
+    setBanConfirmId(null);
+    setUnbanConfirmId(null);
+    setAssignRoleUser(null);
+    setConfirmLeave(false);
+    setConfirmRemoveAssignedTestId(null);
+    setConfirmRoleDeleteId(null);
+    setEditingRoleId(null);
+    setRoleDrafts({});
+    setBannedMembers([]);
+    setShowRoleCreate(false);
+    setEditRoleName('');
+    setEditRoleColor('#6366f1');
+  }, []);
+
+  const reloadSelectedGroup = useCallback(async (groupId = selectedGroup?._id) => {
+    if (!groupId) return null;
+    const res = await api.get(`/groups/${groupId}`);
+    syncGroupState(res.data);
+    return res.data;
+  }, [selectedGroup?._id, syncGroupState]);
+
   const fetchGroups = async () => {
     try {
       const res = await api.get('/groups/my');
@@ -267,7 +331,18 @@ export default function Groups() {
   };
 
   const deleteGroup = async (id) => {
-    try { await api.delete(`/groups/${id}`); setGroups(p => p.filter(g => g._id !== id)); if (selectedGroup?._id === id) setSelectedGroup(null); toast.success('Удалена'); } catch (e) { toast.error('Ошибка'); }
+    try {
+      await api.delete(`/groups/${id}`);
+      setGroups(p => p.filter(g => g._id !== id));
+      if (selectedGroup?._id === id) {
+        resetGroupView();
+        clearActiveChat();
+      }
+      refreshChatSummary();
+      toast.success('Удалена');
+    } catch (e) {
+      toast.error('Ошибка');
+    }
     setConfirmDelete(null);
   };
 
@@ -275,7 +350,7 @@ export default function Groups() {
     try {
       await api.post(`/groups/${id}/leave`);
       setGroups(p => p.filter(g => g._id !== id));
-      if (selectedGroup?._id === id) setSelectedGroup(null);
+      if (selectedGroup?._id === id) resetGroupView();
       setConfirmLeave(false);
       clearActiveChat();
       refreshChatSummary();
@@ -288,8 +363,7 @@ export default function Groups() {
   const removeMember = async (userId) => {
     try {
       await api.delete(`/groups/${selectedGroup._id}/members/${userId}`);
-      const res = await api.get(`/groups/${selectedGroup._id}`);
-      setSelectedGroup(res.data);
+      await reloadSelectedGroup(selectedGroup._id);
       setKickConfirmId(null);
       toast.success('Участник удалён');
     } catch (e) {
@@ -301,7 +375,14 @@ export default function Groups() {
   const copyLink = (c) => { navigator.clipboard.writeText(`${window.location.origin}/groups?join=${c}`); toast.success('Ссылка скопирована'); };
 
   const regenerateCode = async () => {
-    try { const res = await api.post(`/groups/${selectedGroup._id}/regenerate-code`); setSelectedGroup(p => ({ ...p, inviteCode: res.data.inviteCode })); toast.success('Код обновлён'); } catch (e) { toast.error('Ошибка'); }
+    try {
+      const res = await api.post(`/groups/${selectedGroup._id}/regenerate-code`);
+      setSelectedGroup(p => p ? ({ ...p, inviteCode: res.data.inviteCode }) : p);
+      setGroups(prev => prev.map(group => group._id === selectedGroup._id ? { ...group, inviteCode: res.data.inviteCode } : group));
+      toast.success('Код обновлён');
+    } catch (e) {
+      toast.error('Ошибка');
+    }
   };
 
   const openAssignTest = async () => {
@@ -309,14 +390,20 @@ export default function Groups() {
   };
 
   const assignTest = async (testId) => {
-    try { const res = await api.post(`/groups/${selectedGroup._id}/assign-test`, { testId }); setSelectedGroup(res.data); setShowAssignTest(false); toast.success('Назначен!'); } catch (e) { toast.error(e.response?.data?.message || 'Ошибка'); }
+    try {
+      const res = await api.post(`/groups/${selectedGroup._id}/assign-test`, { testId });
+      syncGroupState(res.data);
+      setShowAssignTest(false);
+      toast.success('Назначен!');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    }
   };
 
   const removeAssignedTest = async (testId) => {
     try {
       await api.delete(`/groups/${selectedGroup._id}/assigned-tests/${testId}`);
-      const res = await api.get(`/groups/${selectedGroup._id}`);
-      setSelectedGroup(res.data);
+      await reloadSelectedGroup(selectedGroup._id);
       setConfirmRemoveAssignedTestId(null);
       toast.success('Тест убран');
     } catch (e) {
@@ -324,10 +411,97 @@ export default function Groups() {
     }
   };
 
+  const loadBannedMembers = useCallback(async (groupId = selectedGroup?._id) => {
+    if (!groupId) return;
+    setLoadingBans(true);
+    try {
+      const res = await api.get(`/groups/${groupId}/bans`);
+      setBannedMembers(res.data || []);
+    } catch (e) {
+      setBannedMembers([]);
+      if (e.response?.status !== 403) {
+        toast.error(e.response?.data?.message || 'Не удалось загрузить бан-лист');
+      }
+    } finally {
+      setLoadingBans(false);
+    }
+  }, [selectedGroup?._id]);
+
+  const handleGroupAvatarUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !selectedGroup) return;
+    if (!file.type.startsWith('image/')) return toast.error('Нужен файл изображения');
+    if (file.size > 5 * 1024 * 1024) return toast.error('Максимум 5MB');
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+    setAvatarBusy(true);
+    try {
+      const res = await api.put(`/groups/${selectedGroup._id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      syncGroupState(res.data);
+      toast.success('Аватар группы обновлён');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка загрузки');
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const removeGroupAvatar = async () => {
+    if (!selectedGroup) return;
+    setAvatarBusy(true);
+    try {
+      const res = await api.put(`/groups/${selectedGroup._id}`, { removeAvatar: true });
+      syncGroupState(res.data);
+      toast.success('Аватар группы удалён');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка удаления');
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const banMember = async (userId) => {
+    try {
+      const res = await api.post(`/groups/${selectedGroup._id}/members/${userId}/ban`);
+      syncGroupState(res.data);
+      setBanConfirmId(null);
+      setAssignRoleUser(null);
+      await loadBannedMembers(selectedGroup._id);
+      refreshChatSummary();
+      toast.success('Участник забанен');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    }
+  };
+
+  const unbanMember = async (userId) => {
+    try {
+      const res = await api.delete(`/groups/${selectedGroup._id}/bans/${userId}`);
+      setBannedMembers(res.data || []);
+      setUnbanConfirmId(null);
+      toast.success('Пользователь разбанен');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    }
+  };
+
   // Roles
   const createRole = async () => {
     if (!editRoleName.trim()) return toast.error('Название роли');
-    try { const res = await api.post(`/groups/${selectedGroup._id}/roles`, { name: editRoleName, color: editRoleColor }); setSelectedGroup(p => ({ ...p, roles: res.data })); setEditRoleName(''); setShowRoleCreate(false); toast.success('Роль создана'); } catch (e) { toast.error('Ошибка'); }
+    try {
+      const res = await api.post(`/groups/${selectedGroup._id}/roles`, { name: editRoleName, color: editRoleColor });
+      setSelectedGroup(p => ({ ...p, roles: res.data }));
+      setEditRoleName('');
+      setEditRoleColor('#6366f1');
+      setShowRoleCreate(false);
+      toast.success('Роль создана');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    }
   };
 
   const deleteRole = async (roleId) => {
@@ -335,6 +509,9 @@ export default function Groups() {
       const res = await api.delete(`/groups/${selectedGroup._id}/roles/${roleId}`);
       setSelectedGroup(p => ({ ...p, roles: res.data }));
       setConfirmRoleDeleteId(null);
+      if (editingRoleId === roleId) {
+        setEditingRoleId(null);
+      }
       toast.success('Роль удалена');
     } catch (e) {
       toast.error(e.response?.data?.message || 'Ошибка');
@@ -342,7 +519,75 @@ export default function Groups() {
   };
 
   const assignRole = async (userId, roleId) => {
-    try { const res = await api.put(`/groups/${selectedGroup._id}/members/${userId}/role`, { roleId }); setSelectedGroup(res.data); setAssignRoleUser(null); toast.success('Роль назначена'); } catch (e) { toast.error(e.response?.data?.message || 'Ошибка'); }
+    try {
+      const res = await api.put(`/groups/${selectedGroup._id}/members/${userId}/role`, { roleId });
+      syncGroupState(res.data);
+      setAssignRoleUser(null);
+      toast.success('Роль назначена');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    }
+  };
+
+  const startRoleEdit = (role) => {
+    const normalizedPermissions = ROLE_PERMISSION_OPTIONS.reduce((acc, option) => {
+      acc[option.key] = role.permissions?.[option.key] === true;
+      return acc;
+    }, {});
+
+    setEditingRoleId(role._id);
+    setRoleDrafts(prev => ({
+      ...prev,
+      [role._id]: {
+        name: role.name,
+        color: role.color,
+        permissions: normalizedPermissions,
+      }
+    }));
+  };
+
+  const updateRoleDraft = (roleId, patch) => {
+    setRoleDrafts(prev => ({
+      ...prev,
+      [roleId]: {
+        ...prev[roleId],
+        ...patch,
+      }
+    }));
+  };
+
+  const toggleRolePermission = (roleId, permissionKey) => {
+    setRoleDrafts(prev => ({
+      ...prev,
+      [roleId]: {
+        ...prev[roleId],
+        permissions: {
+          ...prev[roleId]?.permissions,
+          [permissionKey]: !(prev[roleId]?.permissions?.[permissionKey] === true),
+        }
+      }
+    }));
+  };
+
+  const saveRole = async (roleId) => {
+    const draft = roleDrafts[roleId];
+    if (!draft?.name?.trim()) return toast.error('Введите название роли');
+
+    setSavingRoleId(roleId);
+    try {
+      const res = await api.put(`/groups/${selectedGroup._id}/roles/${roleId}`, {
+        name: draft.name,
+        color: draft.color,
+        permissions: draft.permissions,
+      });
+      setSelectedGroup(prev => prev ? ({ ...prev, roles: res.data }) : prev);
+      setEditingRoleId(null);
+      toast.success('Роль обновлена');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    } finally {
+      setSavingRoleId(null);
+    }
   };
 
   const saveGroupSettings = async () => {
@@ -353,8 +598,7 @@ export default function Groups() {
         isPrivate: editPrivate,
         password: editPassword,
       });
-      setSelectedGroup(res.data);
-      setGroups(p => p.map(g => g._id === res.data._id ? res.data : g));
+      syncGroupState(res.data);
       toast.success('Сохранено');
     } catch (e) { toast.error('Ошибка'); }
   };
@@ -385,6 +629,32 @@ export default function Groups() {
     const m = selectedGroup?.members?.find(m => (m.user?._id || m.user) === userId);
     return selectedGroup?.roles?.find(r => r._id === m?.roleId);
   };
+  const canManageMember = (group, targetUserId, permission) => {
+    if (!group || !targetUserId || targetUserId === currentUserId) return false;
+    if (!hasPermission(group, permission)) return false;
+
+    const myRole = getMyRole(group);
+    const targetRole = group.roles?.find(role => role._id === group.members?.find(member => (member.user?._id || member.user) === targetUserId)?.roleId);
+    if (!myRole || !targetRole) return false;
+    if (targetRole._id === 'owner') return false;
+
+    return targetRole.position < myRole.position;
+  };
+  const canEditRole = (group, role) => {
+    if (!group || !role || role._id === 'owner') return false;
+    const myRole = getMyRole(group);
+    if (!myRole) return false;
+    if (isOwner(group)) return true;
+    return role.position < myRole.position;
+  };
+  const getAssignableRoles = (group) => {
+    const myRole = getMyRole(group);
+    if (!myRole) return [];
+    return (group.roles || [])
+      .filter(role => role._id !== 'owner' && (isOwner(group) || role.position < myRole.position))
+      .sort((a, b) => b.position - a.position);
+  };
+  const getEnabledPermissionCount = (role) => ROLE_PERMISSION_OPTIONS.filter(option => role.permissions?.[option.key]).length;
 
   const gradients = ['from-indigo-500 to-purple-500','from-emerald-500 to-teal-500','from-amber-500 to-orange-500','from-rose-500 to-pink-500','from-cyan-500 to-blue-500','from-violet-500 to-fuchsia-500'];
   const getGrad = (n) => gradients[(n||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % gradients.length];
@@ -398,6 +668,22 @@ export default function Groups() {
       setEditPassword(selectedGroup.password || '');
     }
   }, [activeTab, selectedGroup?._id]);
+
+  useEffect(() => {
+    if (!selectedGroup?._id) {
+      setBannedMembers([]);
+      return;
+    }
+
+    if (!hasPermission(selectedGroup, 'banMembers')) {
+      setBannedMembers([]);
+      return;
+    }
+
+    if (activeTab === 'members' || activeTab === 'settings') {
+      loadBannedMembers(selectedGroup._id);
+    }
+  }, [activeTab, loadBannedMembers, selectedGroup]);
 
   const TABS = [
     { id: 'chat', label: 'Чат', icon: MessageSquare },
@@ -415,7 +701,7 @@ export default function Groups() {
             {/* Sidebar: group info + member list (desktop only) */}
             <div className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-800 rounded-l-2xl border border-r-0 border-gray-200 dark:border-slate-700">
               <div className="p-4 border-b border-gray-100 dark:border-slate-700">
-                <button onClick={() => { setSelectedGroup(null); setMessages([]); setActiveTab('chat'); setKickConfirmId(null); setConfirmLeave(false); setConfirmRemoveAssignedTestId(null); setConfirmRoleDeleteId(null); }} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-3 transition">
+                <button onClick={resetGroupView} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-3 transition">
                   <ArrowLeft size={14} /> Все группы
                 </button>
                 <div className="flex items-center gap-3">
@@ -454,7 +740,7 @@ export default function Groups() {
             <div className="flex-1 flex flex-col bg-white dark:bg-slate-800 lg:rounded-r-2xl rounded-2xl lg:rounded-l-none border border-gray-200 dark:border-slate-700 overflow-hidden">
               {/* Header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-slate-700">
-                <button onClick={() => { setSelectedGroup(null); setMessages([]); setActiveTab('chat'); setKickConfirmId(null); setConfirmLeave(false); setConfirmRemoveAssignedTestId(null); setConfirmRoleDeleteId(null); }} className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition">
+                <button onClick={resetGroupView} className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition">
                   <ArrowLeft size={16} className="text-gray-400" />
                 </button>
                 <Hash size={16} className="text-gray-400 hidden sm:block" />
@@ -504,9 +790,13 @@ export default function Groups() {
                   <p className="section-title mb-4">Участники ({selectedGroup.members?.length})</p>
                   <div className="space-y-1">
                     {selectedGroup.members?.map(m => {
-                      const role = getMemberRole(m.user?._id || m.user);
+                      const memberUserId = m.user?._id || m.user;
+                      const role = getMemberRole(memberUserId);
+                      const canManageRolesForMember = canManageMember(selectedGroup, memberUserId, 'manageRoles');
+                      const canKickMember = canManageMember(selectedGroup, memberUserId, 'kickMembers');
+                      const canBanMemberAction = canManageMember(selectedGroup, memberUserId, 'banMembers');
                       return (
-                        <div key={m.user?._id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition">
+                        <div key={memberUserId} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition">
                           <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-300 flex-shrink-0 overflow-hidden">
                             {m.user?.avatar ? <img src={m.user.avatar} alt="" className="w-full h-full object-cover" /> : (m.user?.firstName?.[0] || '?').toUpperCase()}
                           </div>
@@ -516,15 +806,15 @@ export default function Groups() {
                           </div>
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: (role?.color || '#6366f1') + '20', color: role?.color || '#6366f1' }}>{role?.name || 'Участник'}</span>
                           {/* Assign role dropdown */}
-                          {hasPermission(selectedGroup, 'manageRoles') && (m.user?._id || m.user) !== currentUserId && (
+                          {canManageRolesForMember && (
                             <div className="relative">
-                              <button onClick={() => setAssignRoleUser(assignRoleUser === m.user?._id ? null : m.user?._id)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-400 transition">
+                              <button onClick={() => setAssignRoleUser(assignRoleUser === memberUserId ? null : memberUserId)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-400 transition">
                                 <Shield size={13} />
                               </button>
-                              {assignRoleUser === m.user?._id && (
+                              {assignRoleUser === memberUserId && (
                                 <div className="absolute right-0 top-8 z-20 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl shadow-lg p-2 min-w-[140px]">
-                                  {selectedGroup.roles?.filter(r => r._id !== 'owner').map(r => (
-                                    <button key={r._id} onClick={() => assignRole(m.user?._id, r._id)}
+                                  {getAssignableRoles(selectedGroup).map(r => (
+                                    <button key={r._id} onClick={() => assignRole(memberUserId, r._id)}
                                       className={`w-full text-left px-3 py-1.5 rounded-lg text-xs hover:bg-gray-100 dark:hover:bg-slate-600 transition ${m.roleId === r._id ? 'font-semibold' : ''}`}>
                                       <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: r.color }} />
                                       {r.name}
@@ -535,11 +825,11 @@ export default function Groups() {
                             </div>
                           )}
                           {/* Kick */}
-                          {hasPermission(selectedGroup, 'kickMembers') && (m.user?._id || m.user) !== currentUserId && m.roleId !== 'owner' && (
-                            kickConfirmId === m.user?._id ? (
+                          {canKickMember && (
+                            kickConfirmId === memberUserId ? (
                               <div className="flex items-center gap-1">
                                 <button
-                                  onClick={() => removeMember(m.user?._id)}
+                                  onClick={() => removeMember(memberUserId)}
                                   className="rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30"
                                 >
                                   Выгнать
@@ -552,8 +842,30 @@ export default function Groups() {
                                 </button>
                               </div>
                             ) : (
-                              <button onClick={() => setKickConfirmId(m.user?._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition">
+                              <button onClick={() => { setKickConfirmId(memberUserId); setBanConfirmId(null); }} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition">
                                 <X size={14} />
+                              </button>
+                            )
+                          )}
+                          {canBanMemberAction && (
+                            banConfirmId === memberUserId ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => banMember(memberUserId)}
+                                  className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30"
+                                >
+                                  Забанить
+                                </button>
+                                <button
+                                  onClick={() => setBanConfirmId(null)}
+                                  className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-400 transition hover:bg-gray-100 dark:hover:bg-slate-700"
+                                >
+                                  Отмена
+                                </button>
+                              </div>
+                            ) : (
+                              <button onClick={() => { setBanConfirmId(memberUserId); setKickConfirmId(null); }} className="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 text-gray-400 hover:text-amber-600 transition">
+                                <Ban size={14} />
                               </button>
                             )
                           )}
@@ -617,6 +929,43 @@ export default function Groups() {
                   {hasPermission(selectedGroup, 'manageGroup') && (
                     <div className="glass-card-solid p-5 space-y-4">
                       <p className="section-title">Основные</p>
+                      <div className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-gray-50/70 p-4 dark:border-slate-700 dark:bg-slate-700/40 sm:flex-row sm:items-center">
+                        <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getGrad(selectedGroup.name)} flex items-center justify-center text-white font-bold text-2xl shadow-sm overflow-hidden flex-shrink-0`}>
+                          {selectedGroup.avatar ? <img src={selectedGroup.avatar} alt="" className="w-full h-full object-cover" /> : (selectedGroup.name?.[0] || 'G').toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Аватар группы</p>
+                          <p className="text-xs text-gray-400 mt-1">Изображение показывается в списке групп, шапке и чате.</p>
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <input
+                              ref={avatarInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleGroupAvatarUpload}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => avatarInputRef.current?.click()}
+                              disabled={avatarBusy}
+                              className="btn-secondary py-2 px-4 text-xs inline-flex items-center gap-1.5"
+                            >
+                              {selectedGroup.avatar ? <Upload size={13} /> : <ImagePlus size={13} />}
+                              {selectedGroup.avatar ? 'Заменить' : 'Загрузить'}
+                            </button>
+                            {selectedGroup.avatar && (
+                              <button
+                                type="button"
+                                onClick={removeGroupAvatar}
+                                disabled={avatarBusy}
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:border-red-800/50 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 size={13} /> Удалить
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                       <div>
                         <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Название</label>
                         <input className="input-field text-sm" value={editName} onChange={e => setEditName(e.target.value)} />
@@ -671,34 +1020,170 @@ export default function Groups() {
                         </div>
                       )}
                       <div className="space-y-2">
-                        {selectedGroup.roles?.sort((a,b) => b.position - a.position).map(r => (
-                          <div key={r._id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-slate-700">
-                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-1">{r.name}</span>
-                            <span className="text-[10px] text-gray-400">pos: {r.position}</span>
-                            {!['owner', 'admin', 'member'].includes(r._id) && (
-                              confirmRoleDeleteId === r._id ? (
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() => deleteRole(r._id)}
-                                    className="rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30"
-                                  >
-                                    Удалить
+                        {selectedGroup.roles?.slice().sort((a,b) => b.position - a.position).map(r => (
+                          <div key={r._id} className="rounded-2xl border border-gray-100 p-4 dark:border-slate-700">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{r.name}</p>
+                                <p className="text-[11px] text-gray-400">Включено прав: {getEnabledPermissionCount(r)}</p>
+                              </div>
+                              <span className="text-[10px] text-gray-400">pos: {r.position}</span>
+                              {canEditRole(selectedGroup, r) && (
+                                editingRoleId === r._id ? (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => saveRole(r._id)}
+                                      disabled={savingRoleId === r._id}
+                                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-600 transition hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30"
+                                    >
+                                      <Check size={12} /> {savingRoleId === r._id ? '...' : 'Сохранить'}
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingRoleId(null)}
+                                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-400 transition hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    >
+                                      Отмена
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button onClick={() => startRoleEdit(r)} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-500 transition hover:bg-gray-100 dark:hover:bg-slate-700">
+                                    <Pencil size={12} /> Изменить
                                   </button>
-                                  <button
-                                    onClick={() => setConfirmRoleDeleteId(null)}
-                                    className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-400 transition hover:bg-gray-100 dark:hover:bg-slate-700"
-                                  >
-                                    Отмена
-                                  </button>
+                                )
+                              )}
+                              {!['owner', 'admin', 'member'].includes(r._id) && canEditRole(selectedGroup, r) && (
+                                confirmRoleDeleteId === r._id ? (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => deleteRole(r._id)}
+                                      className="rounded-lg bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30"
+                                    >
+                                      Удалить
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmRoleDeleteId(null)}
+                                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-400 transition hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    >
+                                      Отмена
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button onClick={() => setConfirmRoleDeleteId(r._id)} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition"><Trash2 size={13} /></button>
+                                )
+                              )}
+                            </div>
+
+                            {editingRoleId === r._id && roleDrafts[r._id] ? (
+                              <div className="mt-4 space-y-4 rounded-2xl bg-gray-50/80 p-4 dark:bg-slate-700/40">
+                                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                                  <input
+                                    value={roleDrafts[r._id].name}
+                                    onChange={e => updateRoleDraft(r._id, { name: e.target.value })}
+                                    className="input-field text-sm"
+                                    placeholder="Название роли"
+                                  />
+                                  <input
+                                    type="color"
+                                    value={roleDrafts[r._id].color}
+                                    onChange={e => updateRoleDraft(r._id, { color: e.target.value })}
+                                    className="h-11 w-14 rounded-xl cursor-pointer border-0 bg-transparent"
+                                  />
                                 </div>
-                              ) : (
-                                <button onClick={() => setConfirmRoleDeleteId(r._id)} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition"><Trash2 size={13} /></button>
-                              )
+                                <div className="grid gap-2 md:grid-cols-2">
+                                  {ROLE_PERMISSION_OPTIONS.map(option => (
+                                    <button
+                                      key={option.key}
+                                      type="button"
+                                      onClick={() => toggleRolePermission(r._id, option.key)}
+                                      className={`flex items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium transition ${
+                                        roleDrafts[r._id].permissions?.[option.key]
+                                          ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/50 dark:bg-blue-900/20 dark:text-blue-300'
+                                          : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-gray-300'
+                                      }`}
+                                    >
+                                      <span>{option.label}</span>
+                                      <span className={`ml-3 inline-flex h-5 w-9 rounded-full transition ${roleDrafts[r._id].permissions?.[option.key] ? 'bg-blue-500' : 'bg-gray-300 dark:bg-slate-600'}`}>
+                                        <span className={`mt-0.5 ml-0.5 h-4 w-4 rounded-full bg-white shadow transition ${roleDrafts[r._id].permissions?.[option.key] ? 'translate-x-4' : ''}`} />
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {ROLE_PERMISSION_OPTIONS.map(option => (
+                                  <span
+                                    key={option.key}
+                                    className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${
+                                      r.permissions?.[option.key]
+                                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300'
+                                        : 'bg-gray-100 text-gray-400 dark:bg-slate-700 dark:text-gray-500'
+                                    }`}
+                                  >
+                                    {option.label}
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {hasPermission(selectedGroup, 'banMembers') && (
+                    <div className="glass-card-solid p-5">
+                      <div className="flex items-center justify-between gap-3 mb-4">
+                        <div>
+                          <p className="section-title">Забаненные участники</p>
+                          <p className="text-xs text-gray-400 mt-1">Разбан открывает только повторный вход. В группу пользователь сам не возвращается.</p>
+                        </div>
+                        <span className="text-xs text-gray-400">{bannedMembers.length}</span>
+                      </div>
+                      {loadingBans ? (
+                        <p className="text-sm text-gray-400">Загрузка...</p>
+                      ) : bannedMembers.length === 0 ? (
+                        <p className="text-sm text-gray-400">Бан-лист пуст.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {bannedMembers.map(entry => {
+                            const bannedUserId = entry.user?._id || entry.user;
+                            const bannedByName = entry.bannedBy ? `${entry.bannedBy.firstName || ''} ${entry.bannedBy.lastName || ''}`.trim() : 'Неизвестно';
+                            return (
+                              <div key={bannedUserId} className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 p-3 dark:border-slate-700">
+                                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-300 overflow-hidden">
+                                  {entry.user?.avatar ? <img src={entry.user.avatar} alt="" className="w-full h-full object-cover" /> : (entry.user?.firstName?.[0] || '?').toUpperCase()}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{entry.user?.lastName} {entry.user?.firstName}</p>
+                                  <p className="text-xs text-gray-400">Забанил: {bannedByName}</p>
+                                </div>
+                                {unbanConfirmId === bannedUserId ? (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => unbanMember(bannedUserId)}
+                                      className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-600 transition hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30"
+                                    >
+                                      Разбанить
+                                    </button>
+                                    <button
+                                      onClick={() => setUnbanConfirmId(null)}
+                                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-gray-400 transition hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    >
+                                      Отмена
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button onClick={() => setUnbanConfirmId(bannedUserId)} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-amber-600 transition hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                                    <Ban size={12} /> Разбанить
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -749,7 +1234,19 @@ export default function Groups() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
                 {groups.map((g, i) => (
                   <motion.div key={g._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                    onClick={() => { setSelectedGroup(g); setKickConfirmId(null); setConfirmLeave(false); setConfirmRemoveAssignedTestId(null); setConfirmRoleDeleteId(null); }} className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer group">
+                    onClick={() => {
+                      setSelectedGroup(g);
+                      setKickConfirmId(null);
+                      setBanConfirmId(null);
+                      setUnbanConfirmId(null);
+                      setAssignRoleUser(null);
+                      setConfirmLeave(false);
+                      setConfirmRemoveAssignedTestId(null);
+                      setConfirmRoleDeleteId(null);
+                      setEditingRoleId(null);
+                      setRoleDrafts({});
+                      setBannedMembers([]);
+                    }} className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer group">
                     <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getGrad(g.name)} flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm overflow-hidden`}>
                       {g.avatar ? <img src={g.avatar} alt="" className="w-full h-full object-cover" /> : (g.name?.[0] || 'G').toUpperCase()}
                     </div>

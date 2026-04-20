@@ -93,6 +93,12 @@ const groupSchema = new mongoose.Schema({
     lastReadAt: { type: Date, default: Date.now }
   }],
 
+  bannedMembers: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    bannedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    bannedAt: { type: Date, default: Date.now }
+  }],
+
   // Custom roles (Discord-style)
   roles: { type: [roleSchema], default: defaultRoles },
 
@@ -107,6 +113,7 @@ const groupSchema = new mongoose.Schema({
 
 groupSchema.index({ creator: 1 });
 groupSchema.index({ 'members.user': 1 });
+groupSchema.index({ 'bannedMembers.user': 1 });
 
 // Helper: get member's role object
 groupSchema.methods.getMemberRole = function(userId) {
