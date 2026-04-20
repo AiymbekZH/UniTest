@@ -21,7 +21,7 @@ function MatchingQuestion({
   getLeftText = (option) => option.text,
   getRightText = (text) => text
 }) {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const [selectedLeft, setSelectedLeft] = useState(null);
   const pairs = currentAnswer?.matchingPairs || [];
   const rightSide = question.matchingRightSide || [];
@@ -302,7 +302,7 @@ export default function TakeTest() {
   const isPractice = searchParams.get('practice') === 'true';
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1137,7 +1137,7 @@ export default function TakeTest() {
       ? new Date(deadlineError.startDate).toLocaleString()
       : new Date(deadlineError.endDate).toLocaleString();
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 lg:items-start lg:pt-10">
         
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
           className="max-w-sm w-full glass-card p-8 text-center">
@@ -1477,7 +1477,7 @@ export default function TakeTest() {
 
       {/* Compact top bar */}
       <div className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-gray-100 dark:border-slate-700 safe-area-top">
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
+        <div className="mx-auto max-w-4xl px-3 py-2 sm:px-4 sm:py-3 lg:max-w-[1120px]">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-xs sm:text-sm font-semibold text-dark truncate max-w-[42%] lg:max-w-[46%]">
               {test.title}
@@ -1531,10 +1531,10 @@ export default function TakeTest() {
       </div>
 
       {/* Question area - grows to fill available space */}
-      <div className="flex-1 w-full lg:max-w-[1120px] mx-auto flex justify-center gap-5 px-3 sm:px-4 py-4 sm:py-8 pb-28 sm:pb-32">
+      <div className="mx-auto flex w-full flex-1 justify-center gap-5 px-3 py-3 pb-28 sm:px-4 sm:py-4 sm:pb-32 lg:max-w-[1120px] lg:py-5">
         {/* Desktop Left Sidebar Navigator */}
         <aside className="hidden lg:block w-[290px] flex-shrink-0">
-          <div className="sticky top-24 glass-card-solid p-6 rounded-[28px] border border-gray-200 dark:border-slate-700 max-h-[calc(100vh-120px)] flex flex-col shadow-[0_28px_80px_-48px_rgba(15,23,42,0.55)]">
+          <div className="sticky top-[88px] flex max-h-[calc(100vh-104px)] flex-col rounded-[28px] border border-gray-200 p-6 shadow-[0_28px_80px_-48px_rgba(15,23,42,0.55)] glass-card-solid dark:border-slate-700">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">{t('navigation') || 'Навигатор'}</h3>
             <div className="space-y-2 overflow-y-auto pr-2 pb-4">
               {test.questions.map((q, i) => {

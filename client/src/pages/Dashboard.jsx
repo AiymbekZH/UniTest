@@ -62,7 +62,14 @@ const dashboardCopy = {
     activity7d: '7-day activity',
     leaderboardEmpty: 'Leaderboard will appear after the first completed runs.',
     leaderboardEntry: 'Level {{level}} · {{streak}} day streak',
-    levelShort: 'Lvl'
+    levelShort: 'Lvl',
+    availableToday: 'Available today',
+    completedToday: 'Completed today',
+    doneLabel: 'Done',
+    noDailyChallenge: "No public tests available for today's challenge.",
+    scoreLabel: 'Score',
+    modeLabel: 'Mode',
+    timeLabel: 'Time'
   },
   ru: {
     heroTitle: 'Сделай UniTest местом, куда хочется возвращаться',
@@ -109,7 +116,14 @@ const dashboardCopy = {
     activity7d: 'Активность за 7 дней',
     leaderboardEmpty: 'Лидерборд появится после первых завершённых прохождений.',
     leaderboardEntry: 'Уровень {{level}} · серия {{streak}} дн.',
-    levelShort: 'Ур.'
+    levelShort: 'Ур.',
+    availableToday: 'Доступно сегодня',
+    completedToday: 'Выполнено сегодня',
+    doneLabel: 'Готово',
+    noDailyChallenge: 'Сегодня нет подходящего публичного челленджа.',
+    scoreLabel: 'Результат',
+    modeLabel: 'Режим',
+    timeLabel: 'Время'
   },
   kz: {
     heroTitle: 'UniTest-ті қайта оралғың келетін орынға айналдыр',
@@ -156,7 +170,14 @@ const dashboardCopy = {
     activity7d: '7 күндік белсенділік',
     leaderboardEmpty: 'Алғашқы аяқталған өтулерден кейін лидерборд пайда болады.',
     leaderboardEntry: '{{level}} деңгей · {{streak}} күндік серия',
-    levelShort: 'Деңг.'
+    levelShort: 'Деңг.',
+    availableToday: 'Бүгін қолжетімді',
+    completedToday: 'Бүгін аяқталды',
+    doneLabel: 'Дайын',
+    noDailyChallenge: 'Бүгінге лайық қоғамдық челлендж табылмады.',
+    scoreLabel: 'Нәтиже',
+    modeLabel: 'Режим',
+    timeLabel: 'Уақыт'
   },
   es: {
     heroTitle: 'Haz de UniTest un lugar al que la gente quiera volver',
@@ -203,7 +224,14 @@ const dashboardCopy = {
     activity7d: 'Actividad de 7 días',
     leaderboardEmpty: 'La clasificación aparecerá después de las primeras actividades completadas.',
     leaderboardEntry: 'Nivel {{level}} · racha de {{streak}} días',
-    levelShort: 'Nv.'
+    levelShort: 'Nv.',
+    availableToday: 'Disponible hoy',
+    completedToday: 'Completado hoy',
+    doneLabel: 'Hecho',
+    noDailyChallenge: 'No hay un desafío público disponible para hoy.',
+    scoreLabel: 'Resultado',
+    modeLabel: 'Modo',
+    timeLabel: 'Tiempo'
   }
 };
 
@@ -535,15 +563,15 @@ export default function Dashboard() {
                   <div className="mt-4 grid grid-cols-3 gap-3">
                     <div className="rounded-2xl bg-emerald-50 p-3 text-center dark:bg-emerald-900/15">
                       <p className="text-xl font-bold text-emerald-600">{recentResult.percentage}%</p>
-                      <p className="text-[11px] text-emerald-500">Score</p>
+                      <p className="text-[11px] text-emerald-500">{copy.scoreLabel}</p>
                     </div>
                     <div className="rounded-2xl bg-blue-50 p-3 text-center dark:bg-blue-900/15">
                       <p className="text-xl font-bold text-blue-600">{recentResult.isPractice ? copy.completedPractice : copy.completedExams}</p>
-                      <p className="text-[11px] text-blue-500">Mode</p>
+                      <p className="text-[11px] text-blue-500">{copy.modeLabel}</p>
                     </div>
                     <div className="rounded-2xl bg-amber-50 p-3 text-center dark:bg-amber-900/15">
                       <p className="text-xl font-bold text-amber-600">{recentResult.timeSpent || 0}s</p>
-                      <p className="text-[11px] text-amber-500">Time</p>
+                      <p className="text-[11px] text-amber-500">{copy.timeLabel}</p>
                     </div>
                   </div>
                   <button onClick={() => navigate(`/result/${recentResult._id}`)} className="btn-secondary mt-4 inline-flex items-center gap-2">
@@ -575,11 +603,11 @@ export default function Dashboard() {
                   <div className="mt-4 flex items-center justify-between rounded-2xl border border-amber-100 bg-amber-50/80 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
                     <div>
                       <p className="text-sm font-semibold text-dark">{copy.rewardXp.replace('{{xp}}', String(dailyChallenge.rewardXp || 40))}</p>
-                      <p className="text-xs text-gray-500">{dailyChallenge.completed ? 'Completed today' : 'Available today'}</p>
+                      <p className="text-xs text-gray-500">{dailyChallenge.completed ? copy.completedToday : copy.availableToday}</p>
                     </div>
                     {dailyChallenge.completed ? (
                       <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
-                        Done
+                        {copy.doneLabel}
                       </span>
                     ) : (
                       <button onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)} className="btn-primary py-2 px-4 text-sm inline-flex items-center gap-1.5">
@@ -590,7 +618,7 @@ export default function Dashboard() {
                   </div>
                 </>
               ) : (
-                <p className="mt-4 text-sm text-gray-500">No public tests available for today's challenge.</p>
+                <p className="mt-4 text-sm text-gray-500">{copy.noDailyChallenge}</p>
               )}
             </motion.div>
 
