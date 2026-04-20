@@ -653,8 +653,8 @@ export default function Dashboard() {
   const dailyCountdownLabel = dailyCountdownMs === 0 ? copy.resetNow : formatCountdown(dailyCountdownMs || 0);
 
   const homeCards = isAuthenticated ? (
-    <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr_0.9fr]">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card-solid p-5">
+    <div className="grid items-start gap-5 xl:grid-cols-[1.1fr_0.9fr_0.9fr]">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card-solid self-start p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
@@ -734,7 +734,7 @@ export default function Dashboard() {
         )}
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="glass-card-solid p-5">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="glass-card-solid self-start p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.quickChallengeTitle}</p>
@@ -799,7 +799,7 @@ export default function Dashboard() {
         )}
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card-solid p-5">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card-solid self-start p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.quickStats}</p>
