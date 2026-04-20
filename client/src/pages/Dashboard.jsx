@@ -653,7 +653,7 @@ export default function Dashboard() {
   const dailyCountdownLabel = dailyCountdownMs === 0 ? copy.resetNow : formatCountdown(dailyCountdownMs || 0);
 
   const homeCards = isAuthenticated ? (
-    <div className="grid items-start gap-5 xl:grid-cols-[1.1fr_0.9fr_0.9fr]">
+    <div className="grid items-start gap-5 xl:grid-cols-[1.08fr_0.92fr]">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card-solid self-start p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -799,7 +799,12 @@ export default function Dashboard() {
         )}
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card-solid self-start p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="glass-card-solid self-start p-5 xl:col-span-2"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.quickStats}</p>
@@ -810,7 +815,7 @@ export default function Dashboard() {
             <AnimatedIcon icon={Sparkles} size={22} active preset="soft-pulse" hover={false} />
           </div>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
           <SummaryMetric icon={Trophy} label="XP" value={progressData?.progress?.xp || 0} tone="blue" />
           <SummaryMetric icon={Flame} label={copy.currentStreak} value={progressData?.progress?.currentStreakDays || 0} tone="amber" />
           <SummaryMetric icon={Crown} label={copy.levelShort} value={progressData?.progress?.level || 1} tone="primary" />
