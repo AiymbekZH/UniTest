@@ -1,31 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Circle, Clock4, Diamond, Send, Square, Triangle, XCircle } from 'lucide-react';
+import { Check, Circle, Clock3, Diamond, Send, Square, Triangle, X } from 'lucide-react';
 
 const TILE_STYLES = [
-  {
-    icon: Triangle,
-    base: 'from-red-500 to-rose-600',
-    border: 'border-red-300',
-    ring: 'ring-red-200'
-  },
-  {
-    icon: Diamond,
-    base: 'from-blue-500 to-sky-600',
-    border: 'border-blue-300',
-    ring: 'ring-blue-200'
-  },
-  {
-    icon: Circle,
-    base: 'from-amber-400 to-orange-500',
-    border: 'border-amber-300',
-    ring: 'ring-amber-200'
-  },
-  {
-    icon: Square,
-    base: 'from-emerald-500 to-green-600',
-    border: 'border-emerald-300',
-    ring: 'ring-emerald-200'
-  }
+  { icon: Triangle, bg: 'bg-[#e63946]', shadow: 'shadow-red-950/35' },
+  { icon: Diamond, bg: 'bg-[#2f80ed]', shadow: 'shadow-blue-950/35' },
+  { icon: Circle, bg: 'bg-[#f59e0b]', shadow: 'shadow-amber-950/35' },
+  { icon: Square, bg: 'bg-[#10b981]', shadow: 'shadow-emerald-950/35' }
 ];
 
 function formatTimer(ms = 0) {
@@ -92,6 +72,10 @@ export default function ArenaQuestionPanel({
 
   const correctIds = new Set(question.answerSummary?.correctOptionIds || []);
   const correctText = getCorrectText(question);
+  const answeredTotal = answerStats?.totalParticipants || 0;
+  const progressPercent = answeredTotal
+    ? Math.min(100, Math.round((answerStats.answeredCount / answeredTotal) * 100))
+    : 0;
 
   const submitAnswer = (override = {}) => {
     if (locked || isHostView || showAnswer) return;
@@ -115,176 +99,170 @@ export default function ArenaQuestionPanel({
     submitAnswer({ selectedOptions: [optionId] });
   };
 
-  const progressPercent = answerStats?.totalParticipants
-    ? Math.min(100, Math.round((answerStats.answeredCount / answerStats.totalParticipants) * 100))
-    : 0;
-
   return (
-    <section className={`${isHostView ? 'min-h-[62vh]' : ''} overflow-hidden rounded-[2rem] border border-white/60 bg-white/95 shadow-[0_32px_90px_-46px_rgba(15,23,42,0.65)] dark:border-slate-700 dark:bg-slate-950/90`}>
-      <div className="border-b border-gray-100 bg-gradient-to-r from-slate-950 via-slate-900 to-orange-950 p-5 text-white dark:border-slate-800">
+    <section className={`${isHostView ? 'min-h-[70vh]' : 'min-h-[calc(100vh-120px)]'} flex flex-col gap-4 text-white`}>
+      <div className="rounded-[2rem] border border-white/10 bg-[#111111] p-4 shadow-[0_30px_90px_-55px_rgba(0,0,0,0.95)] sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-300">Вопрос {question.questionNumber} / {question.totalQuestions}</p>
-            <h2 className={`${isHostView ? 'mt-3 text-4xl lg:text-6xl' : 'mt-2 text-2xl'} font-black leading-tight tracking-tight`}>
+            <div className="inline-flex rounded-full bg-orange-500 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-black">
+              {question.questionNumber}/{question.totalQuestions}
+            </div>
+            <h2 className={`${isHostView ? 'mt-5 text-5xl md:text-7xl' : 'mt-4 text-3xl'} font-black leading-[0.98] tracking-tight`}>
               {question.questionText}
             </h2>
-            {question.passage ? (
-              <p className={`${isHostView ? 'mt-4 max-h-40 text-lg' : 'mt-3 max-h-28 text-sm'} overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-white/10 p-4 leading-7 text-white/80`}>
-                {question.passage}
-              </p>
-            ) : null}
           </div>
-          <div className="flex min-w-[96px] flex-col items-center rounded-[1.5rem] bg-white px-5 py-4 text-slate-950 shadow-xl">
-            <Clock4 size={20} className="text-orange-500" />
+          <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-[1.8rem] bg-white text-black shadow-xl">
+            <Clock3 size={18} className="text-orange-500" />
             <span className="text-4xl font-black leading-none">{formatTimer(timeLeftMs)}</span>
-            <span className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">сек</span>
           </div>
         </div>
 
+        {question.passage ? (
+          <div className={`${isHostView ? 'max-h-[180px] text-xl' : 'max-h-[140px] text-sm'} mt-5 overflow-auto whitespace-pre-wrap rounded-[1.5rem] border border-white/10 bg-white/7 p-4 leading-7 text-white/75`}>
+            {question.passage}
+          </div>
+        ) : null}
+
         {answerStats && (
           <div className="mt-5">
-            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.16em] text-white/70">
+            <div className="flex items-center justify-between text-xs font-black uppercase tracking-[0.18em] text-white/55">
               <span>Ответили {answerStats.answeredCount}/{answerStats.totalParticipants}</span>
               {showAnswer && <span>Верно {answerStats.correctCount}</span>}
             </div>
-            <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/15">
-              <div className="h-full rounded-full bg-orange-400 transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+            <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-orange-500 transition-all duration-500" style={{ width: `${progressPercent}%` }} />
             </div>
           </div>
         )}
       </div>
 
-      <div className="p-4 sm:p-6">
-        {(question.type === 'single-choice' || question.type === 'multiple-choice' || question.type === 'true-false') && (
-          <div className={`${isHostView ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'} grid gap-4`}>
-            {(question.options || []).map((option, index) => {
-              const style = TILE_STYLES[index % TILE_STYLES.length];
-              const Icon = style.icon;
-              const active = selectedOptions.includes(option.id);
-              const isCorrect = correctIds.has(option.id);
-              const isWrongSelected = showAnswer && active && !isCorrect;
-              const tileState = showAnswer
-                ? isCorrect
-                  ? 'ring-4 ring-emerald-300 brightness-110'
-                  : isWrongSelected
-                    ? 'opacity-80 grayscale-[0.25] ring-4 ring-red-300'
-                    : 'opacity-45 grayscale'
-                : active
-                  ? `ring-4 ${style.ring} scale-[1.01]`
-                  : 'hover:scale-[1.01] hover:shadow-2xl';
+      {(question.type === 'single-choice' || question.type === 'multiple-choice' || question.type === 'true-false') && (
+        <div className={`${isHostView ? 'grid flex-1 grid-cols-2' : 'grid flex-1 grid-cols-1 sm:grid-cols-2'} gap-3 sm:gap-4`}>
+          {(question.options || []).map((option, index) => {
+            const style = TILE_STYLES[index % TILE_STYLES.length];
+            const Icon = style.icon;
+            const active = selectedOptions.includes(option.id);
+            const isCorrect = correctIds.has(option.id);
+            const wrongSelected = showAnswer && active && !isCorrect;
+            const revealClass = showAnswer
+              ? isCorrect
+                ? 'ring-4 ring-white brightness-110'
+                : wrongSelected
+                  ? 'ring-4 ring-red-200 brightness-75'
+                  : 'opacity-35 grayscale'
+              : active
+                ? 'ring-4 ring-white scale-[1.01]'
+                : 'active:scale-[0.99] hover:brightness-110';
 
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => toggleOption(option.id)}
-                  disabled={locked || isHostView || showAnswer}
-                  className={`group relative min-h-[116px] overflow-hidden rounded-[1.75rem] border ${style.border} bg-gradient-to-br ${style.base} p-5 text-left text-white shadow-[0_18px_48px_-28px_rgba(15,23,42,0.9)] transition ${tileState} ${locked || isHostView || showAnswer ? 'cursor-default' : ''}`}
-                >
-                  <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/15" />
-                  <div className="relative z-10 flex items-start gap-4">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/20 p-3 backdrop-blur">
-                      <Icon size={isHostView ? 30 : 24} strokeWidth={3} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className={`${isHostView ? 'text-2xl lg:text-3xl' : 'text-lg'} font-black leading-snug drop-shadow-sm`}>
-                        {option.text}
-                      </p>
-                      {showAnswer && isCorrect && (
-                        <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-black uppercase tracking-[0.14em]">
-                          <CheckCircle2 size={15} /> верно
-                        </span>
-                      )}
-                      {showAnswer && isWrongSelected && (
-                        <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-black/20 px-3 py-1 text-xs font-black uppercase tracking-[0.14em]">
-                          <XCircle size={15} /> твой ответ
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {question.type === 'fill-blank' && (
-          <div className="space-y-4">
-            <textarea
-              value={textAnswer}
-              disabled={locked || isHostView || showAnswer}
-              onChange={(event) => setTextAnswer(event.target.value)}
-              className="min-h-[150px] w-full rounded-[1.75rem] border border-gray-200 bg-gray-50 px-5 py-4 text-lg font-semibold text-dark outline-none transition focus:border-orange-300 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              placeholder="Введите ответ"
-            />
-            {showAnswer && (
-              <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/15 dark:text-emerald-200">
-                <p className="text-xs font-black uppercase tracking-[0.18em]">Правильный ответ</p>
-                <p className="mt-1 text-xl font-black">{correctText || 'Ответ не указан'}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {question.type === 'matching' && (
-          <div className="space-y-3">
-            {(question.options || []).map(option => (
-              <div key={option.id} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)]">
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-black text-dark dark:border-slate-700 dark:bg-slate-800 dark:text-white">
-                  {option.text}
-                </div>
-                <select
-                  value={matchingPairs[option.id] || ''}
-                  disabled={locked || isHostView || showAnswer}
-                  onChange={(event) => setMatchingPairs(prev => ({ ...prev, [option.id]: event.target.value }))}
-                  className="rounded-2xl border border-gray-200 bg-white px-4 py-4 text-sm font-semibold text-dark outline-none transition focus:border-orange-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                >
-                  <option value="">Выбери пару</option>
-                  {(question.matchingRightSide || []).map(rightOption => (
-                    <option key={rightOption.id} value={rightOption.text}>{rightOption.text}</option>
-                  ))}
-                </select>
-              </div>
-            ))}
-            {showAnswer && correctText && (
-              <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/15 dark:text-emerald-200">
-                {correctText}
-              </div>
-            )}
-          </div>
-        )}
-
-        {!isHostView && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm font-semibold text-gray-500">
-              {ack
-                ? `Ответ принят${ack.pointsAwarded ? ` · +${ack.pointsAwarded} очков` : ''}`
-                : locked
-                  ? 'Ответ уже отправлен'
-                  : question.type === 'single-choice' || question.type === 'true-false'
-                    ? 'Нажми на плитку, ответ отправится сразу'
-                    : 'Скорость и серия влияют на очки'}
-            </div>
-            {(question.type === 'multiple-choice' || question.type === 'matching' || question.type === 'fill-blank') && !showAnswer && (
+            return (
               <button
+                key={option.id}
                 type="button"
-                onClick={() => submitAnswer()}
-                disabled={!canSubmit}
-                className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => toggleOption(option.id)}
+                disabled={locked || isHostView || showAnswer}
+                className={`relative overflow-hidden rounded-[2rem] ${style.bg} p-5 text-left text-white shadow-2xl ${style.shadow} transition ${revealClass} ${locked || isHostView || showAnswer ? 'cursor-default' : ''}`}
               >
-                <Send size={16} /> Отправить
+                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/15" />
+                <div className="relative z-10 flex h-full flex-col justify-between gap-6">
+                  <Icon size={isHostView ? 46 : 34} strokeWidth={3.2} />
+                  <div>
+                    <p className={`${isHostView ? 'text-3xl md:text-5xl' : 'text-2xl'} font-black leading-tight`}>
+                      {option.text}
+                    </p>
+                    {showAnswer && isCorrect && (
+                      <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-black">
+                        <Check size={14} /> верно
+                      </span>
+                    )}
+                    {showAnswer && wrongSelected && (
+                      <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/25 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">
+                        <X size={14} /> твой ответ
+                      </span>
+                    )}
+                  </div>
+                </div>
               </button>
-            )}
-          </div>
-        )}
+            );
+          })}
+        </div>
+      )}
 
-        {showAnswer && correctText && question.type !== 'fill-blank' && question.type !== 'matching' && (
-          <div className="mt-5 rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/15 dark:text-emerald-200">
-            <p className="text-xs font-black uppercase tracking-[0.18em]">Правильный ответ</p>
-            <p className="mt-1 text-lg font-black">{correctText}</p>
+      {question.type === 'fill-blank' && (
+        <div className="flex flex-1 flex-col gap-4 rounded-[2rem] border border-white/10 bg-[#111111] p-4">
+          <textarea
+            value={textAnswer}
+            disabled={locked || isHostView || showAnswer}
+            onChange={(event) => setTextAnswer(event.target.value)}
+            className="min-h-[190px] flex-1 resize-none rounded-[1.5rem] border border-white/10 bg-white/8 px-5 py-4 text-xl font-black text-white outline-none transition placeholder:text-white/35 focus:border-orange-300"
+            placeholder="Введите ответ"
+          />
+          {showAnswer && (
+            <div className="rounded-[1.5rem] bg-emerald-400 px-5 py-4 text-black">
+              <p className="text-xs font-black uppercase tracking-[0.18em]">Правильный ответ</p>
+              <p className="mt-1 text-2xl font-black">{correctText || 'Ответ не указан'}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {question.type === 'matching' && (
+        <div className="flex flex-1 flex-col gap-3 rounded-[2rem] border border-white/10 bg-[#111111] p-4">
+          {(question.options || []).map(option => (
+            <div key={option.id} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)]">
+              <div className="rounded-[1.35rem] bg-white/10 px-4 py-4 text-base font-black text-white">
+                {option.text}
+              </div>
+              <select
+                value={matchingPairs[option.id] || ''}
+                disabled={locked || isHostView || showAnswer}
+                onChange={(event) => setMatchingPairs(prev => ({ ...prev, [option.id]: event.target.value }))}
+                className="rounded-[1.35rem] border border-white/10 bg-white px-4 py-4 text-sm font-black text-black outline-none transition focus:border-orange-300"
+              >
+                <option value="">Выбери пару</option>
+                {(question.matchingRightSide || []).map(rightOption => (
+                  <option key={rightOption.id} value={rightOption.text}>{rightOption.text}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+          {showAnswer && correctText && (
+            <div className="rounded-[1.5rem] bg-emerald-400 px-5 py-4 text-sm font-black text-black">
+              {correctText}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isHostView && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] bg-black/35 p-3">
+          <div className="text-sm font-black text-white/60">
+            {ack
+              ? `Ответ принят${ack.pointsAwarded ? ` · +${ack.pointsAwarded} очков` : ''}`
+              : locked
+                ? 'Ответ уже отправлен'
+                : question.type === 'single-choice' || question.type === 'true-false'
+                  ? 'Нажми на плитку'
+                  : 'Собери ответ и отправь'}
           </div>
-        )}
-      </div>
+          {(question.type === 'multiple-choice' || question.type === 'matching' || question.type === 'fill-blank') && !showAnswer && (
+            <button
+              type="button"
+              onClick={() => submitAnswer()}
+              disabled={!canSubmit}
+              className="inline-flex items-center gap-2 rounded-[1.25rem] bg-orange-500 px-6 py-3 text-sm font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Send size={16} /> Отправить
+            </button>
+          )}
+        </div>
+      )}
+
+      {showAnswer && correctText && question.type !== 'fill-blank' && question.type !== 'matching' && (
+        <div className="rounded-[1.5rem] bg-emerald-400 px-5 py-4 text-black">
+          <p className="text-xs font-black uppercase tracking-[0.18em]">Правильный ответ</p>
+          <p className="mt-1 text-xl font-black">{correctText}</p>
+        </div>
+      )}
     </section>
   );
 }

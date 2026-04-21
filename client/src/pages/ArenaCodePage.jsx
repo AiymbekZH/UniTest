@@ -45,12 +45,14 @@ function getParticipantId(participant) {
   return String(participant?._id || '');
 }
 
-function JoinShell({ children }) {
+function ArenaShell({ children }) {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#070709] px-4 py-6 text-white">
-      <div className="pointer-events-none absolute -left-32 top-16 h-96 w-96 rounded-full bg-orange-500/25 blur-3xl" />
-      <div className="pointer-events-none absolute -right-28 bottom-10 h-[30rem] w-[30rem] rounded-full bg-amber-400/15 blur-3xl" />
-      <div className="relative z-10 mx-auto max-w-5xl">{children}</div>
+    <div className="min-h-screen bg-[#0a0a0b] text-white">
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute left-[-16rem] top-[-12rem] h-[36rem] w-[36rem] rounded-full bg-orange-500/20 blur-3xl" />
+        <div className="absolute bottom-[-16rem] right-[-18rem] h-[34rem] w-[34rem] rounded-full bg-amber-400/10 blur-3xl" />
+      </div>
+      <div className="relative z-10 mx-auto min-h-screen max-w-5xl p-4">{children}</div>
     </div>
   );
 }
@@ -239,81 +241,76 @@ export default function ArenaCodePage() {
 
   if (loading || !room) {
     return (
-      <JoinShell>
-        <div className="flex min-h-[70vh] items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500" />
+      <ArenaShell>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="h-11 w-11 animate-spin rounded-full border-4 border-white/10 border-t-orange-500" />
         </div>
-      </JoinShell>
+      </ArenaShell>
     );
   }
 
   return (
-    <JoinShell>
-      <header className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-white/10 bg-white/90 px-4 py-3 text-slate-950 shadow-[0_24px_80px_-50px_rgba(0,0,0,0.9)] backdrop-blur">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-500 transition hover:text-slate-950"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <BrandLogo />
-        </div>
+    <ArenaShell>
+      <header className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(`${window.location.origin}/arena/code/${room.joinCode}`);
-              toast.success('Ссылка комнаты скопирована');
-            }}
-            className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-black text-slate-950 transition hover:border-orange-200 hover:bg-orange-50"
+            onClick={() => navigate('/dashboard')}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/8 text-white transition hover:bg-white/15"
           >
-            <Copy size={15} /> Код {room.joinCode}
+            <ArrowLeft size={18} />
           </button>
-          {isHostUser && (
-            <Link
-              to={`/arena/host/${room._id}`}
-              className="hidden rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-orange-600 sm:inline-flex"
-            >
-              Экран ведущего
-            </Link>
-          )}
+          <div className="rounded-2xl bg-white px-3 py-2">
+            <BrandLogo />
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            navigator.clipboard.writeText(`${window.location.origin}/arena/code/${room.joinCode}`);
+            toast.success('Ссылка комнаты скопирована');
+          }}
+          className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-sm font-black text-white transition hover:bg-white/15"
+        >
+          <Copy size={15} /> {room.joinCode}
+        </button>
       </header>
 
       {!currentParticipant && room.sourceType === 'public' && (
-        <section className="rounded-[2.5rem] border border-white/10 bg-white/10 p-5 shadow-[0_36px_100px_-60px_rgba(0,0,0,0.95)] backdrop-blur">
-          <div className="rounded-[2rem] bg-white p-6 text-slate-950">
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-orange-500">UniTest Arena</p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight">{room.title}</h1>
-            <p className="mt-2 text-gray-500">Введи ник и подключайся. Если войдёшь в аккаунт, получишь XP после финала.</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <section className="grid min-h-[calc(100vh-96px)] place-items-center">
+          <div className="w-full max-w-xl rounded-[2.5rem] bg-[#111111] p-5 shadow-[0_36px_100px_-60px_rgba(0,0,0,1)]">
+            <div className="rounded-[2rem] bg-orange-500 p-6 text-black">
+              <p className="text-xs font-black uppercase tracking-[0.24em] opacity-65">UniTest Arena</p>
+              <h1 className="mt-3 text-4xl font-black leading-none tracking-tight">{room.title}</h1>
+              <p className="mt-4 text-base font-bold opacity-70">Введи ник и подключайся к игре.</p>
+            </div>
+
+            <div className="mt-4 rounded-[2rem] border border-white/10 bg-white/7 p-4">
               {!isAuthenticated ? (
-                <>
+                <div className="space-y-3">
                   <input
                     value={guestName}
                     onChange={(event) => setGuestName(event.target.value)}
-                    className="min-h-14 flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 text-base font-semibold text-slate-950 outline-none transition focus:border-orange-300 focus:bg-white"
+                    className="h-16 w-full rounded-[1.35rem] border border-white/10 bg-white px-5 text-lg font-black text-black outline-none transition focus:border-orange-300"
                     placeholder="Твой ник"
                   />
                   <button
                     type="button"
                     onClick={() => joinArena({ guestName })}
                     disabled={joinBusy || !guestName.trim()}
-                    className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 text-sm font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-16 w-full items-center justify-center gap-2 rounded-[1.35rem] bg-orange-500 px-6 text-base font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <LogIn size={16} /> Войти
+                    <LogIn size={18} /> Войти
                   </button>
-                </>
+                </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => joinArena()}
                   disabled={joinBusy}
-                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 text-sm font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-16 w-full items-center justify-center gap-2 rounded-[1.35rem] bg-orange-500 px-6 text-base font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <LogIn size={16} /> Войти как {user?.firstName}
+                  <LogIn size={18} /> Войти как {user?.firstName}
                 </button>
               )}
             </div>
@@ -322,62 +319,69 @@ export default function ArenaCodePage() {
       )}
 
       {!currentParticipant && room.sourceType !== 'public' && !isAuthenticated && (
-        <section className="rounded-[2rem] border border-white/10 bg-white p-6 text-slate-950">
-          <h2 className="text-2xl font-black">Нужен аккаунт</h2>
-          <p className="mt-2 text-gray-500">Для дуэлей и групповых арен нужен авторизованный профиль.</p>
-          <div className="mt-5 flex gap-3">
-            <Link to="/login" className="rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white transition hover:bg-orange-600">Войти</Link>
-            <Link to="/register" className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:border-orange-200 hover:bg-orange-50">Регистрация</Link>
+        <section className="grid min-h-[calc(100vh-96px)] place-items-center">
+          <div className="w-full max-w-lg rounded-[2.5rem] bg-[#111111] p-6">
+            <h2 className="text-3xl font-black">Нужен аккаунт</h2>
+            <p className="mt-2 text-white/55">Для дуэлей и групповых арен нужен авторизованный профиль.</p>
+            <div className="mt-5 flex gap-3">
+              <Link to="/login" className="rounded-[1.25rem] bg-orange-500 px-5 py-3 text-sm font-black text-black transition hover:bg-orange-400">Войти</Link>
+              <Link to="/register" className="rounded-[1.25rem] border border-white/10 bg-white/8 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15">Регистрация</Link>
+            </div>
           </div>
         </section>
       )}
 
       {room.sourceType === 'dm_duel' && room.status === 'pending_acceptance' && (
-        <section className="rounded-[2rem] border border-white/10 bg-white p-6 text-slate-950">
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
-              <Swords size={24} />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-black">Дуэль ждёт подтверждения</h2>
-              <p className="mt-2 text-gray-500">
-                {isInvitedUser ? 'Прими вызов, чтобы открыть лобби.' : 'Приглашение отправлено. Ждём второго игрока.'}
-              </p>
-              {isInvitedUser && !currentParticipant && (
-                <div className="mt-5 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={acceptDuel}
-                    disabled={actionBusy}
-                    className="rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white transition hover:bg-orange-600 disabled:opacity-50"
-                  >
-                    Принять дуэль
-                  </button>
-                  <button
-                    type="button"
-                    onClick={declineDuel}
-                    disabled={actionBusy}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-black text-red-600 transition hover:bg-red-100 disabled:opacity-50"
-                  >
-                    <XCircle size={15} /> Отклонить
-                  </button>
-                </div>
-              )}
+        <section className="grid min-h-[calc(100vh-96px)] place-items-center">
+          <div className="w-full max-w-xl rounded-[2.5rem] bg-[#111111] p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-black">
+                <Swords size={24} />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-3xl font-black">Дуэль ждёт подтверждения</h2>
+                <p className="mt-2 text-white/55">
+                  {isInvitedUser ? 'Прими вызов, чтобы открыть лобби.' : 'Приглашение отправлено. Ждём второго игрока.'}
+                </p>
+                {isInvitedUser && !currentParticipant && (
+                  <div className="mt-5 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={acceptDuel}
+                      disabled={actionBusy}
+                      className="rounded-[1.25rem] bg-orange-500 px-5 py-3 text-sm font-black text-black transition hover:bg-orange-400 disabled:opacity-40"
+                    >
+                      Принять
+                    </button>
+                    <button
+                      type="button"
+                      onClick={declineDuel}
+                      disabled={actionBusy}
+                      className="inline-flex items-center gap-2 rounded-[1.25rem] border border-red-300/20 bg-red-500/12 px-5 py-3 text-sm font-black text-red-200 transition hover:bg-red-500/20 disabled:opacity-40"
+                    >
+                      <XCircle size={15} /> Отклонить
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
       )}
 
       {currentParticipant && (
-        <main className="space-y-5">
+        <main className="space-y-4">
           {room.status === 'lobby' && (
-            <section className="rounded-[2.5rem] border border-white/10 bg-white/10 p-5 shadow-[0_36px_100px_-60px_rgba(0,0,0,0.95)] backdrop-blur">
-              <div className="rounded-[2rem] bg-white p-6 text-slate-950">
-                <p className="text-xs font-black uppercase tracking-[0.24em] text-orange-500">Лобби</p>
-                <h1 className="mt-3 text-4xl font-black tracking-tight">{room.title}</h1>
-                <p className="mt-2 text-gray-500">Ты в комнате. Ждём старт ведущего.</p>
-                <div className="mt-6 flex items-center gap-3 rounded-2xl bg-slate-50 p-4">
-                  <Users className="text-orange-500" size={22} />
+            <section className="grid min-h-[calc(100vh-96px)] content-center gap-4">
+              <div className="rounded-[2.5rem] bg-[#111111] p-6">
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-orange-300">Лобби</p>
+                <h1 className="mt-3 text-5xl font-black leading-none tracking-tight">{room.title}</h1>
+                <div className="mt-6 rounded-[2rem] bg-orange-500 p-5 text-black">
+                  <p className="text-sm font-black uppercase tracking-[0.2em] opacity-60">Код</p>
+                  <p className="mt-1 text-5xl font-black tracking-[0.15em]">{room.joinCode}</p>
+                </div>
+                <div className="mt-4 flex items-center gap-3 rounded-[1.5rem] border border-white/10 bg-white/7 p-4">
+                  <Users className="text-orange-300" size={22} />
                   <span className="text-lg font-black">{participants.length} игроков</span>
                 </div>
                 {isHostUser && (
@@ -386,7 +390,7 @@ export default function ArenaCodePage() {
                       type="button"
                       onClick={() => runHostAction('start')}
                       disabled={actionBusy || participants.length === 0}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-6 py-3 text-sm font-black text-white transition hover:bg-orange-600 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-[1.25rem] bg-orange-500 px-6 py-3 text-sm font-black text-black transition hover:bg-orange-400 disabled:opacity-40"
                     >
                       <Play size={16} /> Старт
                     </button>
@@ -394,7 +398,7 @@ export default function ArenaCodePage() {
                       type="button"
                       onClick={() => runHostAction('cancel')}
                       disabled={actionBusy}
-                      className="rounded-2xl border border-red-200 bg-red-50 px-6 py-3 text-sm font-black text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                      className="rounded-[1.25rem] border border-red-300/20 bg-red-500/12 px-6 py-3 text-sm font-black text-red-200 transition hover:bg-red-500/20 disabled:opacity-40"
                     >
                       Отменить
                     </button>
@@ -405,18 +409,18 @@ export default function ArenaCodePage() {
           )}
 
           {isCountdown && (
-            <section className="flex min-h-[62vh] flex-col items-center justify-center rounded-[2.5rem] border border-white/10 bg-white/10 p-6 text-center shadow-[0_36px_100px_-60px_rgba(0,0,0,0.95)]">
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-orange-300">Матч начинается</p>
-              <p className="mt-6 text-[9rem] font-black leading-none">{Math.max(0, Math.ceil(timeLeftMs / 1000))}</p>
-              <p className="mt-4 text-xl font-bold text-white/70">Смотри на главный экран.</p>
+            <section className="flex min-h-[calc(100vh-96px)] flex-col items-center justify-center rounded-[2.5rem] bg-orange-500 p-6 text-center text-black">
+              <p className="text-sm font-black uppercase tracking-[0.35em] opacity-60">Старт</p>
+              <p className="mt-5 text-[10rem] font-black leading-none">{Math.max(0, Math.ceil(timeLeftMs / 1000))}</p>
+              <p className="mt-4 text-xl font-black opacity-70">Смотри на главный экран</p>
             </section>
           )}
 
           {room.status === 'question_intro' && (
-            <section className="flex min-h-[62vh] flex-col justify-center rounded-[2.5rem] border border-white/10 bg-white/10 p-6 shadow-[0_36px_100px_-60px_rgba(0,0,0,0.95)]">
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-orange-300">Следующий вопрос</p>
+            <section className="flex min-h-[calc(100vh-96px)] flex-col justify-center rounded-[2.5rem] bg-[#111111] p-6">
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-orange-300">Следующий вопрос</p>
               <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight">{room.currentQuestion?.questionText}</h1>
-              <p className="mt-6 text-3xl font-black text-white/60">Ответы откроются через {Math.max(0, Math.ceil(timeLeftMs / 1000))}</p>
+              <p className="mt-6 text-5xl font-black text-orange-300">{Math.max(0, Math.ceil(timeLeftMs / 1000))}</p>
             </section>
           )}
 
@@ -433,32 +437,32 @@ export default function ArenaCodePage() {
           )}
 
           {(room.status === 'leaderboard' || room.status === 'round_result') && (
-            <section className="space-y-4">
-              <div className="rounded-[2rem] border border-white/10 bg-white/10 p-5 text-white">
+            <section className="grid min-h-[calc(100vh-96px)] content-center gap-4">
+              <div className="rounded-[2.5rem] bg-[#111111] p-6">
                 <p className="text-xs font-black uppercase tracking-[0.24em] text-orange-300">Рейтинг</p>
-                <h2 className="mt-2 text-4xl font-black">Следующий вопрос скоро</h2>
-                <p className="mt-2 text-white/70">Продолжение через {Math.max(0, Math.ceil(timeLeftMs / 1000))} сек.</p>
+                <h2 className="mt-2 text-5xl font-black">Следующий вопрос скоро</h2>
+                <p className="mt-4 text-5xl font-black text-orange-300">{Math.max(0, Math.ceil(timeLeftMs / 1000))}</p>
               </div>
               <ArenaStandings participants={participants} title="Текущий топ" />
             </section>
           )}
 
           {['final', 'cancelled', 'declined'].includes(room.status) && (
-            <section className="space-y-4">
-              <div className="rounded-[2rem] border border-white/10 bg-white p-6 text-slate-950">
+            <section className="grid min-h-[calc(100vh-96px)] content-center gap-4">
+              <div className="rounded-[2.5rem] bg-orange-500 p-6 text-black">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-white">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-black text-orange-300">
                     <Trophy size={24} />
                   </div>
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.24em] text-orange-500">Финал</p>
-                    <h2 className="text-3xl font-black">{room.status === 'final' ? 'Матч завершён' : 'Комната закрыта'}</h2>
+                    <p className="text-xs font-black uppercase tracking-[0.24em] opacity-60">Финал</p>
+                    <h2 className="text-4xl font-black">{room.status === 'final' ? 'Матч завершён' : 'Комната закрыта'}</h2>
                   </div>
                 </div>
                 {room.status === 'final' && (
                   <Link
                     to={`/arena/results/${room._id}`}
-                    className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-6 py-3 text-sm font-black text-white transition hover:bg-orange-600"
+                    className="mt-6 inline-flex items-center gap-2 rounded-[1.25rem] bg-black px-6 py-3 text-sm font-black text-white transition hover:bg-zinc-900"
                   >
                     <Trophy size={16} /> Результаты
                   </Link>
@@ -469,6 +473,6 @@ export default function ArenaCodePage() {
           )}
         </main>
       )}
-    </JoinShell>
+    </ArenaShell>
   );
 }
