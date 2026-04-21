@@ -33,7 +33,21 @@ const arenaRoomSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending_acceptance', 'lobby', 'countdown', 'live_question', 'round_result', 'paused', 'declined', 'cancelled', 'final'],
+    enum: [
+      'pending_acceptance',
+      'lobby',
+      'countdown',
+      'starting_countdown',
+      'question_intro',
+      'live_question',
+      'answer_reveal',
+      'leaderboard',
+      'round_result',
+      'paused',
+      'declined',
+      'cancelled',
+      'final'
+    ],
     default: 'lobby'
   },
   title: { type: String, required: true, trim: true },
@@ -46,12 +60,16 @@ const arenaRoomSchema = new mongoose.Schema({
   questionSnapshot: { type: [arenaQuestionSchema], default: [] },
   currentQuestionIndex: { type: Number, default: -1 },
   countdownEndsAt: { type: Date, default: null },
+  questionIntroEndsAt: { type: Date, default: null },
   questionStartedAt: { type: Date, default: null },
   questionEndsAt: { type: Date, default: null },
+  answerRevealEndsAt: { type: Date, default: null },
+  leaderboardEndsAt: { type: Date, default: null },
+  phaseEndsAt: { type: Date, default: null },
   roundResolvedAt: { type: Date, default: null },
   pausedFromStatus: {
     type: String,
-    enum: ['countdown', 'live_question', 'round_result', null],
+    enum: ['countdown', 'starting_countdown', 'question_intro', 'live_question', 'answer_reveal', 'leaderboard', 'round_result', null],
     default: null
   },
   pauseEndsAt: { type: Date, default: null },
@@ -59,6 +77,10 @@ const arenaRoomSchema = new mongoose.Schema({
   cancelledAt: { type: Date, default: null },
   settings: {
     countdownSeconds: { type: Number, default: 5, min: 3, max: 15 },
+    questionIntroSec: { type: Number, default: 3, min: 1, max: 10 },
+    answerTimeSec: { type: Number, default: 20, min: 5, max: 120 },
+    answerRevealSec: { type: Number, default: 5, min: 2, max: 20 },
+    leaderboardSec: { type: Number, default: 6, min: 2, max: 30 },
     allowGuests: { type: Boolean, default: false },
     maxPlayers: { type: Number, default: 100, min: 2, max: 500 }
   }
