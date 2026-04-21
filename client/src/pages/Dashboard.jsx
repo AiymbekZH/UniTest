@@ -354,6 +354,24 @@ const badgeLabels = {
     ru: 'Идеальный результат',
     kz: 'Мінсіз нәтиже',
     es: 'Puntuación perfecta'
+  },
+  first_arena: {
+    en: 'First arena',
+    ru: 'Первая арена',
+    kz: 'Алғашқы арена',
+    es: 'Primera arena'
+  },
+  arena_winner: {
+    en: 'Arena winner',
+    ru: 'Победа в арене',
+    kz: 'Арена жеңімпазы',
+    es: 'Ganador de arena'
+  },
+  duel_winner: {
+    en: 'Duel winner',
+    ru: 'Победа в дуэли',
+    kz: 'Дуэль жеңімпазы',
+    es: 'Ganador del duelo'
   }
 };
 

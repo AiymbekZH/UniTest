@@ -14,6 +14,8 @@ async function resolveLastVisibleMessageId(conversationId) {
 
 module.exports = function (io) {
   io.on('connection', (socket) => {
+    if (!socket.user) return;
+
     // Join personal room for DMs
     socket.join(`user:${socket.user._id}`);
 

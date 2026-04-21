@@ -1,0 +1,72 @@
+const mongoose = require('mongoose');
+
+const arenaOptionSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  text: { type: String, default: '' }
+}, { _id: false });
+
+const arenaQuestionSchema = new mongoose.Schema({
+  questionId: { type: String, required: true },
+  type: {
+    type: String,
+    enum: ['single-choice', 'multiple-choice', 'true-false', 'matching', 'fill-blank'],
+    required: true
+  },
+  questionText: { type: String, required: true },
+  passage: { type: String, default: '' },
+  points: { type: Number, default: 1, min: 1 },
+  timeLimitSec: { type: Number, default: 20, min: 5 },
+  options: { type: [arenaOptionSchema], default: [] },
+  matchingRightSide: { type: [arenaOptionSchema], default: [] },
+  grading: {
+    correctOptionIds: { type: [String], default: [] },
+    acceptedAnswers: { type: [String], default: [] },
+    correctPairs: { type: Map, of: String, default: {} }
+  }
+}, { _id: false });
+
+const arenaRoomSchema = new mongoose.Schema({
+  sourceType: {
+    type: String,
+    enum: ['public', 'group', 'dm_duel'],
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['pending_acceptance', 'lobby', 'countdown', 'live_question', 'round_result', 'paused', 'declined', 'cancelled', 'final'],
+    default: 'lobby'
+  },
+  title: { type: String, required: true, trim: true },
+  joinCode: { type: String, required: true, unique: true, uppercase: true, trim: true },
+  hostUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  invitedUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
+  group: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', default: null },
+  conversation: { type: mongoose.Schema.Types.ObjectId, ref: 'DirectMessage', default: null },
+  questionSnapshot: { type: [arenaQuestionSchema], default: [] },
+  currentQuestionIndex: { type: Number, default: -1 },
+  countdownEndsAt: { type: Date, default: null },
+  questionStartedAt: { type: Date, default: null },
+  questionEndsAt: { type: Date, default: null },
+  roundResolvedAt: { type: Date, default: null },
+  pausedFromStatus: {
+    type: String,
+    enum: ['countdown', 'live_question', 'round_result', null],
+    default: null
+  },
+  pauseEndsAt: { type: Date, default: null },
+  finalizedAt: { type: Date, default: null },
+  cancelledAt: { type: Date, default: null },
+  settings: {
+    countdownSeconds: { type: Number, default: 5, min: 3, max: 15 },
+    allowGuests: { type: Boolean, default: false },
+    maxPlayers: { type: Number, default: 100, min: 2, max: 500 }
+  }
+}, { timestamps: true });
+
+arenaRoomSchema.index({ hostUser: 1, createdAt: -1 });
+arenaRoomSchema.index({ sourceType: 1, status: 1, createdAt: -1 });
+arenaRoomSchema.index({ group: 1, createdAt: -1 });
+arenaRoomSchema.index({ conversation: 1, createdAt: -1 });
+
+module.exports = mongoose.model('ArenaRoom', arenaRoomSchema);

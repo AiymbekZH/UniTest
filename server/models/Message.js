@@ -6,7 +6,7 @@ const messageSchema = new mongoose.Schema({
 
   type: {
     type: String,
-    enum: ['text', 'image', 'video', 'file', 'audio', 'system'],
+    enum: ['text', 'image', 'video', 'file', 'audio', 'system', 'arena_invite'],
     default: 'text'
   },
 
@@ -24,6 +24,7 @@ const messageSchema = new mongoose.Schema({
   isEdited: { type: Boolean, default: false },
   isPinned: { type: Boolean, default: false },
   isDeleted: { type: Boolean, default: false },
+  meta: { type: mongoose.Schema.Types.Mixed, default: {} },
   deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 

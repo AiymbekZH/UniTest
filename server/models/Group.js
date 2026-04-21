@@ -18,6 +18,7 @@ function defaultRoles() {
         manageGroup: true,
         assignTests: true,
         pinMessages: true,
+        launchArenas: true,
       }
     },
     {
@@ -34,6 +35,7 @@ function defaultRoles() {
         manageGroup: true,
         assignTests: true,
         pinMessages: true,
+        launchArenas: true,
       }
     },
     {
@@ -50,6 +52,7 @@ function defaultRoles() {
         manageGroup: false,
         assignTests: false,
         pinMessages: false,
+        launchArenas: false,
       }
     }
   ];
@@ -64,6 +67,7 @@ const permissionSchema = new mongoose.Schema({
   manageGroup: { type: Boolean, default: false },
   assignTests: { type: Boolean, default: false },
   pinMessages: { type: Boolean, default: false },
+  launchArenas: { type: Boolean, default: false },
 }, { _id: false });
 
 const roleSchema = new mongoose.Schema({
@@ -126,6 +130,9 @@ groupSchema.methods.getMemberRole = function(userId) {
 groupSchema.methods.hasPermission = function(userId, permission) {
   const role = this.getMemberRole(userId);
   if (!role) return false;
+  if (permission === 'launchArenas' && role.permissions?.launchArenas === undefined) {
+    return role._id === 'owner' || role._id === 'admin';
+  }
   return role.permissions?.[permission] === true;
 };
 

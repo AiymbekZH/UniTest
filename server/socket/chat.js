@@ -15,6 +15,8 @@ async function markGroupAsRead(groupId, userId) {
 
 module.exports = function (io) {
   io.on('connection', (socket) => {
+    if (!socket.user) return;
+
     // ── JOIN GROUP ROOM ──
     socket.on('group:join', async (groupId) => {
       try {

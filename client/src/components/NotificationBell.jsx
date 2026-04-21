@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Check, CheckCheck, Trash2, MessageCircle, AlertTriangle, Flag, Info, Trophy, Sparkles, Flame } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, MessageCircle, AlertTriangle, Flag, Info, Trophy, Sparkles, Flame, Swords } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -14,6 +14,8 @@ const typeIcons = {
   challenge_available: { icon: Trophy, color: 'text-primary-500', bg: 'bg-primary-50 dark:bg-primary-900/30' },
   streak_risk: { icon: Flame, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/30' },
   creator_new_test: { icon: Sparkles, color: 'text-fuchsia-500', bg: 'bg-fuchsia-50 dark:bg-fuchsia-900/30' },
+  arena_invite: { icon: Swords, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/30' },
+  arena_result: { icon: Trophy, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/30' },
   system: { icon: Info, color: 'text-primary-500', bg: 'bg-primary-50 dark:bg-primary-900/30' },
 };
 

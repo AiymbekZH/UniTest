@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react';
 import AudioPlayer from './AudioPlayer';
 import { Download, FileText, Pin, Reply, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const CHAT_COLORS = [
   '#f97316', '#ea580c', '#fb923c', '#10b981', '#f59e0b', '#ef4444',
@@ -36,10 +39,40 @@ export default function MessageBubble({
   onPreviewMedia,
 }) {
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+  const [inviteState, setInviteState] = useState(message.meta?.duelStatus || '');
+  const [inviteBusy, setInviteBusy] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentUserId = user?._id || user?.id;
 
   const sender = message.sender;
   const nameColor = useMemo(() => getUserColor(sender?._id, roleColor), [sender?._id, roleColor]);
+
+  const handleArenaInvite = async (action) => {
+    if (!message.meta?.roomId) return;
+
+    if (action === 'join') {
+      navigate(`/arena/code/${message.meta.joinCode}`);
+      return;
+    }
+
+    setInviteBusy(true);
+    try {
+      const endpoint = action === 'accept' ? 'accept-duel' : 'decline-duel';
+      await api.post(`/arena/rooms/${message.meta.roomId}/${endpoint}`);
+      const nextState = action === 'accept' ? 'accepted' : 'declined';
+      setInviteState(nextState);
+      if (action === 'accept') {
+        navigate(`/arena/code/${message.meta.joinCode}`);
+      } else {
+        toast.success('Дуэль отклонена');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Не удалось обработать приглашение');
+    } finally {
+      setInviteBusy(false);
+    }
+  };
 
   if (message.isDeleted) {
     return (
@@ -57,6 +90,99 @@ export default function MessageBubble({
         <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-400 dark:bg-slate-700/50">
           {message.text}
         </span>
+      </div>
+    );
+  }
+
+  if (message.type === 'arena_invite') {
+    const isDuelInvite = message.meta?.sourceType === 'dm_duel';
+    const canRespond = Boolean(isDuelInvite && currentUserId && message.meta?.invitedUserId === currentUserId && !isOwn);
+
+    return (
+      <div className={`group relative mb-2 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+        {!isOwn && (
+          <button
+            type="button"
+            onClick={() => sender?._id && navigate(`/profile/${sender._id}`)}
+            className="mr-2 mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-xs font-bold text-gray-500 transition hover:scale-[1.03] dark:bg-slate-600 dark:text-gray-300"
+          >
+            {sender?.avatar ? <img src={sender.avatar} alt="" className="h-full w-full object-cover" /> : (sender?.firstName?.[0] || '?').toUpperCase()}
+          </button>
+        )}
+
+        <div className={`min-w-[160px] max-w-[75%] ${isOwn ? 'order-1' : ''}`}>
+          <div className={`relative rounded-3xl border px-4 py-4 ${
+            isOwn
+              ? 'border-primary-400 bg-primary-500 text-white'
+              : 'border-orange-200 bg-orange-50 text-dark dark:border-orange-900/40 dark:bg-orange-900/10 dark:text-white'
+          }`}>
+            {!isOwn && (
+              <button
+                type="button"
+                onClick={() => sender?._id && navigate(`/profile/${sender._id}`)}
+                className="mb-1 text-[11px] font-semibold transition hover:opacity-80"
+                style={{ color: nameColor }}
+              >
+                {sender?.firstName} {sender?.lastName}
+              </button>
+            )}
+            <p className="text-sm font-semibold">{message.text || 'Приглашение в Arena'}</p>
+            <p className={`mt-1 text-xs ${isOwn ? 'text-orange-100' : 'text-gray-500 dark:text-gray-300'}`}>
+              {isDuelInvite ? 'Личная дуэль' : 'Присоединяйся к живой комнате по коду'}
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {!isDuelInvite && (
+                <button
+                  type="button"
+                  onClick={() => handleArenaInvite('join')}
+                  className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${
+                    isOwn
+                      ? 'bg-primary-600 text-white hover:bg-primary-700'
+                      : 'bg-white text-orange-600 hover:bg-orange-100 dark:bg-slate-800 dark:text-orange-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  Открыть арену
+                </button>
+              )}
+
+              {isDuelInvite && canRespond && !inviteState && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleArenaInvite('accept')}
+                    disabled={inviteBusy}
+                    className="rounded-2xl bg-primary-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Принять
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleArenaInvite('decline')}
+                    disabled={inviteBusy}
+                    className="rounded-2xl bg-white px-4 py-2 text-xs font-semibold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-800 dark:hover:bg-slate-700"
+                  >
+                    Отклонить
+                  </button>
+                </>
+              )}
+
+              {isDuelInvite && (inviteState || isOwn) && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/arena/code/${message.meta.joinCode}`)}
+                  className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${
+                    isOwn
+                      ? 'bg-primary-600 text-white hover:bg-primary-700'
+                      : 'bg-white text-orange-600 hover:bg-orange-100 dark:bg-slate-800 dark:text-orange-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {inviteState === 'declined' ? 'Дуэль отклонена' : 'Открыть арену'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

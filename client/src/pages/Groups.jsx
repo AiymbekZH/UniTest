@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Copy, ExternalLink, ArrowLeft, X, Trash2,
   BookOpen, UserPlus, LogOut, RefreshCw, Link2, MessageSquare,
-  Settings, Shield, Hash, Search, ChevronDown, Ban, Check, Pencil, Upload, ImagePlus
+  Settings, Shield, Hash, Search, ChevronDown, Ban, Check, Pencil, Upload, ImagePlus, Swords
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +26,7 @@ const ROLE_PERMISSION_OPTIONS = [
   { key: 'manageGroup', label: 'Управлять группой' },
   { key: 'assignTests', label: 'Назначать тесты' },
   { key: 'pinMessages', label: 'Закреплять сообщения' },
+  { key: 'launchArenas', label: 'Запускать арены' },
 ];
 
 export default function Groups() {
@@ -411,6 +412,20 @@ export default function Groups() {
     }
   };
 
+  const launchArenaFromGroup = async (testId) => {
+    if (!selectedGroup?._id) return;
+    try {
+      const res = await api.post('/arena/rooms', {
+        testId,
+        sourceType: 'group',
+        groupId: selectedGroup._id
+      });
+      navigate(`/arena/host/${res.data.room._id}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Не удалось запустить групповую арену');
+    }
+  };
+
   const loadBannedMembers = useCallback(async (groupId = selectedGroup?._id) => {
     if (!groupId) return;
     setLoadingBans(true);
@@ -615,7 +630,14 @@ export default function Groups() {
     const member = group.members?.find(m => (m.user?._id || m.user) === currentUserId);
     return group.roles?.find(r => r._id === member?.roleId);
   };
-  const hasPermission = (group, perm) => getMyRole(group)?.permissions?.[perm] === true;
+  const hasPermission = (group, perm) => {
+    const role = getMyRole(group);
+    if (!role) return false;
+    if (perm === 'launchArenas' && role.permissions?.launchArenas === undefined) {
+      return role._id === 'owner' || role._id === 'admin';
+    }
+    return role.permissions?.[perm] === true;
+  };
   const isOwner = (group) => {
     const m = group?.members?.find(m => (m.user?._id || m.user) === currentUserId);
     return m?.roleId === 'owner';
@@ -900,6 +922,14 @@ export default function Groups() {
                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{at.test?.title || 'Удалённый тест'}</p>
                             <p className="text-xs text-gray-400">{at.test?.totalPoints || 0} баллов</p>
                           </div>
+                          {hasPermission(selectedGroup, 'launchArenas') && at.test?._id && (
+                            <button
+                              onClick={() => launchArenaFromGroup(at.test._id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-600 transition hover:bg-orange-100 dark:border-orange-900/30 dark:bg-orange-900/10 dark:text-orange-300"
+                            >
+                              <Swords size={12} /> Arena
+                            </button>
+                          )}
                           <button onClick={() => at.test?.shareLink && navigate(`/test-profile/${at.test.shareLink}`)} className="btn-secondary py-1.5 px-3 text-xs"><ExternalLink size={12} /></button>
                           {hasPermission(selectedGroup, 'assignTests') && (
                             confirmRemoveAssignedTestId === (at.test?._id || at._id) ? (

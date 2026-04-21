@@ -26,6 +26,7 @@ const groupRoutes = require('./routes/groups');
 const aiRoutes = require('./routes/ai');
 const progressRoutes = require('./routes/progress');
 const challengeRoutes = require('./routes/challenges');
+const arenaRoutes = require('./routes/arena');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -124,6 +125,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/challenges', challengeRoutes);
+app.use('/api/arena', arenaRoutes);
 
 const dmRoutes = require('./routes/dm');
 app.use('/api/dm', dmRoutes);
@@ -162,19 +164,35 @@ const io = new Server(server, {
 // Socket auth middleware
 io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token;
-  if (!token) return next(new Error('AUTH_REQUIRED'));
+  const arenaGuestToken = socket.handshake.auth?.arenaGuestToken;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
-    if (!user || user.isBanned) return next(new Error('AUTH_FAILED'));
-    socket.user = user;
-    next();
-  } catch (e) { next(new Error('AUTH_FAILED')); }
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.userId).select('-password');
+      if (!user || user.isBanned) return next(new Error('AUTH_FAILED'));
+      socket.user = user;
+      socket.arenaGuest = null;
+      return next();
+    }
+
+    if (arenaGuestToken) {
+      const decoded = jwt.verify(arenaGuestToken, process.env.JWT_SECRET);
+      if (decoded?.kind !== 'arena_guest') return next(new Error('AUTH_FAILED'));
+      socket.user = null;
+      socket.arenaGuest = decoded;
+      return next();
+    }
+
+    return next(new Error('AUTH_REQUIRED'));
+  } catch (e) {
+    return next(new Error('AUTH_FAILED'));
+  }
 });
 
 // Attach socket handlers
 require('./socket/chat')(io);
 require('./socket/dm')(io);
+require('./socket/arena')(io);
 
 // Make io available to routes
 app.set('io', io);

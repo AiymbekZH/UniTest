@@ -22,6 +22,9 @@ const UserProfile = lazy(() => import('./pages/UserProfile'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Groups = lazy(() => import('./pages/Groups'));
 const Messages = lazy(() => import('./pages/Messages'));
+const ArenaCodePage = lazy(() => import('./pages/ArenaCodePage'));
+const ArenaHostPage = lazy(() => import('./pages/ArenaHostPage'));
+const ArenaResultsPage = lazy(() => import('./pages/ArenaResultsPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-surface">
@@ -51,6 +54,8 @@ export default function App() {
       <Route path="/user/:id" element={<UserProfile />} />
       <Route path="/profile/:id" element={<UserProfile />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/arena/code/:joinCode" element={<ArenaCodePage />} />
+      <Route path="/arena/results/:roomId" element={<ArenaResultsPage />} />
 
       {/* Protected routes */}
       <Route path="/create-test" element={<PrivateRoute><CreateTest /></PrivateRoute>} />
@@ -62,6 +67,7 @@ export default function App() {
       <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       <Route path="/groups" element={<PrivateRoute><Groups /></PrivateRoute>} />
       <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
+      <Route path="/arena/host/:roomId" element={<PrivateRoute><ArenaHostPage /></PrivateRoute>} />
       <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
 
       {/* Default redirect */}

@@ -18,6 +18,7 @@ const PERMISSION_KEYS = [
   'manageGroup',
   'assignTests',
   'pinMessages',
+  'launchArenas',
 ];
 
 async function ensureGroupReadBaseline(group, userId) {

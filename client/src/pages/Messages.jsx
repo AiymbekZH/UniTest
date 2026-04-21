@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, MessageSquare, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, Search, MessageSquare, User as UserIcon, Swords } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +28,9 @@ export default function Messages() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [showDuelModal, setShowDuelModal] = useState(false);
+  const [duelTests, setDuelTests] = useState([]);
+  const [duelLoading, setDuelLoading] = useState(false);
   const typingTimeoutRef = useRef({});
   const socketRef = useRef(null);
   const selectedConversationIdRef = useRef(null);
@@ -213,6 +216,38 @@ export default function Messages() {
     conv.participants?.find(p => p._id !== currentUserId) || conv.participants?.[0]
   );
 
+  const openDuelModal = async () => {
+    if (!selectedConv?._id) return;
+    setShowDuelModal(true);
+    setDuelLoading(true);
+    try {
+      const res = await api.get('/tests?limit=50&sort=popular');
+      setDuelTests(res.data.tests || []);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Не удалось загрузить тесты для дуэли');
+    } finally {
+      setDuelLoading(false);
+    }
+  };
+
+  const startDuel = async (testId) => {
+    if (!selectedConv?._id) return;
+    setDuelLoading(true);
+    try {
+      const res = await api.post('/arena/rooms', {
+        testId,
+        sourceType: 'dm_duel',
+        conversationId: selectedConv._id
+      });
+      setShowDuelModal(false);
+      navigate(`/arena/code/${res.data.room.joinCode}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Не удалось отправить дуэль');
+    } finally {
+      setDuelLoading(false);
+    }
+  };
+
   const timeAgo = (date) => {
     if (!date) return '';
     const d = new Date(date);
@@ -354,6 +389,15 @@ export default function Messages() {
                           </p>
                           <p className="text-[10px] text-gray-400">{other?.email}</p>
                         </div>
+                        <div className="ml-auto">
+                          <button
+                            type="button"
+                            onClick={openDuelModal}
+                            className="inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-600 transition hover:bg-orange-100 dark:border-orange-900/30 dark:bg-orange-900/10 dark:text-orange-300"
+                          >
+                            <Swords size={14} /> Дуэль
+                          </button>
+                        </div>
                       </>
                     );
                   })()}
@@ -391,6 +435,54 @@ export default function Messages() {
           </div>
         </div>
       </main>
+
+      <AnimatePresence>
+        {showDuelModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+            onClick={() => setShowDuelModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              onClick={(event) => event.stopPropagation()}
+              className="w-full max-w-xl rounded-3xl border border-white/60 bg-white/95 p-6 shadow-[0_32px_90px_-46px_rgba(15,23,42,0.65)] dark:border-slate-700 dark:bg-slate-900/92"
+            >
+              <div className="mb-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">DM Duel</p>
+                <h3 className="mt-2 text-2xl font-black text-dark">Выбери тест для дуэли</h3>
+                <p className="mt-2 text-sm text-gray-500">В дуэль можно отправить любой публичный тест или любой свой собственный.</p>
+              </div>
+
+              {duelLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500" />
+                </div>
+              ) : duelTests.length === 0 ? (
+                <p className="text-sm text-gray-400">Нет доступных тестов для дуэли.</p>
+              ) : (
+                <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+                  {duelTests.map((test) => (
+                    <button
+                      key={test._id}
+                      type="button"
+                      onClick={() => startDuel(test._id)}
+                      className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-left transition hover:border-orange-200 hover:bg-orange-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-orange-900/30 dark:hover:bg-orange-900/10"
+                    >
+                      <p className="text-sm font-semibold text-dark">{test.title}</p>
+                      <p className="mt-1 text-xs text-gray-500">{test.questions?.length || 0} вопросов · {test.settings?.isPublic ? 'public' : 'private / ваш тест'}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
