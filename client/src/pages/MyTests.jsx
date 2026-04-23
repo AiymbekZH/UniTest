@@ -169,7 +169,7 @@ export default function MyTests() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="glass-card-solid p-5 flex flex-col sm:flex-row sm:items-center gap-4 group hover:shadow-glass transition-all"
+                className="glass-card-solid p-5 flex flex-col sm:flex-row sm:items-center gap-4 group hover:shadow-sm transition-all"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">

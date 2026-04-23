@@ -1137,7 +1137,7 @@ export default function TakeTest() {
       ? new Date(deadlineError.startDate).toLocaleString()
       : new Date(deadlineError.endDate).toLocaleString();
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 lg:items-start lg:pt-10">
+      <div className="min-h-screen flex items-center justify-center bg-surface p-4 lg:items-start lg:pt-10">
         
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
           className="max-w-sm w-full glass-card p-8 text-center">
@@ -1232,7 +1232,7 @@ export default function TakeTest() {
   // Pre-start screen
   if (!started) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-surface p-4">
         
         <motion.div
           initial={{ opacity: 0, y: 30 }}

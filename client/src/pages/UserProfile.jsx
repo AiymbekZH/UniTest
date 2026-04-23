@@ -22,11 +22,11 @@ function StatCard({ icon: Icon, label, value, tone = 'primary' }) {
   };
 
   return (
-    <div className="glass-card-solid rounded-[1.75rem] p-5">
+    <div className="glass-card-solid rounded-2xl p-5">
       <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneMap[tone] || toneMap.primary}`}>
         <Icon size={20} />
       </div>
-      <p className="mt-4 text-3xl font-black text-dark">{value}</p>
+      <p className="mt-4 text-3xl font-bold text-dark">{value}</p>
       <p className="mt-1 text-sm text-gray-500">{label}</p>
     </div>
   );
@@ -131,29 +131,29 @@ export default function UserProfile() {
       <button
         type="button"
         onClick={() => setFollowListType('followers')}
-        className="rounded-[1.4rem] border border-gray-100 bg-gray-50/80 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+        className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
       >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.followers}</p>
-        <p className="mt-1 text-xl font-black text-dark">{followCounts.followersCount || 0}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.followers}</p>
+        <p className="mt-1 text-xl font-bold text-dark">{followCounts.followersCount || 0}</p>
       </button>
 
       <button
         type="button"
         onClick={() => setFollowListType('following')}
-        className="rounded-[1.4rem] border border-gray-100 bg-gray-50/80 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+        className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
       >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.following}</p>
-        <p className="mt-1 text-xl font-black text-dark">{followCounts.followingCount || 0}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.following}</p>
+        <p className="mt-1 text-xl font-bold text-dark">{followCounts.followingCount || 0}</p>
       </button>
 
-      <div className="rounded-[1.4rem] border border-gray-100 bg-gray-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/70">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.uniqueId}</p>
-        <p className="mt-1 text-xl font-black text-dark">{profile?.uniqueId || 'N/A'}</p>
+      <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/70">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.uniqueId}</p>
+        <p className="mt-1 text-xl font-bold text-dark">{profile?.uniqueId || 'N/A'}</p>
       </div>
 
-      <div className="rounded-[1.4rem] border border-gray-100 bg-gray-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/70">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.publishedTests}</p>
-        <p className="mt-1 text-xl font-black text-dark">{creatorStats?.publicTestsCount || 0}</p>
+      <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/70">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.publishedTests}</p>
+        <p className="mt-1 text-xl font-bold text-dark">{creatorStats?.publicTestsCount || 0}</p>
       </div>
     </div>
   );
@@ -236,45 +236,45 @@ export default function UserProfile() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-            <section className="glass-card-solid rounded-[2rem] p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.creatorStats}</p>
+            <section className="glass-card-solid rounded-2xl p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.creatorStats}</p>
               <div className="mt-5 space-y-4">
-                <div className="flex items-center justify-between rounded-[1.4rem] bg-gray-50/80 px-4 py-4 dark:bg-slate-800/70">
+                <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
                   <div className="flex items-center gap-3">
                     <BarChart3 size={18} className="text-primary-500" />
                     <span className="text-sm text-gray-500">{t('testsCreated')}</span>
                   </div>
-                  <span className="text-lg font-black text-dark">{creatorStats?.testsCreated || 0}</span>
+                  <span className="text-lg font-bold text-dark">{creatorStats?.testsCreated || 0}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-[1.4rem] bg-gray-50/80 px-4 py-4 dark:bg-slate-800/70">
+                <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
                   <div className="flex items-center gap-3">
                     <Users size={18} className="text-emerald-500" />
                     <span className="text-sm text-gray-500">{copy.publicPlays}</span>
                   </div>
-                  <span className="text-lg font-black text-dark">{creatorStats?.publicPlays || 0}</span>
+                  <span className="text-lg font-bold text-dark">{creatorStats?.publicPlays || 0}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-[1.4rem] bg-gray-50/80 px-4 py-4 dark:bg-slate-800/70">
+                <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
                   <div className="flex items-center gap-3">
                     <Star size={18} className="text-amber-500" />
                     <span className="text-sm text-gray-500">{copy.publicRating}</span>
                   </div>
-                  <span className="text-lg font-black text-dark">{creatorStats?.publicAverageRating || 0}</span>
+                  <span className="text-lg font-bold text-dark">{creatorStats?.publicAverageRating || 0}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-[1.4rem] bg-gray-50/80 px-4 py-4 dark:bg-slate-800/70">
+                <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
                   <div className="flex items-center gap-3">
                     <Trophy size={18} className="text-blue-500" />
                     <span className="text-sm text-gray-500">{t('avgScore')}</span>
                   </div>
-                  <span className="text-lg font-black text-dark">{creatorStats?.totalScore || 0}%</span>
+                  <span className="text-lg font-bold text-dark">{creatorStats?.totalScore || 0}%</span>
                 </div>
               </div>
             </section>
 
-            <section className="glass-card-solid rounded-[2rem] p-6">
+            <section className="glass-card-solid rounded-2xl p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.publicProgress}</p>
-                  <h2 className="mt-2 text-2xl font-black text-dark">{formattedBadges.length}</h2>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.publicProgress}</p>
+                  <h2 className="mt-2 text-2xl font-bold text-dark">{formattedBadges.length}</h2>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300">
                   <Sparkles size={18} />
@@ -299,11 +299,11 @@ export default function UserProfile() {
             </section>
           </div>
 
-          <section className="glass-card-solid rounded-[2rem] p-6">
+          <section className="glass-card-solid rounded-2xl p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.creatorPortfolio}</p>
-                <h2 className="mt-2 text-2xl font-black text-dark">{copy.publicTests}</h2>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.creatorPortfolio}</p>
+                <h2 className="mt-2 text-2xl font-bold text-dark">{copy.publicTests}</h2>
               </div>
               <div className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 dark:border-slate-700 dark:text-slate-200">
                 {publicTests.length}
@@ -318,7 +318,7 @@ export default function UserProfile() {
                   <Link
                     key={test._id}
                     to={`/test-profile/${test.shareLink}`}
-                    className="rounded-[1.6rem] border border-gray-100 bg-gray-50/80 p-4 transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+                    className="rounded-xl border border-gray-100 bg-gray-50 p-4 transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
                   >
                     <p className="line-clamp-1 text-base font-semibold text-dark">{test.title}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500">
@@ -367,7 +367,7 @@ export default function UserProfile() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 18 }}
               onClick={(event) => event.stopPropagation()}
-              className="relative w-full max-w-md rounded-[2rem] border border-white/70 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+              className="relative w-full max-w-md rounded-2xl border border-white/70 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-900/20 dark:text-orange-300">

@@ -450,11 +450,11 @@ export default function Messages() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 10 }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-xl rounded-3xl border border-white/60 bg-white/95 p-6 shadow-[0_32px_90px_-46px_rgba(15,23,42,0.65)] dark:border-slate-700 dark:bg-slate-900/92"
+              className="w-full max-w-xl rounded-2xl border border-gray-100 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="mb-5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">DM Duel</p>
-                <h3 className="mt-2 text-2xl font-black text-dark">Выбери тест для дуэли</h3>
+                <h3 className="mt-2 text-2xl font-bold text-dark">Выбери тест для дуэли</h3>
                 <p className="mt-2 text-sm text-gray-500">В дуэль можно отправить любой публичный тест или любой свой собственный.</p>
               </div>
 

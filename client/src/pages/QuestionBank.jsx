@@ -199,7 +199,7 @@ export default function QuestionBank() {
                   return (
                     <motion.div key={q._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
-                      className={`glass-card-solid p-4 flex items-start gap-3 hover:shadow-lg transition-all
+                      className={`glass-card-solid p-4 flex items-start gap-3 hover:shadow-sm transition-all
                         ${selected.has(q._id) ? 'ring-2 ring-primary-500/30' : ''}`}>
                       <button onClick={() => toggleSelect(q._id)}
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 mt-0.5

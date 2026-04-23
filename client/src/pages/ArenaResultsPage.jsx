@@ -56,44 +56,44 @@ export default function ArenaResultsPage() {
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/60 bg-white/90 text-gray-500 shadow-sm transition hover:text-dark dark:border-slate-700 dark:bg-slate-900/80 dark:text-gray-300"
+              className="icon-btn"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={16} />
             </button>
             <BrandLogo />
           </div>
           <Link
             to={room.joinCode ? `/arena/code/${room.joinCode}` : '/dashboard'}
-            className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-dark transition hover:border-orange-200 hover:bg-orange-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            className="btn-secondary text-sm"
           >
             Открыть комнату
           </Link>
         </div>
 
-        <div className="rounded-[2rem] border border-white/60 bg-white/92 p-6 shadow-[0_32px_90px_-46px_rgba(15,23,42,0.6)] dark:border-slate-700 dark:bg-slate-900/88">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">Arena Results</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-dark">{room.title}</h1>
-          <p className="mt-2 text-sm text-gray-500">Финальный рейтинг, очки и начисленный XP для зарегистрированных участников.</p>
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">Arena Results</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-dark">{room.title}</h1>
+          <p className="mt-1.5 text-sm text-gray-400">Финальный рейтинг, очки и начисленный XP для зарегистрированных участников.</p>
         </div>
 
         <div className="mt-6">
           <ArenaStandings participants={standings} title="Финальный подиум" />
         </div>
 
-        <div className="mt-6 rounded-3xl border border-white/60 bg-white/90 p-5 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/85">
-          <h3 className="text-lg font-semibold text-dark">Награды</h3>
+        <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+          <h3 className="text-base font-semibold text-dark">Награды</h3>
           <div className="mt-4 space-y-2">
             {results.map((result) => (
-              <div key={result._id} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
+              <div key={result._id} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-slate-700/50">
                 <div>
                   <p className="text-sm font-semibold text-dark">
                     {result.user ? `${result.user.firstName} ${result.user.lastName}` : result.guestName}
                   </p>
-                  <p className="text-[11px] text-gray-500">Место #{result.placement} · {result.score} очков</p>
+                  <p className="text-[11px] text-gray-400">Место #{result.placement} · {result.score} очков</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-black text-orange-500">+{result.xpAwarded || 0} XP</p>
-                  <p className="text-[11px] text-gray-400">{(result.badgesAwarded || []).join(', ') || 'без новых бейджей'}</p>
+                  <p className="text-base font-bold text-primary-500">+{result.xpAwarded || 0} XP</p>
+                  <p className="text-[10px] text-gray-300">{(result.badgesAwarded || []).join(', ') || 'без новых бейджей'}</p>
                 </div>
               </div>
             ))}

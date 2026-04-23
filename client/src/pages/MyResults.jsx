@@ -106,7 +106,7 @@ export default function MyResults() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => navigate(`/result/${result._id}`)}
-                className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer hover:shadow-glass transition-all"
+                className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer hover:shadow-sm transition-all"
               >
                 {/* Percentage circle */}
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-lg flex-shrink-0 ${

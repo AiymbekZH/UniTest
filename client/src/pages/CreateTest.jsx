@@ -1796,7 +1796,7 @@ export default function CreateTest() {
 
                   <div className="hidden space-y-3 md:block">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
                         Dashboard Preview
                       </p>
                       <p className="mt-1 text-[11px] text-gray-400">
@@ -1934,7 +1934,7 @@ export default function CreateTest() {
               <div className="glass-card-solid p-3 sm:p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500 dark:text-indigo-300">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-300">
                       {t('aiTranslationSelectionTitle') || 'AI translation selection'}
                     </p>
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
@@ -2166,7 +2166,7 @@ export default function CreateTest() {
                                   {isOpen && (
                                     <div className="px-3 pb-3 space-y-3 border-t border-gray-100 dark:border-slate-700/80">
                                       <div className="pt-2">
-                                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                           Вопрос
                                         </p>
                                         <div onClick={e => e.stopPropagation()}>
@@ -2184,7 +2184,7 @@ export default function CreateTest() {
 
                                       {question.options?.length > 0 && (
                                         <div className="space-y-2">
-                                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                             Варианты ответа
                                           </p>
                                           {question.options.map((opt, oi) => (
@@ -2208,7 +2208,7 @@ export default function CreateTest() {
 
                                       {showMatchingPairs && (
                                         <div className="space-y-2">
-                                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                             Правая часть сопоставления
                                           </p>
                                           {question.options.map((opt, oi) => (
@@ -2232,7 +2232,7 @@ export default function CreateTest() {
 
                                       {showPassageField && (
                                         <div>
-                                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                             Passage
                                           </p>
                                           <div onClick={e => e.stopPropagation()}>
@@ -2253,7 +2253,7 @@ export default function CreateTest() {
 
                                       {showCorrectAnswerField && (
                                         <div>
-                                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                             Правильный ответ
                                           </p>
                                           <input
@@ -2268,7 +2268,7 @@ export default function CreateTest() {
 
                                       {showExplanationField && (
                                         <div>
-                                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                             Пояснение
                                           </p>
                                           <div onClick={e => e.stopPropagation()}>
@@ -2569,7 +2569,7 @@ export default function CreateTest() {
             >
               <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 dark:border-slate-800 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6 sm:py-5">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-500">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-primary-500">
                     Cover Editor
                   </p>
                   <h3 className="mt-1 text-lg font-bold text-dark sm:text-xl">Подгони баннер под карточку</h3>
@@ -2662,7 +2662,7 @@ export default function CreateTest() {
 
                   <div className="space-y-4">
                     <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
                       Live Preview
                     </p>
                     <h4 className="mt-1 text-sm font-semibold text-dark">Как это увидят в Dashboard</h4>

@@ -192,7 +192,7 @@ export default function TestProfile() {
               animate={{ opacity: 1, y: 0 }}
               className="glass-card-solid p-6 sm:p-8"
             >
-              <div className="mb-6 overflow-hidden rounded-[28px] border border-white/70 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.4)] dark:border-slate-700/70">
+              <div className="mb-6 overflow-hidden rounded-2xl border border-white/70 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.4)] dark:border-slate-700/70">
                 <TestCoverArtwork
                   coverImage={test.coverImage}
                   title={test.title}
@@ -204,20 +204,20 @@ export default function TestProfile() {
 
               <div className="flex items-center gap-2 mb-4 flex-wrap">
                 {test.settings?.isPublic ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"><Eye size={10} /> {t('publicTest')}</span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"><Eye size={10} /> {t('publicTest')}</span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"><EyeOff size={10} /> {t('privateTest')}</span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"><EyeOff size={10} /> {t('privateTest')}</span>
                 )}
                 {test.settings?.antiCheat?.blockTabSwitch && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"><Shield size={10} /> Anti-cheat</span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"><Shield size={10} /> Anti-cheat</span>
                 )}
                 {test.settings?.startDate && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
                     <Clock size={9} /> {t('from') || '\u0441'} {new Date(test.settings.startDate).toLocaleDateString()}
                   </span>
                 )}
                 {test.settings?.endDate && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400">
                     <Clock size={9} /> {t('until') || '\u0434\u043e'} {new Date(test.settings.endDate).toLocaleDateString()}
                   </span>
                 )}
@@ -233,7 +233,7 @@ export default function TestProfile() {
               {test.tags?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   {test.tags.map((tag, i) => (
-                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100/80 dark:bg-slate-700 rounded-full text-xs font-medium text-gray-500 dark:text-gray-300">
+                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-slate-700 rounded-full text-xs font-medium text-gray-500 dark:text-gray-300">
                       <Tag size={10} /> {tag}
                     </span>
                   ))}
@@ -242,23 +242,23 @@ export default function TestProfile() {
 
               {/* Stats grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                <div className="bg-blue-50/80 dark:bg-blue-900/20 rounded-xl p-4 text-center">
-                  <div className="w-8 h-8 rounded-[10px] bg-blue-100 dark:bg-blue-800/40 text-primary-600 mx-auto mb-2 flex items-center justify-center"><BarChart3 size={16} /></div>
+                <div className="bg-blue-50/80 dark:bg-blue-900/20 rounded-2xl p-4 text-center">
+                  <div className="w-8 h-8 rounded-2xl bg-blue-100 dark:bg-blue-800/40 text-primary-600 mx-auto mb-2 flex items-center justify-center"><BarChart3 size={16} /></div>
                   <p className="text-[22px] font-bold text-primary-600 tracking-tight">{test.questions?.length || 0}</p>
                   <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('questions')}</p>
                 </div>
-                <div className="bg-amber-50/80 dark:bg-amber-900/20 rounded-xl p-4 text-center">
-                  <div className="w-8 h-8 rounded-[10px] bg-amber-100 dark:bg-amber-800/40 text-amber-600 mx-auto mb-2 flex items-center justify-center"><Clock size={16} /></div>
+                <div className="bg-amber-50/80 dark:bg-amber-900/20 rounded-2xl p-4 text-center">
+                  <div className="w-8 h-8 rounded-2xl bg-amber-100 dark:bg-amber-800/40 text-amber-600 mx-auto mb-2 flex items-center justify-center"><Clock size={16} /></div>
                   <p className="text-[22px] font-bold text-amber-600 tracking-tight">{test.settings?.timeLimit || '∞'}</p>
                   <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('min')}</p>
                 </div>
-                <div className="bg-emerald-50/80 dark:bg-emerald-900/20 rounded-xl p-4 text-center">
-                  <div className="w-8 h-8 rounded-[10px] bg-emerald-100 dark:bg-emerald-800/40 text-emerald-600 mx-auto mb-2 flex items-center justify-center"><Users size={16} /></div>
+                <div className="bg-emerald-50/80 dark:bg-emerald-900/20 rounded-2xl p-4 text-center">
+                  <div className="w-8 h-8 rounded-2xl bg-emerald-100 dark:bg-emerald-800/40 text-emerald-600 mx-auto mb-2 flex items-center justify-center"><Users size={16} /></div>
                   <p className="text-[22px] font-bold text-emerald-600 tracking-tight">{test.attemptCount || 0}</p>
                   <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('totalParticipants')}</p>
                 </div>
-                <div className="bg-purple-50/80 dark:bg-purple-900/20 rounded-xl p-4 text-center">
-                  <div className="w-8 h-8 rounded-[10px] bg-purple-100 dark:bg-purple-800/40 text-purple-600 mx-auto mb-2 flex items-center justify-center"><Star size={16} /></div>
+                <div className="bg-purple-50/80 dark:bg-purple-900/20 rounded-2xl p-4 text-center">
+                  <div className="w-8 h-8 rounded-2xl bg-purple-100 dark:bg-purple-800/40 text-purple-600 mx-auto mb-2 flex items-center justify-center"><Star size={16} /></div>
                   <p className="text-[22px] font-bold text-purple-600 tracking-tight">{test.rating?.toFixed(1) || '—'}</p>
                   <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('rating')}</p>
                   <p className="mt-1 text-[10px] text-gray-400">{test.ratingCount || 0} оценок</p>
@@ -275,7 +275,7 @@ export default function TestProfile() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-black text-slate-700 dark:text-slate-200 leading-none flex items-baseline justify-end gap-1">
+                    <div className="text-xl font-bold text-slate-700 dark:text-slate-200 leading-none flex items-baseline justify-end gap-1">
                       {test.difficultyScore ? test.difficultyScore.toFixed(1) : '0.0'}
                       <span className="text-xs font-bold text-gray-400">/ 5</span>
                     </div>
@@ -302,11 +302,11 @@ export default function TestProfile() {
                   })}
                 </div>
                 <div className="flex justify-between mt-2 px-0.5">
-                  <span className="text-[9px] font-medium text-emerald-500 uppercase tracking-widest text-left leading-none" style={{width: '20%'}}>Очень<br/>легко</span>
-                  <span className="text-[9px] font-medium text-lime-500 uppercase tracking-widest text-center leading-none" style={{width: '20%'}}>Легко</span>
-                  <span className="text-[9px] font-medium text-amber-500 uppercase tracking-widest text-center leading-none" style={{width: '20%'}}>Средняя</span>
-                  <span className="text-[9px] font-medium text-orange-500 uppercase tracking-widest text-center leading-none" style={{width: '20%'}}>Сложная</span>
-                  <span className="text-[9px] font-medium text-red-500 uppercase tracking-widest text-right leading-none" style={{width: '20%'}}>Очень<br/>сложная</span>
+                  <span className="text-[9px] font-medium text-emerald-500 uppercase tracking-wider text-left leading-none" style={{width: '20%'}}>Очень<br/>легко</span>
+                  <span className="text-[9px] font-medium text-lime-500 uppercase tracking-wider text-center leading-none" style={{width: '20%'}}>Легко</span>
+                  <span className="text-[9px] font-medium text-amber-500 uppercase tracking-wider text-center leading-none" style={{width: '20%'}}>Средняя</span>
+                  <span className="text-[9px] font-medium text-orange-500 uppercase tracking-wider text-center leading-none" style={{width: '20%'}}>Сложная</span>
+                  <span className="text-[9px] font-medium text-red-500 uppercase tracking-wider text-right leading-none" style={{width: '20%'}}>Очень<br/>сложная</span>
                 </div>
               </div>
 
@@ -316,7 +316,7 @@ export default function TestProfile() {
                   <h3 className="text-sm font-semibold text-dark mb-2">{t('questionTypes')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(questionTypes).map(([type, count]) => (
-                      <span key={type} className="px-3.5 py-1.5 bg-gray-100/80 dark:bg-slate-700 border border-gray-200/60 dark:border-slate-600 rounded-full text-xs font-medium text-gray-500 dark:text-gray-300">
+                      <span key={type} className="px-3.5 py-1.5 bg-gray-50 dark:bg-slate-700 border border-gray-200/60 dark:border-slate-600 rounded-full text-xs font-medium text-gray-500 dark:text-gray-300">
                         {getQuestionTypeLabel(type)}: {count}
                       </span>
                     ))}

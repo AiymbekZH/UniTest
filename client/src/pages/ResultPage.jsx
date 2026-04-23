@@ -291,7 +291,7 @@ export default function ResultPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-8">
+    <div className="min-h-screen bg-surface p-4 sm:p-8">
       
 
       <div className="max-w-4xl mx-auto">
@@ -377,7 +377,7 @@ export default function ResultPage() {
             >
               <button
                 onClick={downloadCertificate}
-                className="flex items-center justify-center gap-2 mx-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-primary-500 to-orange-500 text-white text-sm font-medium hover:from-primary-600 hover:to-orange-600 transition-all shadow-lg shadow-primary-500/20"
+                className="btn-primary inline-flex items-center gap-2 mx-auto text-sm"
               >
                 <Download size={16} /> Скачать сертификат
               </button>
