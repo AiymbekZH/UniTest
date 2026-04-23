@@ -33,8 +33,7 @@ import Navbar from '../components/Navbar';
 import Pagination from '../components/Pagination';
 import ConfirmDialog from '../components/ConfirmDialog';
 import TestCoverArtwork from '../components/TestCoverArtwork';
-import AnimatedIcon from '../components/AnimatedIcon';
-import BrandLogo from '../components/BrandLogo';
+// (AnimatedIcon / BrandLogo removed — using raw Lucide icons for minimalism)
 
 const ACTIVE_SESSION_TTL_MS = 5 * 60 * 1000;
 const DASHBOARD_TAB_KEY = 'unitest_dashboard_tab';
@@ -441,39 +440,38 @@ function DashboardTabButton({ label, tabKey, active, onClick }) {
     <button
       type="button"
       onClick={() => onClick(tabKey)}
-      className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+      className={`relative inline-flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors ${
         active
-          ? 'bg-white text-dark shadow-sm dark:bg-slate-700 dark:text-white'
-          : 'text-gray-500 hover:text-dark dark:text-gray-400 dark:hover:text-gray-100'
+          ? 'text-dark dark:text-white'
+          : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
       }`}
     >
-      <AnimatedIcon
-        icon={Icon}
-        size={15}
-        active={active}
-        preset={active ? 'soft-pulse' : ''}
-        className={active ? 'text-primary-500 dark:text-primary-300' : 'text-gray-400'}
-      />
+      <Icon size={14} className={active ? 'text-primary-500' : ''} />
       {label}
+      {active && (
+        <motion.div
+          layoutId="dashboard-tab-ink"
+          className="absolute inset-x-1 -bottom-px h-[2px] rounded-full bg-primary-500"
+          transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+        />
+      )}
     </button>
   );
 }
 
 function SummaryMetric({ icon: Icon, label, value, tone = 'primary' }) {
-  const toneMap = {
-    primary: 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300',
-    amber: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300',
-    emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300',
-    blue: 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
+  const toneColors = {
+    primary: 'text-primary-500',
+    amber: 'text-amber-500',
+    emerald: 'text-emerald-500',
+    blue: 'text-primary-500'
   };
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/60">
-      <div className={`inline-flex rounded-2xl p-3 ${toneMap[tone] || toneMap.primary}`}>
-        <AnimatedIcon icon={Icon} size={18} className="text-current" />
-      </div>
-      <p className="mt-4 text-2xl font-black text-dark">{value}</p>
-      <p className="mt-1 text-sm text-gray-500">{label}</p>
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800/80">
+      <Icon size={16} className={`mb-3 ${toneColors[tone] || toneColors.primary}`} />
+      <p className="text-2xl font-bold tracking-tight text-dark">{value}</p>
+      <p className="mt-0.5 text-xs text-gray-400">{label}</p>
     </div>
   );
 }
@@ -676,271 +674,201 @@ export default function Dashboard() {
   const dailyCountdownLabel = dailyCountdownMs === 0 ? copy.resetNow : formatCountdown(dailyCountdownMs || 0);
 
   const homeCards = isAuthenticated ? (
-    <div className="grid items-start gap-5 xl:grid-cols-[1.08fr_0.92fr]">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card-solid self-start p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
-              {continueSession ? copy.continueTitle : copy.latestResultTitle}
-            </p>
-            <h3 className="mt-2 text-lg font-semibold text-dark">
-              {continueSession?.testTitle || recentResult?.test?.title || copy.noRecentActivity}
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {continueSession
-                ? copy.resumeAt.replace('{{current}}', String((continueSession.currentQ || 0) + 1)).replace('{{total}}', String(continueSession.questionCount || 0))
-                : recentResult
-                  ? copy.latestResultDesc
-                  : copy.noRecentActivityDesc}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-primary-50 p-3 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300">
-            <AnimatedIcon
-              icon={continueSession ? Clock3 : Target}
-              size={22}
-              preset={continueSession ? 'attention-wiggle' : 'soft-pulse'}
-              active
-              hover={false}
-            />
-          </div>
-        </div>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-4 lg:grid-cols-3">
+      {/* Main card — continue session or latest result */}
+      <div className="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
+          {continueSession ? copy.continueTitle : copy.latestResultTitle}
+        </p>
+        <h3 className="mt-3 text-lg font-semibold text-dark">
+          {continueSession?.testTitle || recentResult?.test?.title || copy.noRecentActivity}
+        </h3>
+        <p className="mt-1 text-sm text-gray-400">
+          {continueSession
+            ? copy.resumeAt.replace('{{current}}', String((continueSession.currentQ || 0) + 1)).replace('{{total}}', String(continueSession.questionCount || 0))
+            : recentResult
+              ? copy.latestResultDesc
+              : copy.noRecentActivityDesc}
+        </p>
 
         {continueSession ? (
           <>
-            <div className="mt-4 rounded-2xl border border-primary-100 bg-primary-50/80 p-4 dark:border-primary-900/40 dark:bg-primary-900/10">
-              <div className="flex items-center justify-between text-xs text-primary-600 dark:text-primary-300">
-                <span>{copy.answeredNow.replace('{{count}}', String(continueSession.answeredCount || 0))}</span>
-                <span>{new Date(continueSession.updatedAt).toLocaleTimeString()}</span>
-              </div>
-              <div className="mt-3 h-2 rounded-full bg-white/80 dark:bg-slate-800">
-                <div
-                  className="h-full rounded-full bg-primary-500"
-                  style={{ width: `${continueSession.questionCount ? Math.min(100, Math.round(((continueSession.answeredCount || 0) / continueSession.questionCount) * 100)) : 0}%` }}
-                />
-              </div>
+            <div className="mt-5 flex items-center justify-between text-xs text-gray-400">
+              <span>{copy.answeredNow.replace('{{count}}', String(continueSession.answeredCount || 0))}</span>
+              <span>{new Date(continueSession.updatedAt).toLocaleTimeString()}</span>
+            </div>
+            <div className="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-slate-700">
+              <div
+                className="h-full rounded-full bg-primary-500 transition-all"
+                style={{ width: `${continueSession.questionCount ? Math.min(100, Math.round(((continueSession.answeredCount || 0) / continueSession.questionCount) * 100)) : 0}%` }}
+              />
             </div>
             <button
               type="button"
               onClick={() => navigate(`/test/${continueSession.shareLink}`)}
-              className="btn-primary mt-4 inline-flex items-center gap-2"
+              className="btn-primary mt-5 inline-flex items-center gap-2 text-sm"
             >
               {copy.continueButton}
-              <AnimatedIcon icon={ArrowRight} size={16} className="text-white" />
+              <ArrowRight size={14} />
             </button>
           </>
         ) : recentResult ? (
           <>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              <div className="rounded-2xl bg-emerald-50 p-3 text-center dark:bg-emerald-900/15">
-                <p className="text-xl font-bold text-emerald-600">{recentResult.percentage}%</p>
-                <p className="text-[11px] text-emerald-500">{copy.scoreLabel}</p>
+            <div className="mt-5 flex gap-3">
+              <div className="flex-1 rounded-xl bg-gray-50 p-3 text-center dark:bg-slate-700/50">
+                <p className="text-lg font-bold text-emerald-600">{recentResult.percentage}%</p>
+                <p className="text-[10px] text-gray-400">{copy.scoreLabel}</p>
               </div>
-              <div className="rounded-2xl bg-primary-50 p-3 text-center dark:bg-primary-900/15">
-                <p className="text-xl font-bold text-primary-600">{recentResult.answers?.length || 0}</p>
-                <p className="text-[11px] text-primary-500">{copy.questionsLabel}</p>
+              <div className="flex-1 rounded-xl bg-gray-50 p-3 text-center dark:bg-slate-700/50">
+                <p className="text-lg font-bold text-dark">{recentResult.answers?.length || 0}</p>
+                <p className="text-[10px] text-gray-400">{copy.questionsLabel}</p>
               </div>
-              <div className="rounded-2xl bg-amber-50 p-3 text-center dark:bg-amber-900/15">
-                <p className="text-xl font-bold text-amber-600">{recentResult.timeSpent || 0}s</p>
-                <p className="text-[11px] text-amber-500">{copy.timeLabel}</p>
+              <div className="flex-1 rounded-xl bg-gray-50 p-3 text-center dark:bg-slate-700/50">
+                <p className="text-lg font-bold text-dark">{recentResult.timeSpent || 0}s</p>
+                <p className="text-[10px] text-gray-400">{copy.timeLabel}</p>
               </div>
             </div>
-            <button type="button" onClick={() => navigate(`/result/${recentResult._id}`)} className="btn-secondary mt-4 inline-flex items-center gap-2">
+            <button type="button" onClick={() => navigate(`/result/${recentResult._id}`)} className="btn-secondary mt-5 inline-flex items-center gap-2 text-sm">
               {copy.openResult}
-              <AnimatedIcon icon={ArrowRight} size={16} />
+              <ArrowRight size={14} />
             </button>
           </>
         ) : (
-          <button type="button" onClick={() => navigate('/my-tests')} className="btn-secondary mt-4 inline-flex items-center gap-2">
+          <button type="button" onClick={() => navigate('/my-tests')} className="btn-secondary mt-5 inline-flex items-center gap-2 text-sm">
             {copy.createFirstChallenge}
-            <AnimatedIcon icon={ArrowRight} size={16} />
+            <ArrowRight size={14} />
           </button>
         )}
-      </motion.div>
+      </div>
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="glass-card-solid self-start p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.quickChallengeTitle}</p>
-            <h3 className="mt-2 text-lg font-semibold text-dark">{dailyChallenge?.test?.title || copy.exploreTests}</h3>
-            <p className="mt-1 text-sm text-gray-500">{copy.quickChallengeDesc}</p>
+      {/* Right column */}
+      <div className="flex flex-col gap-4">
+        {/* Daily challenge mini */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
+            <CalendarDays size={12} />
+            {copy.quickChallengeTitle}
           </div>
-          <div className="rounded-2xl bg-amber-50 p-3 text-amber-500 dark:bg-amber-900/20 dark:text-amber-300">
-            <AnimatedIcon
-              icon={CalendarDays}
-              size={22}
-              active={Boolean(dailyChallenge?.test && !dailyChallenge?.completed)}
-              preset="countdown-pulse"
-              hover={false}
-            />
-          </div>
-        </div>
+          <h4 className="mt-2.5 text-sm font-semibold text-dark line-clamp-1">{dailyChallenge?.test?.title || copy.exploreTests}</h4>
 
-        {dailyChallenge?.test ? (
-          <>
-            <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50/80 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-dark">{copy.rewardXp.replace('{{xp}}', String(dailyChallenge.rewardXp || 40))}</p>
-                  <p className="text-xs text-gray-500">
-                    {dailyChallenge.rewardClaimed
-                      ? copy.rewardCollected
-                      : dailyChallenge.rewardReady
-                        ? copy.rewardReady
-                        : dailyChallenge.completed
-                          ? copy.completedToday
-                          : copy.challengeReadyState}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-300">{copy.resetIn}</p>
-                  <p className="mt-1 font-mono text-lg font-bold text-dark">{dailyCountdownLabel}</p>
-                </div>
+          {dailyChallenge?.test ? (
+            <>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span className="font-medium text-primary-500">{copy.rewardXp.replace('{{xp}}', String(dailyChallenge.rewardXp || 40))}</span>
+                <span className="font-mono text-gray-400">{dailyCountdownLabel}</span>
               </div>
-            </div>
-
-            <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <button
                 type="button"
                 onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)}
-                className="btn-primary inline-flex w-full items-center justify-center gap-2 sm:w-auto"
+                className="mt-3.5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gray-50 py-2 text-xs font-medium text-dark transition hover:bg-gray-100 dark:bg-slate-700 dark:hover:bg-slate-600"
               >
-                <AnimatedIcon icon={Play} size={14} className="text-white" />
+                <Play size={12} />
                 {copy.startChallenge}
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('challenges')}
-                className="btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto"
-              >
-                {copy.openChallenges}
-                <AnimatedIcon icon={ArrowRight} size={16} />
-              </button>
-            </div>
-          </>
-        ) : (
-          <p className="mt-4 text-sm text-gray-500">{copy.noDailyChallenge}</p>
-        )}
-      </motion.div>
+            </>
+          ) : (
+            <p className="mt-2 text-xs text-gray-400">{copy.noDailyChallenge}</p>
+          )}
+        </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="glass-card-solid self-start p-5 xl:col-span-2"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.quickStats}</p>
-            <h3 className="mt-2 text-lg font-semibold text-dark">{copy.keepMomentum}</h3>
-            <p className="mt-1 text-sm text-gray-500">{copy.progressDesc}</p>
-          </div>
-          <div className="rounded-2xl bg-primary-50 p-3 text-primary-500 dark:bg-primary-900/20 dark:text-primary-300">
-            <AnimatedIcon icon={Sparkles} size={22} active preset="orbit-drift" hover={false} />
+        {/* Quick stats */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">{copy.quickStats}</p>
+          <div className="mt-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-500"><Trophy size={14} className="text-primary-500" /> XP</div>
+              <span className="text-sm font-bold text-dark">{progressData?.progress?.xp || 0}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-500"><Flame size={14} className="text-amber-500" /> {copy.currentStreak}</div>
+              <span className="text-sm font-bold text-dark">{progressData?.progress?.currentStreakDays || 0}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-500"><Crown size={14} className="text-primary-500" /> {copy.levelShort}</div>
+              <span className="text-sm font-bold text-dark">{progressData?.progress?.level || 1}</span>
+            </div>
           </div>
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <SummaryMetric icon={Trophy} label="XP" value={progressData?.progress?.xp || 0} tone="blue" />
-          <SummaryMetric icon={Flame} label={copy.currentStreak} value={progressData?.progress?.currentStreakDays || 0} tone="amber" />
-          <SummaryMetric icon={Crown} label={copy.levelShort} value={progressData?.progress?.level || 1} tone="primary" />
-        </div>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   ) : null;
 
   const challengeCards = isAuthenticated ? (
-    <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card-solid p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.dailyChallenge}</p>
-            <h3 className="mt-2 text-lg font-semibold text-dark">{dailyChallenge?.test?.title || copy.exploreTests}</h3>
-            <p className="mt-1 text-sm text-gray-500">{copy.dailyChallengeDesc}</p>
-          </div>
-          <div className="rounded-2xl bg-amber-50 p-3 text-amber-500 dark:bg-amber-900/20 dark:text-amber-300">
-            <AnimatedIcon
-              icon={CalendarDays}
-              size={22}
-              active={Boolean(dailyChallenge?.test && !dailyChallenge?.completed)}
-              preset="countdown-pulse"
-              hover={false}
-            />
-          </div>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-4 lg:grid-cols-2">
+      {/* Daily challenge */}
+      <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
+          <CalendarDays size={12} />
+          {copy.dailyChallenge}
         </div>
+        <h3 className="mt-3 text-lg font-semibold text-dark">{dailyChallenge?.test?.title || copy.exploreTests}</h3>
+        <p className="mt-1 text-sm text-gray-400">{copy.dailyChallengeDesc}</p>
+
         {dailyChallenge?.test ? (
           <>
-            <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50/80 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-dark">{copy.rewardXp.replace('{{xp}}', String(dailyChallenge.rewardXp || 40))}</p>
-                  <p className="text-xs text-gray-500">
-                    {dailyChallenge.rewardClaimed
-                      ? copy.rewardCollected
-                      : dailyChallenge.rewardReady
-                        ? copy.rewardReady
-                        : dailyChallenge.completed
-                          ? copy.completedToday
-                          : copy.availableToday}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-300">{copy.resetIn}</p>
-                  <p className="mt-1 font-mono text-xl font-bold text-dark">{dailyCountdownLabel}</p>
-                </div>
+            <div className="mt-5 flex items-center justify-between rounded-xl bg-gray-50 p-4 dark:bg-slate-700/50">
+              <div>
+                <p className="text-sm font-semibold text-dark">{copy.rewardXp.replace('{{xp}}', String(dailyChallenge.rewardXp || 40))}</p>
+                <p className="text-xs text-gray-400">
+                  {dailyChallenge.rewardClaimed
+                    ? copy.rewardCollected
+                    : dailyChallenge.rewardReady
+                      ? copy.rewardReady
+                      : dailyChallenge.completed
+                        ? copy.completedToday
+                        : copy.availableToday}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{copy.resetIn}</p>
+                <p className="mt-0.5 font-mono text-lg font-bold text-dark">{dailyCountdownLabel}</p>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="mt-5 flex flex-wrap gap-2.5">
               {dailyChallenge.completed ? (
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
                   {dailyChallenge.rewardClaimed ? copy.doneLabel : copy.rewardReady}
                 </span>
               ) : (
-                <button type="button" onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)} className="btn-primary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
-                  <AnimatedIcon icon={Play} size={14} className="text-white" />
+                <button type="button" onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)} className="btn-primary inline-flex items-center gap-2 text-sm">
+                  <Play size={13} />
                   {copy.startChallenge}
                 </button>
               )}
-              <button type="button" onClick={() => navigate(`/test-profile/${dailyChallenge.test.shareLink}`)} className="btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
+              <button type="button" onClick={() => navigate(`/test-profile/${dailyChallenge.test.shareLink}`)} className="btn-secondary inline-flex items-center gap-2 text-sm">
                 {copy.exploreTests}
-                <AnimatedIcon icon={ArrowRight} size={16} />
+                <ArrowRight size={14} />
               </button>
             </div>
           </>
         ) : (
-          <p className="mt-4 text-sm text-gray-500">{copy.noDailyChallenge}</p>
+          <p className="mt-4 text-sm text-gray-400">{copy.noDailyChallenge}</p>
         )}
-      </motion.div>
+      </div>
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="glass-card-solid p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.weeklySprint}</p>
-            <h3 className="mt-2 text-lg font-semibold text-dark">
-              {copy.sprintProgress.replace('{{current}}', String(weeklySprint?.completedCount || 0)).replace('{{goal}}', String(weeklySprint?.goalCount || 3))}
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">{copy.weeklySprintDesc}</p>
-          </div>
-          <div className="rounded-2xl bg-violet-50 p-3 text-violet-500 dark:bg-violet-900/20 dark:text-violet-300">
-            <AnimatedIcon
-              icon={Dumbbell}
-              size={22}
-              active={Boolean(weeklySprint && !weeklySprint.completed)}
-              preset="orbit-drift"
-              hover={false}
-            />
-          </div>
+      {/* Weekly sprint */}
+      <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
+          <Dumbbell size={12} />
+          {copy.weeklySprint}
         </div>
-        <div className="mt-4 h-2 rounded-full bg-gray-100 dark:bg-slate-700">
+        <h3 className="mt-3 text-lg font-semibold text-dark">
+          {copy.sprintProgress.replace('{{current}}', String(weeklySprint?.completedCount || 0)).replace('{{goal}}', String(weeklySprint?.goalCount || 3))}
+        </h3>
+        <p className="mt-1 text-sm text-gray-400">{copy.weeklySprintDesc}</p>
+
+        <div className="mt-5 h-1.5 rounded-full bg-gray-100 dark:bg-slate-700">
           <div
-            className="h-full rounded-full bg-violet-500"
+            className="h-full rounded-full bg-violet-500 transition-all"
             style={{ width: `${Math.min(100, Math.round((((weeklySprint?.completedCount || 0)) / (weeklySprint?.goalCount || 3)) * 100))}%` }}
           />
         </div>
-        <div className="mt-3 flex items-center justify-between gap-3 text-xs">
-          <span className="font-semibold text-violet-600 dark:text-violet-300">
+        <div className="mt-2 flex items-center justify-between text-xs">
+          <span className="font-medium text-violet-500">
             {copy.sprintRewardHint.replace('{{xp}}', String(weeklySprint?.rewardXp || 120))}
           </span>
-          <span className="text-gray-500">
+          <span className="text-gray-400">
             {weeklySprint?.rewardClaimed
               ? copy.rewardCollected
               : weeklySprint?.rewardReady
@@ -948,148 +876,146 @@ export default function Dashboard() {
                 : copy.rewardLocked}
           </span>
         </div>
+
         <div className="mt-4 space-y-2">
           {(weeklySprint?.tests || []).map((test) => (
             <button
               key={test._id}
               type="button"
               onClick={() => navigate(`/test-profile/${test.shareLink}`)}
-              className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
                 weeklyCompletedSet.has(test._id)
-                  ? 'border-emerald-200 bg-emerald-50/80 dark:border-emerald-800 dark:bg-emerald-900/10'
-                  : 'border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 dark:border-slate-700 dark:hover:border-primary-900/50 dark:hover:bg-primary-900/10'
+                  ? 'border-emerald-100 bg-emerald-50/60 dark:border-emerald-800/40 dark:bg-emerald-900/10'
+                  : 'border-gray-100 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-700/50'
               }`}
             >
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary-500 to-sky-500 font-semibold text-white">
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary-500 to-sky-500 text-xs font-semibold text-white">
                 {test.coverImage ? <img src={test.coverImage} alt="" className="h-full w-full object-cover" /> : (test.title?.[0] || 'T').toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-dark">{test.title}</p>
-                <p className="text-xs text-gray-500">{test.totalPoints || 0} pts</p>
+                <p className="truncate text-sm font-medium text-dark">{test.title}</p>
+                <p className="text-[10px] text-gray-400">{test.totalPoints || 0} pts</p>
               </div>
               {weeklyCompletedSet.has(test._id) ? (
-                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
                   {copy.sprintDoneTag}
                 </span>
               ) : (
-                <AnimatedIcon icon={ArrowRight} size={16} className="text-gray-300" />
+                <ArrowRight size={14} className="text-gray-300" />
               )}
             </button>
           ))}
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   ) : null;
 
   const progressCards = isAuthenticated ? (
-    <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card-solid p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.progressTitle}</p>
-            <h3 className="mt-2 text-lg font-semibold text-dark">{copy.progressDesc}</h3>
-          </div>
-          <div className="rounded-2xl bg-primary-50 p-3 text-primary-500 dark:bg-primary-900/20 dark:text-primary-300">
-            <AnimatedIcon icon={Target} size={22} active preset="soft-pulse" hover={false} />
-          </div>
-        </div>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+      {/* Progress detail */}
+      <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">{copy.progressTitle}</p>
+        <h3 className="mt-2 text-lg font-semibold text-dark">{copy.progressDesc}</h3>
 
         {dashboardLoading ? (
-          <div className="mt-4 h-40 animate-pulse rounded-2xl bg-gray-100 dark:bg-slate-700" />
+          <div className="mt-5 h-40 animate-pulse rounded-xl bg-gray-50 dark:bg-slate-700" />
         ) : (
           <>
-            <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/60">
-              <div className="flex items-end justify-between gap-3">
+            {/* Level bar */}
+            <div className="mt-5 rounded-xl bg-gray-50 p-4 dark:bg-slate-700/50">
+              <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-3xl font-black text-dark">{copy.levelShort} {progressData?.progress?.level || 1}</p>
-                  <p className="text-sm text-gray-500">{progressData?.progress?.xp || 0} XP</p>
+                  <p className="text-2xl font-bold tracking-tight text-dark">{copy.levelShort} {progressData?.progress?.level || 1}</p>
+                  <p className="text-xs text-gray-400">{progressData?.progress?.xp || 0} XP</p>
                 </div>
-                <div className="text-right text-sm text-gray-500">
+                <div className="text-right text-xs text-gray-400">
                   <p>{levelMeta?.xpIntoLevel || 0} / {levelMeta?.xpForNextLevel || 100}</p>
                   <p>{levelMeta?.progressPercent || 0}%</p>
                 </div>
               </div>
-              <div className="mt-3 h-2 rounded-full bg-white dark:bg-slate-700">
-                <div className="h-full rounded-full bg-primary-500" style={{ width: `${levelMeta?.progressPercent || 0}%` }} />
+              <div className="mt-3 h-1.5 rounded-full bg-white dark:bg-slate-600">
+                <div className="h-full rounded-full bg-primary-500 transition-all" style={{ width: `${levelMeta?.progressPercent || 0}%` }} />
               </div>
             </div>
 
+            {/* Metrics */}
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <SummaryMetric icon={Flame} label={copy.currentStreak} value={progressData?.progress?.currentStreakDays || 0} tone="amber" />
               <SummaryMetric icon={Medal} label={copy.completedExams} value={progressData?.progress?.stats?.totalCompleted || 0} tone="emerald" />
               <SummaryMetric icon={Crown} label={copy.perfectScores} value={progressData?.progress?.stats?.perfectScores || 0} tone="blue" />
             </div>
 
+            {/* Badges */}
             <div className="mt-5">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-dark">{copy.badgesTitle}</p>
-                <p className="text-xs text-gray-400">{formattedBadges.length}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-dark">{copy.badgesTitle}</p>
+                <p className="text-[10px] text-gray-300">{formattedBadges.length}</p>
               </div>
               {formattedBadges.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {formattedBadges.map((badge) => (
                     <span
                       key={`${badge.key}-${badge.unlockedAt}`}
-                      className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-600 dark:border-primary-900/40 dark:bg-primary-900/10 dark:text-primary-300"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-300"
                     >
-                      <AnimatedIcon icon={Sparkles} size={12} className="text-current" />
+                      <Sparkles size={10} className="text-primary-400" />
                       {badgeLabels[badge.key]?.[lang] || badge.key}
                     </span>
                   ))}
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-gray-500">{copy.firstBadgeHint}</p>
+                <p className="mt-2 text-xs text-gray-400">{copy.firstBadgeHint}</p>
               )}
             </div>
 
+            {/* 7-day activity */}
             <div className="mt-5">
-              <p className="text-sm font-semibold text-dark">{copy.activity7d}</p>
-              <div className="mt-3 grid grid-cols-7 gap-2">
+              <p className="text-xs font-semibold text-dark">{copy.activity7d}</p>
+              <div className="mt-2.5 grid grid-cols-7 gap-1.5">
                 {(progressData?.weeklyActivity || []).map((entry) => (
-                  <div key={entry.dayKey} className="rounded-2xl bg-gray-50 p-3 text-center dark:bg-slate-800/60">
-                    <div
-                      className="mx-auto mb-2 w-6 rounded-full bg-primary-500/90"
-                      style={{ height: `${Math.max(12, Math.min(56, entry.count * 12 || 12))}px` }}
-                    />
-                    <p className="text-[10px] font-semibold text-gray-400">{entry.dayKey.slice(5)}</p>
-                    <p className="text-xs font-semibold text-dark">{entry.count}</p>
+                  <div key={entry.dayKey} className="flex flex-col items-center gap-1">
+                    <div className="flex h-12 w-full items-end justify-center">
+                      <div
+                        className="w-full max-w-[20px] rounded-md bg-primary-400/80 dark:bg-primary-500/70"
+                        style={{ height: `${Math.max(4, Math.min(48, entry.count * 10 || 4))}px` }}
+                      />
+                    </div>
+                    <p className="text-[9px] text-gray-400">{entry.dayKey.slice(5)}</p>
+                    <p className="text-[10px] font-semibold text-dark">{entry.count}</p>
                   </div>
                 ))}
               </div>
             </div>
           </>
         )}
-      </motion.div>
+      </div>
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="glass-card-solid p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.topLearners}</p>
-            <h3 className="mt-2 text-lg font-semibold text-dark">{copy.topLearnersDesc}</h3>
-          </div>
-          <div className="rounded-2xl bg-amber-50 p-3 text-amber-500 dark:bg-amber-900/20 dark:text-amber-300">
-            <AnimatedIcon icon={Trophy} size={22} active preset="trophy-pop" hover={false} />
-          </div>
+      {/* Leaderboard */}
+      <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
+          <Trophy size={12} />
+          {copy.topLearners}
         </div>
+        <h3 className="mt-2 text-sm font-semibold text-dark">{copy.topLearnersDesc}</h3>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-1.5">
           {progressLeaderboard.length > 0 ? progressLeaderboard.slice(0, 5).map((entry) => (
-            <div key={entry.user?._id || entry.rank} className="flex items-center gap-3 rounded-2xl border border-gray-100 px-3 py-3 dark:border-slate-700">
-              <div className={`flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold ${
+            <div key={entry.user?._id || entry.rank} className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition hover:bg-gray-50 dark:hover:bg-slate-700/50">
+              <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
                 entry.rank === 1
-                  ? 'bg-amber-100 text-amber-600'
+                  ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
                   : entry.rank === 2
-                    ? 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300'
+                    ? 'bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-gray-300'
                     : entry.rank === 3
-                      ? 'bg-orange-100 text-orange-600'
-                      : 'bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-gray-300'
+                      ? 'bg-orange-50 text-orange-500 dark:bg-orange-900/30 dark:text-orange-400'
+                      : 'bg-gray-50 text-gray-400 dark:bg-slate-700/50 dark:text-gray-400'
               }`}>
                 {entry.rank}
-              </div>
+              </span>
               <button
                 type="button"
                 onClick={() => entry.user?._id && navigate(`/profile/${entry.user._id}`)}
-                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-primary-100 font-semibold text-primary-600 transition hover:scale-[1.03]"
+                className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg bg-primary-50 text-[10px] font-semibold text-primary-600 transition hover:scale-105 dark:bg-primary-900/30 dark:text-primary-300"
               >
                 {entry.user?.avatar ? <img src={entry.user.avatar} alt="" className="h-full w-full object-cover" /> : `${entry.user?.firstName?.[0] || ''}${entry.user?.lastName?.[0] || ''}`}
               </button>
@@ -1097,42 +1023,38 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => entry.user?._id && navigate(`/profile/${entry.user._id}`)}
-                  className="truncate text-left text-sm font-semibold text-dark transition hover:text-primary-600"
+                  className="truncate text-left text-sm font-medium text-dark transition hover:text-primary-500"
                 >
                   {entry.user?.firstName} {entry.user?.lastName}
                 </button>
-                <p className="text-xs text-gray-500">
+                <p className="text-[10px] text-gray-400">
                   {copy.leaderboardEntry
                     .replace('{{level}}', String(entry.level))
                     .replace('{{streak}}', String(entry.currentStreakDays))}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-primary-600">{entry.xp}</p>
-                <p className="text-[11px] text-gray-400">XP</p>
+                <p className="text-xs font-bold text-primary-500">{entry.xp}</p>
+                <p className="text-[9px] text-gray-300">XP</p>
               </div>
             </div>
           )) : (
-            <p className="text-sm text-gray-500">{copy.leaderboardEmpty}</p>
+            <p className="text-sm text-gray-400">{copy.leaderboardEmpty}</p>
           )}
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   ) : null;
 
   const renderExplore = () => (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-dark">{copy.exploreTab}</h2>
-        <p className="mt-1 text-sm text-gray-500">{t('dashboardSubtitle')}</p>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <form onSubmit={handleSearch} className="relative min-w-[220px] max-w-md flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+      {/* Search + sort */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <form onSubmit={handleSearch} className="relative min-w-[200px] flex-1 sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={15} />
           <input
             type="text"
-            className="w-full rounded-full border border-gray-200/80 bg-gray-50 py-2 pl-10 pr-4 text-sm text-dark transition-all duration-200 placeholder-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-slate-600 dark:bg-slate-800 dark:focus:bg-slate-700"
+            className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm text-dark placeholder-gray-300 transition focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400/30 dark:border-slate-600 dark:bg-slate-800 dark:placeholder-gray-500 dark:focus:border-primary-500"
             placeholder={t('searchTests')}
             value={search}
             onChange={(event) => {
@@ -1142,7 +1064,7 @@ export default function Dashboard() {
           />
         </form>
 
-        <div className="flex gap-1 rounded-full border border-gray-200/50 bg-gray-100/80 p-1 dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex gap-0.5 rounded-xl border border-gray-100 bg-gray-50 p-0.5 dark:border-slate-700 dark:bg-slate-800">
           {[
             { key: 'latest', label: t('newest') },
             { key: 'popular', label: t('popular') },
@@ -1155,10 +1077,10 @@ export default function Dashboard() {
                 setSort(option.key);
                 setPage(1);
               }}
-              className={`rounded-full px-4 py-1.5 text-[13px] font-medium whitespace-nowrap transition-all duration-200 ${
+              className={`rounded-lg px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition ${
                 sort === option.key
-                  ? 'bg-white text-dark shadow-sm dark:bg-slate-700'
-                  : 'text-gray-500 hover:text-dark dark:text-gray-400 dark:hover:text-gray-200'
+                  ? 'bg-white text-dark shadow-sm dark:bg-slate-700 dark:text-white'
+                  : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
               }`}
             >
               {option.label}
@@ -1167,69 +1089,66 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Test grid */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((index) => (
-            <div key={index} className="glass-card-solid p-6 animate-pulse">
-              <div className="mb-4 h-40 rounded-2xl bg-gray-200 dark:bg-slate-700" />
-              <div className="mb-3 h-5 w-3/4 rounded bg-gray-200" />
-              <div className="mb-2 h-4 w-full rounded bg-gray-100" />
-              <div className="mb-4 h-4 w-1/2 rounded bg-gray-100" />
+            <div key={index} className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800">
+              <div className="mb-4 h-36 animate-pulse rounded-xl bg-gray-100 dark:bg-slate-700" />
+              <div className="mb-2.5 h-4 w-2/3 animate-pulse rounded bg-gray-100 dark:bg-slate-700" />
+              <div className="mb-2 h-3 w-full animate-pulse rounded bg-gray-50 dark:bg-slate-700/50" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-gray-50 dark:bg-slate-700/50" />
             </div>
           ))}
         </div>
       ) : tests.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="py-20 text-center"
-        >
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary-50">
-            <AnimatedIcon icon={Plus} size={32} className="text-primary-400" active preset="soft-pulse" hover={false} />
+        <div className="py-20 text-center">
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50 dark:bg-slate-800">
+            <Plus size={24} className="text-gray-300" />
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-dark">{t('noTests')}</h3>
-          <p className="mb-6 text-gray-500">{t('createFirst')}</p>
-          <button type="button" onClick={() => navigate('/create-test')} className="btn-primary">
+          <h3 className="text-base font-semibold text-dark">{t('noTests')}</h3>
+          <p className="mt-1 text-sm text-gray-400">{t('createFirst')}</p>
+          <button type="button" onClick={() => navigate('/create-test')} className="btn-primary mt-5 text-sm">
             {t('createTest')}
           </button>
-        </motion.div>
+        </div>
       ) : (
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {tests.map((test) => {
             const isCreator = (test.creator?._id || test.creator?.id) === currentUserId;
             return (
               <motion.div
                 key={test._id}
                 variants={cardVariants}
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="glass-card-solid relative flex cursor-pointer flex-col overflow-hidden group"
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+                className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-slate-700/60 dark:bg-slate-800"
               >
                 <TestCoverArtwork
                   coverImage={test.coverImage}
                   title={test.title}
                   className="w-full"
-                  imageClassName="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  imageClassName="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   onClick={() => navigate(`/test-profile/${test.shareLink}`)}
                   style={{ aspectRatio: '16 / 9' }}
                 />
 
-                <div className="flex flex-1 flex-col p-4 sm:p-5">
-                  <div className="absolute right-4 top-4 z-10">
+                <div className="flex flex-1 flex-col p-4">
+                  <div className="absolute right-3 top-3 z-10">
                     <button
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
                         setMenuOpen(menuOpen === test._id ? null : test._id);
                       }}
-                      className="rounded-lg bg-white/90 p-1.5 shadow-sm backdrop-blur transition-colors hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700"
+                      className="rounded-lg bg-white/90 p-1.5 shadow-sm backdrop-blur transition hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700"
                     >
-                      <MoreVertical size={16} className="text-gray-400" />
+                      <MoreVertical size={14} className="text-gray-400" />
                     </button>
                     {menuOpen === test._id && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="absolute right-0 mt-1 z-10 w-44 rounded-xl border border-gray-100 bg-white p-1.5 shadow-glass dark:border-slate-700 dark:bg-slate-800"
+                        className="absolute right-0 mt-1 z-10 w-40 rounded-xl border border-gray-100 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-800"
                       >
                         {isCreator && (
                           <>
@@ -1240,9 +1159,9 @@ export default function Dashboard() {
                                 navigate(`/edit-test/${test._id}`);
                                 setMenuOpen(null);
                               }}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-700"
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-700"
                             >
-                              <Edit3 size={14} /> {t('edit')}
+                              <Edit3 size={13} /> {t('edit')}
                             </button>
                             <button
                               type="button"
@@ -1251,11 +1170,11 @@ export default function Dashboard() {
                                 navigate(`/results/${test._id}`);
                                 setMenuOpen(null);
                               }}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-700"
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-700"
                             >
-                              <Users size={14} /> {t('viewResults')}
+                              <Users size={13} /> {t('viewResults')}
                             </button>
-                            <hr className="my-1 border-gray-100 dark:border-slate-700" />
+                            <hr className="my-0.5 border-gray-100 dark:border-slate-700" />
                           </>
                         )}
                         <button
@@ -1265,9 +1184,9 @@ export default function Dashboard() {
                             copyShareLink(test.shareLink);
                             setMenuOpen(null);
                           }}
-                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-700"
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-700"
                         >
-                          <Copy size={14} /> {t('copyLink')}
+                          <Copy size={13} /> {t('copyLink')}
                         </button>
                         {isCreator && (
                           <button
@@ -1277,9 +1196,9 @@ export default function Dashboard() {
                               setDeleteConfirm({ open: true, id: test._id });
                               setMenuOpen(null);
                             }}
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                           >
-                            <Trash2 size={14} /> {t('delete')}
+                            <Trash2 size={13} /> {t('delete')}
                           </button>
                         )}
                       </motion.div>
@@ -1287,30 +1206,30 @@ export default function Dashboard() {
                   </div>
 
                   <div onClick={() => navigate(`/test-profile/${test.shareLink}`)} className="flex flex-1 flex-col">
-                    <div className="mb-2.5 flex flex-wrap items-center gap-2">
+                    <div className="mb-2 flex items-center gap-2">
                       {test.settings?.isPublic ? (
-                        <span className="badge-info flex items-center gap-1 px-2 py-0.5 text-[10px]"><Eye size={10} /> {t('publicTest')}</span>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-primary-50 px-1.5 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"><Eye size={9} /> {t('publicTest')}</span>
                       ) : (
-                        <span className="badge-warning flex items-center gap-1 px-2 py-0.5 text-[10px]"><EyeOff size={10} /> {t('privateTest')}</span>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"><EyeOff size={9} /> {t('privateTest')}</span>
                       )}
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-[10px] text-gray-300">
                         {test.questions?.length || 0} {t('questions')}
                       </span>
                     </div>
 
-                    <h3 className="mb-1 pr-8 text-[15px] font-semibold text-dark transition-colors line-clamp-1 group-hover:text-primary-600">
+                    <h3 className="mb-1 pr-6 text-sm font-semibold text-dark line-clamp-1 transition-colors group-hover:text-primary-500">
                       {test.title}
                     </h3>
 
-                    <p className="mb-3 min-h-[2.5rem] text-[13px] leading-5 text-gray-500 line-clamp-2">
+                    <p className="mb-2.5 min-h-[2rem] text-xs leading-4 text-gray-400 line-clamp-2">
                       {test.description || t('noDescription')}
                     </p>
 
                     {test.tags?.length > 0 && (
-                      <div className="mb-3 flex flex-wrap gap-1.5">
+                      <div className="mb-2.5 flex flex-wrap gap-1">
                         {test.tags.slice(0, 3).map((tag, index) => (
-                          <span key={index} className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600 dark:bg-slate-700 dark:text-gray-400">
-                            <Tag size={9} /> {tag}
+                          <span key={index} className="inline-flex items-center gap-0.5 rounded bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500 dark:bg-slate-700 dark:text-gray-400">
+                            <Tag size={8} /> {tag}
                           </span>
                         ))}
                       </div>
@@ -1318,7 +1237,7 @@ export default function Dashboard() {
 
                     <div className="flex-1" />
 
-                    <div className="flex items-center justify-between border-t border-gray-100 pt-3 dark:border-slate-700">
+                    <div className="flex items-center justify-between border-t border-gray-50 pt-3 dark:border-slate-700/50">
                       <div className="flex min-w-0 items-center gap-2">
                         <button
                           type="button"
@@ -1326,10 +1245,10 @@ export default function Dashboard() {
                             event.stopPropagation();
                             if (test.creator?._id) navigate(`/profile/${test.creator._id}`);
                           }}
-                          className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-md bg-primary-100 text-[10px] font-semibold text-primary-600 transition hover:scale-[1.03]"
+                          className="flex h-5 w-5 items-center justify-center overflow-hidden rounded bg-primary-50 text-[9px] font-semibold text-primary-600 transition hover:scale-105 dark:bg-primary-900/30 dark:text-primary-300"
                         >
                           {test.creator?.avatar ? (
-                            <img src={test.creator.avatar} alt="" className="h-full w-full rounded-md object-cover" />
+                            <img src={test.creator.avatar} alt="" className="h-full w-full rounded object-cover" />
                           ) : (
                             <>{test.creator?.firstName?.[0]}{test.creator?.lastName?.[0]}</>
                           )}
@@ -1340,12 +1259,12 @@ export default function Dashboard() {
                             event.stopPropagation();
                             if (test.creator?._id) navigate(`/profile/${test.creator._id}`);
                           }}
-                          className="truncate text-xs text-gray-500 transition hover:text-primary-600"
+                          className="truncate text-[11px] text-gray-400 transition hover:text-primary-500"
                         >
                           {test.creator?.firstName} {test.creator?.lastName?.[0]}.
                         </button>
                       </div>
-                      <div className="flex flex-shrink-0 items-center gap-2.5">
+                      <div className="flex flex-shrink-0 items-center gap-2">
                         {renderStars(test.rating)}
                         <button
                           type="button"
@@ -1353,15 +1272,15 @@ export default function Dashboard() {
                             event.stopPropagation();
                             navigate(`/leaderboard/${test._id}`);
                           }}
-                          className="flex items-center gap-1 text-[10px] text-primary-500 transition hover:text-primary-600"
+                          className="text-gray-300 transition hover:text-primary-500"
                           title="Рейтинг"
                         >
-                          <Trophy size={12} />
+                          <Trophy size={11} />
                         </button>
-                        <div className="flex items-center gap-1 text-xs text-gray-400">
-                          <Users size={12} />
+                        <span className="flex items-center gap-0.5 text-[10px] text-gray-300">
+                          <Users size={10} />
                           {test.attemptCount || 0}
-                        </div>
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1392,79 +1311,71 @@ export default function Dashboard() {
         variant="danger"
       />
 
-      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8">
-        <motion.section
-          initial={{ opacity: 0, y: -12 }}
+      <main className="mx-auto max-w-6xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
+        {/* Compact header */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-[28px] border border-primary-100 bg-gradient-to-br from-white via-primary-50/60 to-orange-50 p-5 shadow-[0_30px_80px_-50px_rgba(234,88,12,0.28)] dark:border-slate-700 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 sm:rounded-[32px] sm:p-6"
+          className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
         >
-          <div className="absolute -right-14 -top-14 h-44 w-44 rounded-full bg-primary-500/10 blur-3xl" />
-          <div className="absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-sky-400/10 blur-3xl" />
-          <div className="relative grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary-200/70 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-600 dark:border-primary-900/50 dark:bg-slate-800/70 dark:text-primary-300">
-                <BrandLogo size={18} />
-                UniTest
-              </div>
-              <h1 className="mt-4 text-3xl font-bold tracking-tight text-dark sm:text-4xl">
-                {isAuthenticated ? `${t('welcome')}, ${user?.firstName || 'Guest'}!` : copy.guestHeroTitle}
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">
-                {isAuthenticated ? copy.heroDesc : copy.guestHeroDesc}
-              </p>
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                {isAuthenticated ? (
-                  <>
-                    <button type="button" onClick={() => navigate('/create-test')} className="btn-primary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
-                      <AnimatedIcon icon={Plus} size={16} className="text-white" />
-                      {t('createTest')}
-                    </button>
-                    <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
-                      <AnimatedIcon icon={Search} size={16} />
-                      {copy.exploreTests}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button type="button" onClick={() => navigate('/register')} className="btn-primary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
-                      <AnimatedIcon icon={Plus} size={16} className="text-white" />
-                      {copy.guestCta}
-                    </button>
-                    <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex w-full items-center justify-center gap-2 sm:w-auto">
-                      <AnimatedIcon icon={Play} size={16} />
-                      {copy.exploreTests}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-[24px] border border-white/70 bg-white/85 p-4 dark:border-slate-700 dark:bg-slate-800/70">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.progressLeaderboard}</p>
-                <p className="mt-2 text-3xl font-black text-dark">{progressData?.progress?.level || 1}</p>
-                <p className="text-sm text-gray-500">{copy.heroLevelHint}</p>
-              </div>
-              <div className="rounded-[24px] border border-white/70 bg-white/85 p-4 dark:border-slate-700 dark:bg-slate-800/70">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">{copy.currentStreak}</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <AnimatedIcon icon={Flame} size={22} active={Boolean(progressData?.progress?.currentStreakDays)} preset="flame-flicker" className="text-amber-500" hover={false} />
-                  <span className="text-3xl font-black text-dark">{progressData?.progress?.currentStreakDays || 0}</span>
-                </div>
-                <p className="text-sm text-gray-500">{copy.heroStreakHint}</p>
-              </div>
-              <div className="rounded-[24px] border border-white/70 bg-white/85 p-4 dark:border-slate-700 dark:bg-slate-800/70">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">XP</p>
-                <p className="mt-2 text-3xl font-black text-dark">{progressData?.progress?.xp || 0}</p>
-                <p className="text-sm text-gray-500">{copy.heroXpHint.replace('{{xp}}', String(levelMeta?.xpForNextLevel || 100))}</p>
-              </div>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-dark sm:text-3xl">
+              {isAuthenticated ? `${t('welcome')}, ${user?.firstName || 'Guest'}` : copy.guestHeroTitle}
+            </h1>
+            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-gray-400">
+              {isAuthenticated ? copy.heroDesc : copy.guestHeroDesc}
+            </p>
           </div>
-        </motion.section>
 
-        <div className="mt-6 rounded-[24px] border border-gray-200/70 bg-gray-100/80 p-1.5 dark:border-slate-700 dark:bg-slate-800/80 sm:rounded-[28px] sm:p-2">
-          <div className="flex gap-1 overflow-x-auto pb-1">
+          {isAuthenticated && (
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800">
+                <Crown size={12} className="text-primary-500" />
+                <span className="font-bold text-dark">{progressData?.progress?.level || 1}</span>
+                <span className="text-gray-300">{copy.levelShort}</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800">
+                <Flame size={12} className="text-amber-500" />
+                <span className="font-bold text-dark">{progressData?.progress?.currentStreakDays || 0}</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800">
+                <span className="font-bold text-dark">{progressData?.progress?.xp || 0}</span>
+                <span className="text-gray-300">XP</span>
+              </div>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Action buttons */}
+        <div className="mt-5 flex flex-wrap gap-2.5">
+          {isAuthenticated ? (
+            <>
+              <button type="button" onClick={() => navigate('/create-test')} className="btn-primary inline-flex items-center gap-2 text-sm">
+                <Plus size={15} />
+                {t('createTest')}
+              </button>
+              <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2 text-sm">
+                <Search size={15} />
+                {copy.exploreTests}
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={() => navigate('/register')} className="btn-primary inline-flex items-center gap-2 text-sm">
+                <Plus size={15} />
+                {copy.guestCta}
+              </button>
+              <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2 text-sm">
+                <Play size={15} />
+                {copy.exploreTests}
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Tab bar */}
+        <div className="mt-8 border-b border-gray-100 dark:border-slate-700/60">
+          <div className="flex gap-0.5 overflow-x-auto scrollbar-hide">
             {availableTabs.map((tabKey) => (
               <DashboardTabButton
                 key={tabKey}
@@ -1477,7 +1388,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="mt-8">
+        {/* Tab content */}
+        <div className="mt-6">
           {activeTab === 'home' && homeCards}
           {activeTab === 'challenges' && challengeCards}
           {activeTab === 'progress' && progressCards}
