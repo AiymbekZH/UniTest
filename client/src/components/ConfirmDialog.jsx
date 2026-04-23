@@ -2,10 +2,10 @@
 import { AlertTriangle, Trash2, Check, X, Info } from 'lucide-react';
 
 const icons = {
-  danger: { icon: Trash2, bg: 'bg-red-100 dark:bg-red-900/30', color: 'text-red-600' },
-  warning: { icon: AlertTriangle, bg: 'bg-amber-100 dark:bg-amber-900/30', color: 'text-amber-600' },
-  success: { icon: Check, bg: 'bg-emerald-100 dark:bg-emerald-900/30', color: 'text-emerald-600' },
-  info: { icon: Info, bg: 'bg-primary-100 dark:bg-primary-900/30', color: 'text-primary-600' },
+  danger: { icon: Trash2, bg: 'bg-red-50 dark:bg-red-900/20', color: 'text-red-500' },
+  warning: { icon: AlertTriangle, bg: 'bg-amber-50 dark:bg-amber-900/20', color: 'text-amber-500' },
+  success: { icon: Check, bg: 'bg-emerald-50 dark:bg-emerald-900/20', color: 'text-emerald-500' },
+  info: { icon: Info, bg: 'bg-primary-50 dark:bg-primary-900/20', color: 'text-primary-500' },
 };
 
 export default function ConfirmDialog({
@@ -33,56 +33,55 @@ export default function ConfirmDialog({
           onClick={onClose}
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" />
 
           {/* Dialog */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             onClick={e => e.stopPropagation()}
-            className="relative my-auto w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden dark:bg-slate-800"
+            className="relative my-auto w-full max-w-sm rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden dark:border-slate-700 dark:bg-slate-800"
           >
             {/* Close button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-3 right-3 icon-btn h-8 w-8"
             >
-              <X size={18} />
+              <X size={15} />
             </button>
 
-            <div className="p-6 sm:p-8">
+            <div className="px-6 pt-8 pb-5">
               {/* Icon */}
-              <div className={`w-14 h-14 ${bg} rounded-2xl flex items-center justify-center mx-auto mb-5`}>
-                <Icon size={24} className={color} />
+              <div className={`w-12 h-12 ${bg} rounded-xl flex items-center justify-center mx-auto mb-4`}>
+                <Icon size={20} className={color} />
               </div>
 
               {/* Content */}
-              <h3 className="text-xl font-bold text-dark dark:text-white text-center mb-2">
+              <h3 className="text-base font-semibold text-dark dark:text-white text-center mb-1.5">
                 {title}
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 text-center text-sm leading-relaxed">
+              <p className="text-gray-400 dark:text-gray-400 text-center text-sm leading-relaxed">
                 {message}
               </p>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 p-6 pt-0 sm:px-8 sm:pb-8">
+            <div className="flex gap-2 px-6 pb-6">
               <button
                 onClick={onClose}
-                className="flex-1 py-3 px-4 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium
-                  text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
+                className="btn-secondary flex-1 text-sm"
               >
                 {cancelText}
               </button>
               <button
                 onClick={() => { onConfirm(); onClose(); }}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium text-white transition-all active:scale-[0.98]
-                  ${variant === 'danger' ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/25' :
-                    variant === 'warning' ? 'bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/25' :
-                    variant === 'success' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/25' :
-                    'bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/25'}`}
+                className={`flex-1 py-2 px-5 rounded-xl text-sm font-medium text-white shadow-sm hover:shadow-md transition-all active:scale-[0.98]
+                  ${variant === 'danger' ? 'bg-red-500 hover:bg-red-600' :
+                    variant === 'warning' ? 'bg-amber-500 hover:bg-amber-600' :
+                    variant === 'success' ? 'bg-emerald-500 hover:bg-emerald-600' :
+                    'bg-primary-500 hover:bg-primary-600'}`}
               >
                 {confirmText}
               </button>

@@ -4,7 +4,6 @@ import { Bell, Check, CheckCheck, Trash2, MessageCircle, AlertTriangle, Flag, In
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
-import AnimatedIcon from './AnimatedIcon';
 
 const typeIcons = {
   comment_reply: { icon: MessageCircle, color: 'text-primary-500', bg: 'bg-primary-50 dark:bg-primary-900/30' },
@@ -105,11 +104,12 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={handleOpen}
-        className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-all"
+        className="icon-btn relative"
+        title={t('notifications')}
       >
-        <AnimatedIcon icon={Bell} size={18} active={unreadCount > 0} preset="bell-ring" hover={false} />
+        <Bell size={16} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+          <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -118,26 +118,29 @@ export default function NotificationBell() {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -5, scale: 0.95 }}
+            initial={{ opacity: 0, y: -5, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -5, scale: 0.95 }}
-            className="absolute right-0 mt-2 w-[min(92vw,24rem)] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden z-50"
+            exit={{ opacity: 0, y: -5, scale: 0.96 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 mt-2 w-[min(92vw,22rem)] bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 overflow-hidden z-50"
           >
-            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-700">
+            <div className="flex items-center justify-between px-3.5 py-3 border-b border-gray-100 dark:border-slate-700">
               <h3 className="text-sm font-semibold text-dark">{t('notifications')}</h3>
               {unreadCount > 0 && (
                 <button onClick={markAllRead}
                   className="text-[11px] text-primary-500 hover:text-primary-600 flex items-center gap-1 transition">
-                  <CheckCheck size={12} /> {t('markAllRead')}
+                  <CheckCheck size={11} /> {t('markAllRead')}
                 </button>
               )}
             </div>
 
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Bell size={24} className="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-                  <p className="text-sm text-gray-400">{t('noNotifications')}</p>
+                <div className="px-6 py-10 text-center">
+                  <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-slate-700">
+                    <Bell size={18} className="text-gray-300 dark:text-gray-500" />
+                  </div>
+                  <p className="text-xs text-gray-400">{t('noNotifications')}</p>
                 </div>
               ) : (
                 notifications.map(n => {
@@ -147,23 +150,23 @@ export default function NotificationBell() {
                     <div
                       key={n._id}
                       onClick={() => handleClick(n)}
-                      className={`flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition cursor-pointer border-b border-gray-50 dark:border-slate-700/50 ${
-                        !n.isRead ? 'bg-primary-50/30 dark:bg-primary-900/10' : ''
+                      className={`group flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition cursor-pointer border-b border-gray-50 last:border-b-0 dark:border-slate-700/50 ${
+                        !n.isRead ? 'bg-primary-50/40 dark:bg-primary-900/10' : ''
                       }`}
                     >
-                      <div className={`w-8 h-8 rounded-lg ${typeInfo.bg} flex items-center justify-center flex-shrink-0`}>
-                        <Icon size={14} className={typeInfo.color} />
+                      <div className={`w-7 h-7 rounded-lg ${typeInfo.bg} flex items-center justify-center flex-shrink-0`}>
+                        <Icon size={13} className={typeInfo.color} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-dark">{n.title}</p>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
-                        <span className="text-[10px] text-gray-400 mt-1 block">{timeAgo(n.createdAt)}</span>
+                        <p className="text-xs font-medium text-dark truncate">{n.title}</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
+                        <span className="text-[10px] text-gray-300 mt-0.5 block">{timeAgo(n.createdAt)}</span>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        {!n.isRead && <div className="w-2 h-2 rounded-full bg-primary-500" />}
+                        {!n.isRead && <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1.5" />}
                         <button onClick={(e) => deleteNotif(e, n._id)}
-                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-300 hover:text-red-500 transition">
-                          <Trash2 size={12} />
+                          className="p-1 rounded text-gray-300 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 transition">
+                          <Trash2 size={11} />
                         </button>
                       </div>
                     </div>

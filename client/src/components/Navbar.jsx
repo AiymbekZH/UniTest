@@ -85,168 +85,163 @@ export default memo(function Navbar() {
         variant="warning"
       />
 
-      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-100/50 dark:border-slate-700/50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            {isAuthenticated && (
-              <button
-                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-gray-100 bg-white/90 text-gray-600 shadow-sm transition hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900/80 dark:text-gray-300 dark:hover:bg-slate-800"
-                onClick={() => setShowMobile(true)}
-                aria-label="Open navigation menu"
-              >
-                {hasAnyChatUnread && (
-                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
-                )}
-                <Menu size={18} />
-              </button>
-            )}
+      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-2 min-w-0">
+              {isAuthenticated && (
+                <button
+                  className="icon-btn relative"
+                  onClick={() => setShowMobile(true)}
+                  aria-label="Open navigation menu"
+                >
+                  {hasAnyChatUnread && (
+                    <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
+                  )}
+                  <Menu size={17} />
+                </button>
+              )}
 
-            <Link to="/dashboard" className="flex min-w-0 items-center gap-2.5 group">
-              <BrandLogo
-                size={36}
-                showWordmark
-                className="transition-transform duration-300 group-hover:scale-[1.03]"
-                wordmarkClassName="text-lg text-dark"
-              />
-            </Link>
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            {/* Language switcher */}
-            <div className="relative">
-              <button
-                onClick={() => setShowLang(!showLang)}
-                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-all flex items-center gap-1 text-xs font-medium"
-              >
-                <Globe size={16} />
-                <span className="hidden md:inline">{langLabels[lang]}</span>
-              </button>
-              <AnimatePresence>
-                {showLang && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                    className="absolute right-0 mt-1 w-32 glass-card-solid p-1 shadow-glass z-50"
-                  >
-                    {[
-                      { code: 'en', label: '🇬🇧 English' },
-                      { code: 'ru', label: '🇷🇺 Русский' },
-                      { code: 'kz', label: '🇰🇿 Қазақша' },
-                      { code: 'es', label: '🇪🇸 Español' }
-                    ].map(l => (
-                      <button key={l.code}
-                        onClick={() => { setLanguage(l.code); setShowLang(false); }}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors
-                          ${lang === l.code ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
-                      >
-                        {l.label}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <Link to="/dashboard" className="flex min-w-0 items-center gap-2 group">
+                <BrandLogo
+                  size={32}
+                  showWordmark
+                  className="transition-transform duration-300 group-hover:scale-[1.03]"
+                  wordmarkClassName="text-base text-dark tracking-tight"
+                />
+              </Link>
             </div>
 
-            {/* Theme mode toggle: light → dark → auto */}
-            <button
-              onClick={cycleTheme}
-              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-all"
-              title={mode === 'light' ? t('darkTheme') : mode === 'dark' ? (t('autoTheme') || 'Auto (Night)') : t('lightTheme')}
-            >
-              {mode === 'light' ? <Moon size={18} /> : mode === 'dark' ? <Sunset size={18} /> : <Sun size={18} />}
-            </button>
-
-            {isAuthenticated ? (
-              <>
-                <NotificationBell />
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/create-test')}
-                  className="btn-primary hidden sm:flex items-center gap-2 py-2 px-3 lg:px-4 text-sm whitespace-nowrap"
+            {/* Right side */}
+            <div className="flex items-center gap-0.5 sm:gap-1">
+              {/* Language switcher */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowLang(!showLang)}
+                  className="icon-btn"
+                  title="Language"
                 >
-                  <Plus size={16} />
-                  <span className="hidden xl:inline">{t('createTest')}</span>
-                </motion.button>
-
-                {/* User menu */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all"
-                  >
-                    <div className="w-8 h-8 min-w-[32px] bg-primary-100 dark:bg-primary-900/50 text-primary-600 rounded-lg flex items-center justify-center font-semibold text-xs overflow-hidden flex-shrink-0">
-                      {user?.avatar ? (
-                        <img src={user.avatar} alt="" className="w-8 h-8 object-cover rounded-lg" />
-                      ) : (
-                        <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-dark hidden 2xl:block max-w-40 truncate">
-                      {user?.firstName} {user?.lastName}
-                    </span>
-                  </button>
-
-                  <AnimatePresence>
-                    {showMenu && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-56 glass-card-solid p-2 shadow-glass z-50"
-                      >
-                        <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-700 mb-1">
-                          <p className="text-sm font-medium text-dark">{user?.firstName} {user?.lastName}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
-                          <span className="badge-info mt-1 text-[10px]">
-                            {user?.role === 'admin' ? t('adminRole') : user?.role === 'teacher' ? t('teacher') : t('student')}
-                          </span>
-                        </div>
-                        <Link
-                          to="/profile"
-                          onClick={() => setShowMenu(false)}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  <Globe size={16} />
+                </button>
+                <AnimatePresence>
+                  {showLang && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                      className="absolute right-0 mt-1 w-36 rounded-xl border border-gray-100 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-800 z-50"
+                    >
+                      {[
+                        { code: 'en', label: '🇬🇧 English' },
+                        { code: 'ru', label: '🇷🇺 Русский' },
+                        { code: 'kz', label: '🇰🇿 Қазақша' },
+                        { code: 'es', label: '🇪🇸 Español' }
+                      ].map(l => (
+                        <button key={l.code}
+                          onClick={() => { setLanguage(l.code); setShowLang(false); }}
+                          className={`w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors
+                            ${lang === l.code ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-300 font-medium' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
                         >
-                          <User size={16} />
-                          {t('profile')}
-                        </Link>
-                        {user?.role === 'admin' && (
-                          <Link
-                            to="/admin"
-                            onClick={() => setShowMenu(false)}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                          >
-                            <Shield size={16} />
-                            {t('admin')}
-                          </Link>
+                          {l.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Theme mode toggle: light → dark → auto */}
+              <button
+                onClick={cycleTheme}
+                className="icon-btn"
+                title={mode === 'light' ? t('darkTheme') : mode === 'dark' ? (t('autoTheme') || 'Auto (Night)') : t('lightTheme')}
+              >
+                {mode === 'light' ? <Moon size={16} /> : mode === 'dark' ? <Sunset size={16} /> : <Sun size={16} />}
+              </button>
+
+              {isAuthenticated ? (
+                <>
+                  <NotificationBell />
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/create-test')}
+                    className="btn-primary hidden sm:inline-flex items-center gap-1.5 py-1.5 px-3 text-[13px] whitespace-nowrap"
+                  >
+                    <Plus size={14} />
+                    <span className="hidden xl:inline">{t('createTest')}</span>
+                  </motion.button>
+
+                  {/* User menu */}
+                  <div className="relative ml-0.5">
+                    <button
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="flex items-center gap-2 rounded-full p-0.5 transition-all hover:ring-2 hover:ring-gray-100 dark:hover:ring-slate-700"
+                    >
+                      <div className="w-8 h-8 min-w-[32px] bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-300 rounded-full flex items-center justify-center font-semibold text-xs overflow-hidden flex-shrink-0 ring-1 ring-gray-100 dark:ring-slate-700">
+                        {user?.avatar ? (
+                          <img src={user.avatar} alt="" className="w-8 h-8 object-cover rounded-full" />
+                        ) : (
+                          <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
                         )}
-                        <div className="mt-1 border-t border-gray-100 dark:border-slate-700 pt-2">
-                          <div className="px-3 pb-2">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                      </div>
+                    </button>
+
+                    <AnimatePresence>
+                      {showMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 mt-2 w-60 rounded-xl border border-gray-100 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-800 z-50"
+                        >
+                          <div className="px-2.5 py-2 mb-1">
+                            <p className="text-sm font-semibold text-dark truncate">{user?.firstName} {user?.lastName}</p>
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{user?.email}</p>
+                            <span className="badge-info mt-1.5 text-[10px]">
+                              {user?.role === 'admin' ? t('adminRole') : user?.role === 'teacher' ? t('teacher') : t('student')}
+                            </span>
+                          </div>
+                          <div className="divider mb-1" />
+                          <Link
+                            to="/profile"
+                            onClick={() => setShowMenu(false)}
+                            className="menu-item"
+                          >
+                            <User size={15} />
+                            {t('profile')}
+                          </Link>
+                          {user?.role === 'admin' && (
+                            <Link
+                              to="/admin"
+                              onClick={() => setShowMenu(false)}
+                              className="menu-item"
+                            >
+                              <Shield size={15} />
+                              {t('admin')}
+                            </Link>
+                          )}
+                          <div className="divider my-1" />
+                          <div className="px-2.5 pb-1 pt-1">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
                               Быстрый доступ
-                            </p>
-                            <p className="mt-1 text-[11px] text-gray-400">
-                              Сохранённые аккаунты для мгновенного переключения
                             </p>
                           </div>
 
                           {quickSwitchSessions.length > 0 ? (
-                            <div className="space-y-1 px-1">
+                            <div className="space-y-0.5">
                               {quickSwitchSessions.map(session => (
                                 <div
                                   key={session.id}
-                                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-700/70 transition"
+                                  className="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
                                 >
                                   <button
                                     onClick={() => handleSwitchAccount(session.id)}
                                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                                   >
-                                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-primary-100 text-[11px] font-semibold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
+                                    <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-[10px] font-semibold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300 ring-1 ring-gray-100 dark:ring-slate-700">
                                       {session.user?.avatar ? (
                                         <img src={session.user.avatar} alt="" className="h-full w-full object-cover" />
                                       ) : (
@@ -254,67 +249,65 @@ export default memo(function Navbar() {
                                       )}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                      <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-200">
+                                      <p className="truncate text-[12px] font-medium text-gray-700 dark:text-gray-200">
                                         {session.user?.firstName} {session.user?.lastName}
                                       </p>
-                                      <p className="truncate text-[11px] text-gray-400">
+                                      <p className="truncate text-[10px] text-gray-400">
                                         {session.user?.email}
                                       </p>
                                     </div>
-                                    <RefreshCw size={13} className="flex-shrink-0 text-primary-500" />
+                                    <RefreshCw size={12} className="flex-shrink-0 text-gray-300 group-hover:text-primary-500" />
                                   </button>
                                   <button
                                     onClick={(event) => handleRemoveSavedSession(event, session.id)}
-                                    className="rounded-md p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                                    className="rounded p-1 text-gray-300 opacity-0 transition group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
                                     title="Убрать из быстрого доступа"
                                   >
-                                    <Trash2 size={13} />
+                                    <Trash2 size={12} />
                                   </button>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <div className="px-3 pb-2 text-[11px] text-gray-400">
-                              После входа во второй аккаунт он появится здесь.
+                            <div className="px-2.5 pb-1.5 text-[10px] text-gray-400">
+                              Войдите во второй аккаунт — он появится здесь.
                             </div>
                           )}
 
                           <Link
                             to="/login"
                             onClick={() => setShowMenu(false)}
-                            className="mx-1 mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-700"
+                            className="menu-item"
                           >
-                            <UserPlus size={16} />
+                            <UserPlus size={15} />
                             Добавить аккаунт
                           </Link>
-                        </div>
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                        >
-                          <LogOut size={16} />
-                          {t('logout')}
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                          <div className="divider my-1" />
+                          <button
+                            onClick={handleLogout}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 transition hover:bg-red-50 dark:hover:bg-red-900/20"
+                          >
+                            <LogOut size={15} />
+                            {t('logout')}
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-1.5 ml-1">
+                  <Link to="/login" className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-dark transition dark:text-gray-300">
+                    {t('login')}
+                  </Link>
+                  <Link to="/register" className="btn-primary py-1.5 px-4 text-sm">
+                    {t('register')}
+                  </Link>
                 </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link to="/login" className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-dark transition">
-                  {t('login')}
-                </Link>
-                <Link to="/register" className="btn-primary py-2 px-4 text-sm">
-                  {t('register')}
-                </Link>
-              </div>
-            )}
-
+              )}
+            </div>
           </div>
         </div>
-
-      </div>
       </nav>
 
       <AnimatePresence>
@@ -333,43 +326,45 @@ export default memo(function Navbar() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -360, opacity: 0.7 }}
               transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-              className="fixed left-0 top-0 z-[60] flex h-full w-[min(88vw,360px)] flex-col border-r border-gray-100 bg-white/95 px-4 pb-5 pt-4 shadow-2xl backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95"
+              className="fixed left-0 top-0 z-[60] flex h-full w-[min(88vw,340px)] flex-col overflow-y-auto border-r border-gray-100 bg-white px-3 pb-5 pt-3 dark:border-slate-800 dark:bg-slate-900"
             >
-              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-4 dark:border-slate-700">
+              <div className="flex items-center justify-between gap-2 pb-3">
                 <Link
                   to="/dashboard"
                   onClick={() => setShowMobile(false)}
-                  className="flex min-w-0 items-center gap-2.5"
+                  className="flex min-w-0 items-center gap-2"
                 >
                   <BrandLogo
-                    size={34}
+                    size={30}
                     showWordmark
-                    wordmarkClassName="text-lg text-dark"
+                    wordmarkClassName="text-base text-dark tracking-tight"
                   />
                 </Link>
                 <button
                   onClick={() => setShowMobile(false)}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-100 text-gray-500 transition hover:bg-gray-50 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
+                  className="icon-btn"
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
 
-              <div className="mt-4 flex flex-col gap-1">
+              <div className="divider" />
+
+              <div className="mt-3 flex flex-col gap-0.5">
                 {navLinks.map(link => (
                   <Link
                     key={link.to}
                     to={link.to}
                     onClick={() => setShowMobile(false)}
-                    className={`relative flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all
+                    className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
                       ${isActive(link.to)
-                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30'
+                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
                         : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-800'}`}
                   >
-                    <link.icon size={17} />
+                    <link.icon size={16} />
                     <span>{link.label}</span>
                     {hasUnreadForPath(link.to) && (
-                      <span className="ml-auto h-2.5 w-2.5 rounded-full bg-red-500" />
+                      <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
                     )}
                   </Link>
                 ))}
@@ -378,68 +373,67 @@ export default memo(function Navbar() {
                   <Link
                     to="/admin"
                     onClick={() => setShowMobile(false)}
-                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
                       ${isActive('/admin')
-                        ? 'bg-red-50 text-red-600 dark:bg-red-900/30'
+                        ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
                         : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-800'}`}
                   >
-                    <Shield size={17} />
+                    <Shield size={16} />
                     <span>{t('admin')}</span>
                   </Link>
                 )}
               </div>
 
-              <div className="mt-5 rounded-2xl border border-gray-100 bg-gray-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/60">
-                <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 overflow-hidden rounded-2xl bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-sm font-semibold">
-                        {user?.firstName?.[0]}{user?.lastName?.[0]}
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-dark">
-                      {user?.firstName} {user?.lastName}
-                    </p>
-                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                      {user?.email}
-                    </p>
-                  </div>
-                </div>
+              <div className="mt-4 divider" />
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => {
-                      navigate('/profile');
-                      setShowMobile(false);
-                    }}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-gray-200 dark:hover:bg-slate-800"
-                  >
-                    <User size={15} />
-                    {t('profile')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate('/create-test');
-                      setShowMobile(false);
-                    }}
-                    className="btn-primary flex items-center justify-center gap-2 px-3 py-2 text-sm"
-                  >
-                    <Plus size={15} />
-                    {t('createTest')}
-                  </button>
+              <div className="mt-3 flex items-center gap-3 px-1">
+                <div className="h-10 w-10 overflow-hidden rounded-full bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300 ring-1 ring-gray-100 dark:ring-slate-700">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-sm font-semibold">
+                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-dark">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="truncate text-[11px] text-gray-400">
+                    {user?.email}
+                  </p>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-gray-100 p-3 dark:border-slate-700">
-                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
-                  <Globe size={14} />
-                  Language
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    navigate('/profile');
+                    setShowMobile(false);
+                  }}
+                  className="btn-secondary flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm"
+                >
+                  <User size={14} />
+                  {t('profile')}
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/create-test');
+                    setShowMobile(false);
+                  }}
+                  className="btn-primary flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm"
+                >
+                  <Plus size={14} />
+                  {t('createTest')}
+                </button>
+              </div>
+
+              <div className="mt-4 divider" />
+
+              <div className="mt-3 px-1">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">Language</p>
+                <div className="grid grid-cols-4 gap-1">
                   {[
                     { code: 'en', label: 'EN' },
                     { code: 'ru', label: 'RU' },
@@ -449,10 +443,10 @@ export default memo(function Navbar() {
                     <button
                       key={l.code}
                       onClick={() => setLanguage(l.code)}
-                      className={`rounded-xl px-3 py-2 text-sm font-medium transition
+                      className={`rounded-lg px-2 py-1.5 text-xs font-medium transition
                         ${lang === l.code
-                          ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30'
-                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700'}`}
+                          ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
+                          : 'text-gray-400 hover:bg-gray-50 dark:text-gray-500 dark:hover:bg-slate-800'}`}
                     >
                       {l.label}
                     </button>
@@ -460,48 +454,43 @@ export default memo(function Navbar() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-gray-100 p-3 dark:border-slate-700">
-                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
-                  {mode === 'light' ? <Moon size={14} /> : mode === 'dark' ? <Sunset size={14} /> : <Sun size={14} />}
-                  Theme
-                </div>
+              <div className="mt-4 px-1">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">Theme</p>
                 <button
                   onClick={cycleTheme}
-                  className="flex w-full items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 dark:bg-slate-800 dark:text-gray-200 dark:hover:bg-slate-700"
+                  className="flex w-full items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2 text-xs font-medium text-gray-500 transition hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700"
                 >
-                  <span>
+                  <span className="flex items-center gap-2">
+                    {mode === 'light' ? <Moon size={13} /> : mode === 'dark' ? <Sunset size={13} /> : <Sun size={13} />}
                     {mode === 'light'
                       ? t('darkTheme')
                       : mode === 'dark'
                         ? (t('autoTheme') || 'Auto')
                         : t('lightTheme')}
                   </span>
-                  <RefreshCw size={15} />
+                  <RefreshCw size={13} className="text-gray-300" />
                 </button>
               </div>
 
-              <div className="mt-4 border-t border-gray-100 pt-4 dark:border-slate-700">
-                <div className="px-1 pb-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400">
-                    Быстрый доступ
-                  </p>
-                  <p className="mt-1 text-[11px] text-gray-400">
-                    Сохранённые аккаунты для мгновенного переключения
-                  </p>
-                </div>
+              <div className="mt-4 divider" />
+
+              <div className="mt-3 px-1">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
+                  Быстрый доступ
+                </p>
 
                 {quickSwitchSessions.length > 0 ? (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {quickSwitchSessions.map(session => (
                       <div
                         key={session.id}
-                        className="flex items-center gap-2 rounded-xl px-2 py-2 hover:bg-gray-50 dark:hover:bg-slate-800/80"
+                        className="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
                       >
                         <button
                           onClick={() => handleSwitchAccount(session.id)}
-                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
                         >
-                          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-primary-100 text-[11px] font-semibold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
+                          <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary-50 text-[11px] font-semibold text-primary-600 dark:bg-primary-900/30 dark:text-primary-300 ring-1 ring-gray-100 dark:ring-slate-700">
                             {session.user?.avatar ? (
                               <img src={session.user.avatar} alt="" className="h-full w-full object-cover" />
                             ) : (
@@ -512,25 +501,25 @@ export default memo(function Navbar() {
                             <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-200">
                               {session.user?.firstName} {session.user?.lastName}
                             </p>
-                            <p className="truncate text-[11px] text-gray-400">
+                            <p className="truncate text-[10px] text-gray-400">
                               {session.user?.email}
                             </p>
                           </div>
-                          <RefreshCw size={13} className="flex-shrink-0 text-primary-500" />
+                          <RefreshCw size={12} className="flex-shrink-0 text-gray-300 group-hover:text-primary-500" />
                         </button>
                         <button
                           onClick={(event) => handleRemoveSavedSession(event, session.id)}
-                          className="rounded-lg p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                          className="rounded p-1 text-gray-300 opacity-0 transition group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
                           title="Убрать из быстрого доступа"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={12} />
                         </button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="px-1 text-[11px] text-gray-400">
-                    После входа во второй аккаунт он появится здесь.
+                  <div className="px-2 py-1 text-[10px] text-gray-400">
+                    Войдите во второй аккаунт — он появится здесь.
                   </div>
                 )}
 
@@ -539,9 +528,9 @@ export default memo(function Navbar() {
                     setShowMobile(false);
                     navigate('/login');
                   }}
-                  className="mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-800"
+                  className="mt-2 menu-item"
                 >
-                  <UserPlus size={16} />
+                  <UserPlus size={14} />
                   Добавить аккаунт
                 </button>
                 <button
@@ -549,9 +538,9 @@ export default memo(function Navbar() {
                     setShowMobile(false);
                     handleLogout();
                   }}
-                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 transition hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
-                  <LogOut size={16} />
+                  <LogOut size={14} />
                   {t('logout')}
                 </button>
               </div>

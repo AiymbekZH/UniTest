@@ -18,42 +18,42 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
     return pages;
   };
 
+  const navBtnClass = "inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 dark:hover:bg-slate-800 dark:hover:text-gray-200 transition-colors";
+
   return (
-    <div className="flex items-center justify-center gap-1.5 mt-8">
+    <div className="flex items-center justify-center gap-1 mt-8">
       {/* First */}
       <button
         onClick={() => onPageChange(1)}
         disabled={currentPage === 1}
-        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 
-          disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className={navBtnClass}
         title="Начало"
       >
-        <ChevronsLeft size={16} />
+        <ChevronsLeft size={14} />
       </button>
 
       {/* Prev */}
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 
-          disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className={navBtnClass}
         title="Назад"
       >
-        <ChevronLeft size={16} />
+        <ChevronLeft size={14} />
       </button>
 
       {/* Page numbers */}
       {getPageNumbers().map((page, i) =>
         page === '...' ? (
-          <span key={`dots-${i}`} className="px-2 text-gray-400 text-sm">.</span>
+          <span key={`dots-${i}`} className="px-1 text-gray-300 text-xs">•••</span>
         ) : (
           <button
             key={page}
             onClick={() => onPageChange(page)}
-            className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all
+            className={`min-w-[32px] h-8 rounded-lg text-xs font-medium transition-all
               ${currentPage === page
-                ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/25'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
+                ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-dark dark:text-gray-400 dark:hover:bg-slate-800'}`}
           >
             {page}
           </button>
@@ -64,22 +64,20 @@ export default function Pagination({ currentPage, totalPages, onPageChange }) {
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 
-          disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className={navBtnClass}
         title="Далее"
       >
-        <ChevronRight size={16} />
+        <ChevronRight size={14} />
       </button>
 
       {/* Last */}
       <button
         onClick={() => onPageChange(totalPages)}
         disabled={currentPage === totalPages}
-        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 
-          disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className={navBtnClass}
         title="Последняя"
       >
-        <ChevronsRight size={16} />
+        <ChevronsRight size={14} />
       </button>
     </div>
   );
