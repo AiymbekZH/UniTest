@@ -9,6 +9,7 @@ import {
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
 import Navbar from '../components/Navbar';
+import AnimatedHero from '../components/AnimatedHero';
 import Pagination from '../components/Pagination';
 
 export default function TestResults() {
@@ -202,59 +203,70 @@ export default function TestResults() {
       
       <Navbar />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-              <ArrowLeft size={20} className="text-dark" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-dark">Результаты теста</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{displayResults.length} участников{!bestOnly ? ` (${results.length} попыток)` : ''}</p>
-            </div>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setBestOnly(!bestOnly)}
-              className={`flex items-center gap-1.5 py-2 px-3 text-xs rounded-xl font-medium transition ${bestOnly ? 'bg-primary-600 text-white' : 'btn-secondary'}`}>
-              <Users size={14} /> {bestOnly ? 'Лучшие' : 'Все попытки'}
-            </button>
-            <button onClick={exportToCSV}
-              className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs">
-              <Download size={14} /> CSV
-            </button>
-            <button onClick={exportToJSON}
-              className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs">
-              <FileJson size={14} /> JSON
-            </button>
-            <button onClick={exportToPDF}
-              className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs">
-              <Printer size={14} /> PDF
-            </button>
-          </div>
-        </motion.div>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:opacity-70 transition">
+          <ArrowLeft size={16} /> Назад
+        </button>
 
-        {/* Tabs: Results / Analytics */}
-        <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-slate-800 rounded-xl p-1">
+        {/* Hero */}
+        <AnimatedHero
+          preset="gold"
+          height="md"
+          eyebrow="Test Analytics"
+          icon={<Trophy size={22} />}
+          title="Результаты теста"
+          subtitle={`${displayResults.length} участников${!bestOnly ? ` · ${results.length} попыток` : ''}`}
+          stats={(() => {
+            if (!displayResults.length) return [];
+            const avg = Math.round(displayResults.reduce((s, r) => s + r.percentage, 0) / displayResults.length);
+            const best = Math.max(...displayResults.map(r => r.percentage));
+            return [
+              { icon: <Users size={14} />, label: 'Участников', value: displayResults.length },
+              { icon: <TrendingUp size={14} />, label: 'Средний', value: `${avg}%` },
+              { icon: <Medal size={14} />, label: 'Лучший', value: `${best}%` }
+            ];
+          })()}
+        />
+
+        {/* Toolbar: filter + export */}
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setBestOnly(!bestOnly)}
+            className={`flex items-center gap-1.5 py-2 px-3 text-xs rounded-xl font-medium transition ${bestOnly ? 'bg-primary-600 text-white' : 'btn-secondary'}`}>
+            <Users size={14} /> {bestOnly ? 'Лучшие' : 'Все попытки'}
+          </button>
+          <div className="flex-1" />
+          <button onClick={exportToCSV} className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs">
+            <Download size={14} /> CSV
+          </button>
+          <button onClick={exportToJSON} className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs">
+            <FileJson size={14} /> JSON
+          </button>
+          <button onClick={exportToPDF} className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs">
+            <Printer size={14} /> PDF
+          </button>
+        </div>
+
+        {/* Tabs: Results / Analytics (segmented control) */}
+        <div className="inline-flex gap-1 bg-gray-100 dark:bg-slate-800 rounded-xl p-1">
           <button
             onClick={() => setActiveTab('results')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'results'
                 ? 'bg-white dark:bg-slate-700 text-dark shadow-sm'
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
-            <Trophy size={16} /> Результаты
+            <Trophy size={15} /> Результаты
           </button>
           <button
             onClick={() => { setActiveTab('analytics'); fetchAnalytics(); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'analytics'
                 ? 'bg-white dark:bg-slate-700 text-dark shadow-sm'
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
-            <BarChart3 size={16} /> Аналитика
+            <BarChart3 size={15} /> Аналитика
           </button>
         </div>
 

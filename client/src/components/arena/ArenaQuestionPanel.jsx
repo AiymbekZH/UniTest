@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Circle, Clock3, Diamond, Send, Square, Triangle, X } from 'lucide-react';
 
 const TILE_STYLES = [
@@ -14,6 +15,52 @@ function formatTimer(ms = 0) {
   const secs = seconds % 60;
   if (mins <= 0) return `${secs}`;
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+/* Circular timer ring — color shifts red→yellow→green with time remaining */
+function TimerRing({ timeLeftMs = 0, totalDurationMs = 30000, size = 96 }) {
+  const ratio = Math.max(0, Math.min(1, timeLeftMs / Math.max(1, totalDurationMs)));
+  const radius = (size - 12) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - ratio);
+
+  const color = ratio > 0.5
+    ? '#10b981' // emerald
+    : ratio > 0.25
+      ? '#f59e0b' // amber
+      : '#ef4444'; // red
+
+  return (
+    <div className="relative flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth="8"
+        />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          animate={{ strokeDashoffset: dashOffset }}
+          transition={{ duration: 0.4, ease: 'linear' }}
+          style={{ filter: `drop-shadow(0 0 8px ${color}80)` }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+        <Clock3 size={14} style={{ color }} />
+        <span className="mt-0.5 text-2xl font-black leading-none tabular-nums">{formatTimer(timeLeftMs)}</span>
+      </div>
+    </div>
+  );
 }
 
 function getCorrectPairEntries(question) {
@@ -111,10 +158,7 @@ export default function ArenaQuestionPanel({
               {question.questionText}
             </h2>
           </div>
-          <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-[1.8rem] bg-white text-black shadow-xl">
-            <Clock3 size={18} className="text-orange-500" />
-            <span className="text-4xl font-black leading-none">{formatTimer(timeLeftMs)}</span>
-          </div>
+          <TimerRing timeLeftMs={timeLeftMs} totalDurationMs={question.totalDurationMs || question.timeLimitMs || 30000} size={isHostView ? 120 : 96} />
         </div>
 
         {question.passage ? (
@@ -155,33 +199,58 @@ export default function ArenaQuestionPanel({
                 : 'active:scale-[0.99] hover:brightness-110';
 
             return (
-              <button
+              <motion.button
                 key={option.id}
                 type="button"
                 onClick={() => toggleOption(option.id)}
                 disabled={locked || isHostView || showAnswer}
-                className={`relative overflow-hidden rounded-[2rem] ${style.bg} p-5 text-left text-white shadow-2xl ${style.shadow} transition ${revealClass} ${locked || isHostView || showAnswer ? 'cursor-default' : ''}`}
+                whileTap={!locked && !isHostView && !showAnswer ? { scale: 0.96 } : undefined}
+                whileHover={!locked && !isHostView && !showAnswer ? { scale: 1.01, y: -2 } : undefined}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.06, duration: 0.3, ease: 'easeOut' }}
+                className={`relative overflow-hidden rounded-[2rem] ${style.bg} p-5 text-left text-white shadow-2xl ${style.shadow} ${revealClass} ${locked || isHostView || showAnswer ? 'cursor-default' : ''}`}
               >
                 <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/15" />
+                {/* Ripple effect on active */}
+                {active && !showAnswer && (
+                  <motion.div
+                    className="absolute inset-0 rounded-[2rem] bg-white/10"
+                    initial={{ scale: 0, opacity: 0.8 }}
+                    animate={{ scale: 2.5, opacity: 0 }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                  />
+                )}
                 <div className="relative z-10 flex h-full flex-col justify-between gap-6">
                   <Icon size={isHostView ? 46 : 34} strokeWidth={3.2} />
                   <div>
                     <p className={`${isHostView ? 'text-3xl md:text-5xl' : 'text-2xl'} font-black leading-tight`}>
                       {option.text}
                     </p>
-                    {showAnswer && isCorrect && (
-                      <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-black">
-                        <Check size={14} /> верно
-                      </span>
-                    )}
-                    {showAnswer && wrongSelected && (
-                      <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/25 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">
-                        <X size={14} /> твой ответ
-                      </span>
-                    )}
+                    <AnimatePresence>
+                      {showAnswer && isCorrect && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                          className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-black"
+                        >
+                          <Check size={14} /> верно
+                        </motion.span>
+                      )}
+                      {showAnswer && wrongSelected && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/25 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white"
+                        >
+                          <X size={14} /> твой ответ
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -235,15 +304,43 @@ export default function ArenaQuestionPanel({
 
       {!isHostView && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] bg-black/35 p-3">
-          <div className="text-sm font-black text-white/60">
-            {ack
-              ? `Ответ принят${ack.pointsAwarded ? ` · +${ack.pointsAwarded} очков` : ''}`
-              : locked
-                ? 'Ответ уже отправлен'
-                : question.type === 'single-choice' || question.type === 'true-false'
-                  ? 'Нажми на плитку'
-                  : 'Собери ответ и отправь'}
-          </div>
+          <AnimatePresence mode="wait">
+            {ack ? (
+              <motion.div
+                key="ack"
+                initial={{ opacity: 0, y: 12, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+                className="flex items-center gap-2 text-sm font-black text-emerald-300"
+              >
+                <Check size={16} /> Ответ принят
+                {ack.pointsAwarded ? (
+                  <motion.span
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="ml-1 rounded-full bg-emerald-400 px-2 py-0.5 text-xs text-black"
+                  >
+                    +{ack.pointsAwarded}
+                  </motion.span>
+                ) : null}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="hint"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-sm font-black text-white/60"
+              >
+                {locked
+                  ? 'Ответ уже отправлен'
+                  : question.type === 'single-choice' || question.type === 'true-false'
+                    ? 'Нажми на плитку'
+                    : 'Собери ответ и отправь'}
+              </motion.div>
+            )}
+          </AnimatePresence>
           {(question.type === 'multiple-choice' || question.type === 'matching' || question.type === 'fill-blank') && !showAnswer && (
             <button
               type="button"

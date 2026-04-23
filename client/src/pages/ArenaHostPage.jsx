@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Copy, Play, SkipForward, Smartphone, Trophy, Users, XCircle } from 'lucide-react';
+import { ArrowLeft, Copy, Pause, Play, Plus, SkipForward, Smartphone, Trophy, UserX, Users, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { connectArenaSocket, disconnectArenaSocket, getArenaSocket } from '../services/arenaSocket';
@@ -57,12 +57,22 @@ function statusLabel(status) {
   }
 }
 
-function PlayerPill({ participant }) {
+function PlayerPill({ participant, onKick }) {
   const name = participant.displayName || 'Игрок';
   return (
-    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-2">
+    <div className="group relative flex items-center gap-2 rounded-full border border-white/10 bg-white/8 pl-3 pr-2 py-2">
       <span className={`h-2.5 w-2.5 rounded-full ${participant.state === 'joined' ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
       <span className="max-w-[180px] truncate text-sm font-black text-white">{name}</span>
+      {onKick && (
+        <button
+          type="button"
+          onClick={() => onKick(participant._id, name)}
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500/10 text-red-300 opacity-0 transition group-hover:opacity-100 hover:bg-red-500/25"
+          title="Исключить"
+        >
+          <UserX size={12} />
+        </button>
+      )}
     </div>
   );
 }
@@ -134,14 +144,31 @@ export default function ArenaHostPage() {
     room?.leaderboardEndsAt
   ]);
 
-  const runHostAction = async (kind) => {
+  const runHostAction = async (kind, body) => {
     setActionBusy(true);
     try {
-      const res = await api.post(`/arena/rooms/${roomId}/${kind}`);
+      const res = await api.post(`/arena/rooms/${roomId}/${kind}`, body || {});
       if (res.data?.room) setRoom(res.data.room);
       if (kind === 'cancel') toast.success('Арена отменена');
+      if (kind === 'pause') toast.success('Пауза');
+      if (kind === 'resume') toast.success('Продолжаем');
+      if (kind === 'extend-timer') toast.success(`+${body?.extraSec || 15} сек`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Ошибка действия арены');
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const kickParticipant = async (participantId, displayName) => {
+    if (!participantId) return;
+    setActionBusy(true);
+    try {
+      const res = await api.post(`/arena/rooms/${roomId}/kick/${participantId}`);
+      if (res.data?.room) setRoom(res.data.room);
+      toast.success(`${displayName || 'Игрок'} исключён`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Не удалось исключить игрока');
     } finally {
       setActionBusy(false);
     }
@@ -151,6 +178,12 @@ export default function ArenaHostPage() {
   const onlineCount = participants.filter(participant => participant.state === 'joined').length;
   const showAnswer = room?.status === 'answer_reveal' || room?.status === 'leaderboard' || room?.status === 'round_result';
   const isCountdown = room?.status === 'countdown' || room?.status === 'starting_countdown';
+
+  const PAUSABLE_STATUSES = ['starting_countdown', 'countdown', 'question_intro', 'live_question', 'answer_reveal', 'leaderboard', 'round_result'];
+  const EXTENDABLE_STATUSES = ['starting_countdown', 'countdown', 'question_intro', 'live_question', 'answer_reveal', 'leaderboard', 'round_result'];
+  const canPause = PAUSABLE_STATUSES.includes(room?.status);
+  const isPaused = room?.status === 'paused';
+  const canExtend = EXTENDABLE_STATUSES.includes(room?.status);
 
   if (loading || !room) {
     return (
@@ -203,6 +236,39 @@ export default function ArenaHostPage() {
             >
               <Smartphone size={15} /> Player
             </Link>
+            {canExtend && (
+              <button
+                type="button"
+                onClick={() => runHostAction('extend-timer', { extraSec: 15 })}
+                disabled={actionBusy}
+                className="inline-flex h-11 items-center gap-1.5 rounded-2xl border border-emerald-300/20 bg-emerald-400/12 px-3 text-emerald-200 transition hover:bg-emerald-400/20 disabled:opacity-40"
+                title="Продлить таймер на 15 сек"
+              >
+                <Plus size={15} /> 15s
+              </button>
+            )}
+            {canPause && (
+              <button
+                type="button"
+                onClick={() => runHostAction('pause')}
+                disabled={actionBusy}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/8 text-white transition hover:bg-white/15 disabled:opacity-40"
+                title="Пауза"
+              >
+                <Pause size={17} />
+              </button>
+            )}
+            {isPaused && (
+              <button
+                type="button"
+                onClick={() => runHostAction('resume')}
+                disabled={actionBusy}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-300/30 bg-emerald-400/20 text-emerald-200 transition hover:bg-emerald-400/30 disabled:opacity-40"
+                title="Продолжить"
+              >
+                <Play size={17} />
+              </button>
+            )}
             {room.status !== 'lobby' && !['final', 'cancelled', 'declined'].includes(room.status) && (
               <button
                 type="button"
@@ -274,7 +340,7 @@ export default function ArenaHostPage() {
                 </div>
                 <div className="mt-5 flex flex-1 content-start flex-wrap gap-2 overflow-auto">
                   {participants.length ? participants.map(participant => (
-                    <PlayerPill key={participant._id} participant={participant} />
+                    <PlayerPill key={participant._id} participant={participant} onKick={kickParticipant} />
                   )) : (
                     <div className="rounded-[1.5rem] border border-dashed border-white/15 p-5 text-sm font-semibold text-white/45">
                       Игроки появятся здесь после входа по коду.

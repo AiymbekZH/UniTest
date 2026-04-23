@@ -139,10 +139,22 @@ export default function ArenaCodePage() {
     const handleError = ({ message }) => {
       if (message) toast.error(message);
     };
+    const handleKicked = (payload) => {
+      if (!payload) return;
+      const myParticipantId = getParticipantId(participant);
+      const matchesUser = currentUserId && payload.userId === String(currentUserId);
+      const matchesGuest = guestToken && payload.guestTokenId;
+      const matchesParticipant = myParticipantId && payload.participantId === myParticipantId;
+      if (matchesUser || matchesGuest || matchesParticipant) {
+        toast.error('Ведущий исключил вас из арены');
+        setTimeout(() => navigate('/arena'), 800);
+      }
+    };
 
     ARENA_EVENTS.forEach(eventName => socket.on(eventName, handleState));
     socket.on('arena:answerAck', handleAck);
     socket.on('arena:error', handleError);
+    socket.on('arena:kicked', handleKicked);
     socket.emit('arena:join', { roomId: room._id, guestToken });
 
     return () => {
@@ -150,9 +162,10 @@ export default function ArenaCodePage() {
       ARENA_EVENTS.forEach(eventName => socket.off(eventName, handleState));
       socket.off('arena:answerAck', handleAck);
       socket.off('arena:error', handleError);
+      socket.off('arena:kicked', handleKicked);
       disconnectArenaSocket();
     };
-  }, [guestToken, isAuthenticated, isHostUser, participant, room?._id]);
+  }, [currentUserId, guestToken, isAuthenticated, isHostUser, navigate, participant, room?._id]);
 
   useEffect(() => {
     const phaseEnd = getPhaseEnd(room);
@@ -413,6 +426,19 @@ export default function ArenaCodePage() {
               <p className="text-sm font-black uppercase tracking-[0.35em] opacity-60">Старт</p>
               <p className="mt-5 text-[10rem] font-black leading-none">{Math.max(0, Math.ceil(timeLeftMs / 1000))}</p>
               <p className="mt-4 text-xl font-black opacity-70">Смотри на главный экран</p>
+            </section>
+          )}
+
+          {room.status === 'paused' && (
+            <section className="grid min-h-[calc(100vh-96px)] place-items-center">
+              <div className="rounded-[2.5rem] border border-amber-300/30 bg-amber-400/10 p-10 text-center">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-400/30 text-amber-300">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                </div>
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-300">Пауза</p>
+                <h2 className="mt-3 text-4xl font-black text-white">Ведущий остановил игру</h2>
+                <p className="mt-3 text-sm font-semibold text-white/50">Оставайтесь на странице — мы продолжим автоматически.</p>
+              </div>
             </section>
           )}
 

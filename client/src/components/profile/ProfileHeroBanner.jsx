@@ -115,8 +115,8 @@ export default function ProfileHeroBanner({
   const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.trim() || 'U';
 
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/95 shadow-[0_32px_80px_-42px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/90">
-      <div className="relative h-[320px] sm:h-[360px]">
+    <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm dark:border-slate-700/60 dark:bg-slate-900/90">
+      <div className="relative h-[280px] sm:h-[320px]">
         {user?.coverImage ? (
           <>
             <img src={user.coverImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -153,7 +153,7 @@ export default function ProfileHeroBanner({
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex min-w-0 items-end gap-4 sm:gap-5">
               <div className="relative flex-shrink-0">
-                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-[1.6rem] border-4 border-white/75 bg-white/95 text-2xl font-black text-primary-600 shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:text-primary-300 sm:h-28 sm:w-28 sm:text-3xl">
+                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-white text-2xl font-bold text-primary-600 shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-primary-300 sm:h-28 sm:w-28 sm:text-3xl">
                   {user?.avatar ? (
                     <img src={user.avatar} alt="" className="h-full w-full object-cover" />
                   ) : (
@@ -170,7 +170,7 @@ export default function ProfileHeroBanner({
 
               <div className="min-w-0 pb-1 text-white">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-black sm:text-[2rem]">{title}</h1>
+                  <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
                   {roleLabel && (
                     <span className="inline-flex rounded-full border border-white/20 bg-white/16 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-xl">
                       {roleLabel}

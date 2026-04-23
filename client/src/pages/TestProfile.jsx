@@ -10,6 +10,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import Navbar from '../components/Navbar';
+import AnimatedHero from '../components/AnimatedHero';
 import CommentsSection from '../components/CommentsSection';
 import toast, { Toaster } from 'react-hot-toast';
 import TestCoverArtwork from '../components/TestCoverArtwork';
@@ -174,14 +175,31 @@ export default function TestProfile() {
       
       <Navbar />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         {/* Back button */}
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:opacity-70 transition mb-6"
+          className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:opacity-70 transition mb-5"
         >
           <ArrowLeft size={16} /> {t('back')}
         </button>
+
+        {/* Hero banner with test title + stats */}
+        <AnimatedHero
+          preset="grid"
+          height="md"
+          eyebrow={test.settings?.isPublic ? t('publicTest') : t('privateTest')}
+          icon={<BarChart3 size={22} />}
+          title={test.title}
+          subtitle={test.description || undefined}
+          stats={[
+            { icon: <BarChart3 size={14} />, label: t('questions'), value: test.questions?.length || 0 },
+            { icon: <Clock size={14} />, label: t('min'), value: test.settings?.timeLimit || '∞' },
+            { icon: <Users size={14} />, label: t('totalParticipants'), value: test.attemptCount || 0 },
+            { icon: <Star size={14} />, label: t('rating'), value: test.rating ? test.rating.toFixed(1) : '—' }
+          ]}
+          className="mb-6"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
           {/* Main info */}
@@ -192,7 +210,7 @@ export default function TestProfile() {
               animate={{ opacity: 1, y: 0 }}
               className="glass-card-solid p-6 sm:p-8"
             >
-              <div className="mb-6 overflow-hidden rounded-2xl border border-white/70 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.4)] dark:border-slate-700/70">
+              <div className="mb-6 overflow-hidden rounded-2xl border border-gray-100 dark:border-slate-700/70">
                 <TestCoverArtwork
                   coverImage={test.coverImage}
                   title={test.title}
@@ -202,32 +220,22 @@ export default function TestProfile() {
                 />
               </div>
 
+              {/* Status badges */}
               <div className="flex items-center gap-2 mb-4 flex-wrap">
-                {test.settings?.isPublic ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"><Eye size={10} /> {t('publicTest')}</span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"><EyeOff size={10} /> {t('privateTest')}</span>
-                )}
                 {test.settings?.antiCheat?.blockTabSwitch && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"><Shield size={10} /> Anti-cheat</span>
                 )}
                 {test.settings?.startDate && (
                   <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
-                    <Clock size={9} /> {t('from') || '\u0441'} {new Date(test.settings.startDate).toLocaleDateString()}
+                    <Clock size={9} /> {t('from') || 'с'} {new Date(test.settings.startDate).toLocaleDateString()}
                   </span>
                 )}
                 {test.settings?.endDate && (
                   <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400">
-                    <Clock size={9} /> {t('until') || '\u0434\u043e'} {new Date(test.settings.endDate).toLocaleDateString()}
+                    <Clock size={9} /> {t('until') || 'до'} {new Date(test.settings.endDate).toLocaleDateString()}
                   </span>
                 )}
               </div>
-
-              <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-3 tracking-tight">{test.title}</h1>
-
-              {test.description && (
-                <p className="text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">{test.description}</p>
-              )}
 
               {/* Tags */}
               {test.tags?.length > 0 && (
@@ -240,38 +248,13 @@ export default function TestProfile() {
                 </div>
               )}
 
-              {/* Stats grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                <div className="bg-blue-50/80 dark:bg-blue-900/20 rounded-2xl p-4 text-center">
-                  <div className="w-8 h-8 rounded-2xl bg-blue-100 dark:bg-blue-800/40 text-primary-600 mx-auto mb-2 flex items-center justify-center"><BarChart3 size={16} /></div>
-                  <p className="text-[22px] font-bold text-primary-600 tracking-tight">{test.questions?.length || 0}</p>
-                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('questions')}</p>
-                </div>
-                <div className="bg-amber-50/80 dark:bg-amber-900/20 rounded-2xl p-4 text-center">
-                  <div className="w-8 h-8 rounded-2xl bg-amber-100 dark:bg-amber-800/40 text-amber-600 mx-auto mb-2 flex items-center justify-center"><Clock size={16} /></div>
-                  <p className="text-[22px] font-bold text-amber-600 tracking-tight">{test.settings?.timeLimit || '∞'}</p>
-                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('min')}</p>
-                </div>
-                <div className="bg-emerald-50/80 dark:bg-emerald-900/20 rounded-2xl p-4 text-center">
-                  <div className="w-8 h-8 rounded-2xl bg-emerald-100 dark:bg-emerald-800/40 text-emerald-600 mx-auto mb-2 flex items-center justify-center"><Users size={16} /></div>
-                  <p className="text-[22px] font-bold text-emerald-600 tracking-tight">{test.attemptCount || 0}</p>
-                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('totalParticipants')}</p>
-                </div>
-                <div className="bg-purple-50/80 dark:bg-purple-900/20 rounded-2xl p-4 text-center">
-                  <div className="w-8 h-8 rounded-2xl bg-purple-100 dark:bg-purple-800/40 text-purple-600 mx-auto mb-2 flex items-center justify-center"><Star size={16} /></div>
-                  <p className="text-[22px] font-bold text-purple-600 tracking-tight">{test.rating?.toFixed(1) || '—'}</p>
-                  <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">{t('rating')}</p>
-                  <p className="mt-1 text-[10px] text-gray-400">{test.ratingCount || 0} оценок</p>
-                </div>
-              </div>
-
               {/* Complexity DNA Bar */}
-              <div className="mb-6 p-4 rounded-2xl border border-gray-200/70 dark:border-slate-700 bg-white/70 dark:bg-slate-800/50">
+              <div className="mb-6 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50/60 dark:bg-slate-800/50">
                 <div className="flex justify-between items-end mb-3">
                   <div>
                     <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">Оценка сложности</h3>
                     <div className="flex items-center gap-2">
-                       <span className={`text-base font-bold tracking-tight ${difficultyMeta.color}`}>{difficultyMeta.label}</span>
+                      <span className={`text-base font-bold tracking-tight ${difficultyMeta.color}`}>{difficultyMeta.label}</span>
                     </div>
                   </div>
                   <div className="text-right">

@@ -32,6 +32,7 @@ import { useLanguage } from '../context/LanguageContext';
 import Navbar from '../components/Navbar';
 import Pagination from '../components/Pagination';
 import ConfirmDialog from '../components/ConfirmDialog';
+import AnimatedHero from '../components/AnimatedHero';
 import TestCoverArtwork from '../components/TestCoverArtwork';
 // (AnimatedIcon / BrandLogo removed — using raw Lucide icons for minimalism)
 
@@ -1311,67 +1312,46 @@ export default function Dashboard() {
         variant="danger"
       />
 
-      <main className="mx-auto max-w-6xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
-        {/* Compact header */}
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-        >
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-dark sm:text-3xl">
-              {isAuthenticated ? `${t('welcome')}, ${user?.firstName || 'Guest'}` : copy.guestHeroTitle}
-            </h1>
-            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-gray-400">
-              {isAuthenticated ? copy.heroDesc : copy.guestHeroDesc}
-            </p>
-          </div>
-
-          {isAuthenticated && (
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800">
-                <Crown size={12} className="text-primary-500" />
-                <span className="font-bold text-dark">{progressData?.progress?.level || 1}</span>
-                <span className="text-gray-300">{copy.levelShort}</span>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800">
-                <Flame size={12} className="text-amber-500" />
-                <span className="font-bold text-dark">{progressData?.progress?.currentStreakDays || 0}</span>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800">
-                <span className="font-bold text-dark">{progressData?.progress?.xp || 0}</span>
-                <span className="text-gray-300">XP</span>
-              </div>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Action buttons */}
-        <div className="mt-5 flex flex-wrap gap-2.5">
-          {isAuthenticated ? (
-            <>
-              <button type="button" onClick={() => navigate('/create-test')} className="btn-primary inline-flex items-center gap-2 text-sm">
-                <Plus size={15} />
-                {t('createTest')}
-              </button>
-              <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2 text-sm">
-                <Search size={15} />
-                {copy.exploreTests}
-              </button>
-            </>
-          ) : (
-            <>
-              <button type="button" onClick={() => navigate('/register')} className="btn-primary inline-flex items-center gap-2 text-sm">
-                <Plus size={15} />
-                {copy.guestCta}
-              </button>
-              <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2 text-sm">
-                <Play size={15} />
-                {copy.exploreTests}
-              </button>
-            </>
-          )}
-        </div>
+      <main className="mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 lg:px-8">
+        {/* Premium animated hero */}
+        <AnimatedHero
+          preset="aurora"
+          height="md"
+          eyebrow={isAuthenticated ? 'Dashboard' : 'UniTest'}
+          icon={<Sparkles size={22} />}
+          title={isAuthenticated ? `${t('welcome')}, ${user?.firstName || 'Guest'}` : copy.guestHeroTitle}
+          subtitle={isAuthenticated ? copy.heroDesc : copy.guestHeroDesc}
+          stats={
+            isAuthenticated
+              ? [
+                  { icon: <Crown size={14} />, label: copy.levelShort, value: progressData?.progress?.level || 1 },
+                  { icon: <Flame size={14} />, label: 'Streak', value: progressData?.progress?.currentStreakDays || 0 },
+                  { icon: <Trophy size={14} />, label: 'XP', value: progressData?.progress?.xp || 0 }
+                ]
+              : undefined
+          }
+          actions={
+            isAuthenticated ? (
+              <>
+                <button type="button" onClick={() => navigate('/create-test')} className="btn-primary inline-flex items-center gap-2 text-sm">
+                  <Plus size={15} /> {t('createTest')}
+                </button>
+                <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2 text-sm">
+                  <Search size={15} /> {copy.exploreTests}
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => navigate('/register')} className="btn-primary inline-flex items-center gap-2 text-sm">
+                  <Plus size={15} /> {copy.guestCta}
+                </button>
+                <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2 text-sm">
+                  <Play size={15} /> {copy.exploreTests}
+                </button>
+              </>
+            )
+          }
+        />
 
         {/* Tab bar */}
         <div className="mt-8 border-b border-gray-100 dark:border-slate-700/60">

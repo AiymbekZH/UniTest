@@ -16,12 +16,16 @@ const {
   clearArenaTimers,
   createArenaRoomDocument,
   emitArenaState,
+  extendArenaTimer,
   finalizeArenaRoom,
+  kickArenaParticipant,
   loadArenaParticipants,
   loadArenaRoom,
+  pauseArenaRoom,
   resolveArenaParticipant,
-  startArenaCountdown,
-  startNextArenaQuestion
+  resumeArenaRoom,
+  skipArenaPhase,
+  startArenaCountdown
 } = require('../utils/arenaEngine');
 
 const router = express.Router();
@@ -137,7 +141,7 @@ async function createDuelInviteMessage(req, room, test, conversation, invitedUse
 
 router.post('/rooms', auth, async (req, res) => {
   try {
-    const { testId, sourceType = 'public', groupId, conversationId } = req.body;
+    const { testId, sourceType = 'public', groupId, conversationId, settings = {} } = req.body;
     if (!testId) return res.status(400).json({ message: 'testId required' });
 
     const test = await Test.findById(testId).select('title creator settings questions shareLink isDeleted');
@@ -167,7 +171,8 @@ router.post('/rooms', auth, async (req, res) => {
         test,
         group: group._id,
         allowGuests: false,
-        maxPlayers: Math.max(2, group.members.length || 2)
+        maxPlayers: Math.max(2, group.members.length || 2),
+        settings
       });
 
       await createGroupInviteMessage(req, room, test);
@@ -190,6 +195,7 @@ router.post('/rooms', auth, async (req, res) => {
         conversation: conversation._id,
         allowGuests: false,
         maxPlayers: 2,
+        settings,
         status: ARENA_STATUS.PENDING
       });
 
@@ -211,7 +217,8 @@ router.post('/rooms', auth, async (req, res) => {
         hostUser: req.user._id,
         test,
         allowGuests: true,
-        maxPlayers: 100
+        maxPlayers: Math.max(2, Math.min(500, Number(settings.maxPlayers) || 100)),
+        settings
       });
     }
 
@@ -480,28 +487,99 @@ router.post('/rooms/:id/start', auth, async (req, res) => {
   }
 });
 
-router.post('/rooms/:id/next', auth, async (req, res) => {
+async function skipArenaPhaseRoute(req, res) {
   try {
     const room = await ArenaRoom.findById(req.params.id);
     if (!room) return res.status(404).json({ message: 'Комната не найдена' });
     if (room.hostUser.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Только ведущий может переключать раунды' });
-    }
-    if (room.status !== ARENA_STATUS.ROUND_RESULT) {
-      return res.status(400).json({ message: 'Сейчас нельзя перейти к следующему раунду' });
+      return res.status(403).json({ message: 'Только ведущий может переключать фазу арены' });
     }
 
     const io = req.app.get('io');
-    if (room.currentQuestionIndex >= room.questionSnapshot.length - 1) {
-      await finalizeArenaRoom(room._id, io);
-    } else {
-      await startNextArenaQuestion(room._id, io);
+    const updated = await skipArenaPhase(room._id, io);
+    if (!updated) {
+      return res.status(400).json({ message: 'Сейчас нельзя пропустить фазу арены' });
     }
 
     const populated = await populateRoomState(room._id);
     res.json({ room: populated.state });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка перехода к следующему раунду' });
+    res.status(500).json({ message: 'Ошибка переключения фазы арены' });
+  }
+}
+
+router.post('/rooms/:id/next', auth, skipArenaPhaseRoute);
+router.post('/rooms/:id/skip', auth, skipArenaPhaseRoute);
+
+router.post('/rooms/:id/pause', auth, async (req, res) => {
+  try {
+    const room = await ArenaRoom.findById(req.params.id);
+    if (!room) return res.status(404).json({ message: 'Комната не найдена' });
+    if (room.hostUser.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Только ведущий может поставить арену на паузу' });
+    }
+
+    const io = req.app.get('io');
+    await pauseArenaRoom(room._id, io);
+    const populated = await populateRoomState(room._id);
+    res.json({ room: populated.state });
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message || 'Ошибка постановки на паузу' });
+  }
+});
+
+router.post('/rooms/:id/resume', auth, async (req, res) => {
+  try {
+    const room = await ArenaRoom.findById(req.params.id);
+    if (!room) return res.status(404).json({ message: 'Комната не найдена' });
+    if (room.hostUser.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Только ведущий может снять паузу' });
+    }
+
+    const io = req.app.get('io');
+    const updated = await resumeArenaRoom(room._id, io);
+    if (!updated) {
+      return res.status(400).json({ message: 'Комната не на паузе' });
+    }
+    const populated = await populateRoomState(room._id);
+    res.json({ room: populated.state });
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message || 'Ошибка снятия паузы' });
+  }
+});
+
+router.post('/rooms/:id/extend-timer', auth, async (req, res) => {
+  try {
+    const room = await ArenaRoom.findById(req.params.id);
+    if (!room) return res.status(404).json({ message: 'Комната не найдена' });
+    if (room.hostUser.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Только ведущий может продлить таймер' });
+    }
+
+    const extraSec = Number(req.body?.extraSec) || 15;
+    const io = req.app.get('io');
+    await extendArenaTimer(room._id, extraSec, io);
+    const populated = await populateRoomState(room._id);
+    res.json({ room: populated.state });
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message || 'Ошибка продления таймера' });
+  }
+});
+
+router.post('/rooms/:id/kick/:participantId', auth, async (req, res) => {
+  try {
+    const room = await ArenaRoom.findById(req.params.id);
+    if (!room) return res.status(404).json({ message: 'Комната не найдена' });
+    if (room.hostUser.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Только ведущий может исключать игроков' });
+    }
+
+    const io = req.app.get('io');
+    await kickArenaParticipant(room._id, req.params.participantId, io);
+    const populated = await populateRoomState(room._id);
+    res.json({ room: populated.state });
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message || 'Ошибка исключения игрока' });
   }
 });
 

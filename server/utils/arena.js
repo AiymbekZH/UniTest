@@ -1,11 +1,16 @@
 const jwt = require('jsonwebtoken');
 
 const ARENA_ALLOWED_TYPES = ['single-choice', 'multiple-choice', 'true-false', 'matching', 'fill-blank'];
+
 const ARENA_STATUS = {
   PENDING: 'pending_acceptance',
   LOBBY: 'lobby',
-  COUNTDOWN: 'countdown',
+  LEGACY_COUNTDOWN: 'countdown',
+  COUNTDOWN: 'starting_countdown',
+  QUESTION_INTRO: 'question_intro',
   LIVE: 'live_question',
+  ANSWER_REVEAL: 'answer_reveal',
+  LEADERBOARD: 'leaderboard',
   ROUND_RESULT: 'round_result',
   PAUSED: 'paused',
   DECLINED: 'declined',
@@ -13,8 +18,40 @@ const ARENA_STATUS = {
   FINAL: 'final'
 };
 
+const QUESTION_VISIBLE_STATUSES = new Set([
+  ARENA_STATUS.QUESTION_INTRO,
+  ARENA_STATUS.LIVE,
+  ARENA_STATUS.ANSWER_REVEAL,
+  ARENA_STATUS.LEADERBOARD,
+  ARENA_STATUS.ROUND_RESULT
+]);
+
+const ANSWER_VISIBLE_STATUSES = new Set([
+  ARENA_STATUS.ANSWER_REVEAL,
+  ARENA_STATUS.LEADERBOARD,
+  ARENA_STATUS.ROUND_RESULT
+]);
+
 function normalizeFreeText(value = '') {
   return String(value).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function clampNumber(value, fallback, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(number)));
+}
+
+function normalizeArenaSettings(settings = {}, fallback = {}) {
+  return {
+    countdownSeconds: clampNumber(settings.countdownSeconds ?? fallback.countdownSeconds, 5, 3, 15),
+    questionIntroSec: clampNumber(settings.questionIntroSec ?? fallback.questionIntroSec, 3, 1, 10),
+    answerTimeSec: clampNumber(settings.answerTimeSec ?? fallback.answerTimeSec, 20, 5, 120),
+    answerRevealSec: clampNumber(settings.answerRevealSec ?? fallback.answerRevealSec, 5, 2, 20),
+    leaderboardSec: clampNumber(settings.leaderboardSec ?? fallback.leaderboardSec, 6, 2, 30),
+    allowGuests: Boolean(settings.allowGuests ?? fallback.allowGuests ?? false),
+    maxPlayers: clampNumber(settings.maxPlayers ?? fallback.maxPlayers, 100, 2, 500)
+  };
 }
 
 function getArenaQuestionDuration(type) {
@@ -38,7 +75,7 @@ function generateJoinCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function buildArenaQuestionSnapshot(question) {
+function buildArenaQuestionSnapshot(question, settings = {}) {
   if (!ARENA_ALLOWED_TYPES.includes(question.type)) return null;
 
   const base = {
@@ -47,7 +84,7 @@ function buildArenaQuestionSnapshot(question) {
     questionText: question.questionText,
     passage: question.passage || '',
     points: Math.max(1, Number(question.points) || 1),
-    timeLimitSec: getArenaQuestionDuration(question.type),
+    timeLimitSec: clampNumber(settings.answerTimeSec, getArenaQuestionDuration(question.type), 5, 120),
     options: [],
     matchingRightSide: [],
     grading: {
@@ -61,7 +98,7 @@ function buildArenaQuestionSnapshot(question) {
     const leftOptions = [];
     const rightOptions = [];
 
-    question.options.forEach((option) => {
+    (question.options || []).forEach((option) => {
       leftOptions.push({ id: option.id, text: option.text });
       if (option.matchPair) {
         rightOptions.push({ id: option.id, text: option.matchPair });
@@ -91,14 +128,39 @@ function buildArenaQuestionSnapshot(question) {
   return base;
 }
 
-function buildArenaSnapshotFromTest(test) {
+function buildArenaSnapshotFromTest(test, settings = {}) {
+  const normalizedSettings = normalizeArenaSettings(settings);
   return (test.questions || [])
-    .map(buildArenaQuestionSnapshot)
+    .map(question => buildArenaQuestionSnapshot(question, normalizedSettings))
     .filter(Boolean);
 }
 
-function sanitizeArenaQuestion(question, questionIndex = 0, totalQuestions = 0) {
+function mapLikeToObject(value) {
+  if (!value) return {};
+  if (value instanceof Map) return Object.fromEntries(value);
+  if (typeof value.toObject === 'function') {
+    const objectValue = value.toObject({ flattenMaps: true });
+    if (objectValue instanceof Map) return Object.fromEntries(objectValue);
+    return objectValue || {};
+  }
+  return { ...value };
+}
+
+function buildAnswerSummary(question) {
   if (!question) return null;
+  const correctPairs = mapLikeToObject(question.grading?.correctPairs);
+  return {
+    correctOptionIds: question.grading?.correctOptionIds || [],
+    acceptedAnswers: question.grading?.acceptedAnswers || [],
+    correctPairs
+  };
+}
+
+function sanitizeArenaQuestion(question, questionIndex = 0, totalQuestions = 0, options = {}) {
+  if (!question) return null;
+  const answerSummary = options.includeAnswer ? buildAnswerSummary(question) : null;
+  const correctOptionIds = new Set(answerSummary?.correctOptionIds || []);
+
   return {
     questionId: question.questionId,
     type: question.type,
@@ -106,8 +168,13 @@ function sanitizeArenaQuestion(question, questionIndex = 0, totalQuestions = 0) 
     passage: question.passage || '',
     points: question.points,
     timeLimitSec: question.timeLimitSec,
-    options: question.options || [],
+    options: (question.options || []).map(option => ({
+      id: option.id,
+      text: option.text,
+      ...(options.includeAnswer ? { isCorrect: correctOptionIds.has(option.id) } : {})
+    })),
     matchingRightSide: question.matchingRightSide || [],
+    answerSummary,
     questionNumber: questionIndex + 1,
     totalQuestions
   };
@@ -134,7 +201,7 @@ function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTim
       return acc;
     }, {});
 
-    const expectedEntries = Object.entries(question.grading.correctPairs || {});
+    const expectedEntries = Object.entries(mapLikeToObject(question.grading.correctPairs));
     isCorrect = expectedEntries.length > 0 && expectedEntries.every(([left, right]) => actualMap[left] === right);
   }
 
@@ -171,7 +238,15 @@ function sortArenaParticipants(participants = []) {
   });
 }
 
-function buildArenaParticipantSummary(participant) {
+function findAnswerForQuestion(participant, questionIndex) {
+  if (questionIndex < 0) return null;
+  return (participant.answers || []).find(answer => answer.questionIndex === questionIndex) || null;
+}
+
+function buildArenaParticipantSummary(participant, options = {}) {
+  const currentAnswer = findAnswerForQuestion(participant, options.currentQuestionIndex ?? -1);
+  const includeLastAnswer = Boolean(options.includeLastAnswer && currentAnswer);
+
   return {
     _id: participant._id,
     user: participant.user ? {
@@ -193,17 +268,66 @@ function buildArenaParticipantSummary(participant) {
     bestStreak: participant.bestStreak || 0,
     correctCount: participant.correctCount || 0,
     answeredCount: participant.answeredCount || 0,
-    totalResponseTimeMs: participant.totalResponseTimeMs || 0
+    answeredCurrentQuestion: Boolean(currentAnswer),
+    totalResponseTimeMs: participant.totalResponseTimeMs || 0,
+    lastAnswer: includeLastAnswer ? {
+      questionIndex: currentAnswer.questionIndex,
+      isCorrect: currentAnswer.isCorrect,
+      pointsAwarded: currentAnswer.pointsAwarded,
+      responseTimeMs: currentAnswer.responseTimeMs
+    } : null
+  };
+}
+
+function getPhaseEndsAt(room) {
+  switch (room.status) {
+    case ARENA_STATUS.COUNTDOWN:
+    case ARENA_STATUS.LEGACY_COUNTDOWN:
+      return room.countdownEndsAt;
+    case ARENA_STATUS.QUESTION_INTRO:
+      return room.questionIntroEndsAt;
+    case ARENA_STATUS.LIVE:
+      return room.questionEndsAt;
+    case ARENA_STATUS.ANSWER_REVEAL:
+      return room.answerRevealEndsAt;
+    case ARENA_STATUS.LEADERBOARD:
+    case ARENA_STATUS.ROUND_RESULT:
+      return room.leaderboardEndsAt || room.phaseEndsAt;
+    default:
+      return room.phaseEndsAt;
+  }
+}
+
+function buildArenaAnswerStats(participants = [], currentQuestionIndex = -1) {
+  const activeParticipants = participants.filter(participant => participant.state !== 'declined');
+  const answers = activeParticipants
+    .map(participant => findAnswerForQuestion(participant, currentQuestionIndex))
+    .filter(Boolean);
+
+  return {
+    totalParticipants: activeParticipants.length,
+    connectedParticipants: activeParticipants.filter(participant => participant.state === 'joined').length,
+    answeredCount: answers.length,
+    correctCount: answers.filter(answer => answer.isCorrect).length
   };
 }
 
 function buildArenaRoomState(room, participants = []) {
-  const orderedParticipants = sortArenaParticipants(participants).map(buildArenaParticipantSummary);
-  const currentQuestion = room.status === ARENA_STATUS.LIVE
+  const includeAnswer = ANSWER_VISIBLE_STATUSES.has(room.status);
+  const visibleParticipants = participants.filter(participant => participant.state !== 'declined');
+  const orderedParticipants = sortArenaParticipants(visibleParticipants).map((participant, index) => ({
+    ...buildArenaParticipantSummary(participant, {
+      currentQuestionIndex: room.currentQuestionIndex,
+      includeLastAnswer: includeAnswer
+    }),
+    liveRank: index + 1
+  }));
+  const currentQuestion = QUESTION_VISIBLE_STATUSES.has(room.status)
     ? sanitizeArenaQuestion(
         room.questionSnapshot?.[room.currentQuestionIndex],
         room.currentQuestionIndex,
-        room.questionSnapshot?.length || 0
+        room.questionSnapshot?.length || 0,
+        { includeAnswer }
       )
     : null;
 
@@ -222,22 +346,28 @@ function buildArenaRoomState(room, participants = []) {
       _id: room.hostUser._id,
       firstName: room.hostUser.firstName,
       lastName: room.hostUser.lastName,
-      avatar: room.hostUser.avatar
+      avatar: room.hostUser.avatar,
+      uniqueId: room.hostUser.uniqueId
     } : null,
     groupId: room.group?._id || room.group || null,
     conversationId: room.conversation?._id || room.conversation || null,
     invitedUserId: room.invitedUser?._id || room.invitedUser || null,
-    settings: room.settings,
+    settings: normalizeArenaSettings(room.settings),
     questionCount: room.questionSnapshot?.length || 0,
     currentQuestionIndex: room.currentQuestionIndex,
     countdownEndsAt: room.countdownEndsAt,
+    questionIntroEndsAt: room.questionIntroEndsAt,
     questionStartedAt: room.questionStartedAt,
     questionEndsAt: room.questionEndsAt,
+    answerRevealEndsAt: room.answerRevealEndsAt,
+    leaderboardEndsAt: room.leaderboardEndsAt,
+    phaseEndsAt: getPhaseEndsAt(room),
     roundResolvedAt: room.roundResolvedAt,
     finalizedAt: room.finalizedAt,
     cancelledAt: room.cancelledAt,
     pauseEndsAt: room.pauseEndsAt,
     currentQuestion,
+    answerStats: buildArenaAnswerStats(visibleParticipants, room.currentQuestionIndex),
     participants: orderedParticipants,
     createdAt: room.createdAt
   };
@@ -267,6 +397,7 @@ module.exports = {
   buildArenaParticipantSummary,
   generateJoinCode,
   gradeArenaAnswer,
+  normalizeArenaSettings,
   sanitizeArenaQuestion,
   signArenaGuestToken,
   sortArenaParticipants,

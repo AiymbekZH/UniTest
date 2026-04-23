@@ -8,6 +8,7 @@ const {
   buildArenaSnapshotFromTest,
   generateJoinCode,
   gradeArenaAnswer,
+  normalizeArenaSettings,
   sortArenaParticipants
 } = require('./arena');
 
@@ -33,6 +34,37 @@ function setArenaTimer(roomId, key, callback, delayMs) {
   const timerBag = getRoomTimerBag(roomId);
   if (timerBag[key]) clearTimeout(timerBag[key]);
   timerBag[key] = setTimeout(callback, Math.max(50, delayMs));
+}
+
+function getArenaEventName(status) {
+  switch (status) {
+    case ARENA_STATUS.COUNTDOWN:
+    case ARENA_STATUS.LEGACY_COUNTDOWN:
+      return 'arena:countdown';
+    case ARENA_STATUS.QUESTION_INTRO:
+      return 'arena:questionIntro';
+    case ARENA_STATUS.LIVE:
+      return 'arena:question';
+    case ARENA_STATUS.ANSWER_REVEAL:
+      return 'arena:answerReveal';
+    case ARENA_STATUS.LEADERBOARD:
+    case ARENA_STATUS.ROUND_RESULT:
+      return 'arena:leaderboard';
+    case ARENA_STATUS.FINAL:
+    case ARENA_STATUS.CANCELLED:
+    case ARENA_STATUS.DECLINED:
+      return 'arena:final';
+    default:
+      return 'arena:lobbyState';
+  }
+}
+
+function safeTimer(callback, label) {
+  return () => {
+    callback().catch((error) => {
+      console.error(`${label} timer error:`, error.message);
+    });
+  };
 }
 
 async function loadArenaRoom(roomId) {
@@ -63,7 +95,7 @@ async function resolveArenaParticipant(roomId, actor = {}) {
     .populate('user', 'firstName lastName avatar uniqueId');
 }
 
-async function emitArenaState(io, roomId, eventName = 'arena:lobbyState') {
+async function emitArenaState(io, roomId, eventName = null) {
   const [room, participants] = await Promise.all([
     loadArenaRoom(roomId),
     loadArenaParticipants(roomId)
@@ -71,18 +103,52 @@ async function emitArenaState(io, roomId, eventName = 'arena:lobbyState') {
 
   if (!room) return null;
   const state = buildArenaRoomState(room, participants);
-  io.to(`arena:${roomId}`).emit(eventName, state);
+  const statusEvent = eventName || getArenaEventName(room.status);
+  io.to(`arena:${roomId}`).emit('arena:state', state);
+  if (statusEvent !== 'arena:state') {
+    io.to(`arena:${roomId}`).emit(statusEvent, state);
+  }
   return state;
 }
 
-function createArenaSnapshotOrThrow(test) {
-  const snapshot = buildArenaSnapshotFromTest(test);
+function createArenaSnapshotOrThrow(test, settings = {}) {
+  const snapshot = buildArenaSnapshotFromTest(test, settings);
   if (!snapshot.length) {
     const error = new Error('В тесте нет поддерживаемых вопросов для арены');
     error.status = 400;
     throw error;
   }
   return snapshot;
+}
+
+function clearPhaseDates(room) {
+  room.countdownEndsAt = null;
+  room.questionIntroEndsAt = null;
+  room.questionStartedAt = null;
+  room.questionEndsAt = null;
+  room.answerRevealEndsAt = null;
+  room.leaderboardEndsAt = null;
+  room.phaseEndsAt = null;
+}
+
+function getCurrentQuestion(room) {
+  return room.questionSnapshot?.[room.currentQuestionIndex] || null;
+}
+
+async function updateParticipantRanks(roomId) {
+  const participants = sortArenaParticipants(
+    await ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } })
+  );
+
+  for (let index = 0; index < participants.length; index += 1) {
+    const participant = participants[index];
+    if (participant.rank !== index + 1) {
+      participant.rank = index + 1;
+      await participant.save();
+    }
+  }
+
+  return participants;
 }
 
 async function startNextArenaQuestion(roomId, io) {
@@ -95,22 +161,56 @@ async function startNextArenaQuestion(roomId, io) {
   }
 
   clearArenaTimers(roomId);
-  const currentQuestion = room.questionSnapshot[nextQuestionIndex];
+  const settings = normalizeArenaSettings(room.settings);
   const now = new Date();
-  room.status = ARENA_STATUS.LIVE;
+  const endsAt = new Date(now.getTime() + settings.questionIntroSec * 1000);
+
+  room.settings = settings;
+  room.status = ARENA_STATUS.QUESTION_INTRO;
   room.currentQuestionIndex = nextQuestionIndex;
-  room.countdownEndsAt = null;
+  clearPhaseDates(room);
+  room.questionIntroEndsAt = endsAt;
+  room.phaseEndsAt = endsAt;
   room.roundResolvedAt = null;
+  await room.save();
+
+  await emitArenaState(io, roomId, 'arena:questionIntro');
+  setArenaTimer(roomId, 'questionIntro', safeTimer(
+    () => startCurrentArenaQuestion(roomId, io),
+    'startCurrentArenaQuestion'
+  ), settings.questionIntroSec * 1000 + 100);
+
+  return room;
+}
+
+async function startCurrentArenaQuestion(roomId, io) {
+  const room = await ArenaRoom.findById(roomId);
+  if (!room || ![ARENA_STATUS.QUESTION_INTRO, ARENA_STATUS.COUNTDOWN, ARENA_STATUS.LEGACY_COUNTDOWN].includes(room.status)) return null;
+
+  const currentQuestion = getCurrentQuestion(room);
+  if (!currentQuestion) return finalizeArenaRoom(roomId, io);
+
+  clearArenaTimers(roomId);
+  const settings = normalizeArenaSettings(room.settings);
+  const now = new Date();
+  const durationSec = Math.max(5, Number(currentQuestion.timeLimitSec) || settings.answerTimeSec);
+  const endsAt = new Date(now.getTime() + durationSec * 1000);
+
+  room.settings = settings;
+  room.status = ARENA_STATUS.LIVE;
+  room.questionIntroEndsAt = null;
   room.questionStartedAt = now;
-  room.questionEndsAt = new Date(now.getTime() + currentQuestion.timeLimitSec * 1000);
+  room.questionEndsAt = endsAt;
+  room.answerRevealEndsAt = null;
+  room.leaderboardEndsAt = null;
+  room.phaseEndsAt = endsAt;
   await room.save();
 
   await emitArenaState(io, roomId, 'arena:question');
-  setArenaTimer(roomId, 'question', () => {
-    finalizeCurrentArenaQuestion(roomId, io).catch((error) => {
-      console.error('finalizeCurrentArenaQuestion timer error:', error.message);
-    });
-  }, currentQuestion.timeLimitSec * 1000 + 100);
+  setArenaTimer(roomId, 'question', safeTimer(
+    () => finalizeCurrentArenaQuestion(roomId, io),
+    'finalizeCurrentArenaQuestion'
+  ), durationSec * 1000 + 100);
 
   return room;
 }
@@ -120,19 +220,21 @@ async function startArenaCountdown(roomId, io) {
   if (!room || room.status !== ARENA_STATUS.LOBBY) return null;
 
   clearArenaTimers(roomId);
+  const settings = normalizeArenaSettings(room.settings);
+  const endsAt = new Date(Date.now() + settings.countdownSeconds * 1000);
+
+  room.settings = settings;
   room.status = ARENA_STATUS.COUNTDOWN;
-  room.countdownEndsAt = new Date(Date.now() + room.settings.countdownSeconds * 1000);
-  room.questionStartedAt = null;
-  room.questionEndsAt = null;
-  room.roundResolvedAt = null;
+  clearPhaseDates(room);
+  room.countdownEndsAt = endsAt;
+  room.phaseEndsAt = endsAt;
   await room.save();
 
   await emitArenaState(io, roomId, 'arena:countdown');
-  setArenaTimer(roomId, 'countdown', () => {
-    startNextArenaQuestion(roomId, io).catch((error) => {
-      console.error('startNextArenaQuestion timer error:', error.message);
-    });
-  }, room.settings.countdownSeconds * 1000 + 100);
+  setArenaTimer(roomId, 'countdown', safeTimer(
+    () => startNextArenaQuestion(roomId, io),
+    'startNextArenaQuestion'
+  ), settings.countdownSeconds * 1000 + 100);
 
   return room;
 }
@@ -142,20 +244,54 @@ async function finalizeCurrentArenaQuestion(roomId, io) {
   if (!room || room.status !== ARENA_STATUS.LIVE) return null;
 
   clearArenaTimers(roomId);
-  room.status = ARENA_STATUS.ROUND_RESULT;
+  const settings = normalizeArenaSettings(room.settings);
+  const endsAt = new Date(Date.now() + settings.answerRevealSec * 1000);
+
+  room.settings = settings;
+  room.status = ARENA_STATUS.ANSWER_REVEAL;
   room.questionEndsAt = null;
+  room.answerRevealEndsAt = endsAt;
+  room.leaderboardEndsAt = null;
+  room.phaseEndsAt = endsAt;
   room.roundResolvedAt = new Date();
   await room.save();
 
-  const participants = await ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } });
-  if (participants.length > 0) {
-    await ArenaParticipant.updateMany(
-      { room: roomId, state: { $ne: 'declined' } },
-      { $set: { state: 'joined' } }
-    );
-  }
+  await emitArenaState(io, roomId, 'arena:answerReveal');
+  setArenaTimer(roomId, 'answerReveal', safeTimer(
+    () => startArenaLeaderboard(roomId, io),
+    'startArenaLeaderboard'
+  ), settings.answerRevealSec * 1000 + 100);
 
-  return emitArenaState(io, roomId, 'arena:roundResult');
+  return room;
+}
+
+async function startArenaLeaderboard(roomId, io) {
+  const room = await ArenaRoom.findById(roomId);
+  if (!room || ![ARENA_STATUS.ANSWER_REVEAL, ARENA_STATUS.ROUND_RESULT].includes(room.status)) return null;
+
+  clearArenaTimers(roomId);
+  await updateParticipantRanks(roomId);
+  const settings = normalizeArenaSettings(room.settings);
+  const endsAt = new Date(Date.now() + settings.leaderboardSec * 1000);
+
+  room.settings = settings;
+  room.status = ARENA_STATUS.LEADERBOARD;
+  room.answerRevealEndsAt = null;
+  room.leaderboardEndsAt = endsAt;
+  room.phaseEndsAt = endsAt;
+  await room.save();
+
+  await emitArenaState(io, roomId, 'arena:leaderboard');
+  setArenaTimer(roomId, 'leaderboard', safeTimer(async () => {
+    const latest = await ArenaRoom.findById(roomId);
+    if (!latest || latest.status !== ARENA_STATUS.LEADERBOARD) return null;
+    if (latest.currentQuestionIndex >= latest.questionSnapshot.length - 1) {
+      return finalizeArenaRoom(roomId, io);
+    }
+    return startNextArenaQuestion(roomId, io);
+  }, 'advanceAfterLeaderboard'), settings.leaderboardSec * 1000 + 100);
+
+  return room;
 }
 
 async function finalizeArenaRoom(roomId, io) {
@@ -221,13 +357,14 @@ async function finalizeArenaRoom(roomId, io) {
 
   room.status = ARENA_STATUS.FINAL;
   room.finalizedAt = new Date();
-  room.countdownEndsAt = null;
-  room.questionStartedAt = null;
-  room.questionEndsAt = null;
-  room.roundResolvedAt = null;
+  clearPhaseDates(room);
   await room.save();
 
   return emitArenaState(io, roomId, 'arena:final');
+}
+
+function hasAnswerForQuestion(participant, questionIndex) {
+  return (participant.answers || []).some(answer => answer.questionIndex === questionIndex);
 }
 
 async function handleArenaAnswer(roomId, actor, payload, io) {
@@ -295,11 +432,10 @@ async function handleArenaAnswer(roomId, actor, payload, io) {
   await participant.save();
 
   const participants = await ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } });
-  const answeredCount = participants.filter(item =>
-    item.answers.some(answer => answer.questionIndex === room.currentQuestionIndex)
-  ).length;
+  const joinedPlayers = participants.filter(item => item.state === 'joined');
+  const unansweredJoined = joinedPlayers.filter(item => !hasAnswerForQuestion(item, room.currentQuestionIndex));
 
-  if (participants.length > 0 && answeredCount >= participants.length) {
+  if (joinedPlayers.length > 0 && unansweredJoined.length === 0) {
     await finalizeCurrentArenaQuestion(roomId, io);
   } else {
     await emitArenaState(io, roomId, 'arena:question');
@@ -322,6 +458,274 @@ async function setArenaParticipantPresence(roomId, actor, state = 'joined') {
   );
 }
 
+/* ═════════════════════ HOST CONTROLS ═════════════════════ */
+
+const RESUMABLE_FROM_STATUSES = new Set([
+  ARENA_STATUS.COUNTDOWN,
+  ARENA_STATUS.LEGACY_COUNTDOWN,
+  ARENA_STATUS.QUESTION_INTRO,
+  ARENA_STATUS.LIVE,
+  ARENA_STATUS.ANSWER_REVEAL,
+  ARENA_STATUS.LEADERBOARD,
+  ARENA_STATUS.ROUND_RESULT
+]);
+
+/**
+ * Pauses the room by clearing timers and recording remaining ms so we can
+ * resume with the exact same phase duration.
+ */
+async function pauseArenaRoom(roomId, io) {
+  const room = await ArenaRoom.findById(roomId);
+  if (!room) return null;
+  if (room.status === ARENA_STATUS.PAUSED) return room;
+  if (!RESUMABLE_FROM_STATUSES.has(room.status)) {
+    const error = new Error('Эту фазу нельзя поставить на паузу');
+    error.status = 400;
+    throw error;
+  }
+
+  const phaseEnd = (() => {
+    switch (room.status) {
+      case ARENA_STATUS.COUNTDOWN:
+      case ARENA_STATUS.LEGACY_COUNTDOWN:
+        return room.countdownEndsAt;
+      case ARENA_STATUS.QUESTION_INTRO:
+        return room.questionIntroEndsAt;
+      case ARENA_STATUS.LIVE:
+        return room.questionEndsAt;
+      case ARENA_STATUS.ANSWER_REVEAL:
+        return room.answerRevealEndsAt;
+      case ARENA_STATUS.LEADERBOARD:
+      case ARENA_STATUS.ROUND_RESULT:
+        return room.leaderboardEndsAt;
+      default:
+        return room.phaseEndsAt;
+    }
+  })();
+
+  const remainingMs = phaseEnd ? Math.max(0, new Date(phaseEnd).getTime() - Date.now()) : 0;
+
+  clearArenaTimers(roomId);
+  room.pausedFromStatus = room.status;
+  room.pauseEndsAt = new Date(Date.now() + remainingMs);
+  room.status = ARENA_STATUS.PAUSED;
+  await room.save();
+
+  await emitArenaState(io, roomId, 'arena:lobbyState');
+  return room;
+}
+
+/**
+ * Resumes the room from a paused state, restoring the remaining phase time.
+ */
+async function resumeArenaRoom(roomId, io) {
+  const room = await ArenaRoom.findById(roomId);
+  if (!room || room.status !== ARENA_STATUS.PAUSED) return null;
+
+  const previousStatus = room.pausedFromStatus;
+  const remainingMs = Math.max(1000, new Date(room.pauseEndsAt || Date.now()).getTime() - Date.now());
+  const newEndsAt = new Date(Date.now() + remainingMs);
+
+  room.status = previousStatus;
+  room.pausedFromStatus = null;
+  room.pauseEndsAt = null;
+  room.phaseEndsAt = newEndsAt;
+
+  switch (previousStatus) {
+    case ARENA_STATUS.COUNTDOWN:
+    case ARENA_STATUS.LEGACY_COUNTDOWN:
+      room.countdownEndsAt = newEndsAt;
+      break;
+    case ARENA_STATUS.QUESTION_INTRO:
+      room.questionIntroEndsAt = newEndsAt;
+      break;
+    case ARENA_STATUS.LIVE:
+      room.questionEndsAt = newEndsAt;
+      break;
+    case ARENA_STATUS.ANSWER_REVEAL:
+      room.answerRevealEndsAt = newEndsAt;
+      break;
+    case ARENA_STATUS.LEADERBOARD:
+    case ARENA_STATUS.ROUND_RESULT:
+      room.leaderboardEndsAt = newEndsAt;
+      break;
+    default:
+      break;
+  }
+
+  await room.save();
+
+  // Reschedule the appropriate timer
+  switch (previousStatus) {
+    case ARENA_STATUS.COUNTDOWN:
+    case ARENA_STATUS.LEGACY_COUNTDOWN:
+      setArenaTimer(roomId, 'countdown', safeTimer(
+        () => startNextArenaQuestion(roomId, io),
+        'startNextArenaQuestion'
+      ), remainingMs + 100);
+      break;
+    case ARENA_STATUS.QUESTION_INTRO:
+      setArenaTimer(roomId, 'questionIntro', safeTimer(
+        () => startCurrentArenaQuestion(roomId, io),
+        'startCurrentArenaQuestion'
+      ), remainingMs + 100);
+      break;
+    case ARENA_STATUS.LIVE:
+      setArenaTimer(roomId, 'question', safeTimer(
+        () => finalizeCurrentArenaQuestion(roomId, io),
+        'finalizeCurrentArenaQuestion'
+      ), remainingMs + 100);
+      break;
+    case ARENA_STATUS.ANSWER_REVEAL:
+      setArenaTimer(roomId, 'answerReveal', safeTimer(
+        () => startArenaLeaderboard(roomId, io),
+        'startArenaLeaderboard'
+      ), remainingMs + 100);
+      break;
+    case ARENA_STATUS.LEADERBOARD:
+    case ARENA_STATUS.ROUND_RESULT:
+      setArenaTimer(roomId, 'leaderboard', safeTimer(async () => {
+        const latest = await ArenaRoom.findById(roomId);
+        if (!latest || latest.status !== ARENA_STATUS.LEADERBOARD) return null;
+        if (latest.currentQuestionIndex >= latest.questionSnapshot.length - 1) {
+          return finalizeArenaRoom(roomId, io);
+        }
+        return startNextArenaQuestion(roomId, io);
+      }, 'advanceAfterLeaderboard'), remainingMs + 100);
+      break;
+    default:
+      break;
+  }
+
+  await emitArenaState(io, roomId);
+  return room;
+}
+
+/**
+ * Adds extraSec seconds to the current phase end. Only applicable during
+ * timed phases.
+ */
+async function extendArenaTimer(roomId, extraSec, io) {
+  const room = await ArenaRoom.findById(roomId);
+  if (!room) return null;
+  const seconds = Math.max(1, Math.min(60, Math.round(extraSec)));
+  const extraMs = seconds * 1000;
+
+  const statusFieldMap = {
+    [ARENA_STATUS.COUNTDOWN]: 'countdownEndsAt',
+    [ARENA_STATUS.LEGACY_COUNTDOWN]: 'countdownEndsAt',
+    [ARENA_STATUS.QUESTION_INTRO]: 'questionIntroEndsAt',
+    [ARENA_STATUS.LIVE]: 'questionEndsAt',
+    [ARENA_STATUS.ANSWER_REVEAL]: 'answerRevealEndsAt',
+    [ARENA_STATUS.LEADERBOARD]: 'leaderboardEndsAt',
+    [ARENA_STATUS.ROUND_RESULT]: 'leaderboardEndsAt'
+  };
+
+  const field = statusFieldMap[room.status];
+  if (!field) {
+    const error = new Error('Сейчас нельзя продлить таймер');
+    error.status = 400;
+    throw error;
+  }
+
+  const currentEnd = room[field] ? new Date(room[field]).getTime() : Date.now();
+  const newEnd = new Date(currentEnd + extraMs);
+  room[field] = newEnd;
+  room.phaseEndsAt = newEnd;
+  await room.save();
+
+  // Reschedule the phase timer with the new remaining ms
+  const remainingMs = Math.max(500, newEnd.getTime() - Date.now());
+  switch (room.status) {
+    case ARENA_STATUS.COUNTDOWN:
+    case ARENA_STATUS.LEGACY_COUNTDOWN:
+      setArenaTimer(roomId, 'countdown', safeTimer(
+        () => startNextArenaQuestion(roomId, io),
+        'startNextArenaQuestion'
+      ), remainingMs + 100);
+      break;
+    case ARENA_STATUS.QUESTION_INTRO:
+      setArenaTimer(roomId, 'questionIntro', safeTimer(
+        () => startCurrentArenaQuestion(roomId, io),
+        'startCurrentArenaQuestion'
+      ), remainingMs + 100);
+      break;
+    case ARENA_STATUS.LIVE:
+      setArenaTimer(roomId, 'question', safeTimer(
+        () => finalizeCurrentArenaQuestion(roomId, io),
+        'finalizeCurrentArenaQuestion'
+      ), remainingMs + 100);
+      break;
+    case ARENA_STATUS.ANSWER_REVEAL:
+      setArenaTimer(roomId, 'answerReveal', safeTimer(
+        () => startArenaLeaderboard(roomId, io),
+        'startArenaLeaderboard'
+      ), remainingMs + 100);
+      break;
+    case ARENA_STATUS.LEADERBOARD:
+    case ARENA_STATUS.ROUND_RESULT:
+      setArenaTimer(roomId, 'leaderboard', safeTimer(async () => {
+        const latest = await ArenaRoom.findById(roomId);
+        if (!latest || latest.status !== ARENA_STATUS.LEADERBOARD) return null;
+        if (latest.currentQuestionIndex >= latest.questionSnapshot.length - 1) {
+          return finalizeArenaRoom(roomId, io);
+        }
+        return startNextArenaQuestion(roomId, io);
+      }, 'advanceAfterLeaderboard'), remainingMs + 100);
+      break;
+    default:
+      break;
+  }
+
+  await emitArenaState(io, roomId);
+  return room;
+}
+
+/**
+ * Removes a participant from the arena. Marks them as declined so they are
+ * excluded from scoring and notifies their socket with a kick event.
+ */
+async function kickArenaParticipant(roomId, participantId, io) {
+  const participant = await ArenaParticipant.findOne({ _id: participantId, room: roomId });
+  if (!participant) {
+    const error = new Error('Участник не найден');
+    error.status = 404;
+    throw error;
+  }
+  participant.state = 'declined';
+  participant.kickedAt = new Date();
+  await participant.save();
+
+  // Notify the kicked player explicitly
+  if (io) {
+    io.to(`arena:${roomId}`).emit('arena:kicked', {
+      roomId: String(roomId),
+      participantId: String(participantId),
+      userId: participant.user ? String(participant.user) : null,
+      guestTokenId: participant.guestTokenId || null
+    });
+    await emitArenaState(io, roomId);
+  }
+  return participant;
+}
+
+async function skipArenaPhase(roomId, io) {
+  const room = await ArenaRoom.findById(roomId);
+  if (!room || [ARENA_STATUS.CANCELLED, ARENA_STATUS.DECLINED, ARENA_STATUS.FINAL].includes(room.status)) return null;
+
+  if (room.status === ARENA_STATUS.LOBBY) return startArenaCountdown(roomId, io);
+  if ([ARENA_STATUS.COUNTDOWN, ARENA_STATUS.LEGACY_COUNTDOWN].includes(room.status)) return startNextArenaQuestion(roomId, io);
+  if (room.status === ARENA_STATUS.QUESTION_INTRO) return startCurrentArenaQuestion(roomId, io);
+  if (room.status === ARENA_STATUS.LIVE) return finalizeCurrentArenaQuestion(roomId, io);
+  if (room.status === ARENA_STATUS.ANSWER_REVEAL || room.status === ARENA_STATUS.ROUND_RESULT) return startArenaLeaderboard(roomId, io);
+  if (room.status === ARENA_STATUS.LEADERBOARD) {
+    if (room.currentQuestionIndex >= room.questionSnapshot.length - 1) return finalizeArenaRoom(roomId, io);
+    return startNextArenaQuestion(roomId, io);
+  }
+
+  return null;
+}
+
 async function createArenaRoomDocument({
   sourceType,
   title,
@@ -332,9 +736,17 @@ async function createArenaRoomDocument({
   conversation = null,
   allowGuests = false,
   maxPlayers = 100,
-  countdownSeconds = 5,
+  countdownSeconds = undefined,
+  settings = {},
   status = ARENA_STATUS.LOBBY
 }) {
+  const roomSettings = normalizeArenaSettings({
+    ...settings,
+    ...(countdownSeconds === undefined ? {} : { countdownSeconds }),
+    allowGuests,
+    maxPlayers
+  });
+
   return ArenaRoom.create({
     sourceType,
     title,
@@ -344,13 +756,9 @@ async function createArenaRoomDocument({
     group,
     conversation,
     joinCode: generateJoinCode(),
-    questionSnapshot: createArenaSnapshotOrThrow(test),
+    questionSnapshot: createArenaSnapshotOrThrow(test, roomSettings),
     status,
-    settings: {
-      countdownSeconds,
-      allowGuests,
-      maxPlayers
-    }
+    settings: roomSettings
   });
 }
 
@@ -360,13 +768,20 @@ module.exports = {
   createArenaRoomDocument,
   createArenaSnapshotOrThrow,
   emitArenaState,
+  extendArenaTimer,
   finalizeArenaRoom,
   finalizeCurrentArenaQuestion,
   handleArenaAnswer,
+  kickArenaParticipant,
   loadArenaParticipants,
   loadArenaRoom,
+  pauseArenaRoom,
   resolveArenaParticipant,
+  resumeArenaRoom,
   setArenaParticipantPresence,
+  skipArenaPhase,
   startArenaCountdown,
+  startArenaLeaderboard,
+  startCurrentArenaQuestion,
   startNextArenaQuestion
 };

@@ -36,7 +36,8 @@ const arenaParticipantSchema = new mongoose.Schema({
   totalResponseTimeMs: { type: Number, default: 0 },
   answers: { type: [arenaAnswerSchema], default: [] },
   joinedAt: { type: Date, default: Date.now },
-  lastSeenAt: { type: Date, default: Date.now }
+  lastSeenAt: { type: Date, default: Date.now },
+  kickedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 arenaParticipantSchema.index({ room: 1, score: -1, totalResponseTimeMs: 1 });

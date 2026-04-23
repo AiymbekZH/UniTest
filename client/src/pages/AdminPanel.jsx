@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import Navbar from '../components/Navbar';
+import AnimatedHero from '../components/AnimatedHero';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function AdminPanel() {
@@ -288,27 +289,35 @@ export default function AdminPanel() {
         variant="warning"
       />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <button onClick={() => navigate('/dashboard')} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition">
-              <ArrowLeft size={20} className="text-gray-500" />
-            </button>
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-              <Shield size={20} className="text-red-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-dark">{t('adminPanel')}</h1>
-          </div>
-        </motion.div>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <button onClick={() => navigate('/dashboard')} className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:opacity-70 transition">
+          <ArrowLeft size={16} /> Назад
+        </button>
+
+        {/* Hero */}
+        <AnimatedHero
+          preset="mesh"
+          height="md"
+          eyebrow="Admin Console"
+          icon={<Shield size={22} />}
+          title={t('adminPanel')}
+          subtitle="Управление пользователями, тестами, результатами, жалобами и AI-доступом. Только для администраторов."
+          stats={stats ? [
+            { icon: <Users size={14} />, label: t('totalUsers'), value: stats.userCount || 0 },
+            { icon: <FileText size={14} />, label: t('totalTests'), value: stats.testCount || 0 },
+            { icon: <BarChart3 size={14} />, label: t('totalResults'), value: stats.resultCount || 0 },
+            { icon: <Ban size={14} />, label: t('bannedUsers'), value: stats.bannedCount || 0 }
+          ] : undefined}
+        />
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {tabs.map(tb => (
             <button key={tb.key} onClick={() => setTab(tb.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap
-                ${tab === tb.key ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/25' : 'bg-white dark:bg-slate-800 text-gray-500 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap
+                ${tab === tb.key ? 'bg-primary-600 text-white' : 'bg-white dark:bg-slate-800 text-gray-500 border border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
             >
-              <tb.icon size={16} /> {tb.label}
+              <tb.icon size={15} /> {tb.label}
             </button>
           ))}
         </div>

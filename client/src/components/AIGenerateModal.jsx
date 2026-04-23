@@ -333,43 +333,85 @@ export default function AIGenerateModal({ isOpen, onClose, onGenerated, currentL
           exit={{ scale: 0.96, opacity: 0, y: 8 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-900 rounded-[28px] shadow-card w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col border border-gray-200/60 dark:border-gray-700/60"
+          className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col border border-gray-100 dark:border-gray-700/60 shadow-xl"
         >
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-br from-slate-50 via-white to-primary-50/70 dark:from-gray-900 dark:via-gray-900 dark:to-primary-950/20">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 bg-primary-50 dark:bg-primary-950/50 rounded-2xl flex items-center justify-center shadow-sm">
-                <Sparkles className="text-primary-500" size={20} />
+          {/* Premium animated header */}
+          <div className="relative overflow-hidden border-b border-gray-100 dark:border-gray-800">
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,#fff7ed_0%,#fdba74_40%,#fb923c_75%,#fef3c7_100%)] opacity-60 dark:opacity-20" />
+            <motion.div
+              className="absolute -left-10 top-2 h-32 w-32 rounded-full bg-white/50 blur-3xl"
+              animate={{ x: [0, 20, 0], y: [0, 8, 0] }}
+              transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div
+              className="absolute right-4 top-4 h-36 w-36 rounded-full bg-orange-300/30 blur-3xl"
+              animate={{ x: [0, -14, 0], y: [0, -6, 0] }}
+              transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
+            />
+
+            <div className="relative z-10 flex items-start justify-between gap-4 px-6 py-5">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="h-11 w-11 flex-shrink-0 rounded-2xl border border-white/70 bg-white/90 flex items-center justify-center shadow-sm text-primary-600">
+                  <Sparkles size={20} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-primary-700/80">AI Wizard</p>
+                  <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900 dark:text-white sm:text-xl">
+                    {t('aiGenerate') || 'AI Generate'}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-slate-700/75 dark:text-gray-400 line-clamp-1">
+                    {step === 'input'
+                      ? (questionMixSummary
+                        ? `${questionMixSummary} · ${difficultyLabels[difficultyLevel]}`
+                        : (t('aiGenerateDesc') || 'Create questions from text or image'))
+                      : step === 'history'
+                      ? (t('aiHistory') || 'Generation history')
+                      : `${generatedQuestions.length} ${t('questionsGenerated') || 'questions generated'} · ${selectedQuestions.size} ${t('selected') || 'selected'}`
+                    }
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
-                  {t('aiGenerate') || 'AI Generate'}
-                </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {step === 'input' 
-                    ? (questionMixSummary
-                      ? `${questionMixSummary} · ${difficultyLabels[difficultyLevel]}`
-                      : (t('aiGenerateDesc') || 'Create questions from text or image'))
-                    : step === 'history'
-                    ? (t('aiHistory') || 'Generation history')
-                    : `${generatedQuestions.length} ${t('questionsGenerated') || 'questions generated'} · ${selectedQuestions.size} ${t('selected') || 'selected'}`
-                  }
-                </p>
+
+              <div className="flex items-start gap-3">
+                {/* Step progress indicator */}
+                {step !== 'history' && (
+                  <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-white/70 bg-white/85 px-3 py-1.5 backdrop-blur-sm">
+                    {['input', 'preview'].map((s, i) => (
+                      <div key={s} className="flex items-center gap-1.5">
+                        <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold transition ${
+                          step === s
+                            ? 'bg-primary-600 text-white'
+                            : (step === 'preview' && s === 'input')
+                              ? 'bg-primary-100 text-primary-600'
+                              : 'bg-gray-100 text-gray-400'
+                        }`}>
+                          {(step === 'preview' && s === 'input') ? '✓' : (i + 1)}
+                        </span>
+                        <span className={`text-[10px] font-semibold uppercase tracking-wider ${step === s ? 'text-slate-900' : 'text-slate-500'}`}>
+                          {s === 'input' ? 'Input' : 'Preview'}
+                        </span>
+                        {i === 0 && <span className="h-px w-5 bg-gray-300" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1.5">
+                  {step === 'input' && history.length > 0 && (
+                    <button
+                      onClick={() => setStep('history')}
+                      className="p-2 hover:bg-white/60 rounded-lg transition-colors relative"
+                      title={t('aiHistory') || 'History'}
+                    >
+                      <History size={18} className="text-slate-600" />
+                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{history.length}</span>
+                    </button>
+                  )}
+                  <button onClick={handleClose} className="p-2 hover:bg-white/60 rounded-lg transition-colors">
+                    <X size={18} className="text-slate-600" />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {step === 'input' && history.length > 0 && (
-                <button
-                  onClick={() => setStep('history')}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors relative"
-                  title={t('aiHistory') || 'History'}
-                >
-                  <History size={18} className="text-gray-400" />
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{history.length}</span>
-                </button>
-              )}
-              <button onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                <X size={18} className="text-gray-400" />
-              </button>
             </div>
           </div>
 

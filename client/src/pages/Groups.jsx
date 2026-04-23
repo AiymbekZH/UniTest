@@ -12,6 +12,7 @@ import { useChatInbox } from '../context/ChatInboxContext';
 import { connectSocket, getSocket } from '../services/socket';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
+import AnimatedHero from '../components/AnimatedHero';
 import ConfirmDialog from '../components/ConfirmDialog';
 import MessageList from '../components/chat/MessageList';
 import ChatInput from '../components/chat/ChatInput';
@@ -1246,20 +1247,33 @@ export default function Groups() {
           </div>
         ) : (
           /* ── Groups List ── */
-          <>
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition"><ArrowLeft size={20} className="text-gray-400" /></button>
-                <div><h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Группы</h1><p className="text-xs text-gray-400 mt-0.5">{groups.length} групп</p></div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => setShowJoin(true)} className="btn-secondary flex items-center gap-1.5 py-2 px-4 text-xs"><UserPlus size={14} /> Вступить</button>
-                <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-1.5 py-2 px-4 text-xs"><Plus size={14} /> Создать</button>
-              </div>
-            </motion.div>
+          <div className="space-y-6">
+            <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:opacity-70 transition">
+              <ArrowLeft size={16} /> Назад
+            </button>
+
+            {/* Hero */}
+            <AnimatedHero
+              preset="grid"
+              height="md"
+              eyebrow="Communities"
+              icon={<Users size={22} />}
+              title="Группы"
+              subtitle={`Коммьюнити для совместной подготовки, дискуссий и обмена тестами. У тебя ${groups.length} групп.`}
+              stats={groups.length > 0 ? [
+                { icon: <Users size={14} />, label: 'Групп', value: groups.length },
+                { icon: <BookOpen size={14} />, label: 'Тестов', value: groups.reduce((s, g) => s + (g.assignedTests?.length || 0), 0) }
+              ] : undefined}
+              actions={
+                <>
+                  <button onClick={() => setShowJoin(true)} className="btn-secondary inline-flex items-center gap-1.5 text-xs"><UserPlus size={14} /> Вступить</button>
+                  <button onClick={() => setShowCreate(true)} className="btn-primary inline-flex items-center gap-1.5 text-xs"><Plus size={14} /> Создать</button>
+                </>
+              }
+            />
 
             {loading ? (
-              <div className="space-y-3">{[1,2,3].map(i => (<div key={i} className="glass-card-solid p-5 animate-pulse"><div className="flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-slate-700" /><div className="flex-1"><div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-1/3 mb-2" /><div className="h-3 bg-gray-100 dark:bg-slate-700 rounded w-1/4" /></div></div></div>))}</div>
+              <div className="grid gap-3 md:grid-cols-2">{[1,2,3,4].map(i => (<div key={i} className="glass-card-solid p-5 animate-pulse"><div className="flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-slate-700" /><div className="flex-1"><div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-1/3 mb-2" /><div className="h-3 bg-gray-100 dark:bg-slate-700 rounded w-1/4" /></div></div></div>))}</div>
             ) : groups.length === 0 ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
                 <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4"><Users className="w-7 h-7 text-primary-400" /></div>
@@ -1271,7 +1285,7 @@ export default function Groups() {
                 </div>
               </motion.div>
             ) : (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-3 md:grid-cols-2">
                 {groups.map((g, i) => (
                   <motion.div key={g._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                     onClick={() => {
@@ -1286,8 +1300,8 @@ export default function Groups() {
                       setEditingRoleId(null);
                       setRoleDrafts({});
                       setBannedMembers([]);
-                    }} className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer group">
-                    <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getGrad(g.name)} flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm overflow-hidden`}>
+                    }} className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer group hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getGrad(g.name)} flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-sm overflow-hidden`}>
                       {g.avatar ? <img src={g.avatar} alt="" className="w-full h-full object-cover" /> : (g.name?.[0] || 'G').toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1295,7 +1309,7 @@ export default function Groups() {
                         <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition">{g.name}</h3>
                         {isOwner(g) && <span className="text-[10px] bg-red-50 dark:bg-red-900/30 text-red-500 px-2 py-0.5 rounded-full font-medium">owner</span>}
                       </div>
-                      <div className="flex items-center gap-4 mt-1 text-xs text-gray-400">
+                      <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
                         <span className="flex items-center gap-1"><Users size={12} /> {g.members?.length}</span>
                         <span className="flex items-center gap-1"><BookOpen size={12} /> {g.assignedTests?.length || 0}</span>
                       </div>
@@ -1304,7 +1318,7 @@ export default function Groups() {
                 ))}
               </motion.div>
             )}
-          </>
+          </div>
         )}
 
         {/* ── Modals ── */}
