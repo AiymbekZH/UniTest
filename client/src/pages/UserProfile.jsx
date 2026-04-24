@@ -192,7 +192,7 @@ export default function UserProfile() {
   if (!profile) return null;
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen overflow-x-hidden bg-surface">
       <Navbar />
 
       <main className="mx-auto max-w-6xl px-3 py-4 sm:px-6 sm:py-8">

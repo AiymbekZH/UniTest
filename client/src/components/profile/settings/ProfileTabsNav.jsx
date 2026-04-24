@@ -4,7 +4,7 @@ export default function ProfileTabsNav({ tabs, activeId, onChange }) {
   return (
     <>
       {/* Mobile: horizontal scrollable chunky pills, sticky under navbar */}
-      <div className="lg:hidden sticky top-14 z-30 -mx-4 sm:-mx-6 bg-surface/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 dark:bg-slate-900/85">
+      <div className="lg:hidden sticky top-14 z-30 -mx-3 sm:-mx-6 bg-surface/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 dark:bg-slate-900/85">
         <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-2.5 sm:px-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -14,7 +14,7 @@ export default function ProfileTabsNav({ tabs, activeId, onChange }) {
                 key={tab.id}
                 type="button"
                 onClick={() => onChange(tab.id)}
-                className={`flex-shrink-0 inline-flex items-center gap-2 rounded-full border-2 px-4 py-3 text-xs font-black transition active:translate-y-[1px] ${
+                className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-2.5 text-[11px] font-black transition active:translate-y-[1px] sm:gap-2 sm:px-4 sm:py-3 sm:text-xs ${
                   isActive
                     ? 'border-slate-900 bg-primary-500 text-white dark:border-white'
                     : 'border-slate-900 bg-white text-slate-900 dark:border-white dark:bg-slate-900 dark:text-white'

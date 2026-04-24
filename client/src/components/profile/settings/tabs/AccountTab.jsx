@@ -137,7 +137,7 @@ export default function AccountTab({
 
       {/* Sticky save footer (mobile only) */}
       <div
-        className="lg:hidden sticky bottom-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3"
+        className="lg:hidden sticky bottom-0 z-10 -mx-3 sm:-mx-6 px-3 sm:px-6 pt-3"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
       >
         <div className="chunky-card p-3">
