@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Calendar, Check, Copy, Flame, Globe, Lock, Medal, MessageSquare, Save, Sparkles, Star,
-  Target, Trophy, Users, ChevronRight, Trash2, BarChart3
+  Calendar, LayoutDashboard, User, Palette, ShieldCheck, Activity
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -13,41 +12,19 @@ import Navbar from '../components/Navbar';
 import ProfileHeroBanner from '../components/profile/ProfileHeroBanner';
 import FollowListModal from '../components/profile/FollowListModal';
 import { profileBadgeLabels, profileCopy } from '../components/profile/profileCopy';
+import ProfileTabsNav from '../components/profile/settings/ProfileTabsNav';
+import OverviewTab from '../components/profile/settings/tabs/OverviewTab';
+import AccountTab from '../components/profile/settings/tabs/AccountTab';
+import AppearanceTab from '../components/profile/settings/tabs/AppearanceTab';
+import SecurityTab from '../components/profile/settings/tabs/SecurityTab';
+import ActivityTab from '../components/profile/settings/tabs/ActivityTab';
 
-function SummaryCard({ icon: Icon, label, value, tone = 'primary' }) {
-  const toneMap = {
-    primary: 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300',
-    amber: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300',
-    emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300',
-    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
-  };
+const VALID_TABS = ['overview', 'account', 'appearance', 'security', 'activity'];
 
-  return (
-    <div className="chunky-card p-5">
-      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneMap[tone] || toneMap.primary}`}>
-        <Icon size={20} />
-      </div>
-      <p className="mt-4 text-3xl font-bold text-dark">{value}</p>
-      <p className="mt-1 text-sm text-gray-500">{label}</p>
-    </div>
-  );
-}
-
-function LanguageButton({ active, label, flag, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-        active
-          ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
-          : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-500'
-      }`}
-    >
-      <span>{flag}</span>
-      {label}
-    </button>
-  );
+function readHashTab() {
+  if (typeof window === 'undefined') return 'overview';
+  const raw = (window.location.hash || '').replace(/^#/, '').trim();
+  return VALID_TABS.includes(raw) ? raw : 'overview';
 }
 
 export default function Profile() {
@@ -56,6 +33,25 @@ export default function Profile() {
   const navigate = useNavigate();
   const copy = profileCopy[lang] || profileCopy.en;
 
+  // Tab state with URL hash sync
+  const [activeTab, setActiveTab] = useState(readHashTab);
+
+  useEffect(() => {
+    const onHash = () => setActiveTab(readHashTab());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const changeTab = useCallback((id) => {
+    if (!VALID_TABS.includes(id)) return;
+    setActiveTab(id);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `#${id}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
+  // Data
   const [profileData, setProfileData] = useState(null);
   const [warnings, setWarnings] = useState([]);
   const [myComments, setMyComments] = useState([]);
@@ -64,6 +60,7 @@ export default function Profile() {
   const [copiedId, setCopiedId] = useState(false);
   const [followListType, setFollowListType] = useState('');
 
+  // Form state
   const [username, setUsername] = useState('');
   const [usernameStatus, setUsernameStatus] = useState({ state: 'idle', message: '' });
   const [firstName, setFirstName] = useState('');
@@ -91,27 +88,28 @@ export default function Profile() {
     }));
   }, [lang, progress?.badges]);
 
+  // Username availability check
   useEffect(() => {
     if (!username) {
       setUsernameStatus({ state: 'idle', message: '' });
       return undefined;
     }
     if (profileUser?.username && username === profileUser.username) {
-      setUsernameStatus({ state: 'idle', message: copy.usernameCurrent || 'Текущий username' });
+      setUsernameStatus({ state: 'idle', message: copy.usernameCurrent || '' });
       return undefined;
     }
     if (!/^[a-z0-9_]{3,20}$/i.test(username)) {
-      setUsernameStatus({ state: 'invalid', message: copy.usernameInvalid || '3-20 символов: буквы, цифры, _' });
+      setUsernameStatus({ state: 'invalid', message: copy.usernameInvalid || '3-20' });
       return undefined;
     }
-    setUsernameStatus({ state: 'checking', message: copy.usernameChecking || 'Проверка...' });
+    setUsernameStatus({ state: 'checking', message: copy.usernameChecking || '...' });
     const handle = setTimeout(async () => {
       try {
         const res = await api.get(`/profile/check-username?value=${encodeURIComponent(username)}`);
         if (res.data?.available) {
-          setUsernameStatus({ state: 'available', message: copy.usernameAvailable || 'Свободен' });
+          setUsernameStatus({ state: 'available', message: copy.usernameAvailable || 'OK' });
         } else {
-          setUsernameStatus({ state: 'taken', message: copy.usernameTaken || 'Занят' });
+          setUsernameStatus({ state: 'taken', message: copy.usernameTaken || 'Taken' });
         }
       } catch (_) {
         setUsernameStatus({ state: 'idle', message: '' });
@@ -120,6 +118,7 @@ export default function Profile() {
     return () => clearTimeout(handle);
   }, [username, profileUser?.username, copy]);
 
+  // Load profile once
   useEffect(() => {
     const loadProfile = async () => {
       setLoading(true);
@@ -152,8 +151,10 @@ export default function Profile() {
     };
 
     loadProfile();
-  }, [copy.profileLoadError, lang]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // Save profile (account + appearance)
   const handleSave = async () => {
     if (!firstName.trim() || !lastName.trim()) {
       toast.error(t('profileNameRequired'));
@@ -285,7 +286,7 @@ export default function Profile() {
     navigator.clipboard.writeText(profileUser?.uniqueId || '');
     setCopiedId(true);
     setTimeout(() => setCopiedId(false), 1800);
-    toast.success(t('copied'));
+    toast.success(copy.idCopied || t('copied'));
   };
 
   const roleLabel = profileUser?.role === 'admin'
@@ -294,48 +295,56 @@ export default function Profile() {
       ? t('teacher')
       : t('student');
 
+  // Compact hero footer: identity stats (id, followers, following, published)
   const heroFooter = (
-    <div className="grid gap-3 sm:grid-cols-4">
+    <div className="grid gap-2 sm:grid-cols-4">
       <button
         type="button"
         onClick={copyIdToClipboard}
-        className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+        className="flex items-center justify-between rounded-2xl border-2 border-slate-200 bg-white px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60"
       >
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.uniqueId}</p>
-          <p className="mt-1 text-sm font-semibold text-dark">{profileUser?.uniqueId || 'N/A'}</p>
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.uniqueId}</p>
+          <p className="mt-0.5 truncate font-mono text-xs font-black text-dark">{profileUser?.uniqueId || 'N/A'}</p>
         </div>
-        {copiedId ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} className="text-gray-400" />}
       </button>
 
       <button
         type="button"
         onClick={() => setFollowListType('followers')}
-        className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+        className="rounded-2xl border-2 border-slate-200 bg-white px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60"
       >
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.followers}</p>
-        <p className="mt-1 text-xl font-bold text-dark">{followCounts.followersCount || 0}</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.followers}</p>
+        <p className="mt-0.5 font-mono text-base font-black text-dark">{followCounts.followersCount || 0}</p>
       </button>
 
       <button
         type="button"
         onClick={() => setFollowListType('following')}
-        className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+        className="rounded-2xl border-2 border-slate-200 bg-white px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60"
       >
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.following}</p>
-        <p className="mt-1 text-xl font-bold text-dark">{followCounts.followingCount || 0}</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.following}</p>
+        <p className="mt-0.5 font-mono text-base font-black text-dark">{followCounts.followingCount || 0}</p>
       </button>
 
       <button
         type="button"
         onClick={() => navigate('/my-tests')}
-        className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
+        className="rounded-2xl border-2 border-slate-200 bg-white px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60"
       >
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.publishedTests}</p>
-        <p className="mt-1 text-xl font-bold text-dark">{creatorStats?.publicTestsCount || 0}</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.publishedTests}</p>
+        <p className="mt-0.5 font-mono text-base font-black text-dark">{creatorStats?.publicTestsCount || 0}</p>
       </button>
     </div>
   );
+
+  const tabs = [
+    { id: 'overview',   label: copy.tabOverview,   description: copy.tabOverviewDesc,   icon: LayoutDashboard },
+    { id: 'account',    label: copy.tabAccount,    description: copy.tabAccountDesc,    icon: User },
+    { id: 'appearance', label: copy.tabAppearance, description: copy.tabAppearanceDesc, icon: Palette },
+    { id: 'security',   label: copy.tabSecurity,   description: copy.tabSecurityDesc,   icon: ShieldCheck },
+    { id: 'activity',   label: copy.tabActivity,   description: copy.tabActivityDesc,   icon: Activity, badge: warnings.length || undefined }
+  ];
 
   if (loading) {
     return (
@@ -352,7 +361,7 @@ export default function Profile() {
     <div className="min-h-screen bg-surface">
       <Navbar />
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           <ProfileHeroBanner
             user={profileUser}
@@ -374,355 +383,97 @@ export default function Profile() {
             footer={heroFooter}
           />
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-            <SummaryCard icon={Sparkles} label={copy.level} value={progress?.level || 1} />
-            <SummaryCard icon={Trophy} label={copy.xp} value={progress?.xp || 0} tone="blue" />
-            <SummaryCard icon={Flame} label={copy.currentStreak} value={progress?.currentStreakDays || 0} tone="amber" />
-            <SummaryCard icon={Medal} label={copy.bestStreak} value={progress?.longestStreakDays || 0} tone="emerald" />
-            <SummaryCard icon={Target} label={copy.completedExams} value={progress?.stats?.totalCompleted || 0} tone="blue" />
-            <SummaryCard icon={Star} label={copy.perfectScores} value={progress?.stats?.perfectScores || 0} tone="amber" />
-          </div>
+          <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+            <ProfileTabsNav tabs={tabs} activeId={activeTab} onChange={changeTab} />
 
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            <section className="chunky-card p-6 sm:p-7">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.about}</p>
-                  <h2 className="mt-2 text-2xl font-bold text-dark">{t('editProfile')}</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-500/20 transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+            <div className="min-w-0">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <Save size={16} />
-                  {saving ? '...' : copy.saveProfile}
-                </button>
-              </div>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <label className="block sm:col-span-2">
-                  <span className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
-                    <span>@username</span>
-                    {usernameStatus.state !== 'idle' ? (
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${
-                          usernameStatus.state === 'available'
-                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/25 dark:text-emerald-300'
-                            : usernameStatus.state === 'taken' || usernameStatus.state === 'invalid'
-                              ? 'bg-red-50 text-red-600 dark:bg-red-900/25 dark:text-red-300'
-                              : 'bg-amber-50 text-amber-600 dark:bg-amber-900/25 dark:text-amber-300'
-                        }`}
-                      >
-                        {usernameStatus.message}
-                      </span>
-                    ) : null}
-                  </span>
-                  <div className="relative">
-                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-primary-500">@</span>
-                    <input
-                      className="input-field pl-9 text-sm"
-                      value={username}
-                      placeholder="your_handle"
-                      maxLength={20}
-                      onChange={(event) => setUsername(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  {activeTab === 'overview' && (
+                    <OverviewTab
+                      copy={copy}
+                      t={t}
+                      progress={progress}
+                      creatorStats={creatorStats}
+                      formattedBadges={formattedBadges}
+                      publicTests={publicTests}
+                      onGoAccount={() => changeTab('account')}
                     />
-                  </div>
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{t('firstName')}</span>
-                  <input className="input-field text-sm" value={firstName} onChange={(event) => setFirstName(event.target.value)} />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{t('lastName')}</span>
-                  <input className="input-field text-sm" value={lastName} onChange={(event) => setLastName(event.target.value)} />
-                </label>
-                <label className="block sm:col-span-2">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{t('middleName')}</span>
-                  <input className="input-field text-sm" value={middleName} onChange={(event) => setMiddleName(event.target.value)} />
-                </label>
-                <label className="block sm:col-span-2">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{copy.headline}</span>
-                  <input
-                    className="input-field text-sm"
-                    value={headline}
-                    maxLength={120}
-                    placeholder={copy.headlinePlaceholder}
-                    onChange={(event) => setHeadline(event.target.value)}
-                  />
-                </label>
-                <label className="block sm:col-span-2">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{copy.bio}</span>
-                  <textarea
-                    className="input-field min-h-[140px] resize-y py-3 text-sm"
-                    value={bio}
-                    maxLength={400}
-                    placeholder={copy.bioPlaceholder}
-                    onChange={(event) => setBio(event.target.value)}
-                  />
-                </label>
-              </div>
+                  )}
 
-              <div className="mt-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{copy.choosePreset}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {['aurora', 'mesh', 'wave', 'grid'].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setCoverPreset(preset)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                        coverPreset === preset
-                          ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
-                          : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-500'
-                      }`}
-                    >
-                      {copy.presets[preset]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{t('language')}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {[
-                    { code: 'en', label: 'English', flag: '🇬🇧' },
-                    { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-                    { code: 'kz', label: 'Қазақша', flag: '🇰🇿' },
-                    { code: 'es', label: 'Español', flag: '🇪🇸' }
-                  ].map((item) => (
-                    <LanguageButton
-                      key={item.code}
-                      active={preferredLanguage === item.code}
-                      label={item.label}
-                      flag={item.flag}
-                      onClick={() => setPreferredLanguage(item.code)}
+                  {activeTab === 'account' && (
+                    <AccountTab
+                      copy={copy}
+                      t={t}
+                      profileUser={profileUser}
+                      username={username}
+                      setUsername={setUsername}
+                      usernameStatus={usernameStatus}
+                      firstName={firstName}
+                      setFirstName={setFirstName}
+                      lastName={lastName}
+                      setLastName={setLastName}
+                      middleName={middleName}
+                      setMiddleName={setMiddleName}
+                      headline={headline}
+                      setHeadline={setHeadline}
+                      bio={bio}
+                      setBio={setBio}
+                      saving={saving}
+                      onSave={handleSave}
+                      copiedId={copiedId}
+                      onCopyId={copyIdToClipboard}
                     />
-                  ))}
-                </div>
-              </div>
-            </section>
+                  )}
 
-            <div className="space-y-6">
-              <section className="chunky-card p-6">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.creatorStats}</p>
-                <div className="mt-5 space-y-4">
-                  <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
-                    <div className="flex items-center gap-3">
-                      <BarChart3 size={18} className="text-primary-500" />
-                      <span className="text-sm text-gray-500">{t('testsCreated')}</span>
-                    </div>
-                    <span className="text-lg font-bold text-dark">{creatorStats?.testsCreated || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
-                    <div className="flex items-center gap-3">
-                      <Trophy size={18} className="text-amber-500" />
-                      <span className="text-sm text-gray-500">{copy.publicRating}</span>
-                    </div>
-                    <span className="text-lg font-bold text-dark">{creatorStats?.publicAverageRating || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
-                    <div className="flex items-center gap-3">
-                      <Users size={18} className="text-emerald-500" />
-                      <span className="text-sm text-gray-500">{copy.publicPlays}</span>
-                    </div>
-                    <span className="text-lg font-bold text-dark">{creatorStats?.publicPlays || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
-                    <div className="flex items-center gap-3">
-                      <Medal size={18} className="text-blue-500" />
-                      <span className="text-sm text-gray-500">{t('avgScore')}</span>
-                    </div>
-                    <span className="text-lg font-bold text-dark">{creatorStats?.totalScore || 0}%</span>
-                  </div>
-                </div>
-              </section>
+                  {activeTab === 'appearance' && (
+                    <AppearanceTab
+                      copy={copy}
+                      t={t}
+                      coverPreset={coverPreset}
+                      setCoverPreset={setCoverPreset}
+                      preferredLanguage={preferredLanguage}
+                      setPreferredLanguage={setPreferredLanguage}
+                      saving={saving}
+                      onSave={handleSave}
+                    />
+                  )}
 
-              <section className="chunky-card p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.badges}</p>
-                    <h3 className="mt-2 text-xl font-bold text-dark">{formattedBadges.length}</h3>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300">
-                    <Sparkles size={18} />
-                  </div>
-                </div>
-                {formattedBadges.length > 0 ? (
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {formattedBadges.map((badge) => (
-                      <span
-                        key={`${badge.key}-${badge.unlockedAt}`}
-                        className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-600 dark:border-primary-900/40 dark:bg-primary-900/10 dark:text-primary-300"
-                      >
-                        <Sparkles size={12} />
-                        {badge.label}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-4 text-sm text-gray-500">{copy.noBadges}</p>
-                )}
-              </section>
+                  {activeTab === 'security' && (
+                    <SecurityTab
+                      copy={copy}
+                      t={t}
+                      roleLabel={roleLabel}
+                      currentPassword={currentPassword}
+                      setCurrentPassword={setCurrentPassword}
+                      newPassword={newPassword}
+                      setNewPassword={setNewPassword}
+                      confirmPassword={confirmPassword}
+                      setConfirmPassword={setConfirmPassword}
+                      onChangePassword={handlePasswordChange}
+                    />
+                  )}
+
+                  {activeTab === 'activity' && (
+                    <ActivityTab
+                      copy={copy}
+                      t={t}
+                      warnings={warnings}
+                      myComments={myComments}
+                      formattedBadges={formattedBadges}
+                      onDeleteComment={handleDeleteComment}
+                    />
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </div>
-
-          <section className="chunky-card p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.creatorPortfolio}</p>
-                <h2 className="mt-2 text-2xl font-bold text-dark">{copy.publicTests}</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate('/my-tests')}
-                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-primary-300 hover:text-primary-600 dark:border-slate-700 dark:text-slate-200 dark:hover:border-primary-700 dark:hover:text-primary-300"
-              >
-                {copy.viewAllPublished}
-              </button>
-            </div>
-
-            {publicTests.length === 0 ? (
-              <p className="mt-5 text-sm text-gray-500">{copy.noPublicTests}</p>
-            ) : (
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {publicTests.slice(0, 6).map((test) => (
-                  <Link
-                    key={test._id}
-                    to={`/test-profile/${test.shareLink}`}
-                    className="rounded-xl border border-gray-100 bg-gray-50 p-4 transition hover:border-primary-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/70 dark:hover:border-primary-700"
-                  >
-                    <p className="line-clamp-1 text-base font-semibold text-dark">{test.title}</p>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                      <span>{test.questions?.length || 0} {t('questions')}</span>
-                      <span>{test.attemptCount || 0} plays</span>
-                      <span>{Number(test.rating || 0).toFixed(1)}</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-            <section className="chunky-card p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.security}</p>
-              <h2 className="mt-2 text-2xl font-bold text-dark">{t('changePassword')}</h2>
-              <div className="mt-6 space-y-4">
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{t('currentPassword')}</span>
-                  <div className="relative">
-                    <Lock size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="password" className="input-field pl-11 text-sm" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
-                  </div>
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{t('newPassword')}</span>
-                  <div className="relative">
-                    <Lock size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="password" className="input-field pl-11 text-sm" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
-                  </div>
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{t('repeatNewPassword')}</span>
-                  <div className="relative">
-                    <Lock size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="password" className="input-field pl-11 text-sm" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
-                  </div>
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={handlePasswordChange}
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
-              >
-                <Lock size={15} />
-                {t('changePassword')}
-              </button>
-            </section>
-
-            <section className="chunky-card p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{t('warnings')}</p>
-                  <h2 className="mt-2 text-2xl font-bold text-dark">{warnings.length}</h2>
-                </div>
-                <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-600 dark:bg-amber-900/20 dark:text-amber-300">
-                  {t('warnings')}
-                </div>
-              </div>
-
-              {warnings.length === 0 ? (
-                <p className="mt-5 text-sm text-gray-500">{t('warningsEmptyDesc')}</p>
-              ) : (
-                <div className="mt-5 space-y-3">
-                  {warnings.map((warning, index) => (
-                    <div key={`${warning.createdAt}-${index}`} className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-4 py-4 dark:border-amber-900/30 dark:bg-amber-900/10">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-600 dark:bg-slate-900/60 dark:text-amber-300">
-                          Admin
-                        </span>
-                        <span className="text-[11px] text-amber-700/80 dark:text-amber-200/70">
-                          {new Date(warning.createdAt).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="mt-3 text-sm leading-6 text-gray-700 dark:text-slate-200">{warning.message}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
-
-          <section className="chunky-card p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.comments}</p>
-                <h2 className="mt-2 text-2xl font-bold text-dark">{myComments.length}</h2>
-              </div>
-              <div className="rounded-2xl bg-primary-50 px-4 py-3 text-sm font-semibold text-primary-600 dark:bg-primary-900/20 dark:text-primary-300">
-                {t('comments')}
-              </div>
-            </div>
-
-            {myComments.length === 0 ? (
-              <p className="mt-5 text-sm text-gray-500">{t('noCommentsYet')}</p>
-            ) : (
-              <div className="mt-5 space-y-3">
-                {myComments.map((comment) => (
-                  <div key={comment._id} className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-800/70">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm leading-6 text-gray-700 dark:text-slate-200">{comment.text}</p>
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-400">
-                          <span>{new Date(comment.createdAt).toLocaleString()}</span>
-                          {comment.test ? (
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/test-profile/${comment.test.shareLink}`)}
-                              className="inline-flex items-center gap-1 text-primary-500 transition hover:text-primary-600"
-                            >
-                              <ChevronRight size={12} />
-                              {comment.test.title}
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteComment(comment._id)}
-                        className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:bg-slate-900 dark:hover:bg-red-900/20"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
         </motion.div>
       </main>
 
