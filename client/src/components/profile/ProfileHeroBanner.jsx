@@ -116,44 +116,47 @@ export default function ProfileHeroBanner({
 
   return (
     <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm dark:border-slate-700/60 dark:bg-slate-900/90">
-      <div className="relative h-[280px] sm:h-[320px]">
+      <div className="relative h-[200px] sm:h-[280px] lg:h-[320px]">
         {user?.coverImage ? (
           <>
             <img src={user.coverImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/10 via-slate-900/15 to-slate-950/70" />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/10 via-slate-900/30 to-slate-950/85 sm:via-slate-900/15 sm:to-slate-950/70" />
           </>
         ) : (
           <>
             <PresetBackdrop preset={user?.coverPreset || 'aurora'} />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/8 via-white/0 to-slate-950/60" />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/0 via-slate-900/35 to-slate-950/85 sm:via-slate-900/10 sm:to-slate-950/65" />
           </>
         )}
 
         {editable && (
-          <div className="absolute right-4 top-4 z-20 flex flex-wrap items-center justify-end gap-2 sm:right-6 sm:top-6">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/30 bg-white/88 px-4 py-2 text-xs font-semibold text-slate-700 shadow-lg backdrop-blur-xl transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100">
-              <ImagePlus size={14} />
-              {user?.coverImage ? replaceBannerLabel : uploadBannerLabel}
+          <div className="absolute right-3 top-3 z-20 flex flex-wrap items-center justify-end gap-1.5 sm:right-6 sm:top-6 sm:gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-white/30 bg-white/90 px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-lg backdrop-blur-xl transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 sm:gap-2 sm:px-4 sm:py-2 sm:text-xs">
+              <ImagePlus size={12} className="sm:hidden" />
+              <ImagePlus size={14} className="hidden sm:block" />
+              <span className="hidden sm:inline">{user?.coverImage ? replaceBannerLabel : uploadBannerLabel}</span>
+              <span className="sm:hidden">{user?.coverImage ? 'Заменить' : 'Баннер'}</span>
               <input type="file" accept="image/*" className="hidden" onChange={onBannerUpload} />
             </label>
             {user?.coverImage && (
               <button
                 type="button"
                 onClick={onBannerRemove}
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-slate-950/55 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-xl transition hover:bg-slate-950/70"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/55 px-3 py-1.5 text-[11px] font-semibold text-white shadow-lg backdrop-blur-xl transition hover:bg-slate-950/70 sm:gap-2 sm:px-4 sm:py-2 sm:text-xs"
               >
-                <Trash2 size={14} />
-                {removeBannerLabel}
+                <Trash2 size={12} className="sm:hidden" />
+                <Trash2 size={14} className="hidden sm:block" />
+                <span className="hidden sm:inline">{removeBannerLabel}</span>
               </button>
             )}
           </div>
         )}
 
-        <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex min-w-0 items-end gap-4 sm:gap-5">
+        <div className="absolute inset-x-0 bottom-0 z-10 p-4 sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex min-w-0 items-end gap-3 sm:gap-5">
               <div className="relative flex-shrink-0">
-                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-white text-2xl font-bold text-primary-600 shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-primary-300 sm:h-28 sm:w-28 sm:text-3xl">
+                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-white text-lg font-bold text-primary-600 shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-primary-300 sm:h-24 sm:w-24 sm:text-2xl lg:h-28 lg:w-28 lg:text-3xl">
                   {user?.avatar ? (
                     <img src={user.avatar} alt="" className="h-full w-full object-cover" />
                   ) : (
@@ -161,39 +164,40 @@ export default function ProfileHeroBanner({
                   )}
                 </div>
                 {editable && (
-                  <label className="absolute -bottom-2 -right-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl border border-white/40 bg-slate-950/70 text-white shadow-lg backdrop-blur-xl transition hover:bg-slate-950/85">
-                    <Camera size={16} />
+                  <label className="absolute -bottom-1.5 -right-1.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-2xl border border-white/40 bg-slate-950/75 text-white shadow-lg backdrop-blur-xl transition hover:bg-slate-950/90 sm:-bottom-2 sm:-right-2 sm:h-10 sm:w-10">
+                    <Camera size={14} className="sm:hidden" />
+                    <Camera size={16} className="hidden sm:block" />
                     <input type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} />
                   </label>
                 )}
               </div>
 
-              <div className="min-w-0 pb-1 text-white">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
+              <div className="min-w-0 pb-0.5 text-white">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h1 className="truncate text-lg font-bold tracking-tight drop-shadow-md sm:text-2xl lg:text-3xl">{title}</h1>
                   {roleLabel && (
-                    <span className="inline-flex rounded-full border border-white/20 bg-white/16 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-xl">
+                    <span className="inline-flex rounded-full border border-white/30 bg-slate-900/50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-sm backdrop-blur-xl sm:px-3 sm:py-1 sm:text-[11px]">
                       {roleLabel}
                     </span>
                   )}
                 </div>
                 {user?.username ? (
-                  <p className="mt-1 inline-flex items-center text-sm font-black tracking-tight text-orange-200/95 drop-shadow-sm">
+                  <p className="mt-0.5 inline-flex items-center text-xs font-black tracking-tight text-orange-200 drop-shadow-md sm:mt-1 sm:text-sm">
                     @{user.username}
                   </p>
                 ) : null}
                 {user?.headline ? (
-                  <p className="mt-2 max-w-3xl text-sm font-medium text-white/90 sm:text-base">{user.headline}</p>
+                  <p className="mt-1.5 max-w-3xl text-xs font-medium text-white drop-shadow-md line-clamp-2 sm:mt-2 sm:text-sm lg:text-base">{user.headline}</p>
                 ) : null}
                 {user?.bio ? (
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-white/80 line-clamp-2">{user.bio}</p>
+                  <p className="mt-1.5 hidden max-w-3xl text-sm leading-6 text-white/90 drop-shadow-md line-clamp-2 sm:block">{user.bio}</p>
                 ) : null}
                 {meta.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-2 hidden flex-wrap gap-2 sm:mt-4 sm:flex">
                     {meta.map((item) => (
                       <div
                         key={item.label}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/18 bg-white/14 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-xl"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-slate-900/40 px-3 py-1.5 text-xs font-medium text-white shadow-sm backdrop-blur-xl"
                       >
                         {item.icon}
                         <span>{item.label}</span>
