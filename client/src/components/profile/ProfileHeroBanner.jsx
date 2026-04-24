@@ -116,7 +116,7 @@ export default function ProfileHeroBanner({
 
   return (
     <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm dark:border-slate-700/60 dark:bg-slate-900/90">
-      <div className="relative h-[200px] sm:h-[280px] lg:h-[320px]">
+      <div className="relative h-[220px] sm:h-[280px] lg:h-[320px]">
         {user?.coverImage ? (
           <>
             <img src={user.coverImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -153,8 +153,8 @@ export default function ProfileHeroBanner({
         )}
 
         <div className="absolute inset-x-0 bottom-0 z-10 p-4 sm:p-6 lg:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex min-w-0 items-end gap-3 sm:gap-5">
+          <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex min-w-0 flex-col items-start gap-2.5 sm:flex-row sm:items-end sm:gap-5">
               <div className="relative flex-shrink-0">
                 <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-white text-lg font-bold text-primary-600 shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-primary-300 sm:h-24 sm:w-24 sm:text-2xl lg:h-28 lg:w-28 lg:text-3xl">
                   {user?.avatar ? (
