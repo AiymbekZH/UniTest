@@ -297,43 +297,43 @@ export default function Profile() {
 
   // Compact hero footer: identity stats (id, followers, following, published)
   const heroFooter = (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-1.5 sm:gap-2 sm:grid-cols-4">
       <button
         type="button"
         onClick={copyIdToClipboard}
-        className="flex items-center justify-between rounded-2xl border-2 border-slate-200 bg-white px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60"
+        className="flex items-center justify-between rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60 sm:rounded-2xl sm:px-3 sm:py-2.5"
       >
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.uniqueId}</p>
-          <p className="mt-0.5 truncate font-mono text-xs font-black text-dark">{profileUser?.uniqueId || 'N/A'}</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.uniqueId}</p>
+          <p className="mt-0.5 truncate font-mono text-[11px] font-black text-dark sm:text-xs">{profileUser?.uniqueId || 'N/A'}</p>
         </div>
       </button>
 
       <button
         type="button"
         onClick={() => setFollowListType('followers')}
-        className="rounded-2xl border-2 border-slate-200 bg-white px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60"
+        className="rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60 sm:rounded-2xl sm:px-3 sm:py-2.5"
       >
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.followers}</p>
-        <p className="mt-0.5 font-mono text-base font-black text-dark">{followCounts.followersCount || 0}</p>
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.followers}</p>
+        <p className="mt-0.5 font-mono text-sm font-black text-dark sm:text-base">{followCounts.followersCount || 0}</p>
       </button>
 
       <button
         type="button"
         onClick={() => setFollowListType('following')}
-        className="rounded-2xl border-2 border-slate-200 bg-white px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60"
+        className="rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60 sm:rounded-2xl sm:px-3 sm:py-2.5"
       >
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.following}</p>
-        <p className="mt-0.5 font-mono text-base font-black text-dark">{followCounts.followingCount || 0}</p>
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.following}</p>
+        <p className="mt-0.5 font-mono text-sm font-black text-dark sm:text-base">{followCounts.followingCount || 0}</p>
       </button>
 
       <button
         type="button"
         onClick={() => navigate('/my-tests')}
-        className="rounded-2xl border-2 border-slate-200 bg-white px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60"
+        className="rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60 sm:rounded-2xl sm:px-3 sm:py-2.5"
       >
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.publishedTests}</p>
-        <p className="mt-0.5 font-mono text-base font-black text-dark">{creatorStats?.publicTestsCount || 0}</p>
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.publishedTests}</p>
+        <p className="mt-0.5 font-mono text-sm font-black text-dark sm:text-base">{creatorStats?.publicTestsCount || 0}</p>
       </button>
     </div>
   );
@@ -361,8 +361,8 @@ export default function Profile() {
     <div className="min-h-screen bg-surface">
       <Navbar />
 
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      <main className="mx-auto max-w-6xl px-3 py-4 sm:px-6 sm:py-8">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 sm:space-y-6">
           <ProfileHeroBanner
             user={profileUser}
             title={`${profileUser?.firstName || ''} ${profileUser?.lastName || ''}`.trim()}

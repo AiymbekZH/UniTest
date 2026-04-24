@@ -218,7 +218,7 @@ export default function ProfileHeroBanner({
       </div>
 
       {footer ? (
-        <div className="border-t border-gray-100/90 bg-white/95 px-5 py-4 dark:border-slate-800 dark:bg-slate-950/85 sm:px-8">
+        <div className="border-t border-gray-100/90 bg-white/95 px-3 py-3 dark:border-slate-800 dark:bg-slate-950/85 sm:px-6 sm:py-4 lg:px-8">
           {footer}
         </div>
       ) : null}

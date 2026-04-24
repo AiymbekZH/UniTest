@@ -12,7 +12,7 @@ export default function OverviewTab({
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <SectionHeader
         eyebrow={copy.tabOverview}
         title={copy.overviewHeadline}
@@ -20,7 +20,7 @@ export default function OverviewTab({
       />
 
       {/* Stats tiles */}
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-2 grid-cols-2 sm:gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile icon={Sparkles} label={copy.level}           value={progress?.level || 1}                          tone="primary" />
         <StatTile icon={Trophy}   label={copy.xp}              value={progress?.xp || 0}                             tone="blue" />
         <StatTile icon={Flame}    label={copy.currentStreak}   value={progress?.currentStreakDays || 0}              tone="amber" />
