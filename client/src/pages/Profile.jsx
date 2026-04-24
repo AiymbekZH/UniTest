@@ -297,7 +297,7 @@ export default function Profile() {
 
   // Compact hero footer: identity stats (id, followers, following, published)
   const heroFooter = (
-    <div className="grid gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       <button
         type="button"
         onClick={copyIdToClipboard}

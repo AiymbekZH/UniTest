@@ -77,7 +77,7 @@ export default function FollowListModal({
               </button>
             </div>
 
-            <div className="max-h-[65vh] overflow-y-auto p-4 sm:p-5">
+            <div className="max-h-[80vh] overflow-y-auto p-4 sm:max-h-[65vh] sm:p-5">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-14 text-center">
                   <Loader2 size={28} className="animate-spin text-primary-500" />

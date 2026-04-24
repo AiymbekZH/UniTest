@@ -94,8 +94,8 @@ export default function SecurityTab({
             <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-slate-400">{t('newPassword')}</span>
             <PasswordInput value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             {newPassword ? (
-              <div className="mt-2 flex items-center gap-2">
-                <div className="flex flex-1 gap-1">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="flex min-w-[120px] flex-1 gap-1">
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}

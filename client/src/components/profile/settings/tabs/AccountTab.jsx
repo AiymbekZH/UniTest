@@ -31,7 +31,7 @@ export default function AccountTab({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="chunky-btn-primary inline-flex items-center gap-2 text-xs"
+            className="chunky-btn-primary hidden lg:inline-flex items-center gap-2 text-xs"
           >
             <Save size={14} />
             {saving ? '...' : copy.saveProfile}
@@ -135,19 +135,19 @@ export default function AccountTab({
         </label>
       </section>
 
-      {/* Sticky save footer (mobile-friendly) */}
-      <div className="sticky bottom-4 z-10">
-        <div className="chunky-card flex items-center justify-between gap-3 p-3">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {saving ? '...' : copy.saveProfile}
-          </p>
+      {/* Sticky save footer (mobile only) */}
+      <div
+        className="lg:hidden sticky bottom-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
+        <div className="chunky-card p-3">
           <button
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="chunky-btn-primary inline-flex items-center gap-2 text-xs"
+            className="chunky-btn-primary inline-flex w-full items-center justify-center gap-2 text-sm"
           >
-            <Save size={14} />
+            <Save size={15} />
             {saving ? '...' : copy.saveProfile}
           </button>
         </div>

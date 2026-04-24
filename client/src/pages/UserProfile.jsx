@@ -141,7 +141,7 @@ export default function UserProfile() {
       : t('student');
 
   const heroFooter = (
-    <div className="grid gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       <button
         type="button"
         onClick={() => setFollowListType('followers')}
@@ -225,7 +225,7 @@ export default function UserProfile() {
                     type="button"
                     onClick={handleFollowToggle}
                     disabled={followLoading}
-                    className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-black transition ${
+                    className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-black transition sm:px-5 sm:py-2.5 ${
                       isFollowing
                         ? 'border border-white/30 bg-white/14 text-white backdrop-blur-xl hover:bg-white/20'
                         : 'bg-white text-slate-900 shadow-xl hover:bg-slate-100'
@@ -239,7 +239,7 @@ export default function UserProfile() {
                   <button
                     type="button"
                     onClick={() => setShowReport(true)}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-slate-950/55 px-4 py-2.5 text-xs font-black text-white backdrop-blur-xl transition hover:bg-slate-950/70"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-slate-950/55 px-3.5 py-2 text-xs font-black text-white backdrop-blur-xl transition hover:bg-slate-950/70 sm:px-4 sm:py-2.5"
                   >
                     <Flag size={13} />
                     {t('report')}
