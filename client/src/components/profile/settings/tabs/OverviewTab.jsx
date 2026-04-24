@@ -20,7 +20,7 @@ export default function OverviewTab({
       />
 
       {/* Stats tiles */}
-      <div className="grid gap-2 grid-cols-2 sm:gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-1.5 grid-cols-3 sm:gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile icon={Sparkles} label={copy.level}           value={progress?.level || 1}                          tone="primary" />
         <StatTile icon={Trophy}   label={copy.xp}              value={progress?.xp || 0}                             tone="blue" />
         <StatTile icon={Flame}    label={copy.currentStreak}   value={progress?.currentStreakDays || 0}              tone="amber" />
@@ -30,37 +30,37 @@ export default function OverviewTab({
       </div>
 
       {/* Creator stats + badges preview */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
         {/* Creator stats compact */}
-        <section className="chunky-card p-5">
+        <section className="chunky-card p-3 sm:p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.creatorStats}</p>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300">
               <BarChart3 size={15} />
             </div>
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('testsCreated')}</p>
-              <p className="mt-1 font-mono text-xl font-black text-dark">{creatorStats?.testsCreated || 0}</p>
+          <div className="mt-3 grid gap-1.5 sm:mt-4 sm:gap-2 sm:grid-cols-2">
+            <div className="rounded-lg bg-slate-50 p-2 sm:rounded-xl sm:p-3 dark:bg-slate-800/60">
+              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{t('testsCreated')}</p>
+              <p className="mt-0.5 font-mono text-base font-black text-dark sm:mt-1 sm:text-xl">{creatorStats?.testsCreated || 0}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.publicRating}</p>
-              <p className="mt-1 font-mono text-xl font-black text-dark">{creatorStats?.publicAverageRating || 0}</p>
+            <div className="rounded-lg bg-slate-50 p-2 sm:rounded-xl sm:p-3 dark:bg-slate-800/60">
+              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.publicRating}</p>
+              <p className="mt-0.5 font-mono text-base font-black text-dark sm:mt-1 sm:text-xl">{creatorStats?.publicAverageRating || 0}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.publicPlays}</p>
-              <p className="mt-1 font-mono text-xl font-black text-dark">{creatorStats?.publicPlays || 0}</p>
+            <div className="rounded-lg bg-slate-50 p-2 sm:rounded-xl sm:p-3 dark:bg-slate-800/60">
+              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.publicPlays}</p>
+              <p className="mt-0.5 font-mono text-base font-black text-dark sm:mt-1 sm:text-xl">{creatorStats?.publicPlays || 0}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('avgScore')}</p>
-              <p className="mt-1 font-mono text-xl font-black text-dark">{creatorStats?.totalScore || 0}%</p>
+            <div className="rounded-lg bg-slate-50 p-2 sm:rounded-xl sm:p-3 dark:bg-slate-800/60">
+              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{t('avgScore')}</p>
+              <p className="mt-0.5 font-mono text-base font-black text-dark sm:mt-1 sm:text-xl">{creatorStats?.totalScore || 0}%</p>
             </div>
           </div>
         </section>
 
         {/* Badges preview */}
-        <section className="chunky-card p-5">
+        <section className="chunky-card p-3 sm:p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.badges}</p>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300">
@@ -94,7 +94,7 @@ export default function OverviewTab({
       </div>
 
       {/* Portfolio preview */}
-      <section className="chunky-card p-5 sm:p-6">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.creatorPortfolio}</p>

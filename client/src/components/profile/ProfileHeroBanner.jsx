@@ -190,14 +190,14 @@ export default function ProfileHeroBanner({
                   <p className="mt-1.5 max-w-3xl text-xs font-medium text-white drop-shadow-md line-clamp-2 sm:mt-2 sm:text-sm lg:text-base">{user.headline}</p>
                 ) : null}
                 {user?.bio ? (
-                  <p className="mt-1.5 hidden max-w-3xl text-sm leading-6 text-white/90 drop-shadow-md line-clamp-2 sm:block">{user.bio}</p>
+                  <p className="mt-1 max-w-3xl text-[11px] leading-4 text-white/85 drop-shadow-md line-clamp-1 sm:mt-1.5 sm:text-sm sm:leading-6 sm:line-clamp-2">{user.bio}</p>
                 ) : null}
                 {meta.length > 0 && (
-                  <div className="mt-2 hidden flex-wrap gap-2 sm:mt-4 sm:flex">
+                  <div className="mt-1.5 flex flex-wrap gap-1.5 sm:mt-4 sm:gap-2">
                     {meta.map((item) => (
                       <div
                         key={item.label}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-slate-900/40 px-3 py-1.5 text-xs font-medium text-white shadow-sm backdrop-blur-xl"
+                        className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-slate-900/40 px-2 py-1 text-[10px] font-medium text-white shadow-sm backdrop-blur-xl sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs"
                       >
                         {item.icon}
                         <span>{item.label}</span>
