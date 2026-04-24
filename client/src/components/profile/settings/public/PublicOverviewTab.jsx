@@ -1,37 +1,35 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Sparkles, Trophy, Flame, Medal, Target, Star,
-  BarChart3, Users, ChevronRight, ArrowRight
+  BarChart3, Users, ArrowRight
 } from 'lucide-react';
 import SectionHeader from '../SectionHeader';
 import StatTile from '../StatTile';
 
-export default function OverviewTab({
-  copy, t, progress, creatorStats, formattedBadges, publicTests, onGoAccount
+export default function PublicOverviewTab({
+  copy, t, progress, creatorStats, formattedBadges, publicTests,
+  onGoTests, onGoAchievements
 }) {
-  const navigate = useNavigate();
-
   return (
     <div className="space-y-6">
       <SectionHeader
-        eyebrow={copy.tabOverview}
-        title={copy.overviewHeadline}
-        subtitle={copy.overviewSubtitle}
+        eyebrow={copy.tabPublicOverview}
+        title={copy.overview}
+        subtitle={copy.publicOverviewSubtitle}
       />
 
       {/* Stats tiles */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-        <StatTile icon={Sparkles} label={copy.level}           value={progress?.level || 1}                          tone="primary" />
-        <StatTile icon={Trophy}   label={copy.xp}              value={progress?.xp || 0}                             tone="blue" />
-        <StatTile icon={Flame}    label={copy.currentStreak}   value={progress?.currentStreakDays || 0}              tone="amber" />
-        <StatTile icon={Medal}    label={copy.bestStreak}      value={progress?.longestStreakDays || 0}              tone="emerald" />
-        <StatTile icon={Target}   label={copy.completedExams}  value={progress?.stats?.totalCompleted || 0}          tone="blue" />
-        <StatTile icon={Star}     label={copy.perfectScores}   value={progress?.stats?.perfectScores || 0}           tone="amber" />
+        <StatTile icon={Sparkles} label={copy.level}          value={progress?.level || 1}                          tone="primary" />
+        <StatTile icon={Trophy}   label={copy.xp}             value={progress?.xp || 0}                             tone="blue" />
+        <StatTile icon={Flame}    label={copy.currentStreak}  value={progress?.currentStreakDays || 0}              tone="amber" />
+        <StatTile icon={Medal}    label={copy.bestStreak}     value={progress?.longestStreakDays || 0}              tone="emerald" />
+        <StatTile icon={Target}   label={copy.completedExams} value={progress?.stats?.totalCompleted || 0}          tone="blue" />
+        <StatTile icon={Star}     label={copy.perfectScores}  value={progress?.stats?.perfectScores || 0}           tone="amber" />
       </div>
 
       {/* Creator stats + badges preview */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Creator stats compact */}
         <section className="chunky-card p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.creatorStats}</p>
@@ -53,13 +51,12 @@ export default function OverviewTab({
               <p className="mt-1 font-mono text-xl font-black text-dark">{creatorStats?.publicPlays || 0}</p>
             </div>
             <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('avgScore')}</p>
-              <p className="mt-1 font-mono text-xl font-black text-dark">{creatorStats?.totalScore || 0}%</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{copy.publishedTests}</p>
+              <p className="mt-1 font-mono text-xl font-black text-dark">{creatorStats?.publicTestsCount || 0}</p>
             </div>
           </div>
         </section>
 
-        {/* Badges preview */}
         <section className="chunky-card p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.badges}</p>
@@ -81,9 +78,13 @@ export default function OverviewTab({
                   </span>
                 ))}
                 {formattedBadges.length > 6 && (
-                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                  <button
+                    type="button"
+                    onClick={onGoAchievements}
+                    className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                  >
                     +{formattedBadges.length - 6}
-                  </span>
+                  </button>
                 )}
               </div>
             </>
@@ -100,14 +101,16 @@ export default function OverviewTab({
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.creatorPortfolio}</p>
             <h3 className="mt-1 text-lg font-black text-dark">{copy.publicTests}</h3>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate('/my-tests')}
-            className="inline-flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-black text-slate-900 active:translate-y-[2px] dark:border-white dark:bg-slate-900 dark:text-white"
-            style={{ boxShadow: '0 3px 0 #0f172a' }}
-          >
-            {copy.viewAllPublished} <ArrowRight size={13} />
-          </button>
+          {publicTests.length > 0 ? (
+            <button
+              type="button"
+              onClick={onGoTests}
+              className="inline-flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-black text-slate-900 active:translate-y-[2px] dark:border-white dark:bg-slate-900 dark:text-white"
+              style={{ boxShadow: '0 3px 0 #0f172a' }}
+            >
+              {copy.viewAllPublished} <ArrowRight size={13} />
+            </button>
+          ) : null}
         </div>
 
         {publicTests.length === 0 ? (
@@ -131,19 +134,6 @@ export default function OverviewTab({
           </div>
         )}
       </section>
-
-      {/* CTA to account */}
-      <button
-        type="button"
-        onClick={onGoAccount}
-        className="flex w-full items-center justify-between rounded-3xl border-2 border-dashed border-primary-300 bg-primary-50/40 p-5 text-left transition hover:border-primary-400 hover:bg-primary-50 dark:border-primary-900/40 dark:bg-primary-900/10 dark:hover:border-primary-600"
-      >
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary-500">{copy.tabAccount}</p>
-          <p className="mt-1 text-sm font-black text-dark">{copy.tabAccountDesc}</p>
-        </div>
-        <ChevronRight size={20} className="text-primary-500" />
-      </button>
     </div>
   );
 }

@@ -78,7 +78,16 @@ export const profileCopy = {
     seeAll: 'See all',
     noActivity: 'No activity yet.',
     copyId: 'Copy ID',
-    idCopied: 'ID copied'
+    idCopied: 'ID copied',
+    tabPublicOverview: 'Overview',
+    tabPublicTests: 'Tests',
+    tabPublicAchievements: 'Achievements',
+    tabPublicOverviewDesc: 'Snapshot and creator stats',
+    tabPublicTestsDesc: 'Published public tests',
+    tabPublicAchievementsDesc: 'Unlocked badges and milestones',
+    publicOverviewSubtitle: 'Public profile at a glance.',
+    publicTestsSubtitle: 'All public tests by this creator.',
+    publicAchievementsSubtitle: 'Badges unlocked on the platform.'
   },
   ru: {
     headline: 'Заголовок профиля',
@@ -159,7 +168,16 @@ export const profileCopy = {
     seeAll: 'Смотреть всё',
     noActivity: 'Активности пока нет.',
     copyId: 'Скопировать ID',
-    idCopied: 'ID скопирован'
+    idCopied: 'ID скопирован',
+    tabPublicOverview: 'Обзор',
+    tabPublicTests: 'Тесты',
+    tabPublicAchievements: 'Достижения',
+    tabPublicOverviewDesc: 'Сводка и статистика автора',
+    tabPublicTestsDesc: 'Опубликованные тесты',
+    tabPublicAchievementsDesc: 'Полученные бейджи и вехи',
+    publicOverviewSubtitle: 'Краткий взгляд на публичный профиль.',
+    publicTestsSubtitle: 'Все публичные тесты этого автора.',
+    publicAchievementsSubtitle: 'Бейджи, полученные на платформе.'
   },
   kz: {
     headline: 'Профиль тақырыбы',
@@ -240,7 +258,16 @@ export const profileCopy = {
     seeAll: 'Барлығын көру',
     noActivity: 'Әзірге белсенділік жоқ.',
     copyId: 'ID көшіру',
-    idCopied: 'ID көшірілді'
+    idCopied: 'ID көшірілді',
+    tabPublicOverview: 'Шолу',
+    tabPublicTests: 'Тесттер',
+    tabPublicAchievements: 'Жетістіктер',
+    tabPublicOverviewDesc: 'Қысқаша шолу және автор статистикасы',
+    tabPublicTestsDesc: 'Жарияланған тесттер',
+    tabPublicAchievementsDesc: 'Алынған бейджтер мен жетістіктер',
+    publicOverviewSubtitle: 'Ашық профильге қысқаша шолу.',
+    publicTestsSubtitle: 'Бұл автордың барлық ашық тесттері.',
+    publicAchievementsSubtitle: 'Платформада алынған бейджтер.'
   },
   es: {
     headline: 'Título del perfil',
@@ -321,7 +348,16 @@ export const profileCopy = {
     seeAll: 'Ver todo',
     noActivity: 'Aún no hay actividad.',
     copyId: 'Copiar ID',
-    idCopied: 'ID copiado'
+    idCopied: 'ID copiado',
+    tabPublicOverview: 'Resumen',
+    tabPublicTests: 'Tests',
+    tabPublicAchievements: 'Logros',
+    tabPublicOverviewDesc: 'Resumen y estadísticas del creador',
+    tabPublicTestsDesc: 'Tests públicos publicados',
+    tabPublicAchievementsDesc: 'Insignias e hitos desbloqueados',
+    publicOverviewSubtitle: 'Vista rápida del perfil público.',
+    publicTestsSubtitle: 'Todos los tests públicos de este creador.',
+    publicAchievementsSubtitle: 'Insignias desbloqueadas en la plataforma.'
   }
 };
 
