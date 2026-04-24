@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Copy, LogIn, Play, Swords, Trophy, Users, XCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Copy, LogIn, Play, Swords, Trophy, Users, XCircle, Pause } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +10,10 @@ import BrandLogo from '../components/BrandLogo';
 import ArenaStandings from '../components/arena/ArenaStandings';
 import ArenaQuestionPanel from '../components/arena/ArenaQuestionPanel';
 import ArenaGameplayOverlay from '../components/arena/ArenaGameplayOverlay';
+import ChunkyButton from '../components/ui/ChunkyButton';
+import ChunkyCard from '../components/ui/ChunkyCard';
+import Confetti from '../components/ui/Confetti';
+import { haptic } from '../utils/haptics';
 
 const ARENA_EVENTS = [
   'arena:state',
@@ -46,14 +51,12 @@ function getParticipantId(participant) {
   return String(participant?._id || '');
 }
 
-function ArenaShell({ children }) {
+function PlayerShell({ dark, children }) {
   return (
-    <div className="min-h-screen bg-[#0a0a0b] text-white">
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute left-[-16rem] top-[-12rem] h-[36rem] w-[36rem] rounded-full bg-orange-500/20 blur-3xl" />
-        <div className="absolute bottom-[-16rem] right-[-18rem] h-[34rem] w-[34rem] rounded-full bg-amber-400/10 blur-3xl" />
+    <div className={dark ? 'min-h-screen arena-stage-bg text-white' : 'min-h-screen bg-[#FFFAF0] text-dark dark:bg-slate-900 dark:text-gray-100'}>
+      <div className="relative mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-4 sm:max-w-3xl sm:px-6 sm:py-6">
+        {children}
       </div>
-      <div className="relative z-10 mx-auto min-h-screen max-w-5xl p-4">{children}</div>
     </div>
   );
 }
@@ -84,7 +87,7 @@ export default function ArenaCodePage() {
       setRoom(res.data.room);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Комната арены не найдена');
-      navigate('/dashboard');
+      navigate('/arena');
     } finally {
       setLoading(false);
     }
@@ -110,16 +113,11 @@ export default function ArenaCodePage() {
     }
   }, [normalizedJoinCode, room?._id]);
 
-  useEffect(() => {
-    fetchRoomSummary();
-  }, [fetchRoomSummary]);
+  useEffect(() => { fetchRoomSummary(); }, [fetchRoomSummary]);
 
   useEffect(() => {
     if (!room?._id || participant || actionBusy) return;
-    if (guestToken) {
-      joinArena({ guestToken });
-      return;
-    }
+    if (guestToken) { joinArena({ guestToken }); return; }
     if (isAuthenticated && room.sourceType !== 'public') {
       if (room.sourceType === 'dm_duel' && room.status === 'pending_acceptance' && isInvitedUser) return;
       joinArena();
@@ -128,7 +126,6 @@ export default function ArenaCodePage() {
 
   useEffect(() => {
     if (!room?._id || (!participant && !isHostUser)) return undefined;
-
     const socket = connectArenaSocket({ arenaGuestToken: !isAuthenticated ? guestToken : undefined }) || getArenaSocket();
     if (!socket) return undefined;
 
@@ -136,10 +133,12 @@ export default function ArenaCodePage() {
       setRoom(nextRoom);
       setAck((prev) => (prev?.questionIndex === nextRoom.currentQuestionIndex ? prev : null));
     };
-    const handleAck = (nextAck) => setAck(nextAck);
-    const handleError = ({ message }) => {
-      if (message) toast.error(message);
+    const handleAck = (nextAck) => {
+      setAck(nextAck);
+      if (nextAck?.correct) haptic.success();
+      else haptic.tap();
     };
+    const handleError = ({ message }) => { if (message) toast.error(message); };
     const handleKicked = (payload) => {
       if (!payload) return;
       const myParticipantId = getParticipantId(participant);
@@ -170,22 +169,14 @@ export default function ArenaCodePage() {
 
   useEffect(() => {
     const phaseEnd = getPhaseEnd(room);
-    if (!phaseEnd) {
-      setTimeLeftMs(0);
-      return undefined;
-    }
-
+    if (!phaseEnd) { setTimeLeftMs(0); return undefined; }
     const update = () => setTimeLeftMs(computeTimeLeft(phaseEnd));
     update();
     const interval = setInterval(update, 200);
     return () => clearInterval(interval);
   }, [
-    room?.phaseEndsAt,
-    room?.countdownEndsAt,
-    room?.questionIntroEndsAt,
-    room?.questionEndsAt,
-    room?.answerRevealEndsAt,
-    room?.leaderboardEndsAt
+    room?.phaseEndsAt, room?.countdownEndsAt, room?.questionIntroEndsAt,
+    room?.questionEndsAt, room?.answerRevealEndsAt, room?.leaderboardEndsAt
   ]);
 
   const participants = useMemo(() => room?.participants || [], [room?.participants]);
@@ -197,11 +188,8 @@ export default function ArenaCodePage() {
   const submitAnswer = (payload) => {
     if (!room?._id || !currentParticipant) return;
     const socket = getArenaSocket() || connectArenaSocket({ arenaGuestToken: !isAuthenticated ? guestToken : undefined });
-    socket?.emit('arena:submitAnswer', {
-      roomId: room._id,
-      guestToken,
-      ...payload
-    });
+    socket?.emit('arena:submitAnswer', { roomId: room._id, guestToken, ...payload });
+    haptic.press();
   };
 
   const acceptDuel = async () => {
@@ -253,24 +241,35 @@ export default function ArenaCodePage() {
     || ack?.questionIndex === room?.currentQuestionIndex
     || room?.status !== 'live_question';
 
+  // Dark stage during active gameplay, light otherwise
+  const isGameplay = room && ['live_question', 'answer_reveal', 'question_intro', 'countdown', 'starting_countdown', 'leaderboard', 'round_result'].includes(room.status);
+
   if (loading || !room) {
     return (
-      <ArenaShell>
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="h-11 w-11 animate-spin rounded-full border-4 border-white/10 border-t-orange-500" />
+      <PlayerShell dark={false}>
+        <div className="grid min-h-screen place-items-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary-200 border-t-primary-500" />
         </div>
-      </ArenaShell>
+      </PlayerShell>
     );
   }
 
+  const countdownSec = Math.max(0, Math.ceil(timeLeftMs / 1000));
+  const isFinal = room.status === 'final';
+  const myPlacement = currentParticipant?.placement || null;
+  const isWinner = myPlacement === 1;
+
   return (
-    <ArenaShell>
+    <PlayerShell dark={isGameplay}>
+      {/* Header */}
       <header className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate('/dashboard')}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/8 text-white transition hover:bg-white/15"
+            onClick={() => navigate('/arena')}
+            className={`chunky-card touch-target grid h-11 w-11 place-items-center ${isGameplay ? 'bg-white/10 text-white border-white/20' : 'bg-white text-slate-700 dark:bg-slate-800 dark:text-slate-200'}`}
+            style={isGameplay ? { boxShadow: '0 4px 0 rgba(0,0,0,0.35)' } : { boxShadow: '0 4px 0 #e2e8f0' }}
+            aria-label="Назад"
           >
             <ArrowLeft size={18} />
           </button>
@@ -282,172 +281,199 @@ export default function ArenaCodePage() {
           type="button"
           onClick={() => {
             navigator.clipboard.writeText(`${window.location.origin}/arena/code/${room.joinCode}`);
-            toast.success('Ссылка комнаты скопирована');
+            toast.success('Ссылка скопирована');
           }}
-          className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-sm font-black text-white transition hover:bg-white/15"
+          className={`chunky-btn ${isGameplay ? 'bg-white/10 text-white border-2 border-white/20' : 'chunky-btn-ghost'} touch-target`}
+          style={isGameplay ? { boxShadow: '0 4px 0 rgba(0,0,0,0.35)' } : undefined}
         >
-          <Copy size={15} /> {room.joinCode}
+          <Copy size={15} /> <span className="font-mono tracking-[0.2em]">{room.joinCode}</span>
         </button>
       </header>
 
+      {/* No participant, public: show join form */}
       {!currentParticipant && room.sourceType === 'public' && (
-        <section className="grid min-h-[calc(100vh-96px)] place-items-center">
-          <div className="w-full max-w-xl rounded-[2.5rem] bg-[#111111] p-5 shadow-[0_36px_100px_-60px_rgba(0,0,0,1)]">
-            <div className="rounded-[2rem] bg-orange-500 p-6 text-black">
-              <p className="text-xs font-black uppercase tracking-[0.24em] opacity-65">UniTest Arena</p>
-              <h1 className="mt-3 text-4xl font-black leading-none tracking-tight">{room.title}</h1>
-              <p className="mt-4 text-base font-bold opacity-70">Введи ник и подключайся к игре.</p>
-            </div>
+        <section className="grid flex-1 place-items-center">
+          <ChunkyCard variant="cream" className="w-full max-w-md p-6">
+            <span className="chunky-pill bg-primary-500 text-white">
+              <Swords size={12} /> Арена
+            </span>
+            <h1 className="mt-4 text-3xl font-black leading-tight text-dark sm:text-4xl">{room.title}</h1>
+            <p className="mt-2 text-sm font-semibold text-slate-600">Введи ник и подключайся — играем!</p>
 
-            <div className="mt-4 rounded-[2rem] border border-white/10 bg-white/7 p-4">
+            <div className="mt-6 space-y-3">
               {!isAuthenticated ? (
-                <div className="space-y-3">
+                <>
                   <input
                     value={guestName}
-                    onChange={(event) => setGuestName(event.target.value)}
-                    className="h-16 w-full rounded-[1.35rem] border border-white/10 bg-white px-5 text-lg font-black text-black outline-none transition focus:border-orange-300"
+                    onChange={(e) => setGuestName(e.target.value)}
                     placeholder="Твой ник"
+                    maxLength={20}
+                    className="chunky-input text-lg py-4"
                   />
-                  <button
-                    type="button"
+                  <ChunkyButton
+                    variant="primary"
+                    size="xl"
+                    full
+                    loading={joinBusy}
+                    disabled={!guestName.trim()}
+                    icon={<LogIn size={20} />}
                     onClick={() => joinArena({ guestName })}
-                    disabled={joinBusy || !guestName.trim()}
-                    className="inline-flex h-16 w-full items-center justify-center gap-2 rounded-[1.35rem] bg-orange-500 px-6 text-base font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <LogIn size={18} /> Войти
-                  </button>
-                </div>
+                    Войти в игру
+                  </ChunkyButton>
+                  <p className="text-center text-xs font-semibold text-slate-500">
+                    Или <Link to="/login" className="text-primary-600 underline">войдите</Link> в аккаунт
+                  </p>
+                </>
               ) : (
-                <button
-                  type="button"
+                <ChunkyButton
+                  variant="primary"
+                  size="xl"
+                  full
+                  loading={joinBusy}
+                  icon={<LogIn size={20} />}
                   onClick={() => joinArena()}
-                  disabled={joinBusy}
-                  className="inline-flex h-16 w-full items-center justify-center gap-2 rounded-[1.35rem] bg-orange-500 px-6 text-base font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <LogIn size={18} /> Войти как {user?.firstName}
-                </button>
+                  Войти как {user?.firstName}
+                </ChunkyButton>
               )}
             </div>
-          </div>
+          </ChunkyCard>
         </section>
       )}
 
+      {/* No participant, non-public, not authed: need account */}
       {!currentParticipant && room.sourceType !== 'public' && !isAuthenticated && (
-        <section className="grid min-h-[calc(100vh-96px)] place-items-center">
-          <div className="w-full max-w-lg rounded-[2.5rem] bg-[#111111] p-6">
-            <h2 className="text-3xl font-black">Нужен аккаунт</h2>
-            <p className="mt-2 text-white/55">Для дуэлей и групповых арен нужен авторизованный профиль.</p>
-            <div className="mt-5 flex gap-3">
-              <Link to="/login" className="rounded-[1.25rem] bg-orange-500 px-5 py-3 text-sm font-black text-black transition hover:bg-orange-400">Войти</Link>
-              <Link to="/register" className="rounded-[1.25rem] border border-white/10 bg-white/8 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15">Регистрация</Link>
+        <section className="grid flex-1 place-items-center">
+          <ChunkyCard variant="white" className="w-full max-w-md p-6">
+            <h2 className="text-2xl font-black text-dark">Нужен аккаунт</h2>
+            <p className="mt-2 text-sm font-semibold text-slate-600">Дуэли и приватные арены доступны только авторизованным игрокам.</p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <Link to="/login" className="chunky-btn-primary flex-1 justify-center">Войти</Link>
+              <Link to="/register" className="chunky-btn-ghost flex-1 justify-center">Регистрация</Link>
             </div>
-          </div>
+          </ChunkyCard>
         </section>
       )}
 
+      {/* Duel pending */}
       {room.sourceType === 'dm_duel' && room.status === 'pending_acceptance' && (
-        <section className="grid min-h-[calc(100vh-96px)] place-items-center">
-          <div className="w-full max-w-xl rounded-[2.5rem] bg-[#111111] p-6">
+        <section className="grid flex-1 place-items-center">
+          <ChunkyCard variant="cream" className="w-full max-w-xl p-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-black">
+              <div className="chunky-card grid h-14 w-14 place-items-center bg-primary-500 text-white" style={{ boxShadow: '0 5px 0 #9a3412' }}>
                 <Swords size={24} />
               </div>
               <div className="flex-1">
-                <h2 className="text-3xl font-black">Дуэль ждёт подтверждения</h2>
-                <p className="mt-2 text-white/55">
+                <h2 className="text-2xl font-black text-dark sm:text-3xl">Дуэль ждёт</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-600">
                   {isInvitedUser ? 'Прими вызов, чтобы открыть лобби.' : 'Приглашение отправлено. Ждём второго игрока.'}
                 </p>
                 {isInvitedUser && !currentParticipant && (
-                  <div className="mt-5 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={acceptDuel}
-                      disabled={actionBusy}
-                      className="rounded-[1.25rem] bg-orange-500 px-5 py-3 text-sm font-black text-black transition hover:bg-orange-400 disabled:opacity-40"
-                    >
-                      Принять
-                    </button>
-                    <button
-                      type="button"
-                      onClick={declineDuel}
-                      disabled={actionBusy}
-                      className="inline-flex items-center gap-2 rounded-[1.25rem] border border-red-300/20 bg-red-500/12 px-5 py-3 text-sm font-black text-red-200 transition hover:bg-red-500/20 disabled:opacity-40"
-                    >
-                      <XCircle size={15} /> Отклонить
-                    </button>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <ChunkyButton variant="primary" onClick={acceptDuel} loading={actionBusy}>Принять</ChunkyButton>
+                    <ChunkyButton variant="danger" onClick={declineDuel} loading={actionBusy} icon={<XCircle size={15} />}>Отклонить</ChunkyButton>
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          </ChunkyCard>
         </section>
       )}
 
+      {/* Active player content */}
       {currentParticipant && (
-        <main className="space-y-4">
+        <main className="flex flex-1 flex-col gap-4">
           {room.status === 'lobby' && (
-            <section className="grid min-h-[calc(100vh-96px)] content-center gap-4">
-              <div className="rounded-[2.5rem] bg-[#111111] p-6">
-                <p className="text-xs font-black uppercase tracking-[0.24em] text-orange-300">Лобби</p>
-                <h1 className="mt-3 text-5xl font-black leading-none tracking-tight">{room.title}</h1>
-                <div className="mt-6 rounded-[2rem] bg-orange-500 p-5 text-black">
-                  <p className="text-sm font-black uppercase tracking-[0.2em] opacity-60">Код</p>
-                  <p className="mt-1 text-5xl font-black tracking-[0.15em]">{room.joinCode}</p>
+            <section className="grid flex-1 content-center gap-4">
+              <ChunkyCard variant="cream" className="p-6 sm:p-8">
+                <span className="chunky-pill bg-white text-primary-600" style={{ boxShadow: '0 3px 0 #fed7aa' }}>Лобби</span>
+                <h1 className="mt-3 text-3xl font-black leading-tight text-dark sm:text-4xl">{room.title}</h1>
+
+                <div className="mt-6 grid gap-4 sm:grid-cols-[1fr_1fr]">
+                  <ChunkyCard variant="primary" className="p-5">
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/80">PIN</p>
+                    <p className="mt-2 font-mono text-5xl font-black tracking-[0.22em] text-white sm:text-6xl">{room.joinCode}</p>
+                  </ChunkyCard>
+                  <ChunkyCard variant="white" className="flex items-center gap-3 p-5">
+                    <div className="chunky-card grid h-12 w-12 place-items-center bg-amber-400 text-slate-900" style={{ boxShadow: '0 4px 0 #b45309' }}>
+                      <Users size={20} />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-black text-dark">{participants.length}</p>
+                      <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">в лобби</p>
+                    </div>
+                  </ChunkyCard>
                 </div>
-                <div className="mt-4 flex items-center gap-3 rounded-[1.5rem] border border-white/10 bg-white/7 p-4">
-                  <Users className="text-orange-300" size={22} />
-                  <span className="text-lg font-black">{participants.length} игроков</span>
-                </div>
+
                 {isHostUser && (
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => runHostAction('start')}
-                      disabled={actionBusy || participants.length === 0}
-                      className="inline-flex items-center gap-2 rounded-[1.25rem] bg-orange-500 px-6 py-3 text-sm font-black text-black transition hover:bg-orange-400 disabled:opacity-40"
-                    >
-                      <Play size={16} /> Старт
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => runHostAction('cancel')}
-                      disabled={actionBusy}
-                      className="rounded-[1.25rem] border border-red-300/20 bg-red-500/12 px-6 py-3 text-sm font-black text-red-200 transition hover:bg-red-500/20 disabled:opacity-40"
-                    >
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <ChunkyButton variant="primary" size="lg" icon={<Play size={17} />} disabled={participants.length === 0} loading={actionBusy} onClick={() => runHostAction('start')}>
+                      Старт
+                    </ChunkyButton>
+                    <ChunkyButton variant="danger" size="lg" loading={actionBusy} onClick={() => runHostAction('cancel')}>
                       Отменить
-                    </button>
+                    </ChunkyButton>
                   </div>
                 )}
-              </div>
+                {!isHostUser && (
+                  <p className="mt-6 text-sm font-bold text-slate-600 dark:text-slate-300">
+                    Ждём ведущего... Устройтесь поудобнее 🎮
+                  </p>
+                )}
+              </ChunkyCard>
+
+              <ChunkyCard variant="white" className="p-4">
+                <div className="flex flex-wrap gap-2">
+                  {participants.length ? participants.map(p => (
+                    <span key={p._id} className="chunky-pill bg-amber-100 text-slate-900">
+                      <span className={`h-2 w-2 rounded-full ${p.state === 'joined' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                      {p.displayName || 'Игрок'}
+                    </span>
+                  )) : (
+                    <p className="text-sm font-semibold text-slate-500">Ожидаем игроков...</p>
+                  )}
+                </div>
+              </ChunkyCard>
             </section>
           )}
 
           {isCountdown && (
-            <section className="flex min-h-[calc(100vh-96px)] flex-col items-center justify-center rounded-[2.5rem] bg-orange-500 p-6 text-center text-black">
-              <p className="text-sm font-black uppercase tracking-[0.35em] opacity-60">Старт</p>
-              <p className="mt-5 text-[10rem] font-black leading-none">{Math.max(0, Math.ceil(timeLeftMs / 1000))}</p>
-              <p className="mt-4 text-xl font-black opacity-70">Смотри на главный экран</p>
+            <section className="grid flex-1 place-items-center">
+              <motion.div
+                key={countdownSec}
+                initial={{ scale: 0.4, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 16 }}
+                className="text-center"
+              >
+                <p className="text-sm font-black uppercase tracking-[0.4em] text-primary-300">Старт</p>
+                <p className="mt-4 text-[8rem] font-black leading-none text-white sm:text-[12rem]">{countdownSec}</p>
+                <p className="mt-4 text-xl font-black text-white/80">Смотри на главный экран</p>
+              </motion.div>
             </section>
           )}
 
           {room.status === 'paused' && (
-            <section className="grid min-h-[calc(100vh-96px)] place-items-center">
-              <div className="rounded-[2.5rem] border border-amber-300/30 bg-amber-400/10 p-10 text-center">
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-400/30 text-amber-300">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+            <section className="grid flex-1 place-items-center">
+              <ChunkyCard variant="amber" className="p-8 text-center">
+                <div className="chunky-card mx-auto grid h-16 w-16 place-items-center bg-white text-amber-600" style={{ boxShadow: '0 4px 0 #b45309' }}>
+                  <Pause size={26} />
                 </div>
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-300">Пауза</p>
-                <h2 className="mt-3 text-4xl font-black text-white">Ведущий остановил игру</h2>
-                <p className="mt-3 text-sm font-semibold text-white/50">Оставайтесь на странице — мы продолжим автоматически.</p>
-              </div>
+                <p className="mt-4 text-xs font-black uppercase tracking-[0.3em]">Пауза</p>
+                <h2 className="mt-2 text-3xl font-black text-slate-900">Ведущий остановил игру</h2>
+                <p className="mt-3 text-sm font-bold text-slate-800">Оставайтесь на странице — мы продолжим автоматически.</p>
+              </ChunkyCard>
             </section>
           )}
 
           {room.status === 'question_intro' && (
-            <section className="flex min-h-[calc(100vh-96px)] flex-col justify-center rounded-[2.5rem] bg-[#111111] p-6">
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-orange-300">Следующий вопрос</p>
-              <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight">{room.currentQuestion?.questionText}</h1>
-              <p className="mt-6 text-5xl font-black text-orange-300">{Math.max(0, Math.ceil(timeLeftMs / 1000))}</p>
+            <section className="grid flex-1 place-items-center">
+              <ChunkyCard variant="dark" className="w-full max-w-3xl p-6 sm:p-8">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-300">Следующий вопрос</p>
+                <h1 className="mt-3 text-3xl font-black leading-tight text-white sm:text-5xl">{room.currentQuestion?.questionText}</h1>
+                <p className="mt-6 font-mono text-5xl font-black text-amber-300 sm:text-6xl">{countdownSec}</p>
+              </ChunkyCard>
             </section>
           )}
 
@@ -464,50 +490,57 @@ export default function ArenaCodePage() {
           )}
 
           {(room.status === 'leaderboard' || room.status === 'round_result') && (
-            <section className="grid min-h-[calc(100vh-96px)] content-center gap-4">
-              <div className="rounded-[2.5rem] bg-[#111111] p-6">
-                <p className="text-xs font-black uppercase tracking-[0.24em] text-orange-300">Рейтинг</p>
-                <h2 className="mt-2 text-5xl font-black">Следующий вопрос скоро</h2>
-                <p className="mt-4 text-5xl font-black text-orange-300">{Math.max(0, Math.ceil(timeLeftMs / 1000))}</p>
-              </div>
+            <section className="grid flex-1 content-start gap-4">
+              <ChunkyCard variant="dark" className="p-6">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-300">Рейтинг</p>
+                <h2 className="mt-2 text-3xl font-black text-white sm:text-4xl">Следующий вопрос скоро</h2>
+                <p className="mt-4 font-mono text-5xl font-black text-amber-300">{countdownSec}</p>
+              </ChunkyCard>
               <ArenaStandings participants={participants} title="Текущий топ" />
             </section>
           )}
 
           {['final', 'cancelled', 'declined'].includes(room.status) && (
-            <section className="grid min-h-[calc(100vh-96px)] content-center gap-4">
-              <div className="rounded-[2.5rem] bg-orange-500 p-6 text-black">
+            <section className="grid flex-1 content-center gap-4">
+              {isFinal && isWinner ? <Confetti active duration={2800} /> : null}
+              <ChunkyCard variant={isFinal && isWinner ? 'primary' : 'white'} className="p-6 sm:p-8">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-black text-orange-300">
-                    <Trophy size={24} />
+                  <div className="chunky-card grid h-16 w-16 place-items-center bg-amber-400 text-slate-900" style={{ boxShadow: '0 5px 0 #b45309' }}>
+                    <Trophy size={28} />
                   </div>
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.24em] opacity-60">Финал</p>
-                    <h2 className="text-4xl font-black">{room.status === 'final' ? 'Матч завершён' : 'Комната закрыта'}</h2>
+                    <p className={`text-xs font-black uppercase tracking-[0.3em] ${isFinal && isWinner ? 'text-white/80' : 'text-slate-500'}`}>
+                      {isFinal ? 'Финал' : 'Статус'}
+                    </p>
+                    <h2 className={`text-3xl font-black sm:text-4xl ${isFinal && isWinner ? 'text-white' : 'text-dark'}`}>
+                      {room.status === 'final' ? (isWinner ? 'Ты победил! 🎉' : 'Матч завершён') : 'Комната закрыта'}
+                    </h2>
+                    {myPlacement && isFinal ? (
+                      <p className={`mt-2 text-sm font-bold ${isWinner ? 'text-white/90' : 'text-slate-600'}`}>
+                        Твоё место: #{myPlacement}
+                        {currentParticipant?.score ? ` · ${currentParticipant.score} очков` : ''}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
-                {room.status === 'final' && (
-                  <Link
-                    to={`/arena/results/${room._id}`}
-                    className="mt-6 inline-flex items-center gap-2 rounded-[1.25rem] bg-black px-6 py-3 text-sm font-black text-white transition hover:bg-zinc-900"
-                  >
-                    <Trophy size={16} /> Результаты
-                  </Link>
+                {isFinal && (
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <Link to={`/arena/results/${room._id}`} className={isWinner ? 'chunky-btn-dark' : 'chunky-btn-primary'}>
+                      <Trophy size={16} /> Результаты
+                    </Link>
+                    <Link to="/arena" className="chunky-btn-ghost">Ещё игру</Link>
+                  </div>
                 )}
-              </div>
-              {room.status === 'final' && <ArenaStandings participants={participants} title="Финальный подиум" variant="podium" />}
+              </ChunkyCard>
+              {isFinal && <ArenaStandings participants={participants} title="Финальный подиум" variant="podium" />}
             </section>
           )}
         </main>
       )}
 
       {currentParticipant ? (
-        <ArenaGameplayOverlay
-          room={room}
-          participant={currentParticipant}
-          guestToken={guestToken}
-        />
+        <ArenaGameplayOverlay room={room} participant={currentParticipant} guestToken={guestToken} />
       ) : null}
-    </ArenaShell>
+    </PlayerShell>
   );
 }

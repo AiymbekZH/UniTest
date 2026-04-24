@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -28,6 +28,15 @@ export default memo(function Navbar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const currentSessionId = user?.id || user?._id || user?.email;
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      document.body.classList.remove('has-mobile-nav');
+      return undefined;
+    }
+    document.body.classList.add('has-mobile-nav');
+    return () => document.body.classList.remove('has-mobile-nav');
+  }, [isAuthenticated]);
   const quickSwitchSessions = (savedSessions || []).filter(session => session.id !== currentSessionId);
 
   const handleLogout = () => {
@@ -561,6 +570,49 @@ export default memo(function Navbar() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Mobile bottom nav - chunky */}
+      {isAuthenticated && (
+        <nav
+          className="mobile-nav-shell"
+          style={{ boxShadow: '0 -4px 0 rgba(15, 23, 42, 0.04)' }}
+          aria-label="Нижняя навигация"
+        >
+          <ul className="mx-auto flex max-w-md items-stretch justify-between px-2 py-1.5">
+            {[
+              { to: '/dashboard', label: t('home'), Icon: LayoutDashboard },
+              { to: '/my-tests', label: t('myTests'), Icon: FileText },
+              { to: '/arena', label: 'Арена', Icon: Swords, accent: 'orange' },
+              { to: '/messages', label: t('messages') || 'Чат', Icon: MessageSquare, dot: hasUnreadMessages },
+              { to: user?.username ? `/u/${user.username}` : '/profile', label: t('profile') || 'Профиль', Icon: User }
+            ].map(({ to, label, Icon, accent, dot }) => {
+              const active = location.pathname === to || (to === '/arena' && location.pathname.startsWith('/arena'));
+              const isArena = accent === 'orange';
+              return (
+                <li key={to} className="flex-1">
+                  <Link
+                    to={to}
+                    className={`touch-target relative flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[10px] font-black leading-none transition-transform active:translate-y-[2px] ${
+                      active
+                        ? isArena
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                        : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                    style={active ? { boxShadow: `0 3px 0 ${isArena ? '#9a3412' : '#0f172a'}` } : undefined}
+                  >
+                    <Icon size={20} strokeWidth={active ? 2.5 : 2} />
+                    <span className="mt-0.5 tracking-tight">{label}</span>
+                    {dot ? (
+                      <span className="absolute right-3 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900" />
+                    ) : null}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      )}
     </>
   );
 })

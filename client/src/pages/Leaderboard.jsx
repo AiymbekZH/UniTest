@@ -75,7 +75,7 @@ export default function Leaderboard() {
 
             {/* Premium 3D Podium */}
             {podium.length >= 3 && (
-              <div className="glass-card-solid p-6 sm:p-8">
+              <div className="chunky-card p-6 sm:p-8">
                 <div className="flex items-end justify-center gap-3 sm:gap-6">
                   {/* 2nd place */}
                   <PodiumColumn rank={2} entry={podium[1]} onClick={() => podium[1].userId && navigate(`/profile/${podium[1].userId}`)} />
@@ -89,7 +89,7 @@ export default function Leaderboard() {
 
             {/* Full list (ranks 4+) or podium fallback if < 3 entries */}
             {(restOfList.length > 0 || podium.length < 3) && (
-              <div className="glass-card-solid p-3 sm:p-4">
+              <div className="chunky-card p-3 sm:p-4">
                 <div className="space-y-1">
                   {(podium.length < 3 ? data.leaderboard : restOfList)?.map((entry, i) => (
                     <motion.div
@@ -97,7 +97,7 @@ export default function Leaderboard() {
                       initial={{ opacity: 0, x: -6 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-gray-50 dark:hover:bg-slate-700/40"
+                      className="flex items-center gap-3 rounded-2xl border-2 border-transparent px-3 py-2.5 transition hover:border-slate-200 hover:bg-gray-50 dark:hover:border-slate-700 dark:hover:bg-slate-700/40"
                     >
                       <div className="flex w-8 flex-shrink-0 justify-center">
                         {getRankIcon(entry.rank)}
@@ -127,7 +127,7 @@ export default function Leaderboard() {
                         </div>
                       </div>
                       <div className="flex-shrink-0 text-right">
-                        <p className={`text-base font-bold tracking-tight ${entry.percentage >= 80 ? 'text-emerald-600' : entry.percentage >= 50 ? 'text-amber-500' : 'text-red-500'}`}>
+                        <p className={`font-mono text-lg font-black tracking-tight ${entry.percentage >= 80 ? 'text-emerald-600' : entry.percentage >= 50 ? 'text-amber-500' : 'text-red-500'}`}>
                           {entry.percentage}%
                         </p>
                       </div>
@@ -138,7 +138,7 @@ export default function Leaderboard() {
             )}
 
             {(!data.leaderboard || data.leaderboard.length === 0) && (
-              <div className="glass-card-solid p-12 text-center">
+              <div className="chunky-card p-12 text-center">
                 <Award size={44} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                 <h3 className="text-lg font-semibold text-dark mb-1">{t('emptyLeaderboard')}</h3>
                 <p className="text-sm text-gray-500">{t('noOneCompleted')}</p>

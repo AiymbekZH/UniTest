@@ -23,7 +23,7 @@ function SummaryCard({ icon: Icon, label, value, tone = 'primary' }) {
   };
 
   return (
-    <div className="glass-card-solid rounded-2xl p-5">
+    <div className="chunky-card p-5">
       <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneMap[tone] || toneMap.primary}`}>
         <Icon size={20} />
       </div>
@@ -384,7 +384,7 @@ export default function Profile() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            <section className="glass-card-solid rounded-2xl p-6 sm:p-7">
+            <section className="chunky-card p-6 sm:p-7">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.about}</p>
@@ -506,7 +506,7 @@ export default function Profile() {
             </section>
 
             <div className="space-y-6">
-              <section className="glass-card-solid rounded-2xl p-6">
+              <section className="chunky-card p-6">
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.creatorStats}</p>
                 <div className="mt-5 space-y-4">
                   <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
@@ -540,7 +540,7 @@ export default function Profile() {
                 </div>
               </section>
 
-              <section className="glass-card-solid rounded-2xl p-6">
+              <section className="chunky-card p-6">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.badges}</p>
@@ -569,7 +569,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <section className="glass-card-solid rounded-2xl p-6">
+          <section className="chunky-card p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.creatorPortfolio}</p>
@@ -607,7 +607,7 @@ export default function Profile() {
           </section>
 
           <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-            <section className="glass-card-solid rounded-2xl p-6">
+            <section className="chunky-card p-6">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.security}</p>
               <h2 className="mt-2 text-2xl font-bold text-dark">{t('changePassword')}</h2>
               <div className="mt-6 space-y-4">
@@ -643,7 +643,7 @@ export default function Profile() {
               </button>
             </section>
 
-            <section className="glass-card-solid rounded-2xl p-6">
+            <section className="chunky-card p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{t('warnings')}</p>
@@ -676,7 +676,7 @@ export default function Profile() {
             </section>
           </div>
 
-          <section className="glass-card-solid rounded-2xl p-6">
+          <section className="chunky-card p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.comments}</p>

@@ -22,7 +22,7 @@ function StatCard({ icon: Icon, label, value, tone = 'primary' }) {
   };
 
   return (
-    <div className="glass-card-solid rounded-2xl p-5">
+    <div className="chunky-card p-5">
       <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneMap[tone] || toneMap.primary}`}>
         <Icon size={20} />
       </div>
@@ -240,7 +240,7 @@ export default function UserProfile() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-            <section className="glass-card-solid rounded-2xl p-6">
+            <section className="chunky-card p-6">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.creatorStats}</p>
               <div className="mt-5 space-y-4">
                 <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-4 dark:bg-slate-800/70">
@@ -274,7 +274,7 @@ export default function UserProfile() {
               </div>
             </section>
 
-            <section className="glass-card-solid rounded-2xl p-6">
+            <section className="chunky-card p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.publicProgress}</p>
@@ -303,7 +303,7 @@ export default function UserProfile() {
             </section>
           </div>
 
-          <section className="glass-card-solid rounded-2xl p-6">
+          <section className="chunky-card p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{copy.creatorPortfolio}</p>

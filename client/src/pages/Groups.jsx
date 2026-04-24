@@ -718,9 +718,9 @@ export default function Groups() {
   return (
     <div className="min-h-screen bg-surface">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <main className="mx-auto max-w-6xl px-2 py-3 sm:px-6 sm:py-6">
         {selectedGroup ? (
-          <div className="flex flex-col lg:flex-row gap-0 lg:gap-0 h-[calc(100vh-120px)]">
+          <div className="flex h-[calc(100vh-150px)] flex-col lg:h-[calc(100vh-140px)] lg:flex-row">
             {/* Sidebar: group info + member list (desktop only) */}
             <div className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-800 rounded-l-2xl border border-r-0 border-gray-200 dark:border-slate-700">
               <div className="p-4 border-b border-gray-100 dark:border-slate-700">

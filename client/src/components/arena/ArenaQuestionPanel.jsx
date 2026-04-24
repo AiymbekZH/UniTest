@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Circle, Clock3, Diamond, Send, Square, Triangle, X } from 'lucide-react';
+import ChunkyTile from '../ui/ChunkyTile';
 
 const TILE_STYLES = [
-  { icon: Triangle, bg: 'bg-[#e63946]', shadow: 'shadow-red-950/35' },
-  { icon: Diamond, bg: 'bg-[#2f80ed]', shadow: 'shadow-blue-950/35' },
-  { icon: Circle, bg: 'bg-[#f59e0b]', shadow: 'shadow-amber-950/35' },
-  { icon: Square, bg: 'bg-[#10b981]', shadow: 'shadow-emerald-950/35' }
+  { icon: Triangle, color: 'red' },
+  { icon: Diamond, color: 'blue' },
+  { icon: Circle, color: 'amber' },
+  { icon: Square, color: 'emerald' }
 ];
 
 function formatTimer(ms = 0) {
@@ -147,14 +148,14 @@ export default function ArenaQuestionPanel({
   };
 
   return (
-    <section className={`${isHostView ? 'min-h-[70vh]' : 'min-h-[calc(100vh-120px)]'} flex flex-col gap-4 text-white`}>
-      <div className="rounded-[2rem] border border-white/10 bg-[#111111] p-4 shadow-[0_30px_90px_-55px_rgba(0,0,0,0.95)] sm:p-6">
+    <section className={`${isHostView ? 'min-h-[70vh]' : 'min-h-[calc(100vh-140px)]'} flex flex-col gap-4 text-white`}>
+      <div className="rounded-[2rem] border-2 border-white/10 bg-[#111111] p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div className="inline-flex rounded-full bg-orange-500 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-black">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-500 px-3 py-1 font-mono text-xs font-black tracking-[0.2em] text-white" style={{ boxShadow: '0 3px 0 #9a3412' }}>
               {question.questionNumber}/{question.totalQuestions}
             </div>
-            <h2 className={`${isHostView ? 'mt-5 text-5xl md:text-7xl' : 'mt-4 text-3xl'} font-black leading-[0.98] tracking-tight`}>
+            <h2 className={`${isHostView ? 'mt-5 text-4xl md:text-6xl lg:text-7xl' : 'mt-4 text-2xl sm:text-3xl'} font-black leading-[0.98] tracking-tight`}>
               {question.questionText}
             </h2>
           </div>
@@ -188,85 +189,75 @@ export default function ArenaQuestionPanel({
             const active = selectedOptions.includes(option.id);
             const isCorrect = correctIds.has(option.id);
             const wrongSelected = showAnswer && active && !isCorrect;
-            const revealClass = showAnswer
+            const reveal = showAnswer
               ? isCorrect
-                ? 'ring-4 ring-white brightness-110'
+                ? 'correct'
                 : wrongSelected
-                  ? 'ring-4 ring-red-200 brightness-75'
-                  : 'opacity-35 grayscale'
-              : active
-                ? 'ring-4 ring-white scale-[1.01]'
-                : 'active:scale-[0.99] hover:brightness-110';
+                  ? 'wrong'
+                  : 'dim'
+              : null;
 
             return (
-              <motion.button
+              <ChunkyTile
                 key={option.id}
-                type="button"
+                color={style.color}
                 onClick={() => toggleOption(option.id)}
                 disabled={locked || isHostView || showAnswer}
-                whileTap={!locked && !isHostView && !showAnswer ? { scale: 0.96 } : undefined}
-                whileHover={!locked && !isHostView && !showAnswer ? { scale: 1.01, y: -2 } : undefined}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.06, duration: 0.3, ease: 'easeOut' }}
-                className={`relative overflow-hidden rounded-[2rem] ${style.bg} p-5 text-left text-white shadow-2xl ${style.shadow} ${revealClass} ${locked || isHostView || showAnswer ? 'cursor-default' : ''}`}
+                active={active}
+                reveal={reveal}
+                className={`${isHostView ? 'p-6 sm:p-8 min-h-[140px]' : 'p-5 min-h-[120px]'}`}
+                motionProps={{
+                  initial: { opacity: 0, y: 24 },
+                  animate: { opacity: 1, y: 0 },
+                  transition: { delay: index * 0.06, duration: 0.25, ease: 'easeOut' }
+                }}
               >
-                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/15" />
-                {/* Ripple effect on active */}
-                {active && !showAnswer && (
-                  <motion.div
-                    className="absolute inset-0 rounded-[2rem] bg-white/10"
-                    initial={{ scale: 0, opacity: 0.8 }}
-                    animate={{ scale: 2.5, opacity: 0 }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                  />
-                )}
-                <div className="relative z-10 flex h-full flex-col justify-between gap-6">
-                  <Icon size={isHostView ? 46 : 34} strokeWidth={3.2} />
+                <div className="relative z-10 flex h-full flex-col justify-between gap-4">
+                  <Icon size={isHostView ? 44 : 30} strokeWidth={3.2} />
                   <div>
-                    <p className={`${isHostView ? 'text-3xl md:text-5xl' : 'text-2xl'} font-black leading-tight`}>
+                    <p className={`${isHostView ? 'text-3xl md:text-5xl' : 'text-xl sm:text-2xl'} font-black leading-tight`}>
                       {option.text}
                     </p>
                     <AnimatePresence>
                       {showAnswer && isCorrect && (
                         <motion.span
-                          initial={{ opacity: 0, scale: 0.8 }}
+                          initial={{ opacity: 0, scale: 0.6 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                          className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-black"
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-900"
                         >
-                          <Check size={14} /> верно
+                          <Check size={12} /> верно
                         </motion.span>
                       )}
                       {showAnswer && wrongSelected && (
                         <motion.span
-                          initial={{ opacity: 0, x: -8 }}
+                          initial={{ opacity: 0, x: -6 }}
                           animate={{ opacity: 1, x: 0 }}
-                          className="mt-4 inline-flex items-center gap-2 rounded-full bg-black/25 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white"
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-white"
                         >
-                          <X size={14} /> твой ответ
+                          <X size={12} /> твой ответ
                         </motion.span>
                       )}
                     </AnimatePresence>
                   </div>
                 </div>
-              </motion.button>
+              </ChunkyTile>
             );
           })}
         </div>
       )}
 
       {question.type === 'fill-blank' && (
-        <div className="flex flex-1 flex-col gap-4 rounded-[2rem] border border-white/10 bg-[#111111] p-4">
+        <div className="flex flex-1 flex-col gap-4 rounded-[2rem] border-2 border-white/10 bg-[#111111] p-4 sm:p-6">
           <textarea
             value={textAnswer}
             disabled={locked || isHostView || showAnswer}
             onChange={(event) => setTextAnswer(event.target.value)}
-            className="min-h-[190px] flex-1 resize-none rounded-[1.5rem] border border-white/10 bg-white/8 px-5 py-4 text-xl font-black text-white outline-none transition placeholder:text-white/35 focus:border-orange-300"
+            className="min-h-[180px] flex-1 resize-none rounded-[1.5rem] border-2 border-white/15 bg-white/10 px-5 py-4 text-xl font-black text-white outline-none transition placeholder:text-white/35 focus:border-primary-400"
             placeholder="Введите ответ"
           />
           {showAnswer && (
-            <div className="rounded-[1.5rem] bg-emerald-400 px-5 py-4 text-black">
+            <div className="rounded-[1.5rem] border-2 border-emerald-600 bg-emerald-500 px-5 py-4 text-white" style={{ boxShadow: '0 5px 0 #065f46' }}>
               <p className="text-xs font-black uppercase tracking-[0.18em]">Правильный ответ</p>
               <p className="mt-1 text-2xl font-black">{correctText || 'Ответ не указан'}</p>
             </div>
@@ -303,7 +294,7 @@ export default function ArenaQuestionPanel({
       )}
 
       {!isHostView && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] bg-black/35 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border-2 border-white/10 bg-black/50 p-3">
           <AnimatePresence mode="wait">
             {ack ? (
               <motion.div
@@ -346,7 +337,7 @@ export default function ArenaQuestionPanel({
               type="button"
               onClick={() => submitAnswer()}
               disabled={!canSubmit}
-              className="inline-flex items-center gap-2 rounded-[1.25rem] bg-orange-500 px-6 py-3 text-sm font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="chunky-btn-primary"
             >
               <Send size={16} /> Отправить
             </button>
@@ -355,7 +346,7 @@ export default function ArenaQuestionPanel({
       )}
 
       {showAnswer && correctText && question.type !== 'fill-blank' && question.type !== 'matching' && (
-        <div className="rounded-[1.5rem] bg-emerald-400 px-5 py-4 text-black">
+        <div className="rounded-[1.5rem] border-2 border-emerald-600 bg-emerald-500 px-5 py-4 text-white" style={{ boxShadow: '0 5px 0 #065f46' }}>
           <p className="text-xs font-black uppercase tracking-[0.18em]">Правильный ответ</p>
           <p className="mt-1 text-xl font-black">{correctText}</p>
         </div>

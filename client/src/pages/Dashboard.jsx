@@ -441,21 +441,15 @@ function DashboardTabButton({ label, tabKey, active, onClick }) {
     <button
       type="button"
       onClick={() => onClick(tabKey)}
-      className={`relative inline-flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors ${
+      className={`touch-target relative inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl border-2 px-3.5 py-2 text-[12px] font-black transition-transform active:translate-y-[2px] ${
         active
-          ? 'text-dark dark:text-white'
-          : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+          ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900'
+          : 'border-slate-200 bg-white text-slate-500 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
       }`}
+      style={active ? { boxShadow: '0 3px 0 #0f172a' } : undefined}
     >
-      <Icon size={14} className={active ? 'text-primary-500' : ''} />
+      <Icon size={14} />
       {label}
-      {active && (
-        <motion.div
-          layoutId="dashboard-tab-ink"
-          className="absolute inset-x-1 -bottom-px h-[2px] rounded-full bg-primary-500"
-          transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-        />
-      )}
     </button>
   );
 }
@@ -469,10 +463,13 @@ function SummaryMetric({ icon: Icon, label, value, tone = 'primary' }) {
   };
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800/80">
+    <div
+      className="rounded-2xl border-2 border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 sm:p-5"
+      style={{ boxShadow: '0 4px 0 #e2e8f0' }}
+    >
       <Icon size={16} className={`mb-3 ${toneColors[tone] || toneColors.primary}`} />
-      <p className="text-2xl font-bold tracking-tight text-dark">{value}</p>
-      <p className="mt-0.5 text-xs text-gray-400">{label}</p>
+      <p className="font-mono text-2xl font-black tracking-tight text-dark">{value}</p>
+      <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">{label}</p>
     </div>
   );
 }
@@ -1353,9 +1350,9 @@ export default function Dashboard() {
           }
         />
 
-        {/* Tab bar */}
-        <div className="mt-8 border-b border-gray-100 dark:border-slate-700/60">
-          <div className="flex gap-0.5 overflow-x-auto scrollbar-hide">
+        {/* Tab bar - chunky pills */}
+        <div className="mt-6 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
             {availableTabs.map((tabKey) => (
               <DashboardTabButton
                 key={tabKey}

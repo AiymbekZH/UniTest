@@ -300,9 +300,10 @@ export default function ResultPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-gray-500 hover:text-dark mb-6 transition-colors"
+          className="touch-target mb-4 inline-flex items-center gap-2 rounded-full border-2 border-slate-900 bg-white px-3 py-2 text-xs font-black text-slate-900 active:translate-y-[2px] dark:border-white dark:bg-slate-900 dark:text-white"
+          style={{ boxShadow: '0 3px 0 #0f172a' }}
         >
-          <ArrowLeft size={18} /> На главную
+          <ArrowLeft size={14} /> На главную
         </motion.button>
 
         {/* Score card */}
@@ -310,7 +311,7 @@ export default function ResultPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="glass-card p-8 sm:p-10 text-center mb-6"
+          className="chunky-card p-6 sm:p-10 text-center mb-4"
         >
           <motion.div
             initial={{ scale: 0 }}
@@ -329,41 +330,41 @@ export default function ResultPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <h1 className="text-5xl sm:text-6xl font-extrabold text-dark mb-2">
+            <h1 className="font-mono text-6xl font-black tracking-tight text-dark sm:text-7xl">
               {result.percentage}%
             </h1>
-            <p className={`text-xl font-semibold ${grade.color} mb-1`}>{grade.label}</p>
-            <p className="text-gray-500 text-sm">
+            <p className={`mt-1 text-lg font-black ${grade.color}`}>{grade.label}</p>
+            <p className="mt-1 text-xs font-bold text-gray-500">
               {result.score} из {result.totalPoints} баллов
             </p>
           </motion.div>
 
-          {/* Stats row */}
+          {/* Stats row - chunky tiles */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8"
+            className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4"
           >
-            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
-              <CheckCircle className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
-              <p className="text-2xl font-bold text-emerald-700">{correct}</p>
-              <p className="text-xs text-emerald-600">Верно</p>
+            <div className="rounded-2xl border-2 border-emerald-900 bg-emerald-50 p-3 dark:bg-emerald-900/20" style={{ boxShadow: '0 4px 0 #065f46' }}>
+              <CheckCircle className="mx-auto mb-1 h-6 w-6 text-emerald-600" />
+              <p className="font-mono text-2xl font-black text-emerald-700">{correct}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-600">Верно</p>
             </div>
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl">
-              <XCircle className="w-6 h-6 text-red-600 mx-auto mb-1" />
-              <p className="text-2xl font-bold text-red-700">{wrong}</p>
-              <p className="text-xs text-red-600">Неверно</p>
+            <div className="rounded-2xl border-2 border-red-900 bg-red-50 p-3 dark:bg-red-900/20" style={{ boxShadow: '0 4px 0 #7f1d1d' }}>
+              <XCircle className="mx-auto mb-1 h-6 w-6 text-red-600" />
+              <p className="font-mono text-2xl font-black text-red-700">{wrong}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-600">Неверно</p>
             </div>
-            <div className="rounded-2xl bg-primary-50 p-4 dark:bg-primary-900/20">
-              <Clock className="w-6 h-6 text-primary-600 mx-auto mb-1" />
-              <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{formatTime(result.timeSpent)}</p>
-              <p className="text-xs text-primary-600 dark:text-primary-400">Время</p>
+            <div className="rounded-2xl border-2 border-primary-700 bg-primary-50 p-3 dark:bg-primary-900/20" style={{ boxShadow: '0 4px 0 #9a3412' }}>
+              <Clock className="mx-auto mb-1 h-6 w-6 text-primary-600" />
+              <p className="font-mono text-xl font-black text-primary-700 dark:text-primary-300">{formatTime(result.timeSpent)}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary-600 dark:text-primary-400">Время</p>
             </div>
-            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
-              <AlertTriangle className="w-6 h-6 text-amber-600 mx-auto mb-1" />
-              <p className="text-2xl font-bold text-amber-700">{result.violationCount}</p>
-              <p className="text-xs text-amber-600">Нарушения</p>
+            <div className="rounded-2xl border-2 border-amber-900 bg-amber-50 p-3 dark:bg-amber-900/20" style={{ boxShadow: '0 4px 0 #78350f' }}>
+              <AlertTriangle className="mx-auto mb-1 h-6 w-6 text-amber-600" />
+              <p className="font-mono text-2xl font-black text-amber-700">{result.violationCount}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">Нарушения</p>
             </div>
           </motion.div>
 
@@ -391,9 +392,9 @@ export default function ResultPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55 }}
-            className="glass-card-solid p-6 mb-6 text-center"
+            className="chunky-card p-6 mb-4 text-center"
           >
-            <h3 className="font-semibold text-dark mb-2 flex items-center justify-center gap-2">
+            <h3 className="font-black text-dark mb-2 flex items-center justify-center gap-2">
               <Star size={18} className="text-amber-500" /> Оцените этот тест
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Ваша оценка поможет другим пользователям</p>
@@ -504,7 +505,7 @@ export default function ResultPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.58 }}
-            className="glass-card-solid p-5 mb-6 text-center"
+            className="chunky-card p-5 mb-4 text-center"
           >
             <button
               onClick={() => navigate(`/leaderboard/${result.test._id}`)}
@@ -523,9 +524,9 @@ export default function ResultPage() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.6 }}
-            className="glass-card-solid p-6"
+            className="chunky-card p-6"
           >
-            <h3 className="font-semibold text-dark mb-4 flex items-center gap-2">
+            <h3 className="font-black text-dark mb-4 flex items-center gap-2">
               <BarChart3 size={18} /> Распределение ответов
             </h3>
             <ResponsiveContainer width="100%" height={200}>
@@ -549,9 +550,9 @@ export default function ResultPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.7 }}
-            className="glass-card-solid p-6"
+            className="chunky-card p-6"
           >
-            <h3 className="font-semibold text-dark mb-4 flex items-center gap-2">
+            <h3 className="font-black text-dark mb-4 flex items-center gap-2">
               <Trophy size={18} /> Баллы по вопросам
             </h3>
             <ResponsiveContainer width="100%" height={200}>
@@ -573,7 +574,7 @@ export default function ResultPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="glass-card-solid p-6 mb-6"
+            className="chunky-card p-6 mb-4"
           >
             <h3 className="font-semibold text-dark mb-4 flex items-center gap-2">
               <AlertTriangle size={18} className="text-amber-500" /> Нарушения ({result.violations.length})
@@ -597,7 +598,7 @@ export default function ResultPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
-          className="glass-card-solid overflow-hidden mb-6"
+          className="chunky-card overflow-hidden mb-4"
         >
           <button
             onClick={() => setShowReview(!showReview)}

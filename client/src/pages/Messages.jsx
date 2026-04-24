@@ -262,8 +262,11 @@ export default function Messages() {
   return (
     <div className="min-h-screen bg-surface">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        <div className="flex h-[calc(100vh-120px)] bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+      <main className="mx-auto max-w-6xl px-2 py-3 sm:px-6 sm:py-6">
+        <div
+          className="flex h-[calc(100vh-150px)] overflow-hidden rounded-3xl border-2 border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 sm:h-[calc(100vh-140px)]"
+          style={{ boxShadow: '0 6px 0 #e2e8f0' }}
+        >
           {/* Sidebar – conversations list */}
           <div className={`w-full sm:w-80 flex-shrink-0 border-r border-gray-200 dark:border-slate-700 flex flex-col ${selectedConv ? 'hidden sm:flex' : 'flex'}`}>
             <div className="p-4 border-b border-gray-100 dark:border-slate-700">

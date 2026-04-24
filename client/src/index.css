@@ -224,6 +224,137 @@
     @apply translate-x-1;
   }
 
+  /* ---- Chunky Playful primitives (no neon, hard shadow depth) ---- */
+
+  .chunky-base {
+    @apply relative rounded-3xl font-extrabold tracking-tight transition-transform duration-100 ease-out will-change-transform;
+    box-shadow: 0 6px 0 rgba(15, 23, 42, 0.18);
+  }
+  .chunky-base:active {
+    transform: translateY(6px);
+    box-shadow: 0 0 0 rgba(15, 23, 42, 0);
+  }
+  .chunky-base:disabled {
+    @apply opacity-50 cursor-not-allowed;
+    transform: none;
+  }
+
+  .chunky-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-3xl px-5 py-3 text-sm font-black tracking-tight transition-transform duration-100 ease-out will-change-transform select-none;
+    box-shadow: 0 6px 0 rgba(15, 23, 42, 0.18);
+  }
+  .chunky-btn:hover { @apply brightness-[1.02]; }
+  .chunky-btn:active:not(:disabled) {
+    transform: translateY(6px);
+    box-shadow: 0 0 0 rgba(15, 23, 42, 0);
+  }
+  .chunky-btn:disabled { @apply opacity-50 cursor-not-allowed; }
+
+  .chunky-btn-primary {
+    @apply chunky-btn bg-primary-500 text-white;
+    box-shadow: 0 6px 0 #9a3412;
+  }
+  .chunky-btn-primary:active:not(:disabled) { box-shadow: 0 0 0 #9a3412; }
+
+  .chunky-btn-dark {
+    @apply chunky-btn bg-slate-900 text-white;
+    box-shadow: 0 6px 0 #020617;
+  }
+  .chunky-btn-dark:active:not(:disabled) { box-shadow: 0 0 0 #020617; }
+
+  .chunky-btn-ghost {
+    @apply chunky-btn bg-white text-dark border-2 border-slate-200;
+    box-shadow: 0 6px 0 #e2e8f0;
+  }
+  .chunky-btn-ghost:active:not(:disabled) { box-shadow: 0 0 0 #e2e8f0; }
+  .dark .chunky-btn-ghost {
+    @apply bg-slate-800 text-gray-100 border-slate-700;
+    box-shadow: 0 6px 0 #0f172a;
+  }
+  .dark .chunky-btn-ghost:active:not(:disabled) { box-shadow: 0 0 0 #0f172a; }
+
+  .chunky-btn-danger {
+    @apply chunky-btn bg-red-500 text-white;
+    box-shadow: 0 6px 0 #7f1d1d;
+  }
+  .chunky-btn-danger:active:not(:disabled) { box-shadow: 0 0 0 #7f1d1d; }
+
+  .chunky-btn-success {
+    @apply chunky-btn bg-emerald-500 text-white;
+    box-shadow: 0 6px 0 #065f46;
+  }
+  .chunky-btn-success:active:not(:disabled) { box-shadow: 0 0 0 #065f46; }
+
+  .chunky-card {
+    @apply relative rounded-3xl bg-white border-2 border-slate-200;
+    box-shadow: 0 6px 0 #e2e8f0;
+  }
+  .dark .chunky-card {
+    @apply bg-slate-800 border-slate-700;
+    box-shadow: 0 6px 0 #0f172a;
+  }
+
+  .chunky-card-dark {
+    @apply relative rounded-3xl bg-slate-900 border-2 border-slate-800 text-white;
+    box-shadow: 0 6px 0 #020617;
+  }
+
+  .chunky-card-cream {
+    @apply relative rounded-3xl bg-[#FFF8EE] border-2 border-amber-200;
+    box-shadow: 0 6px 0 #fde68a;
+  }
+  .dark .chunky-card-cream {
+    @apply bg-slate-800 border-slate-700;
+    box-shadow: 0 6px 0 #0f172a;
+  }
+
+  .chunky-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black tracking-wide;
+  }
+
+  .chunky-tile {
+    @apply relative rounded-3xl p-5 text-left text-white transition-transform duration-100 ease-out will-change-transform select-none;
+  }
+  .chunky-tile:active:not(:disabled) { transform: translateY(4px); }
+
+  .chunky-input {
+    @apply w-full rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-bold text-dark outline-none transition placeholder:text-slate-400 focus:border-primary-400;
+    box-shadow: 0 4px 0 #e2e8f0;
+  }
+  .dark .chunky-input {
+    @apply bg-slate-800 border-slate-700 text-gray-100;
+    box-shadow: 0 4px 0 #0f172a;
+  }
+
+  /* Mobile helpers */
+  .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.75rem); }
+  .safe-top { padding-top: max(env(safe-area-inset-top), 0.5rem); }
+  .touch-target { min-height: 44px; min-width: 44px; }
+
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* Bottom nav shell */
+  .mobile-nav-shell {
+    @apply fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white/95 backdrop-blur-xl safe-bottom sm:hidden;
+  }
+  .dark .mobile-nav-shell {
+    @apply border-slate-800 bg-slate-900/95;
+  }
+  /* Reserve bottom space on mobile pages to avoid content being hidden by bottom nav */
+  @media (max-width: 639px) {
+    body.has-mobile-nav, main.has-mobile-nav-pad { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+  }
+
+  /* Arena stage background (dark, subtle, no neon/glow) */
+  .arena-stage-bg {
+    background-color: #0b0b10;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
   /* ---- End New Design System Utilities ---- */
 
   /* Dark mode page backgrounds */

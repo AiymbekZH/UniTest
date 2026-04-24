@@ -1,0 +1,35 @@
+const VARIANT_CLASSES = {
+  white: 'chunky-card',
+  cream: 'chunky-card-cream',
+  dark: 'chunky-card-dark',
+  primary: 'chunky-card bg-primary-500 border-orange-700 text-white',
+  amber: 'chunky-card bg-amber-400 border-amber-600 text-slate-900',
+  emerald: 'chunky-card bg-emerald-500 border-emerald-700 text-white',
+  sky: 'chunky-card bg-sky-500 border-sky-700 text-white'
+};
+
+const TONE_SHADOW = {
+  primary: '0 6px 0 #9a3412',
+  amber: '0 6px 0 #b45309',
+  emerald: '0 6px 0 #065f46',
+  sky: '0 6px 0 #075985'
+};
+
+export default function ChunkyCard({
+  as: Tag = 'div',
+  variant = 'white',
+  className = '',
+  style,
+  children,
+  ...rest
+}) {
+  const variantCls = VARIANT_CLASSES[variant] || VARIANT_CLASSES.white;
+  const toneShadow = TONE_SHADOW[variant];
+  const mergedStyle = toneShadow ? { boxShadow: toneShadow, ...(style || {}) } : style;
+
+  return (
+    <Tag className={`${variantCls} ${className}`} style={mergedStyle} {...rest}>
+      {children}
+    </Tag>
+  );
+}
