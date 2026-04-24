@@ -6,6 +6,8 @@ import api from '../services/api';
 import { connectArenaSocket, disconnectArenaSocket, getArenaSocket } from '../services/arenaSocket';
 import ArenaQuestionPanel from '../components/arena/ArenaQuestionPanel';
 import ArenaStandings from '../components/arena/ArenaStandings';
+import ArenaJoinQR from '../components/arena/ArenaJoinQR';
+import ArenaGameplayOverlay from '../components/arena/ArenaGameplayOverlay';
 import BrandLogo from '../components/BrandLogo';
 
 const ARENA_EVENTS = [
@@ -306,9 +308,16 @@ export default function ArenaHostPage() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_260px]">
-                  <div className="rounded-[2rem] bg-orange-500 p-6 text-black">
+                  <div className="relative overflow-hidden rounded-[2rem] bg-orange-500 p-6 text-black">
                     <p className="text-sm font-black uppercase tracking-[0.22em] opacity-65">Код входа</p>
                     <p className="mt-3 text-7xl font-black tracking-[0.16em] md:text-8xl">{room.joinCode}</p>
+                    <div className="mt-5 hidden sm:flex">
+                      <ArenaJoinQR
+                        url={`${window.location.origin}/arena/code/${room.joinCode}`}
+                        size={140}
+                        caption="Сканируй QR"
+                      />
+                    </div>
                   </div>
                   <div className="rounded-[2rem] border border-white/10 bg-white/7 p-5">
                     <div className="flex items-center gap-3">
@@ -413,6 +422,8 @@ export default function ArenaHostPage() {
             </section>
           )}
         </main>
+
+        <ArenaGameplayOverlay room={room} participant={null} />
       </div>
     </div>
   );

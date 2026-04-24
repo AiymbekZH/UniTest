@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, LogOut, Menu, X,
   LayoutDashboard, FileText, BarChart3, Database, Sun, Moon, Sunset,
-  User, Shield, Globe, Users, RefreshCw, Trash2, UserPlus, MessageSquare
+  User, Shield, Globe, Users, RefreshCw, Trash2, UserPlus, MessageSquare, Swords
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useChatInbox } from '../context/ChatInboxContext';
@@ -58,6 +58,7 @@ export default memo(function Navbar() {
 
   const navLinks = [
     { to: '/dashboard', label: t('home'), icon: LayoutDashboard },
+    { to: '/arena', label: 'Соревнователь', icon: Swords, accent: 'orange' },
     { to: '/my-tests', label: t('myTests'), icon: FileText },
     { to: '/my-results', label: t('results'), icon: BarChart3 },
     { to: '/groups', label: t('groups'), icon: Users },
@@ -351,23 +352,35 @@ export default memo(function Navbar() {
               <div className="divider" />
 
               <div className="mt-3 flex flex-col gap-0.5">
-                {navLinks.map(link => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    onClick={() => setShowMobile(false)}
-                    className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
-                      ${isActive(link.to)
-                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
-                        : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-800'}`}
-                  >
-                    <link.icon size={16} />
-                    <span>{link.label}</span>
-                    {hasUnreadForPath(link.to) && (
-                      <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
-                    )}
-                  </Link>
-                ))}
+                {navLinks.map(link => {
+                  const active = isActive(link.to);
+                  const isOrange = link.accent === 'orange';
+                  const base = 'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors';
+                  const state = active
+                    ? (isOrange
+                        ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30'
+                        : 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300')
+                    : (isOrange
+                        ? 'text-orange-600 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-500/10'
+                        : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-slate-800');
+                  return (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      onClick={() => setShowMobile(false)}
+                      className={`${base} ${state}`}
+                    >
+                      <link.icon size={16} />
+                      <span>{link.label}</span>
+                      {isOrange && !active && (
+                        <span className="ml-auto rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-white">live</span>
+                      )}
+                      {hasUnreadForPath(link.to) && (
+                        <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
+                      )}
+                    </Link>
+                  );
+                })}
 
                 {user?.role === 'admin' && (
                   <Link

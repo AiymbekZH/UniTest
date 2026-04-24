@@ -9,6 +9,7 @@ coverage/
 
 # Ignore server dist but keep client dist (pre-built frontend for deploy)
 server/dist/
+Hahuhehe/dist/
 !client/dist/
 !client/dist/**
 !client/public/

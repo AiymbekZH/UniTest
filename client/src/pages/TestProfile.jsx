@@ -3,8 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, Users, Star, Trophy, Play, ArrowLeft,
-  Eye, EyeOff, Shield, AlertTriangle, Tag, User,
-  BarChart3, MessageSquare, Flag, Copy, QrCode, Swords
+  Shield, Tag,
+  BarChart3, Flag, Copy, QrCode
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -12,8 +12,9 @@ import { useLanguage } from '../context/LanguageContext';
 import Navbar from '../components/Navbar';
 import AnimatedHero from '../components/AnimatedHero';
 import CommentsSection from '../components/CommentsSection';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import TestCoverArtwork from '../components/TestCoverArtwork';
+import UsernameBadge from '../components/UsernameBadge';
 
 export default function TestProfile() {
   const { shareLink } = useParams();
@@ -109,22 +110,6 @@ export default function TestProfile() {
     }
   };
 
-  const startArena = async () => {
-    if (!user) {
-      toast.error('Для запуска арены нужен аккаунт');
-      return;
-    }
-    try {
-      const res = await api.post('/arena/rooms', {
-        testId: test._id,
-        sourceType: 'public'
-      });
-      navigate(`/arena/host/${res.data.room._id}`);
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Не удалось запустить арену');
-    }
-  };
-
   const getDifficultyMeta = (score) => {
     const value = Number(score || 0);
     if (!value) return { label: 'Нет оценок', color: 'text-gray-500', badge: 'bg-gray-50 text-gray-500 border-gray-200' };
@@ -168,7 +153,6 @@ export default function TestProfile() {
   const difficultyMeta = getDifficultyMeta(test.difficultyScore);
 
   const canStart = !(attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts);
-  const canLaunchArena = Boolean(user && (test.settings?.isPublic || test.creator?._id === (user?._id || user?.id)));
 
   return (
     <div className="min-h-screen bg-surface">
@@ -317,12 +301,14 @@ export default function TestProfile() {
                     <>{test.creator?.firstName?.[0]}{test.creator?.lastName?.[0]}</>
                   )}
                 </Link>
-                <div className="flex-1">
-                  <Link to={test.creator?._id ? `/profile/${test.creator._id}` : '#'}
-                    className="text-sm font-medium text-dark hover:text-primary-600 transition">
-                    {test.creator?.firstName} {test.creator?.lastName}
-                  </Link>
-                  <p className="text-xs text-gray-400">{test.creator?.role === 'teacher' ? t('teacher') : test.creator?.role === 'admin' ? t('adminRole') : t('student')}</p>
+                <div className="flex-1 min-w-0">
+                  <UsernameBadge
+                    user={test.creator}
+                    size="sm"
+                    layout="col"
+                    accent="orange"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-0.5">{test.creator?.role === 'teacher' ? t('teacher') : test.creator?.role === 'admin' ? t('adminRole') : t('student')}</p>
                 </div>
                 {user && test.creator?._id !== user?.id && (
                   <button onClick={() => setShowReportModal(true)}
@@ -469,16 +455,6 @@ export default function TestProfile() {
                   <Play size={14} /> {t('practiceModeLabel')}
                 </button>
               )}
-
-              {canLaunchArena && (
-                <button
-                  onClick={startArena}
-                  className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-orange-200 dark:border-orange-700 text-[13px] font-medium text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition"
-                >
-                  <Swords size={14} /> Запустить Arena
-                </button>
-              )}
-
 
             </motion.div>
 

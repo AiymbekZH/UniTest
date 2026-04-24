@@ -180,7 +180,7 @@ function sanitizeArenaQuestion(question, questionIndex = 0, totalQuestions = 0, 
   };
 }
 
-function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTimeMs = 0) {
+function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTimeMs = 0, modifiers = {}) {
   const selectedOptions = Array.isArray(payload.selectedOptions) ? payload.selectedOptions : [];
   const textAnswer = normalizeFreeText(payload.textAnswer);
   const matchingPairs = Array.isArray(payload.matchingPairs) ? payload.matchingPairs : [];
@@ -209,10 +209,14 @@ function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTim
   const clampedResponseTimeMs = Math.max(0, Math.min(responseTimeMs, totalTimeMs));
   const remainingRatio = Math.max(0, (totalTimeMs - clampedResponseTimeMs) / totalTimeMs);
   const nextStreak = isCorrect ? currentStreak + 1 : 0;
-  const multiplier = isCorrect ? 1 + (Math.min(Math.max(nextStreak - 1, 0), 5) * 0.1) : 1;
+  const streakMultiplier = isCorrect ? 1 + (Math.min(Math.max(nextStreak - 1, 0), 5) * 0.1) : 1;
+  const doubleMultiplier = modifiers.doublePoints && isCorrect ? 2 : 1;
+  const multiplier = streakMultiplier * doubleMultiplier;
   const basePoints = isCorrect ? (question.points || 1) * 100 : 0;
   const speedBonus = isCorrect ? Math.round((question.points || 1) * 50 * remainingRatio) : 0;
   const pointsAwarded = isCorrect ? Math.round((basePoints + speedBonus) * multiplier) : 0;
+  // Shield: keep streak alive when answered wrong.
+  const resolvedNextStreak = !isCorrect && modifiers.shield ? currentStreak : nextStreak;
 
   return {
     isCorrect,
@@ -220,8 +224,10 @@ function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTim
     textAnswer: payload.textAnswer || '',
     matchingPairs,
     responseTimeMs: clampedResponseTimeMs,
-    nextStreak,
+    nextStreak: resolvedNextStreak,
     multiplier,
+    doublePointsApplied: Boolean(modifiers.doublePoints && isCorrect),
+    shieldApplied: Boolean(!isCorrect && modifiers.shield),
     basePoints,
     speedBonus,
     pointsAwarded
@@ -253,10 +259,16 @@ function buildArenaParticipantSummary(participant, options = {}) {
       _id: participant.user._id,
       firstName: participant.user.firstName,
       lastName: participant.user.lastName,
+      username: participant.user.username || null,
       avatar: participant.user.avatar,
       uniqueId: participant.user.uniqueId
     } : null,
     guestName: participant.guestName || '',
+    powerUps: {
+      fiftyFifty: participant.powerUps?.fiftyFifty ?? 0,
+      doublePoints: participant.powerUps?.doublePoints ?? 0,
+      shield: participant.powerUps?.shield ?? 0
+    },
     displayName: participant.user
       ? `${participant.user.firstName || ''} ${participant.user.lastName || ''}`.trim()
       : participant.guestName || 'Guest',

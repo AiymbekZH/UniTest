@@ -69,8 +69,8 @@ function safeTimer(callback, label) {
 
 async function loadArenaRoom(roomId) {
   return ArenaRoom.findById(roomId)
-    .populate('hostUser', 'firstName lastName avatar uniqueId')
-    .populate('invitedUser', 'firstName lastName avatar uniqueId')
+    .populate('hostUser', 'firstName lastName username avatar uniqueId')
+    .populate('invitedUser', 'firstName lastName username avatar uniqueId')
     .populate('test', 'title shareLink')
     .populate('group', 'name')
     .populate('conversation', 'participants');
@@ -78,7 +78,7 @@ async function loadArenaRoom(roomId) {
 
 async function loadArenaParticipants(roomId) {
   return ArenaParticipant.find({ room: roomId })
-    .populate('user', 'firstName lastName avatar uniqueId')
+    .populate('user', 'firstName lastName username avatar uniqueId')
     .sort({ createdAt: 1 });
 }
 
@@ -92,7 +92,7 @@ async function resolveArenaParticipant(roomId, actor = {}) {
   const query = getActorQuery(actor);
   if (!query) return null;
   return ArenaParticipant.findOne({ room: roomId, ...query })
-    .populate('user', 'firstName lastName avatar uniqueId');
+    .populate('user', 'firstName lastName username avatar uniqueId');
 }
 
 async function emitArenaState(io, roomId, eventName = null) {
@@ -297,7 +297,7 @@ async function startArenaLeaderboard(roomId, io) {
 async function finalizeArenaRoom(roomId, io) {
   const [room, participantsRaw] = await Promise.all([
     ArenaRoom.findById(roomId),
-    ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } }).populate('user', 'firstName lastName avatar uniqueId')
+    ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } }).populate('user', 'firstName lastName username avatar uniqueId')
   ]);
 
   if (!room || room.status === ARENA_STATUS.FINAL) return null;
@@ -404,7 +404,13 @@ async function handleArenaAnswer(roomId, actor, payload, io) {
   }
 
   const responseTimeMs = Date.now() - new Date(room.questionStartedAt).getTime();
-  const graded = gradeArenaAnswer(currentQuestion, payload, participant.streak, responseTimeMs);
+  const activeForQuestion = participant.activePowerUps?.get?.(String(room.currentQuestionIndex))
+    || (participant.activePowerUps?.[String(room.currentQuestionIndex)]);
+  const modifiers = {
+    doublePoints: activeForQuestion?.type === 'doublePoints',
+    shield: activeForQuestion?.type === 'shield'
+  };
+  const graded = gradeArenaAnswer(currentQuestion, payload, participant.streak, responseTimeMs, modifiers);
 
   participant.answers.push({
     questionId: currentQuestion.questionId,
@@ -445,6 +451,104 @@ async function handleArenaAnswer(roomId, actor, payload, io) {
     participant,
     graded,
     questionIndex: room.currentQuestionIndex
+  };
+}
+
+/**
+ * Apply a power-up for the current question. 50/50 returns which 2 wrong
+ * option ids to hide from the player; doublePoints/shield mark modifiers
+ * to be consumed at answer-grading time.
+ */
+async function applyArenaPowerUp(roomId, actor, type) {
+  const allowed = new Set(['fiftyFifty', 'doublePoints', 'shield']);
+  if (!allowed.has(type)) {
+    const error = new Error('Неизвестный бустер');
+    error.status = 400;
+    throw error;
+  }
+  const [room, participant] = await Promise.all([
+    ArenaRoom.findById(roomId),
+    resolveArenaParticipant(roomId, actor)
+  ]);
+  if (!room) {
+    const error = new Error('Комната арены не найдена');
+    error.status = 404;
+    throw error;
+  }
+  if (!participant) {
+    const error = new Error('Вы не подключены к арене');
+    error.status = 403;
+    throw error;
+  }
+  if (room.status !== ARENA_STATUS.LIVE) {
+    const error = new Error('Бустеры доступны только во время вопроса');
+    error.status = 400;
+    throw error;
+  }
+
+  const currentIndex = room.currentQuestionIndex;
+  const currentQuestion = room.questionSnapshot[currentIndex];
+  if (!currentQuestion) {
+    const error = new Error('Текущий вопрос не найден');
+    error.status = 400;
+    throw error;
+  }
+
+  // Already answered? No power-ups after submission.
+  if ((participant.answers || []).some(answer => answer.questionIndex === currentIndex)) {
+    const error = new Error('Ответ уже отправлен');
+    error.status = 409;
+    throw error;
+  }
+
+  // Already used another power-up on this question?
+  const existingActive = participant.activePowerUps?.get?.(String(currentIndex))
+    || (participant.activePowerUps?.[String(currentIndex)]);
+  if (existingActive) {
+    const error = new Error('Бустер уже применён на этом вопросе');
+    error.status = 409;
+    throw error;
+  }
+
+  if ((participant.powerUps?.[type] ?? 0) <= 0) {
+    const error = new Error('Бустер уже использован');
+    error.status = 409;
+    throw error;
+  }
+
+  if (type === 'fiftyFifty' && !['single-choice', 'multiple-choice', 'true-false'].includes(currentQuestion.type)) {
+    const error = new Error('50/50 доступен только для вопросов с вариантами');
+    error.status = 400;
+    throw error;
+  }
+
+  // Compute 50/50 removed options
+  let removedOptionIds = [];
+  if (type === 'fiftyFifty') {
+    const correctIds = new Set(currentQuestion.grading?.correctOptionIds || []);
+    const wrongOptions = (currentQuestion.options || []).filter(opt => !correctIds.has(opt.id));
+    // Shuffle and take 2
+    const shuffled = [...wrongOptions].sort(() => Math.random() - 0.5);
+    removedOptionIds = shuffled.slice(0, Math.min(2, Math.max(0, wrongOptions.length - 0))).map(o => o.id);
+  }
+
+  participant.powerUps[type] = Math.max(0, (participant.powerUps[type] || 0) - 1);
+  participant.activePowerUps.set(String(currentIndex), {
+    type,
+    questionIndex: currentIndex,
+    removedOptionIds
+  });
+  await participant.save();
+
+  return {
+    type,
+    questionIndex: currentIndex,
+    removedOptionIds,
+    remaining: {
+      fiftyFifty: participant.powerUps.fiftyFifty,
+      doublePoints: participant.powerUps.doublePoints,
+      shield: participant.powerUps.shield
+    }
   };
 }
 
@@ -768,6 +872,7 @@ module.exports = {
   createArenaRoomDocument,
   createArenaSnapshotOrThrow,
   emitArenaState,
+  applyArenaPowerUp,
   extendArenaTimer,
   finalizeArenaRoom,
   finalizeCurrentArenaQuestion,

@@ -16,6 +16,16 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String, default: '', index: true },
   authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
   uniqueId: { type: String, unique: true, default: generateUniqueId },
+  username: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    minlength: 3,
+    maxlength: 20,
+    match: /^[a-z0-9_]+$/i,
+    default: null,
+    index: { unique: true, sparse: true }
+  },
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
   avatar: { type: String, default: '' },
   headline: { type: String, trim: true, default: '', maxlength: 120 },
@@ -54,6 +64,29 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 userSchema.methods.isLocked = function() {
   return !!(this.lockUntil && this.lockUntil > new Date());
 };
+
+// Auto-generate username for new users (uniqueness is best-effort here; the
+// migration script or explicit UI update handles rare collisions)
+userSchema.pre('save', async function(next) {
+  if (this.username || !this.isNew) return next();
+  const base = String(this.firstName || 'user')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9_]/g, '')
+    .slice(0, 12) || 'user';
+  const prefix = base.length < 3 ? `${base}user`.slice(0, 4) : base;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const suffix = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+    const candidate = `${prefix}_${suffix}`.slice(0, 20);
+    // eslint-disable-next-line no-await-in-loop
+    const taken = await mongoose.models.User.findOne({ username: candidate }).select('_id').lean();
+    if (!taken) {
+      this.username = candidate;
+      break;
+    }
+  }
+  next();
+});
 
 // Virtual for full name
 userSchema.virtual('fullName').get(function() {

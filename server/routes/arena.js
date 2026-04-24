@@ -257,6 +257,65 @@ router.get('/code/:joinCode', optionalAuth, async (req, res) => {
   }
 });
 
+// List public live arena rooms (for Arena Hub)
+router.get('/public-rooms', optionalAuth, async (req, res) => {
+  try {
+    const rooms = await ArenaRoom.find({
+      sourceType: 'public',
+      status: { $in: [ARENA_STATUS.LOBBY, ARENA_STATUS.COUNTDOWN, ARENA_STATUS.LEGACY_COUNTDOWN] }
+    })
+      .sort({ createdAt: -1 })
+      .limit(24)
+      .populate('hostUser', 'firstName lastName username avatar uniqueId')
+      .populate('test', 'title shareLink')
+      .lean();
+
+    const counts = await Promise.all(rooms.map(room => ArenaParticipant.countDocuments({
+      room: room._id,
+      state: { $ne: 'declined' }
+    })));
+
+    const payload = rooms.map((room, idx) => ({
+      _id: room._id,
+      joinCode: room.joinCode,
+      title: room.title,
+      status: room.status,
+      sourceType: room.sourceType,
+      participantCount: counts[idx] || 0,
+      maxPlayers: room.settings?.maxPlayers || 100,
+      host: room.hostUser ? {
+        _id: room.hostUser._id,
+        firstName: room.hostUser.firstName,
+        lastName: room.hostUser.lastName,
+        username: room.hostUser.username || null,
+        avatar: room.hostUser.avatar || '',
+        uniqueId: room.hostUser.uniqueId
+      } : null,
+      test: room.test ? { _id: room.test._id, title: room.test.title, shareLink: room.test.shareLink } : null,
+      createdAt: room.createdAt
+    }));
+
+    res.json({ rooms: payload });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка загрузки комнат' });
+  }
+});
+
+// Current user's recent arena results
+router.get('/my-recent-results', auth, async (req, res) => {
+  try {
+    const results = await ArenaResult.find({ user: req.user._id })
+      .sort({ completedAt: -1 })
+      .limit(6)
+      .populate('test', 'title shareLink')
+      .populate('room', 'title joinCode sourceType')
+      .lean();
+    res.json({ results });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка загрузки результатов арены' });
+  }
+});
+
 router.get('/rooms/:id', auth, async (req, res) => {
   try {
     const data = await populateRoomState(req.params.id);
@@ -618,13 +677,52 @@ router.get('/rooms/:id/results', optionalAuth, async (req, res) => {
     const [participants, results] = await Promise.all([
       loadArenaParticipants(room._id),
       ArenaResult.find({ room: room._id })
-        .populate('user', 'firstName lastName avatar uniqueId')
+        .populate('user', 'firstName lastName username avatar uniqueId')
         .sort({ placement: 1, score: -1 })
     ]);
 
+    // Per-question analytics: correct rate, avg response time, fastest player
+    const questionBreakdowns = (room.questionSnapshot || []).map((question, qIdx) => {
+      const answers = [];
+      participants.forEach((participant) => {
+        if (participant.state === 'declined') return;
+        const answer = (participant.answers || []).find(a => a.questionIndex === qIdx);
+        if (answer) {
+          answers.push({ participant, answer });
+        }
+      });
+      const total = answers.length;
+      const correct = answers.filter(item => item.answer.isCorrect).length;
+      const avgTimeMs = total
+        ? Math.round(answers.reduce((sum, item) => sum + (item.answer.responseTimeMs || 0), 0) / total)
+        : 0;
+      const fastestCorrect = answers
+        .filter(item => item.answer.isCorrect)
+        .sort((a, b) => (a.answer.responseTimeMs || 0) - (b.answer.responseTimeMs || 0))[0] || null;
+
+      return {
+        questionIndex: qIdx,
+        questionNumber: qIdx + 1,
+        questionText: question.questionText,
+        type: question.type,
+        totalAnswered: total,
+        correctAnswered: correct,
+        accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+        avgResponseTimeMs: avgTimeMs,
+        fastest: fastestCorrect ? {
+          displayName: fastestCorrect.participant.user
+            ? `${fastestCorrect.participant.user.firstName || ''} ${fastestCorrect.participant.user.lastName || ''}`.trim()
+            : (fastestCorrect.participant.guestName || 'Guest'),
+          username: fastestCorrect.participant.user?.username || null,
+          responseTimeMs: fastestCorrect.answer.responseTimeMs
+        } : null
+      };
+    });
+
     res.json({
       room: buildArenaRoomState(room, participants),
-      results
+      results,
+      questionBreakdowns
     });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка загрузки результатов арены' });

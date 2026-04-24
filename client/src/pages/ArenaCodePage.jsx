@@ -8,6 +8,7 @@ import { connectArenaSocket, disconnectArenaSocket, getArenaSocket } from '../se
 import BrandLogo from '../components/BrandLogo';
 import ArenaStandings from '../components/arena/ArenaStandings';
 import ArenaQuestionPanel from '../components/arena/ArenaQuestionPanel';
+import ArenaGameplayOverlay from '../components/arena/ArenaGameplayOverlay';
 
 const ARENA_EVENTS = [
   'arena:state',
@@ -499,6 +500,14 @@ export default function ArenaCodePage() {
           )}
         </main>
       )}
+
+      {currentParticipant ? (
+        <ArenaGameplayOverlay
+          room={room}
+          participant={currentParticipant}
+          guestToken={guestToken}
+        />
+      ) : null}
     </ArenaShell>
   );
 }

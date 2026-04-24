@@ -25,6 +25,7 @@ const Messages = lazy(() => import('./pages/Messages'));
 const ArenaCodePage = lazy(() => import('./pages/ArenaCodePage'));
 const ArenaHostPage = lazy(() => import('./pages/ArenaHostPage'));
 const ArenaResultsPage = lazy(() => import('./pages/ArenaResultsPage'));
+const ArenaHubPage = lazy(() => import('./pages/ArenaHubPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-surface">
@@ -53,7 +54,9 @@ export default function App() {
       <Route path="/leaderboard/:testId" element={<Leaderboard />} />
       <Route path="/user/:id" element={<UserProfile />} />
       <Route path="/profile/:id" element={<UserProfile />} />
+      <Route path="/u/:username" element={<UserProfile />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/arena" element={<PrivateRoute><ArenaHubPage /></PrivateRoute>} />
       <Route path="/arena/code/:joinCode" element={<ArenaCodePage />} />
       <Route path="/arena/results/:roomId" element={<ArenaResultsPage />} />
 

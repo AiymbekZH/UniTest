@@ -1,11 +1,14 @@
 const ArenaRoom = require('../models/ArenaRoom');
 const { verifyArenaGuestToken } = require('../utils/arena');
 const {
+  applyArenaPowerUp,
   emitArenaState,
   handleArenaAnswer,
   resolveArenaParticipant,
   setArenaParticipantPresence
 } = require('../utils/arenaEngine');
+
+const ALLOWED_REACTIONS = new Set(['😂', '🔥', '😱', '💯', '👏', '😎', '💀', '🎉']);
 
 module.exports = function attachArenaSocket(io) {
   io.on('connection', (socket) => {
@@ -94,6 +97,47 @@ module.exports = function attachArenaSocket(io) {
         });
       } catch (error) {
         socket.emit('arena:error', { message: error.message || 'Ошибка отправки ответа' });
+      }
+    });
+
+    socket.on('arena:usePowerUp', async ({ roomId, guestToken, type }) => {
+      try {
+        let actor = {};
+        if (socket.user?._id) actor.userId = socket.user._id;
+        else if (guestToken) actor.guestTokenId = verifyArenaGuestToken(guestToken).guestTokenId;
+        else if (socket.arenaGuest?.guestTokenId) actor.guestTokenId = socket.arenaGuest.guestTokenId;
+        else return socket.emit('arena:error', { message: 'Нет доступа к бустерам' });
+
+        const result = await applyArenaPowerUp(roomId, actor, type);
+        socket.emit('arena:powerUpApplied', { roomId, ...result });
+        await emitArenaState(io, roomId, 'arena:question');
+      } catch (error) {
+        socket.emit('arena:error', { message: error.message || 'Ошибка применения бустера' });
+      }
+    });
+
+    socket.on('arena:reaction', async ({ roomId, emoji, guestToken }) => {
+      try {
+        if (!roomId || !emoji || !ALLOWED_REACTIONS.has(emoji)) return;
+        let actor = {};
+        if (socket.user?._id) actor.userId = socket.user._id;
+        else if (guestToken) actor.guestTokenId = verifyArenaGuestToken(guestToken).guestTokenId;
+        else if (socket.arenaGuest?.guestTokenId) actor.guestTokenId = socket.arenaGuest.guestTokenId;
+
+        const participant = actor.userId || actor.guestTokenId ? await resolveArenaParticipant(roomId, actor) : null;
+        const displayName = participant?.user
+          ? `${participant.user.firstName || ''} ${participant.user.lastName || ''}`.trim()
+          : (participant?.guestName || 'Guest');
+
+        io.to(`arena:${roomId}`).emit('arena:reaction', {
+          roomId: String(roomId),
+          emoji,
+          displayName,
+          participantId: participant?._id ? String(participant._id) : null,
+          at: Date.now()
+        });
+      } catch (_) {
+        // silently ignore reaction failures
       }
     });
 

@@ -29,6 +29,7 @@ function buildOwnUserPayload(user) {
     lastName: user.lastName,
     middleName: user.middleName,
     email: user.email,
+    username: user.username || null,
     role: user.role,
     uniqueId: user.uniqueId,
     fullName: user.fullName,
@@ -50,6 +51,7 @@ function buildPublicUserPayload(user) {
     firstName: user.firstName,
     lastName: user.lastName,
     middleName: user.middleName,
+    username: user.username || null,
     role: user.role,
     uniqueId: user.uniqueId,
     avatar: user.avatar || '',
@@ -59,6 +61,19 @@ function buildPublicUserPayload(user) {
     coverPreset: user.coverPreset || 'aurora',
     createdAt: user.createdAt
   };
+}
+
+const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
+const USERNAME_RESERVED = new Set(['admin', 'root', 'support', 'help', 'arena', 'unitest', 'me', 'api', 'system', 'null', 'undefined']);
+
+function validateUsername(raw) {
+  const value = String(raw || '').trim().toLowerCase();
+  if (!value) return { ok: false, message: 'Никнейм обязателен' };
+  if (!USERNAME_REGEX.test(value)) {
+    return { ok: false, message: '3-20 символов: латиница, цифры, подчёркивание' };
+  }
+  if (USERNAME_RESERVED.has(value)) return { ok: false, message: 'Этот никнейм зарезервирован' };
+  return { ok: true, value };
 }
 
 async function getProgressSummary(userId) {
@@ -192,7 +207,7 @@ async function getFollowList(userId, type) {
 
   const entries = await UserFollow.find(query)
     .sort({ createdAt: -1 })
-    .populate(populateField, 'firstName lastName middleName avatar headline role uniqueId')
+    .populate(populateField, 'firstName lastName middleName username avatar headline role uniqueId')
     .lean();
 
   return entries
@@ -204,6 +219,7 @@ async function getFollowList(userId, type) {
       firstName: item.firstName,
       lastName: item.lastName,
       middleName: item.middleName,
+      username: item.username || null,
       avatar: item.avatar || '',
       headline: item.headline || '',
       role: item.role,
@@ -265,6 +281,14 @@ router.put('/me', auth, async (req, res) => {
     if (bio !== undefined) updates.bio = sanitizeText(bio, 400);
     if (language && ['en', 'ru', 'kz', 'es'].includes(language)) updates.language = language;
     if (coverPreset && ['aurora', 'mesh', 'wave', 'grid'].includes(coverPreset)) updates.coverPreset = coverPreset;
+
+    if (req.body?.username !== undefined) {
+      const check = validateUsername(req.body.username);
+      if (!check.ok) return res.status(400).json({ message: check.message });
+      const existing = await User.findOne({ username: check.value, _id: { $ne: req.user._id } }).select('_id').lean();
+      if (existing) return res.status(409).json({ message: 'Этот никнейм уже занят' });
+      updates.username = check.value;
+    }
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select('-password');
     res.json({ user: buildOwnUserPayload(user) });
@@ -443,6 +467,37 @@ router.get('/:id/following', async (req, res) => {
 
     const users = await getFollowList(req.params.id, 'following');
     res.json({ users, count: users.length });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Check username availability
+router.get('/check-username', auth, async (req, res) => {
+  try {
+    const check = validateUsername(req.query.value || '');
+    if (!check.ok) return res.json({ available: false, reason: check.message });
+    const existing = await User.findOne({ username: check.value, _id: { $ne: req.user._id } }).select('_id').lean();
+    res.json({ available: !existing, value: check.value });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// Find public profile by @username
+router.get('/by-username/:username', optionalAuth, async (req, res) => {
+  try {
+    const check = validateUsername(req.params.username);
+    if (!check.ok) return res.status(404).json({ message: 'Пользователь не найден' });
+    const user = await User.findOne({ username: check.value }).select('_id');
+    if (!user) return res.status(404).json({ message: 'Пользователь не найден' });
+    const data = await buildProfileResponse({
+      profileUserId: user._id,
+      viewerId: req.user?._id || null,
+      includePublicTests: true
+    });
+    if (!data) return res.status(404).json({ message: 'Пользователь не найден' });
+    res.json(data);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера' });
   }

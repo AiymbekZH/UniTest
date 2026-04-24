@@ -177,6 +177,11 @@ export default function ProfileHeroBanner({
                     </span>
                   )}
                 </div>
+                {user?.username ? (
+                  <p className="mt-1 inline-flex items-center text-sm font-black tracking-tight text-orange-200/95 drop-shadow-sm">
+                    @{user.username}
+                  </p>
+                ) : null}
                 {user?.headline ? (
                   <p className="mt-2 max-w-3xl text-sm font-medium text-white/90 sm:text-base">{user.headline}</p>
                 ) : null}

@@ -64,6 +64,8 @@ export default function Profile() {
   const [copiedId, setCopiedId] = useState(false);
   const [followListType, setFollowListType] = useState('');
 
+  const [username, setUsername] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState({ state: 'idle', message: '' });
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [middleName, setMiddleName] = useState('');
@@ -90,6 +92,35 @@ export default function Profile() {
   }, [lang, progress?.badges]);
 
   useEffect(() => {
+    if (!username) {
+      setUsernameStatus({ state: 'idle', message: '' });
+      return undefined;
+    }
+    if (profileUser?.username && username === profileUser.username) {
+      setUsernameStatus({ state: 'idle', message: copy.usernameCurrent || 'Текущий username' });
+      return undefined;
+    }
+    if (!/^[a-z0-9_]{3,20}$/i.test(username)) {
+      setUsernameStatus({ state: 'invalid', message: copy.usernameInvalid || '3-20 символов: буквы, цифры, _' });
+      return undefined;
+    }
+    setUsernameStatus({ state: 'checking', message: copy.usernameChecking || 'Проверка...' });
+    const handle = setTimeout(async () => {
+      try {
+        const res = await api.get(`/profile/check-username?value=${encodeURIComponent(username)}`);
+        if (res.data?.available) {
+          setUsernameStatus({ state: 'available', message: copy.usernameAvailable || 'Свободен' });
+        } else {
+          setUsernameStatus({ state: 'taken', message: copy.usernameTaken || 'Занят' });
+        }
+      } catch (_) {
+        setUsernameStatus({ state: 'idle', message: '' });
+      }
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [username, profileUser?.username, copy]);
+
+  useEffect(() => {
     const loadProfile = async () => {
       setLoading(true);
       try {
@@ -105,6 +136,7 @@ export default function Profile() {
         setMyComments(commentsRes.data.comments || []);
 
         const nextUser = nextProfile.user;
+        setUsername(nextUser?.username || '');
         setFirstName(nextUser?.firstName || '');
         setLastName(nextUser?.lastName || '');
         setMiddleName(nextUser?.middleName || '');
@@ -131,6 +163,7 @@ export default function Profile() {
     setSaving(true);
     try {
       const res = await api.put('/profile/me', {
+        username: username.trim() || undefined,
         firstName,
         lastName,
         middleName,
@@ -369,6 +402,34 @@ export default function Profile() {
               </div>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <label className="block sm:col-span-2">
+                  <span className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                    <span>@username</span>
+                    {usernameStatus.state !== 'idle' ? (
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${
+                          usernameStatus.state === 'available'
+                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/25 dark:text-emerald-300'
+                            : usernameStatus.state === 'taken' || usernameStatus.state === 'invalid'
+                              ? 'bg-red-50 text-red-600 dark:bg-red-900/25 dark:text-red-300'
+                              : 'bg-amber-50 text-amber-600 dark:bg-amber-900/25 dark:text-amber-300'
+                        }`}
+                      >
+                        {usernameStatus.message}
+                      </span>
+                    ) : null}
+                  </span>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-primary-500">@</span>
+                    <input
+                      className="input-field pl-9 text-sm"
+                      value={username}
+                      placeholder="your_handle"
+                      maxLength={20}
+                      onChange={(event) => setUsername(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    />
+                  </div>
+                </label>
                 <label className="block">
                   <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">{t('firstName')}</span>
                   <input className="input-field text-sm" value={firstName} onChange={(event) => setFirstName(event.target.value)} />

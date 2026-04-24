@@ -830,7 +830,7 @@ export default function Groups() {
                             >
                               {m.user?.lastName} {m.user?.firstName}
                             </p>
-                            <p className="text-xs text-gray-400">{m.user?.email}</p>
+                            <p className="text-xs font-semibold text-primary-500 dark:text-primary-300 truncate">{m.user?.username ? `@${m.user.username}` : `#${(m.user?.uniqueId || '').slice(0, 6)}`}</p>
                           </div>
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: (role?.color || '#6366f1') + '20', color: role?.color || '#6366f1' }}>{role?.name || 'Участник'}</span>
                           {/* Assign role dropdown */}

@@ -306,7 +306,7 @@ export default function Messages() {
                         >
                           {u.lastName} {u.firstName}
                         </p>
-                        <p className="text-[11px] text-gray-400 truncate">{u.email}</p>
+                        <p className="text-[11px] truncate font-semibold text-primary-500 dark:text-primary-300">{u.username ? `@${u.username}` : `#${(u.uniqueId || '').slice(0, 6)}`}</p>
                       </div>
                     </button>
                   ))
@@ -387,7 +387,7 @@ export default function Messages() {
                           >
                             {other?.firstName} {other?.lastName}
                           </p>
-                          <p className="text-[10px] text-gray-400">{other?.email}</p>
+                          <p className="text-[10px] font-semibold text-primary-500 dark:text-primary-300">{other?.username ? `@${other.username}` : `#${(other?.uniqueId || '').slice(0, 6)}`}</p>
                         </div>
                         <div className="ml-auto">
                           <button

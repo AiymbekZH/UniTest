@@ -37,7 +37,21 @@ const arenaParticipantSchema = new mongoose.Schema({
   answers: { type: [arenaAnswerSchema], default: [] },
   joinedAt: { type: Date, default: Date.now },
   lastSeenAt: { type: Date, default: Date.now },
-  kickedAt: { type: Date, default: null }
+  kickedAt: { type: Date, default: null },
+  powerUps: {
+    fiftyFifty: { type: Number, default: 1 },
+    doublePoints: { type: Number, default: 1 },
+    shield: { type: Number, default: 1 }
+  },
+  activePowerUps: {
+    type: Map,
+    of: new mongoose.Schema({
+      type: { type: String, enum: ['fiftyFifty', 'doublePoints', 'shield'] },
+      questionIndex: { type: Number },
+      removedOptionIds: [{ type: String }]
+    }, { _id: false }),
+    default: {}
+  }
 }, { timestamps: true });
 
 arenaParticipantSchema.index({ room: 1, score: -1, totalResponseTimeMs: 1 });

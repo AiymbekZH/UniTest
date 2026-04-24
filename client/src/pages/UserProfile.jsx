@@ -33,7 +33,7 @@ function StatCard({ icon: Icon, label, value, tone = 'primary' }) {
 }
 
 export default function UserProfile() {
-  const { id } = useParams();
+  const { id: paramId, username: paramUsername } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const { t, lang } = useLanguage();
@@ -47,8 +47,9 @@ export default function UserProfile() {
   const [followListType, setFollowListType] = useState('');
 
   const currentUserId = currentUser?._id || currentUser?.id || '';
-  const isOwnProfile = currentUserId && id === currentUserId;
   const profile = profileData?.user || null;
+  const profileId = profile?._id || profile?.id || paramId || '';
+  const isOwnProfile = currentUserId && (paramId === currentUserId || (profile?.username && currentUser?.username && profile.username === currentUser.username));
   const progress = profileData?.progressSummary;
   const creatorStats = profileData?.creatorStats;
   const followCounts = profileData?.followCounts || { followersCount: 0, followingCount: 0 };
@@ -63,16 +64,18 @@ export default function UserProfile() {
   }, [lang, progress?.badges]);
 
   useEffect(() => {
-    if (isOwnProfile) {
-      navigate('/profile', { replace: true });
-      return;
-    }
-
     const loadProfile = async () => {
       setLoading(true);
       try {
-        const res = await api.get(`/profile/${id}`);
+        const endpoint = paramUsername
+          ? `/profile/by-username/${paramUsername}`
+          : `/profile/${paramId}`;
+        const res = await api.get(endpoint);
         setProfileData(res.data);
+        const loadedId = res.data?.user?._id || res.data?.user?.id;
+        if (loadedId && currentUserId && loadedId === currentUserId) {
+          navigate('/profile', { replace: true });
+        }
       } catch {
         toast.error(copy.profileLoadError);
         navigate('/dashboard');
@@ -82,19 +85,20 @@ export default function UserProfile() {
     };
 
     loadProfile();
-  }, [copy.profileLoadError, id, isOwnProfile, navigate]);
+  }, [copy.profileLoadError, paramId, paramUsername, currentUserId, navigate]);
 
   const handleFollowToggle = async () => {
     if (!currentUserId) {
       navigate('/login');
       return;
     }
+    if (!profileId) return;
 
     setFollowLoading(true);
     try {
       const res = isFollowing
-        ? await api.delete(`/profile/${id}/follow`)
-        : await api.post(`/profile/${id}/follow`);
+        ? await api.delete(`/profile/${profileId}/follow`)
+        : await api.post(`/profile/${profileId}/follow`);
 
       setProfileData((prev) => prev ? {
         ...prev,
@@ -109,9 +113,9 @@ export default function UserProfile() {
   };
 
   const handleReport = async () => {
-    if (!reportReason.trim()) return;
+    if (!reportReason.trim() || !profileId) return;
     try {
-      await api.post('/reports', { targetType: 'user', targetId: id, reason: reportReason.trim() });
+      await api.post('/reports', { targetType: 'user', targetId: profileId, reason: reportReason.trim() });
       toast.success(t('reportSent'));
       setShowReport(false);
       setReportReason('');
@@ -199,7 +203,7 @@ export default function UserProfile() {
             footer={heroFooter}
             actions={
               <>
-                {currentUserId && currentUserId !== id ? (
+                {currentUserId && currentUserId !== profileId ? (
                   <button
                     type="button"
                     onClick={handleFollowToggle}
@@ -213,7 +217,7 @@ export default function UserProfile() {
                     {followLoading ? '...' : isFollowing ? copy.unfollow : copy.follow}
                   </button>
                 ) : null}
-                {currentUserId && currentUserId !== id ? (
+                {currentUserId && currentUserId !== profileId ? (
                   <button
                     type="button"
                     onClick={() => setShowReport(true)}
@@ -337,7 +341,7 @@ export default function UserProfile() {
       <FollowListModal
         open={followListType === 'followers'}
         onClose={() => setFollowListType('')}
-        endpoint={`/profile/${id}/followers`}
+        endpoint={profileId ? `/profile/${profileId}/followers` : ''}
         title={copy.followers}
         emptyText={copy.noFollowers}
         loadingText={copy.loadingProfiles}
@@ -346,7 +350,7 @@ export default function UserProfile() {
       <FollowListModal
         open={followListType === 'following'}
         onClose={() => setFollowListType('')}
-        endpoint={`/profile/${id}/following`}
+        endpoint={profileId ? `/profile/${profileId}/following` : ''}
         title={copy.following}
         emptyText={copy.noFollowing}
         loadingText={copy.loadingProfiles}
