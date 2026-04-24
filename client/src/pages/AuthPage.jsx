@@ -143,10 +143,10 @@ function LoginForm({ onSwitch }) {
 
         <SliderCaptcha onVerify={setCaptchaOk} resetKey={captchaKey} />
 
-        <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.98 }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-500/30 transition hover:from-primary-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed">
+        <button type="submit" disabled={loading}
+          className="chunky-btn-primary flex w-full items-center justify-center gap-2 py-3 text-sm">
           {loading ? <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><LogIn size={16} /> Войти</>}
-        </motion.button>
+        </button>
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-gray-200 dark:bg-slate-600" />
@@ -281,10 +281,10 @@ function RegisterForm({ onSwitch }) {
 
         <SliderCaptcha onVerify={setCaptchaOk} resetKey={captchaKey} />
 
-        <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.98 }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-500/30 transition hover:from-primary-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed">
+        <button type="submit" disabled={loading}
+          className="chunky-btn-primary flex w-full items-center justify-center gap-2 py-3 text-sm">
           {loading ? <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><UserPlus size={16} /> Создать аккаунт</>}
-        </motion.button>
+        </button>
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-gray-200 dark:bg-slate-600" />
@@ -355,8 +355,8 @@ export default function AuthPage() {
         initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 flex w-full max-w-[960px] overflow-hidden rounded-3xl shadow-2xl shadow-black/10"
-        style={{ minHeight: 'min(700px, 90vh)' }}
+        className="relative z-10 flex w-full max-w-[960px] overflow-hidden rounded-3xl border-2 border-slate-900"
+        style={{ minHeight: 'min(700px, 90vh)', boxShadow: '0 8px 0 #0f172a' }}
       >
         {/* ── DESKTOP: animated panel swap ── */}
         <div className="hidden lg:flex lg:w-full">

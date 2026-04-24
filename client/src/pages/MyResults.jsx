@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -71,7 +71,7 @@ export default function MyResults() {
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="glass-card-solid p-5 animate-pulse">
+              <div key={i} className="chunky-card p-5 animate-pulse">
                 <div className="h-5 bg-gray-200 rounded w-1/3 mb-2" />
                 <div className="h-4 bg-gray-100 rounded w-1/2" />
               </div>
@@ -106,7 +106,7 @@ export default function MyResults() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => navigate(`/result/${result._id}`)}
-                className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer hover:shadow-sm transition-all"
+                className="chunky-card p-5 flex items-center gap-4 cursor-pointer hover:shadow-sm transition-all"
               >
                 {/* Percentage circle */}
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-lg flex-shrink-0 ${
@@ -157,7 +157,7 @@ export default function MyResults() {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="glass-card-solid p-4 -mt-1">
+                    <div className="chunky-card p-4 -mt-1">
                       <p className="text-xs font-semibold text-gray-500 mb-3">Прогресс по попыткам</p>
                       <ResponsiveContainer width="100%" height={180}>
                         <LineChart data={chartData}>

@@ -1260,7 +1260,7 @@ export default function CreateTest() {
         {/* Left Sidebar: Question Navigator */}
         <div className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-24 space-y-3">
-            <div className="glass-card-solid p-4">
+            <div className="chunky-card p-4">
               <h3 className="text-sm font-semibold text-dark mb-3">{t('navigation')}</h3>
               <div className="space-y-1 max-h-[50vh] overflow-y-auto pr-1">
                 {test.questions.map((q, i) => {
@@ -1291,7 +1291,7 @@ export default function CreateTest() {
               </div>
             </div>
 
-            <div className="glass-card-solid p-3 space-y-2">
+            <div className="chunky-card p-3 space-y-2">
               {!hasAIAccess && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
                   AI-функции закрыты. Доступ выдаётся администратором.
@@ -1385,7 +1385,7 @@ export default function CreateTest() {
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 className="overflow-hidden mb-5"
               >
-                <div className="glass-card-solid p-6 space-y-6">
+                <div className="chunky-card p-6 space-y-6">
                   {/* Section: Basic */}
                   <div>
                     <h4 className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -1673,7 +1673,7 @@ export default function CreateTest() {
 
           {/* Test Info */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="glass-card-solid p-5 mb-5 space-y-3">
+            className="chunky-card p-5 mb-5 space-y-3">
             <input
               className="w-full text-lg font-bold text-dark bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600"
               placeholder={t('testTitlePlaceholder')}
@@ -1931,7 +1931,7 @@ export default function CreateTest() {
           {/* Questions */}
           <div className="space-y-4">
             {(bulkTranslateMode || selectedQuestionCount > 0) && (
-              <div className="glass-card-solid p-3 sm:p-4">
+              <div className="chunky-card p-3 sm:p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-300">
@@ -1992,7 +1992,7 @@ export default function CreateTest() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -100 }}
-                  className={`glass-card-solid overflow-hidden transition-all
+                  className={`chunky-card overflow-hidden transition-all
                     ${activeQuestion === qIndex ? 'ring-2 ring-primary-500/30' : ''}`}
                   onClick={() => setActiveQuestion(qIndex)}
                 >
@@ -2505,7 +2505,7 @@ export default function CreateTest() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full mb-2 left-0 right-0 glass-card-solid p-3 shadow-glass-lg"
+                    className="absolute bottom-full mb-2 left-0 right-0 chunky-card p-3 shadow-glass-lg"
                   >
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {questionTypes.map(t => (
@@ -2742,7 +2742,7 @@ export default function CreateTest() {
             className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowImportModal(false)}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              onClick={e => e.stopPropagation()} className="relative w-full max-w-md glass-card-solid p-6">
+              onClick={e => e.stopPropagation()} className="relative w-full max-w-md chunky-card p-6">
               <h3 className="text-lg font-bold text-dark mb-2">{t('importFromCSV')}</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                 Формат: <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">Вопрос, тип, правильный, вариант1, вариант2, ...</code><br/>
@@ -2771,7 +2771,7 @@ export default function CreateTest() {
             className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowBankModal(false)}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              onClick={e => e.stopPropagation()} className="relative w-full max-w-lg glass-card-solid p-6 max-h-[80vh] overflow-y-auto">
+              onClick={e => e.stopPropagation()} className="relative w-full max-w-lg chunky-card p-6 max-h-[80vh] overflow-y-auto">
               <h3 className="text-lg font-bold text-dark mb-4">{t('questionBankTitle')}</h3>
               {bankQuestions.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-8">{t('bankEmpty')}</p>

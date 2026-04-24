@@ -1154,7 +1154,7 @@ export default function TakeTest() {
               : (t('testWasAvailableUntil', { date: dateStr }) || `The test was available until: ${dateStr}`)
             }
           </p>
-          <button onClick={() => navigate('/')} className="btn-primary w-full py-3">
+          <button onClick={() => navigate('/')} className="chunky-btn-primary w-full py-3 text-sm">
             {t('back') || 'Назад'}
           </button>
         </motion.div>
@@ -1422,7 +1422,7 @@ export default function TakeTest() {
               (!isPractice && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts) ||
               (test.settings?.variants?.enabled && !isPractice && !selectedVariant)
             }
-            className="btn-primary w-full text-lg py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="chunky-btn-primary w-full py-3 text-base"
           >
             {t('startTestBtn')}
           </motion.button>
@@ -1467,7 +1467,7 @@ export default function TakeTest() {
               <p className="text-sm text-gray-500 mb-1">{t('inactivityCountdownMsg', { seconds: inactivityCountdown }) || 'The test will be submitted automatically soon.'}</p>
               <p className="text-3xl font-mono font-bold text-amber-600 mb-5">{inactivityCountdown}s</p>
               <button onClick={resetActivity}
-                className="w-full btn-primary py-3 text-sm">
+                className="chunky-btn-primary w-full py-3 text-sm">
                 {t('imHere') || "I'm here!"}
               </button>
             </motion.div>
@@ -1534,7 +1534,7 @@ export default function TakeTest() {
       <div className="mx-auto flex w-full flex-1 justify-center gap-5 px-3 py-3 pb-28 sm:px-4 sm:py-4 sm:pb-32 lg:max-w-[1120px] lg:py-5">
         {/* Desktop Left Sidebar Navigator */}
         <aside className="hidden lg:block w-[290px] flex-shrink-0">
-          <div className="sticky top-[88px] flex max-h-[calc(100vh-104px)] flex-col rounded-[28px] border border-gray-200 p-6 shadow-[0_28px_80px_-48px_rgba(15,23,42,0.55)] glass-card-solid dark:border-slate-700">
+          <div className="sticky top-[88px] flex max-h-[calc(100vh-104px)] flex-col chunky-card p-6">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">{t('navigation') || 'Навигатор'}</h3>
             <div className="space-y-2 overflow-y-auto pr-2 pb-4">
               {test.questions.map((q, i) => {
@@ -1607,7 +1607,7 @@ export default function TakeTest() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.25 }}
-            className="glass-card-solid p-4 sm:p-6 md:p-8"
+            className="chunky-card p-4 sm:p-6 md:p-8"
           >
             {/* Question header */}
             <div className="flex items-center gap-2 mb-3 sm:mb-4">

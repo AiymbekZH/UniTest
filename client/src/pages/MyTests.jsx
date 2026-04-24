@@ -133,12 +133,12 @@ export default function MyTests() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <label className="btn-secondary flex items-center gap-2 text-sm cursor-pointer">
-              <Upload size={16} /> Импорт JSON
+            <label className="chunky-btn-ghost inline-flex cursor-pointer items-center gap-2 text-xs">
+              <Upload size={14} /> <span className="hidden sm:inline">Импорт JSON</span>
               <input type="file" accept=".json" className="hidden" onChange={importTest} />
             </label>
-            <button onClick={() => navigate('/create-test')} className="btn-primary flex items-center gap-2 text-sm">
-              <Plus size={16} /> Создать тест
+            <button onClick={() => navigate('/create-test')} className="chunky-btn-primary inline-flex items-center gap-2 text-xs">
+              <Plus size={14} /> <span className="hidden sm:inline">Создать тест</span><span className="sm:hidden">Создать</span>
             </button>
           </div>
         </motion.div>
@@ -146,7 +146,7 @@ export default function MyTests() {
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="glass-card-solid p-5 animate-pulse">
+              <div key={i} className="chunky-card p-5 animate-pulse">
                 <div className="h-5 bg-gray-200 rounded w-1/3 mb-3" />
                 <div className="h-4 bg-gray-100 rounded w-2/3" />
               </div>
@@ -169,7 +169,7 @@ export default function MyTests() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="glass-card-solid p-5 flex flex-col sm:flex-row sm:items-center gap-4 group hover:shadow-sm transition-all"
+                className="chunky-card p-5 flex flex-col sm:flex-row sm:items-center gap-4 group hover:shadow-sm transition-all"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">

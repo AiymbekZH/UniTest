@@ -192,7 +192,7 @@ export default function TestProfile() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass-card-solid p-6 sm:p-8"
+              className="chunky-card p-6 sm:p-8"
             >
               <div className="mb-6 overflow-hidden rounded-2xl border border-gray-100 dark:border-slate-700/70">
                 <TestCoverArtwork
@@ -326,7 +326,7 @@ export default function TestProfile() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass-card-solid p-6"
+                className="chunky-card p-6"
               >
                 <h3 className="text-sm font-semibold text-dark mb-3">{t('rateTest')}</h3>
                 <div className="flex items-center gap-1">
@@ -391,7 +391,7 @@ export default function TestProfile() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="glass-card-solid p-6"
+              className="chunky-card p-6"
             >
               {/* Anti-cheat warning */}
               {test.settings?.antiCheat?.blockTabSwitch && (
@@ -416,16 +416,15 @@ export default function TestProfile() {
                 </div>
               )}
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button
+                type="button"
                 onClick={() => navigate(`/test/${shareLink}`)}
                 disabled={!canStart}
-                className="btn-primary w-full text-lg py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="chunky-btn-primary flex w-full items-center justify-center gap-2 py-4 text-base"
               >
-                <Play size={20} />
+                <Play size={18} />
                 {t('startTest')}
-              </motion.button>
+              </button>
 
               {/* Share & QR buttons */}
               <div className="flex gap-2 mt-3">
@@ -463,7 +462,7 @@ export default function TestProfile() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="glass-card-solid p-6"
+              className="chunky-card p-6"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-dark flex items-center gap-2">

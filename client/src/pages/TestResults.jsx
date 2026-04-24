@@ -275,10 +275,10 @@ export default function TestResults() {
           analyticsLoading ? (
             <div className="p-12 text-center"><div className="w-8 h-8 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" /></div>
           ) : !analytics || analytics.totalResponses === 0 ? (
-            <div className="glass-card-solid p-12 text-center text-gray-500">Нет данных для аналитики</div>
+            <div className="chunky-card p-12 text-center text-gray-500">Нет данных для аналитики</div>
           ) : (
             <div className="space-y-4">
-              <div className="glass-card-solid p-4">
+              <div className="chunky-card p-4">
                 <p className="text-sm text-gray-500">Всего ответов: <span className="font-bold text-dark">{analytics.totalResponses}</span></p>
               </div>
               {analytics.questions.map((q, qi) => {
@@ -290,7 +290,7 @@ export default function TestResults() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: qi * 0.03 }}
-                    className={`glass-card-solid p-4 sm:p-5 ${isHard ? 'border-l-4 border-red-400' : isEasy ? 'border-l-4 border-emerald-400' : ''}`}
+                    className={`chunky-card p-4 sm:p-5 ${isHard ? 'border-l-4 border-red-400' : isEasy ? 'border-l-4 border-emerald-400' : ''}`}
                   >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -369,7 +369,7 @@ export default function TestResults() {
               { icon: Trophy, label: 'Лучший %', value: `${Math.max(...displayResults.map(r => r.percentage))}%`, color: 'text-amber-600' },
               { icon: AlertTriangle, label: 'Нарушения', value: displayResults.reduce((s, r) => s + r.violationCount, 0), color: 'text-red-600' },
             ].map((stat, i) => (
-              <div key={i} className="glass-card-solid p-4 text-center">
+              <div key={i} className="chunky-card p-4 text-center">
                 <stat.icon className={`w-5 h-5 mx-auto mb-2 ${stat.color}`} />
                 <p className="text-2xl font-bold text-dark">{stat.value}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</p>
@@ -381,7 +381,7 @@ export default function TestResults() {
         {/* Essay grading notice */}
         {hasEssays && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="glass-card-solid p-4 mb-6 border-l-4 border-amber-400">
+            className="chunky-card p-4 mb-6 border-l-4 border-amber-400">
             <p className="text-sm text-dark font-medium flex items-center gap-2">
               <FileText size={16} className="text-amber-500" />
               Этот тест содержит эссе-вопросы. Нажмите на результат, чтобы оценить их вручную.
@@ -391,7 +391,7 @@ export default function TestResults() {
 
         {/* Leaderboard */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="glass-card-solid overflow-hidden">
+          className="chunky-card overflow-hidden">
           <div className="p-4 border-b border-gray-100 dark:border-slate-700">
             <h3 className="font-semibold text-dark flex items-center gap-2">
               <Trophy size={18} className="text-amber-500" /> Таблица результатов
@@ -498,7 +498,7 @@ export default function TestResults() {
                           <div className="p-4 space-y-4">
                             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Эссе-ответы</h4>
                             {essayAnswers.map((answer, ai) => (
-                              <div key={ai} className="glass-card-solid p-4 space-y-2">
+                              <div key={ai} className="chunky-card p-4 space-y-2">
                                 <p className="text-sm font-medium text-dark prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: answer.questionText || `Вопрос ${ai + 1}` }} />
                                 <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                                   {answer.userAnswer || answer.textAnswer || <span className="italic text-gray-400">Нет ответа</span>}

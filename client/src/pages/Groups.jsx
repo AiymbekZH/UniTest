@@ -963,7 +963,7 @@ export default function Groups() {
                 <div className="flex-1 overflow-y-auto p-5 space-y-6">
                   {/* Basic settings */}
                   {hasPermission(selectedGroup, 'manageGroup') && (
-                    <div className="glass-card-solid p-5 space-y-4">
+                    <div className="chunky-card p-5 space-y-4">
                       <p className="section-title">Основные</p>
                       <div className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-gray-50/70 p-4 dark:border-slate-700 dark:bg-slate-700/40 sm:flex-row sm:items-center">
                         <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getGrad(selectedGroup.name)} flex items-center justify-center text-white font-bold text-2xl shadow-sm overflow-hidden flex-shrink-0`}>
@@ -1028,7 +1028,7 @@ export default function Groups() {
 
                   {/* Invite code */}
                   {hasPermission(selectedGroup, 'manageGroup') && (
-                    <div className="glass-card-solid p-5">
+                    <div className="chunky-card p-5">
                       <p className="section-title mb-3">Приглашение</p>
                       <div className="flex items-center gap-2 flex-wrap">
                         <code className="inline-flex items-center gap-2 bg-gray-50 dark:bg-slate-700 px-4 py-2 rounded-xl text-sm font-mono font-semibold text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-slate-600">
@@ -1043,7 +1043,7 @@ export default function Groups() {
 
                   {/* Roles */}
                   {hasPermission(selectedGroup, 'manageRoles') && (
-                    <div className="glass-card-solid p-5">
+                    <div className="chunky-card p-5">
                       <div className="flex items-center justify-between mb-4">
                         <p className="section-title">Роли</p>
                         <button onClick={() => setShowRoleCreate(!showRoleCreate)} className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1"><Plus size={12} /> Создать</button>
@@ -1169,7 +1169,7 @@ export default function Groups() {
                   )}
 
                   {hasPermission(selectedGroup, 'banMembers') && (
-                    <div className="glass-card-solid p-5">
+                    <div className="chunky-card p-5">
                       <div className="flex items-center justify-between gap-3 mb-4">
                         <div>
                           <p className="section-title">Забаненные участники</p>
@@ -1273,7 +1273,7 @@ export default function Groups() {
             />
 
             {loading ? (
-              <div className="grid gap-3 md:grid-cols-2">{[1,2,3,4].map(i => (<div key={i} className="glass-card-solid p-5 animate-pulse"><div className="flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-slate-700" /><div className="flex-1"><div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-1/3 mb-2" /><div className="h-3 bg-gray-100 dark:bg-slate-700 rounded w-1/4" /></div></div></div>))}</div>
+              <div className="grid gap-3 md:grid-cols-2">{[1,2,3,4].map(i => (<div key={i} className="chunky-card p-5 animate-pulse"><div className="flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-slate-700" /><div className="flex-1"><div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-1/3 mb-2" /><div className="h-3 bg-gray-100 dark:bg-slate-700 rounded w-1/4" /></div></div></div>))}</div>
             ) : groups.length === 0 ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
                 <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4"><Users className="w-7 h-7 text-primary-400" /></div>
@@ -1300,7 +1300,7 @@ export default function Groups() {
                       setEditingRoleId(null);
                       setRoleDrafts({});
                       setBannedMembers([]);
-                    }} className="glass-card-solid p-5 flex items-center gap-4 cursor-pointer group hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
+                    }} className="chunky-card p-5 flex items-center gap-4 cursor-pointer group hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
                     <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getGrad(g.name)} flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-sm overflow-hidden`}>
                       {g.avatar ? <img src={g.avatar} alt="" className="w-full h-full object-cover" /> : (g.name?.[0] || 'G').toUpperCase()}
                     </div>
@@ -1326,7 +1326,7 @@ export default function Groups() {
         <AnimatePresence>
           {showCreate && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowCreate(false)}>
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-card-solid p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="chunky-card p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
                 <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Создать группу</h3>
                 <div className="space-y-3 mb-5">
                   <div><label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Название</label><input className="input-field text-sm" placeholder="Математика 101" value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} autoFocus /></div>
@@ -1345,7 +1345,7 @@ export default function Groups() {
         <AnimatePresence>
           {showJoin && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => { setShowJoin(false); setNeedsPassword(false); }}>
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-card-solid p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="chunky-card p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
                 <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Присоединиться</h3>
                 <div className="space-y-3 mb-5">
                   <div><label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Код приглашения</label><input className="input-field text-sm font-mono" placeholder="abc123" value={joinCode} onChange={e => setJoinCode(e.target.value)} autoFocus /></div>
@@ -1366,7 +1366,7 @@ export default function Groups() {
         <AnimatePresence>
           {showAssignTest && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowAssignTest(false)}>
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-card-solid p-6 w-full max-w-md max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="chunky-card p-6 w-full max-w-md max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Назначить тест</h3>
                 {myTests.length === 0 ? <p className="text-sm text-gray-400 text-center py-8">Нет тестов</p> : (
                   <div className="space-y-2">{myTests.map(t => {

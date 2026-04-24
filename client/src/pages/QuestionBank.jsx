@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -134,7 +134,7 @@ export default function QuestionBank() {
           </div>
 
           {/* Search & Filter */}
-          <div className="glass-card-solid p-4 mb-6">
+          <div className="chunky-card p-4 mb-6">
             <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -160,7 +160,7 @@ export default function QuestionBank() {
           {/* Bulk actions */}
           {selected.size > 0 && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-              className="glass-card-solid p-3 mb-4 flex items-center justify-between">
+              className="chunky-card p-3 mb-4 flex items-center justify-between">
               <span className="text-sm text-dark font-medium">Выбрано: {selected.size}</span>
               <button onClick={() => setBulkDeleteConfirm(true)}
                 className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs text-red-600 border-red-200 hover:bg-red-50">
@@ -199,7 +199,7 @@ export default function QuestionBank() {
                   return (
                     <motion.div key={q._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
-                      className={`glass-card-solid p-4 flex items-start gap-3 hover:shadow-sm transition-all
+                      className={`chunky-card p-4 flex items-start gap-3 hover:shadow-sm transition-all
                         ${selected.has(q._id) ? 'ring-2 ring-primary-500/30' : ''}`}>
                       <button onClick={() => toggleSelect(q._id)}
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 mt-0.5
@@ -249,7 +249,7 @@ export default function QuestionBank() {
             className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setEditModal({ open: false, question: null })}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              onClick={e => e.stopPropagation()} className="relative w-full max-w-md glass-card-solid p-6">
+              onClick={e => e.stopPropagation()} className="relative w-full max-w-md chunky-card p-6">
               <h3 className="text-lg font-bold text-dark mb-4">Редактировать вопрос</h3>
               <div className="space-y-3">
                 <textarea className="input-field text-sm py-2 resize-none" rows="3" placeholder="Текст вопроса..."

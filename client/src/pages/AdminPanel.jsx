@@ -262,7 +262,7 @@ export default function AdminPanel() {
   ];
 
   const StatCard = ({ icon: Icon, label, value, color, onClick }) => (
-    <motion.div whileHover={{ y: -2 }} className={`glass-card-solid p-5 ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
+    <motion.div whileHover={{ y: -2 }} className={`chunky-card p-5 ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
       <div className="flex items-center gap-3">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
           <Icon size={20} className="text-white" />
@@ -334,7 +334,7 @@ export default function AdminPanel() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <StatCard icon={Sparkles} label="Пользователи с AI-доступом" value={stats.aiAccessCount || 0} color="bg-indigo-500" onClick={() => { setAiFilter('granted'); setTab('users'); }} />
-              <div className="glass-card-solid p-5 flex items-center justify-between gap-4">
+              <div className="chunky-card p-5 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-dark">Доступ к AI только по разрешению админа</p>
                   <p className="text-xs text-gray-500 mt-1">Админы имеют доступ автоматически. Для остальных пользователей доступ можно выдать или снять вручную.</p>
@@ -346,7 +346,7 @@ export default function AdminPanel() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="glass-card-solid p-5">
+              <div className="chunky-card p-5">
                 <h3 className="font-semibold text-dark mb-3">{t('recentUsers')}</h3>
                 <div className="space-y-2">
                   {stats.recentUsers?.map(u => (
@@ -366,7 +366,7 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              <div className="glass-card-solid p-5">
+              <div className="chunky-card p-5">
                 <h3 className="font-semibold text-dark mb-3">{t('recentTests')}</h3>
                 <div className="space-y-2">
                   {stats.recentTests?.map(test => (
@@ -402,7 +402,7 @@ export default function AdminPanel() {
               <button onClick={loadUsers} className="btn-primary py-2 px-4 text-sm">{t('search')}</button>
             </div>
 
-            <div className="glass-card-solid p-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="chunky-card p-4 mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-dark">Управление доступом к AI</p>
                 <p className="text-xs text-gray-500 mt-1">Админы имеют доступ автоматически. Пользователям ниже можно дать или снять доступ отдельно.</p>
@@ -434,7 +434,7 @@ export default function AdminPanel() {
             <div className="space-y-2">
               {users.map(u => (
                 <motion.div key={u._id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                  className="glass-card-solid p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  className="chunky-card p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/50 text-primary-600 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0">
                     {u.firstName?.[0]}{u.lastName?.[0]}
                   </div>
@@ -546,7 +546,7 @@ export default function AdminPanel() {
             <div className="space-y-2">
               {tests.map(test => (
                 <motion.div key={test._id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                  className="glass-card-solid p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  className="chunky-card p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-dark">{test.title}</p>
@@ -626,7 +626,7 @@ export default function AdminPanel() {
                 .filter(r => reportSubTab === 'all' || r.targetType === reportSubTab)
                 .map(report => (
                 <motion.div key={report._id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                  className="glass-card-solid p-4">
+                  className="chunky-card p-4">
                   <div className="flex items-start gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
                       report.targetType === 'user' ? 'bg-blue-100 dark:bg-blue-900/30' :
