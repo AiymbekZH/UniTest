@@ -1252,7 +1252,7 @@ export default function CreateTest() {
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row">
         {/* Left Sidebar: Question Navigator */}
         <div className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky top-20 space-y-3">
+          <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-1 space-y-3">
           <div className="chunky-card p-4">
               <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
                 {t('navigation')}
