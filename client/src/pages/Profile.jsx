@@ -299,7 +299,7 @@ export default function Profile() {
   const tileCls = "min-w-0 rounded-xl border-2 border-slate-900 bg-white p-2.5 text-left transition active:translate-y-[1px] dark:border-white dark:bg-slate-800 sm:p-3";
   const tileShadow = { boxShadow: '0 2px 0 #0f172a' };
   const heroFooter = (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 [&>*]:min-w-0 sm:grid-cols-4">
       <button type="button" onClick={copyIdToClipboard} className={tileCls} style={tileShadow}>
         <p className="truncate text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[10px]">{copy.uniqueId}</p>
         <p className="mt-0.5 truncate font-mono text-xs font-black text-dark dark:text-white sm:text-sm">{profileUser?.uniqueId || 'N/A'}</p>
@@ -364,7 +364,7 @@ export default function Profile() {
             footer={heroFooter}
           />
 
-          <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+          <div className="space-y-4 lg:grid lg:gap-6 lg:space-y-0 lg:grid-cols-[260px_1fr]">
             <ProfileTabsNav tabs={tabs} activeId={activeTab} onChange={changeTab} />
 
             <div className="min-w-0">

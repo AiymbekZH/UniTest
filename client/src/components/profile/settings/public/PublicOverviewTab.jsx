@@ -19,7 +19,7 @@ export default function PublicOverviewTab({
       />
 
       {/* Stats tiles */}
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-3 grid-cols-2 [&>*]:min-w-0 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile icon={Sparkles} label={copy.level}          value={progress?.level || 1}                          tone="primary" />
         <StatTile icon={Trophy}   label={copy.xp}             value={progress?.xp || 0}                             tone="blue" />
         <StatTile icon={Flame}    label={copy.currentStreak}  value={progress?.currentStreakDays || 0}              tone="amber" />
@@ -29,7 +29,7 @@ export default function PublicOverviewTab({
       </div>
 
       {/* Creator stats + badges preview */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         <section className="chunky-card p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.creatorStats}</p>
@@ -37,7 +37,7 @@ export default function PublicOverviewTab({
               <BarChart3 size={15} />
             </div>
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="mt-4 grid gap-2 [&>*]:min-w-0 sm:grid-cols-2">
             <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('testsCreated')}</p>
               <p className="mt-1 font-mono text-xl font-black text-dark">{creatorStats?.testsCreated || 0}</p>
@@ -116,7 +116,7 @@ export default function PublicOverviewTab({
         {publicTests.length === 0 ? (
           <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">{copy.noPublicTests}</p>
         ) : (
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-4 grid gap-3 [&>*]:min-w-0 md:grid-cols-2 xl:grid-cols-3">
             {publicTests.slice(0, 6).map((test) => (
               <Link
                 key={test._id}

@@ -88,7 +88,7 @@ export default function AccountTab({
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
           {t('firstName')} · {t('lastName')}
         </p>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 [&>*]:min-w-0 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-slate-400">{t('firstName')}</span>
             <input className="input-field text-sm" value={firstName} onChange={(e) => setFirstName(e.target.value)} />

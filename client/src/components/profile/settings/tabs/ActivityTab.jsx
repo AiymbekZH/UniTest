@@ -68,7 +68,7 @@ export default function ActivityTab({
         {formattedBadges.length === 0 ? (
           <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">{copy.noBadges}</p>
         ) : (
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid gap-2 [&>*]:min-w-0 sm:grid-cols-2 lg:grid-cols-3">
             {formattedBadges.map((badge) => (
               <div
                 key={`${badge.key}-${badge.unlockedAt}`}

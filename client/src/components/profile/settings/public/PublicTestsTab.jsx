@@ -20,7 +20,7 @@ export default function PublicTestsTab({ copy, t, publicTests }) {
             <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">{copy.noPublicTests}</p>
           </div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 [&>*]:min-w-0 md:grid-cols-2 xl:grid-cols-3">
             {publicTests.map((test) => (
               <Link
                 key={test._id}

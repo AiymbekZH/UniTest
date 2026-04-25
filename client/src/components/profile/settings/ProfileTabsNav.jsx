@@ -4,7 +4,7 @@ export default function ProfileTabsNav({ tabs, activeId, onChange }) {
   return (
     <>
       {/* Mobile: horizontal scrollable chunky pills (NO negative margins - bulletproof) */}
-      <div className="lg:hidden sticky top-14 z-30 -mt-1 rounded-2xl border-2 border-slate-900 bg-white/95 backdrop-blur-sm dark:border-white dark:bg-slate-900/95" style={{ boxShadow: '0 3px 0 #0f172a' }}>
+      <div className="lg:hidden sticky top-14 z-30 -mt-1 min-w-0 max-w-full rounded-2xl border-2 border-slate-900 bg-white/95 backdrop-blur-sm dark:border-white dark:bg-slate-900/95" style={{ boxShadow: '0 3px 0 #0f172a' }}>
         <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-2 py-2 sm:gap-2 sm:px-3 sm:py-2.5">
           {tabs.map((tab) => {
             const Icon = tab.icon;
