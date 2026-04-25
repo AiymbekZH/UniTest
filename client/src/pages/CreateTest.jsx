@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Save, ArrowLeft, Image, Video, Music,
   Check, X, Type, ListChecks, ToggleLeft,
-  FileText, Link2, Settings, Upload, ChevronUp, ChevronDown,
+  FileText, Link2, Settings, Upload, UploadCloud, ChevronUp, ChevronDown,
   Database, FileSpreadsheet, Eye, EyeOff, Ticket, Sparkles,
   Clock, Repeat, Calendar, Shield, Hash, Shuffle, Layers, Zap, Lock, Copy, Camera, Globe, GraduationCap,
   Move, ZoomIn, RotateCcw, CircleHelp
@@ -519,7 +519,8 @@ export default function CreateTest() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
   const [bulkTranslateState, setBulkTranslateState] = useState(null);
   const [coverEditor, setCoverEditor] = useState(null);
-  const [showCoverPanel, setShowCoverPanel] = useState(true);
+  const [coverDragActive, setCoverDragActive] = useState(false);
+  const [showDashboardPreview, setShowDashboardPreview] = useState(false);
   const questionRefs = useRef({});
   const autoSaveTimer = useRef(null);
   const coverStageRef = useRef(null);
@@ -646,12 +647,6 @@ export default function CreateTest() {
     setBulkTranslateState(null);
   }, [test.settings.multiLanguage?.enabled, test.settings.multiLanguage?.languages]);
 
-  useEffect(() => {
-    if (!test.coverImage) {
-      setShowCoverPanel(true);
-    }
-  }, [test.coverImage]);
-
   const discardDraft = () => {
     localStorage.removeItem('unitest_draft');
     setShowDraftDialog(false);
@@ -670,7 +665,6 @@ export default function CreateTest() {
     reader.onload = () => {
       const img = new window.Image();
       img.onload = () => {
-        setShowCoverPanel(true);
         setCoverEditor(
           createCoverEditorState({
             src: reader.result,
@@ -782,7 +776,6 @@ export default function CreateTest() {
       ctx.drawImage(image, sx, sy, sw, sh, 0, 0, COVER_FRAME_WIDTH, COVER_FRAME_HEIGHT);
       updateTest('coverImage', canvas.toDataURL('image/jpeg', 0.88));
       setCoverEditor(null);
-      setShowCoverPanel(false);
       toast.success('Обложка обновлена');
     };
     image.src = coverEditor.src;
@@ -1256,78 +1249,113 @@ export default function CreateTest() {
       
       <Navbar />
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 overflow-x-clip px-4 py-6 sm:px-6 lg:flex-row">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-start">
         {/* Left Sidebar: Question Navigator */}
-        <div className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky top-24 space-y-3">
+        <div className="hidden lg:block w-64 flex-shrink-0 self-start">
+          <div className="sticky top-20 space-y-3">
             <div className="chunky-card p-4">
-              <h3 className="text-sm font-semibold text-dark mb-3">{t('navigation')}</h3>
+              <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
+                {t('navigation')}
+              </h3>
               <div className="space-y-1 max-h-[50vh] overflow-y-auto pr-1">
                 {test.questions.map((q, i) => {
                   const typeInfo = questionTypes.find(t => t.value === q.type);
+                  const isActive = activeQuestion === i;
                   return (
                     <button
                       key={q.id}
                       onClick={() => scrollToQuestion(i)}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all text-left
-                        ${activeQuestion === i
-                          ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 font-medium'
-                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${
+                        isActive
+                          ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700'
+                      }`}
                     >
-                      <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0
-                        ${activeQuestion === i ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-slate-600 text-gray-500 dark:text-gray-300'}`}>
+                      <span
+                        className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md font-mono text-[10px] font-black ${
+                          isActive
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300'
+                        }`}
+                      >
                         {i + 1}
                       </span>
-                      <span className="truncate flex-1">{stripHtml(q.questionText) || typeInfo?.label || t('question')}</span>
-                      {!stripHtml(q.questionText) && <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />}
+                      <span className={`flex-1 truncate ${isActive ? 'font-bold' : ''}`}>
+                        {stripHtml(q.questionText) || typeInfo?.label || t('question')}
+                      </span>
+                      {!stripHtml(q.questionText) && (
+                        <span className="h-2 w-2 flex-shrink-0 rounded-full bg-amber-400" />
+                      )}
                     </button>
                   );
                 })}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                <p>{t('questionsCount')}: <strong className="text-dark">{test.questions.length}</strong></p>
-                <p>{t('pointsCount')}: <strong className="text-dark">{totalPoints}</strong></p>
+              <div className="mt-3 grid grid-cols-2 gap-2 border-t-2 border-slate-100 pt-3 dark:border-slate-700">
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2 dark:bg-slate-700/40">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    {t('questionsCount')}
+                  </p>
+                  <p className="mt-0.5 font-mono text-base font-black text-slate-900 dark:text-white">
+                    {test.questions.length}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2 dark:bg-slate-700/40">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    {t('pointsCount')}
+                  </p>
+                  <p className="mt-0.5 font-mono text-base font-black text-slate-900 dark:text-white">
+                    {totalPoints}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="chunky-card p-3 space-y-2">
+            <div className="chunky-card p-3 space-y-1.5">
               {!hasAIAccess && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+                <div className="rounded-lg border-2 border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
                   AI-функции закрыты. Доступ выдаётся администратором.
                 </div>
               )}
-              <button onClick={loadBankQuestions}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+              <button
+                onClick={loadBankQuestions}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
+              >
                 <Database size={14} /> {t('fromQuestionBank')}
               </button>
-              <button onClick={() => setShowImportModal(true)}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
+              >
                 <FileSpreadsheet size={14} /> {t('importCSV')}
               </button>
-              <button onClick={() => checkAIAccess(() => setShowAIModal(true))}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              <button
+                onClick={() => checkAIAccess(() => setShowAIModal(true))}
+                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
                   hasAIAccess
-                    ? 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
-                    : 'text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/10'
-                }`}>
+                    ? 'text-purple-600 hover:bg-purple-50 dark:text-purple-300 dark:hover:bg-purple-900/20'
+                    : 'text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-900/10'
+                }`}
+              >
                 <Sparkles size={14} /> {t('aiGenerate') || 'AI Generate'}
               </button>
               <button
                 onClick={() => checkAIAccess(toggleBulkTranslateMode)}
                 disabled={isBulkTranslating}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-colors disabled:opacity-50 ${
                   bulkTranslateMode
                     ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300'
                     : hasAIAccess
-                      ? 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
-                      : 'text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/10'
-                } disabled:opacity-50`}
+                      ? 'text-indigo-600 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-900/20'
+                      : 'text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-900/10'
+                }`}
               >
                 <Globe size={14} /> {t('aiTranslateSelected') || 'AI translate selected'}
               </button>
-              <button onClick={saveToBank}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+              <button
+                onClick={saveToBank}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
+              >
                 <Save size={14} /> {t('saveToBank')}
               </button>
             </div>
@@ -1343,35 +1371,61 @@ export default function CreateTest() {
             className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex min-w-0 items-center gap-3">
-              <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                <ArrowLeft size={20} className="text-dark" />
+              <button
+                onClick={() => navigate(-1)}
+                aria-label="Назад"
+                className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border-2 border-slate-900 bg-white text-slate-900 transition-transform active:translate-y-[3px] dark:border-white dark:bg-slate-800 dark:text-white"
+                style={{ boxShadow: '0 3px 0 #cbd5e1' }}
+              >
+                <ArrowLeft size={18} />
               </button>
               <div className="min-w-0">
-                <h1 className="text-xl font-bold text-dark">{editId ? t('editTest') : t('createTest')}</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {test.questions.length} {t('questions')} · {totalPoints} {t('points')}
+                <h1 className="truncate text-2xl font-black tracking-tight text-dark">
+                  {editId ? t('editTest') : t('createTest')}
+                </h1>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                    {test.questions.length}
+                  </span>
+                  <span>{t('questions')}</span>
+                  <span className="opacity-40">·</span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                    {totalPoints}
+                  </span>
+                  <span>{t('points')}</span>
                   {!editId && draftStatus && (
-                    <span className={`ml-2 ${draftStatus === 'saved' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                    <span
+                      className={`ml-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                        draftStatus === 'saved'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300'
+                          : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                      }`}
+                    >
                       {draftStatus === 'saving' ? t('savingDraft') : t('draftSaved')}
                     </span>
                   )}
-                </p>
+                </div>
               </div>
             </div>
             <div className="flex w-full gap-2 sm:w-auto">
-              <button onClick={() => setShowSettings(!showSettings)} className="btn-secondary flex flex-1 items-center justify-center gap-2 py-2 px-3 text-xs sm:flex-none">
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="chunky-btn-ghost flex flex-1 items-center justify-center gap-2 px-4 py-2 text-xs sm:flex-none"
+              >
                 <Settings size={14} /> {t('settings')}
               </button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button
                 onClick={handleSave}
                 disabled={saving}
-                className="btn-primary flex flex-1 items-center justify-center gap-2 py-2 px-4 text-xs sm:flex-none"
+                className="chunky-btn-primary flex flex-1 items-center justify-center gap-2 px-5 py-2 text-xs sm:flex-none"
               >
-                {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
+                {saving ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Save size={14} />
+                )}
                 {editId ? t('update') : t('save')}
-              </motion.button>
+              </button>
             </div>
           </motion.div>
 
@@ -1671,17 +1725,21 @@ export default function CreateTest() {
             )}
           </AnimatePresence>
 
-          {/* Test Info */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="chunky-card p-5 mb-5 space-y-3">
+          {/* Test Info Card — title, description, tags */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="chunky-card p-5 mb-5 space-y-4"
+          >
             <input
-              className="w-full text-lg font-bold text-dark bg-transparent border-none outline-none placeholder-gray-300 dark:placeholder-gray-600"
+              className="w-full bg-transparent text-2xl font-black tracking-tight text-dark outline-none placeholder-gray-300 dark:placeholder-gray-600"
               placeholder={t('testTitlePlaceholder')}
               value={test.title}
               onChange={e => updateTest('title', e.target.value)}
             />
             <textarea
-              className="input-field resize-none text-sm py-2"
+              className="w-full resize-none bg-transparent text-sm leading-relaxed text-dark outline-none placeholder-gray-300 dark:placeholder-gray-600"
               rows="2"
               placeholder={t('testDescPlaceholder')}
               value={test.description}
@@ -1691,239 +1749,301 @@ export default function CreateTest() {
               <p className="text-gray-400 dark:text-gray-500">
                 До {DESCRIPTION_WORD_LIMIT} слов. В карточках длинное описание аккуратно обрежется.
               </p>
-              <span className={`font-medium ${descriptionWordCount >= DESCRIPTION_WORD_LIMIT ? 'text-amber-500' : 'text-gray-400 dark:text-gray-500'}`}>
+              <span
+                className={`font-mono font-bold ${
+                  descriptionWordCount >= DESCRIPTION_WORD_LIMIT
+                    ? 'text-amber-500'
+                    : 'text-gray-400 dark:text-gray-500'
+                }`}
+              >
                 {descriptionWordCount}/{DESCRIPTION_WORD_LIMIT}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 border-t-2 border-slate-100 pt-3 dark:border-slate-700">
               {test.tags.map((tag, i) => (
-                <span key={i} className="badge-info flex items-center gap-1 text-xs">
-                  {tag}
-                  <button onClick={() => updateTest('tags', test.tags.filter((_, idx) => idx !== i))} className="hover:text-primary-800">
-                    <X size={10} />
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 rounded-full border-2 border-slate-900 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-900 dark:border-white dark:bg-slate-800 dark:text-white"
+                  style={{ boxShadow: '0 2px 0 #cbd5e1' }}
+                >
+                  #{tag}
+                  <button
+                    onClick={() => updateTest('tags', test.tags.filter((_, idx) => idx !== i))}
+                    className="opacity-60 transition-opacity hover:opacity-100 hover:text-red-500"
+                    aria-label={`Удалить тег ${tag}`}
+                  >
+                    <X size={11} />
                   </button>
                 </span>
               ))}
               <input
-                className="text-xs bg-transparent outline-none placeholder-gray-400 dark:placeholder-gray-600 w-28 text-dark"
-                placeholder="+ тег"
+                className="w-32 bg-transparent text-xs font-medium text-dark outline-none placeholder-gray-400 dark:placeholder-gray-600"
+                placeholder="+ добавить тег"
                 value={test.tagInput}
                 onChange={e => updateTest('tagInput', e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
               />
             </div>
-            <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block flex items-center gap-1.5">
-                    <Image size={12} />
-                    {coverSectionTitle}
-                  </label>
-                  <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
-                    Баннер редактируется под карточку 16:9. Блок можно свернуть после загрузки, чтобы он не мешал.
-                  </p>
-                </div>
+          </motion.div>
 
+          {/* Cover Image Card — clean dropzone OR chunky preview + collapsible dashboard preview */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="chunky-card p-5 mb-5 space-y-4"
+          >
+            <div>
+              <h3 className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
+                <Image size={13} />
+                {coverSectionTitle}
+              </h3>
+              <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                16:9 формат. Появляется в каталоге, на dashboard и в результатах теста.
+              </p>
+            </div>
+
+            {test.coverImage ? (
+              /* === IMAGE PRESENT — chunky preview + toolbar === */
+              <div className="space-y-3">
+                <div
+                  className="relative overflow-hidden rounded-2xl border-2 border-slate-900 bg-slate-100 dark:border-white dark:bg-slate-900"
+                  style={{ aspectRatio: '16 / 9', boxShadow: '0 4px 0 #0f172a' }}
+                >
+                  <TestCoverArtwork
+                    coverImage={test.coverImage}
+                    title={coverPreviewTitle}
+                    showPlaceholderCaption={false}
+                    className="h-full w-full"
+                    imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/15 via-slate-950/4 to-transparent"
+                  />
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {test.coverImage && (
-                    <button
-                      type="button"
-                      onClick={() => setShowCoverPanel(prev => !prev)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700"
-                    >
-                      {showCoverPanel ? 'Свернуть блок' : 'Показать блок'}
-                    </button>
-                  )}
-                  {test.coverImage && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateTest('coverImage', '');
-                        setShowCoverPanel(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/10 dark:text-red-300 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 size={12} />
-                      {t('delete') || 'Удалить'}
-                    </button>
-                  )}
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 py-2 text-xs font-bold text-slate-900 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-white"
+                    style={{ boxShadow: '0 3px 0 #cbd5e1' }}
+                  >
+                    <Upload size={13} />
+                    Заменить
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleCoverFileInput}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const img = new window.Image();
+                      img.onload = () => {
+                        setCoverEditor(createCoverEditorState({
+                          src: test.coverImage,
+                          fileName: 'current-cover',
+                          naturalWidth: img.width,
+                          naturalHeight: img.height,
+                        }));
+                      };
+                      img.src = test.coverImage;
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 py-2 text-xs font-bold text-slate-900 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-white"
+                    style={{ boxShadow: '0 3px 0 #cbd5e1' }}
+                  >
+                    <Move size={13} />
+                    Перекадрировать
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateTest('coverImage', '')}
+                    className="inline-flex items-center gap-1.5 rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition-transform active:translate-y-[2px] dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-300"
+                    style={{ boxShadow: '0 3px 0 #fecaca' }}
+                  >
+                    <Trash2 size={13} />
+                    {t('delete') || 'Удалить'}
+                  </button>
                 </div>
               </div>
+            ) : (
+              /* === NO IMAGE — clean dropzone === */
+              <label
+                className={`group relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed text-center transition-colors ${
+                  coverDragActive
+                    ? 'border-primary-500 bg-primary-50/60 dark:bg-primary-900/15'
+                    : 'border-slate-300 bg-slate-50/70 hover:border-slate-400 hover:bg-slate-100/70 dark:border-slate-600 dark:bg-slate-800/40 dark:hover:bg-slate-800'
+                }`}
+                style={{ aspectRatio: '16 / 9', boxShadow: '0 3px 0 #e2e8f0' }}
+                onDragOver={(e) => { e.preventDefault(); setCoverDragActive(true); }}
+                onDragEnter={(e) => { e.preventDefault(); setCoverDragActive(true); }}
+                onDragLeave={(e) => {
+                  // Only clear when leaving the label, not children
+                  if (e.currentTarget === e.target) setCoverDragActive(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setCoverDragActive(false);
+                  const f = e.dataTransfer.files?.[0];
+                  if (f && f.type.startsWith('image/')) openCoverEditor(f);
+                  else if (f) toast.error('Только изображения (JPG/PNG/WebP)');
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverFileInput}
+                />
+                <div
+                  className={`pointer-events-none inline-flex h-16 w-16 items-center justify-center rounded-2xl border-2 transition-transform ${
+                    coverDragActive
+                      ? 'scale-110 border-primary-500 bg-white text-primary-600'
+                      : 'border-slate-300 bg-white text-slate-400 group-hover:scale-105 group-hover:text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                  }`}
+                  style={{ boxShadow: '0 2px 0 #cbd5e1' }}
+                >
+                  <UploadCloud size={28} strokeWidth={2.2} />
+                </div>
+                <div className="pointer-events-none px-4">
+                  <p className="text-base font-black text-slate-900 dark:text-white">
+                    {coverDragActive ? 'Отпусти изображение' : 'Перетащи изображение сюда'}
+                  </p>
+                  <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    или нажми чтобы выбрать &middot; JPG / PNG / WebP &middot; до 15 MB &middot; 16:9
+                  </p>
+                </div>
+              </label>
+            )}
 
-              {showCoverPanel ? (
-                <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
-                  <div className="space-y-3">
-                    <div className="max-w-[760px] overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_26px_70px_-40px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/40">
-                      <TestCoverArtwork
-                        coverImage={test.coverImage}
-                        title={coverPreviewTitle}
-                        showPlaceholderCaption={false}
-                        className="w-full"
-                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/26 via-slate-950/10 to-transparent dark:from-black/34 dark:via-black/14"
-                        style={{ aspectRatio: '16 / 9' }}
+            {/* Dashboard Preview — collapsible */}
+            <div className="border-t-2 border-slate-100 pt-3 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setShowDashboardPreview(prev => !prev)}
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform hover:border-slate-300 active:translate-y-[2px] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                style={{ boxShadow: '0 2px 0 #e2e8f0' }}
+              >
+                <Eye size={12} />
+                {showDashboardPreview ? 'Скрыть preview каталога' : 'Показать preview каталога'}
+                {showDashboardPreview ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+
+              <AnimatePresence initial={false}>
+                {showDashboardPreview && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-4 flex flex-col items-start gap-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                        Так карточка будет выглядеть в каталоге
+                      </p>
+                      <div
+                        className="w-full max-w-sm overflow-hidden rounded-2xl border-2 border-slate-900 bg-white dark:border-white dark:bg-slate-900"
+                        style={{ boxShadow: '0 4px 0 #0f172a' }}
                       >
-                        <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 sm:inset-x-4 sm:bottom-4 sm:gap-3">
-                          <div className="max-w-[78%] rounded-[22px] border border-black/8 bg-white/92 px-3 py-2.5 shadow-[0_30px_70px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/92 dark:shadow-[0_32px_72px_-30px_rgba(0,0,0,0.82)] sm:max-w-[64%] sm:px-4 sm:py-3">
-                            <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
-                              {test.coverImage ? 'Обложка готова' : 'Выберите изображение'}
-                            </p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-slate-700 dark:text-slate-200/90">
-                              {test.coverImage
-                                ? 'Нужен другой кадр? Просто выбери новое изображение и редактор откроется снова.'
-                                : 'После выбора откроется редактор с кадрированием и zoom.'}
-                            </p>
-                          </div>
-                          <div className="hidden rounded-2xl border border-black/10 bg-white/84 px-3 py-2 text-[11px] font-medium text-slate-900 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/88 dark:text-slate-100 sm:block">
-                            16:9 • Dashboard / Test
-                          </div>
-                        </div>
-                      </TestCoverArtwork>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-primary-600/20 transition hover:bg-primary-700">
-                        <Upload size={14} />
-                        {test.coverImage ? 'Заменить и кадрировать' : `${uploadCoverText} и кадрировать`}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleCoverFileInput}
+                        <TestCoverArtwork
+                          coverImage={test.coverImage}
+                          title={coverPreviewTitle}
+                          showPlaceholderCaption={false}
+                          className="w-full"
+                          imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/16 via-slate-950/5 to-transparent dark:from-black/22"
+                          style={{ aspectRatio: '16 / 9' }}
                         />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="hidden space-y-3 md:block">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-                        Dashboard Preview
-                      </p>
-                      <p className="mt-1 text-[11px] text-gray-400">
-                        Так карточка будет выглядеть в каталоге тестов.
-                      </p>
-                    </div>
-
-                    <div className="overflow-hidden rounded-[26px] border border-gray-200/80 bg-white shadow-[0_24px_64px_-42px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/40">
-                      <TestCoverArtwork
-                        coverImage={test.coverImage}
-                        title={coverPreviewTitle}
-                        showPlaceholderCaption={false}
-                        className="w-full"
-                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/16 via-slate-950/5 to-transparent dark:from-black/22"
-                        style={{ aspectRatio: '16 / 9' }}
-                      />
-                      <div className="space-y-3 p-4">
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
-                            test.settings?.isPublic
-                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
-                              : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
-                          }`}>
-                            {test.settings?.isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
-                            {test.settings?.isPublic ? 'Публичный' : 'Приватный'}
-                          </span>
-                          <span className="text-[10px] text-gray-400">
-                            {test.questions.length} {t('questions')}
-                          </span>
-                        </div>
-
-                        <div>
-                          <h4 className="line-clamp-1 text-sm font-semibold text-dark">
-                            {coverPreviewTitle}
-                          </h4>
-                          <p className="mt-1 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
-                            {coverPreviewDescription}
-                          </p>
-                        </div>
-
-                        {test.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {test.tags.slice(0, 2).map((tag, index) => (
-                              <span
-                                key={`${tag}-${index}`}
-                                className="rounded-md bg-gray-100 px-2 py-1 text-[10px] text-gray-600 dark:bg-slate-700 dark:text-gray-300"
-                              >
-                                #{tag}
-                              </span>
-                            ))}
+                        <div className="space-y-3 p-4">
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold ${
+                              test.settings?.isPublic
+                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+                                : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300'
+                            }`}>
+                              {test.settings?.isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
+                              {test.settings?.isPublic ? 'Публичный' : 'Приватный'}
+                            </span>
+                            <span className="font-mono text-[10px] font-bold text-gray-400">
+                              {test.questions.length} {t('questions')}
+                            </span>
                           </div>
-                        )}
+                          <div>
+                            <h4 className="line-clamp-1 text-sm font-bold text-dark">
+                              {coverPreviewTitle}
+                            </h4>
+                            <p className="mt-1 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
+                              {coverPreviewDescription}
+                            </p>
+                          </div>
+                          {test.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {test.tags.slice(0, 2).map((tag, index) => (
+                                <span
+                                  key={`${tag}-${index}`}
+                                  className="rounded-md bg-gray-100 px-2 py-1 text-[10px] text-gray-600 dark:bg-slate-700 dark:text-gray-300"
+                                >
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-
-                    <div className="rounded-2xl border border-gray-200/80 bg-gray-50/80 px-4 py-3 text-[11px] text-gray-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-gray-400">
-                      Двигай изображение мышкой или пальцем в редакторе. Масштаб помогает убрать пустые поля и подобрать правильный кадр.
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 rounded-2xl border border-gray-200/80 bg-gray-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-16 w-28 overflow-hidden rounded-xl border border-white/60 shadow-sm dark:border-slate-700">
-                      <TestCoverArtwork
-                        coverImage={test.coverImage}
-                        title={coverPreviewTitle}
-                        showPlaceholderCaption={false}
-                        imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/12 via-slate-950/4 to-transparent dark:from-black/18"
-                        className="h-full w-full"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-dark">
-                        {coverPreviewTitle}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Баннер сохранён. При необходимости можно снова открыть блок и заменить изображение.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowCoverPanel(true)}
-                      className="inline-flex items-center rounded-xl bg-white px-3 py-2 text-xs font-semibold text-primary-600 shadow-sm transition hover:bg-primary-50 dark:bg-slate-900 dark:text-primary-300 dark:hover:bg-slate-800"
-                    >
-                      Показать
-                    </button>
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
 
           {/* Mobile Quick Actions */}
           {!hasAIAccess && (
-            <div className="lg:hidden mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+            <div className="lg:hidden mb-3 rounded-xl border-2 border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
               AI-функции недоступны для этого аккаунта. Обратитесь к администратору за доступом.
             </div>
           )}
-          <div className="lg:hidden flex gap-2 mb-4 overflow-x-auto pb-2">
-            <button onClick={loadBankQuestions} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
+          <div className="lg:hidden mb-4 flex gap-2 overflow-x-auto pb-2 [&>*]:min-w-0">
+            <button
+              onClick={loadBankQuestions}
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
+              style={{ boxShadow: '0 2px 0 #cbd5e1' }}
+            >
               <Database size={12} /> {t('fromQuestionBank')}
             </button>
-            <button onClick={() => setShowImportModal(true)} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
+              style={{ boxShadow: '0 2px 0 #cbd5e1' }}
+            >
               <FileSpreadsheet size={12} /> {t('importCSV')}
             </button>
-            <button onClick={() => checkAIAccess(() => setShowAIModal(true))} className={`btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap ${
-              hasAIAccess
-                ? 'text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
-                : 'text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-            }`}>
+            <button
+              onClick={() => checkAIAccess(() => setShowAIModal(true))}
+              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 px-3 py-1.5 text-[11px] font-bold transition-transform active:translate-y-[2px] ${
+                hasAIAccess
+                  ? 'border-purple-600 bg-white text-purple-600 dark:bg-slate-800 dark:text-purple-300'
+                  : 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-900/10 dark:text-amber-300'
+              }`}
+              style={{ boxShadow: hasAIAccess ? '0 2px 0 #c084fc' : '0 2px 0 #fcd34d' }}
+            >
               <Sparkles size={12} /> {t('aiGenerate') || 'AI Generate'}
             </button>
             <button
               onClick={() => checkAIAccess(toggleBulkTranslateMode)}
               disabled={isBulkTranslating}
-              className={`btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap ${
+              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 px-3 py-1.5 text-[11px] font-bold transition-transform active:translate-y-[2px] disabled:opacity-50 ${
                 bulkTranslateMode
-                  ? 'text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                  ? 'border-emerald-600 bg-emerald-50 text-emerald-600 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
                   : hasAIAccess
-                    ? 'text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
-                    : 'text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-              } disabled:opacity-50`}
+                    ? 'border-indigo-600 bg-white text-indigo-600 dark:bg-slate-800 dark:text-indigo-300'
+                    : 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-900/10 dark:text-amber-300'
+              }`}
+              style={{ boxShadow: bulkTranslateMode ? '0 2px 0 #6ee7b7' : hasAIAccess ? '0 2px 0 #818cf8' : '0 2px 0 #fcd34d' }}
             >
               <Globe size={12} /> {t('aiTranslateSelected') || 'AI translate selected'}
             </button>
-            <button onClick={saveToBank} className="btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs whitespace-nowrap">
+            <button
+              onClick={saveToBank}
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
+              style={{ boxShadow: '0 2px 0 #cbd5e1' }}
+            >
               <Save size={12} /> {t('saveToBank')}
             </button>
           </div>
@@ -2525,23 +2645,21 @@ export default function CreateTest() {
 
               <button
                 onClick={() => setShowAddMenu(!showAddMenu)}
-                className="w-full btn-primary flex items-center justify-center gap-2 py-3 text-sm shadow-xl"
+                className="chunky-btn-primary flex w-full items-center justify-center gap-2 py-3 text-sm"
               >
                 <Plus size={18} />
                 {t('addQuestion')}
               </button>
 
               {/* Bottom save button */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full btn-primary flex items-center justify-center gap-2 py-3 text-sm mt-3 bg-emerald-600 hover:bg-emerald-700 shadow-xl"
+                className="chunky-btn-success mt-3 flex w-full items-center justify-center gap-2 py-3 text-sm"
               >
                 {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={16} />}
                 {editId ? t('updateTest') : t('saveTest')}
-              </motion.button>
+              </button>
             </div>
           </div>
         </div>
