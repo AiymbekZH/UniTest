@@ -1245,15 +1245,15 @@ export default function CreateTest() {
   const totalPoints = test.questions.reduce((s, q) => s + (q.points || 0), 0);
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-surface">
+    <div className="min-h-screen bg-surface">
       
       <Navbar />
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-start">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row">
         {/* Left Sidebar: Question Navigator */}
-        <div className="hidden lg:block w-64 flex-shrink-0 self-start">
-          <div className="sticky top-20 space-y-3">
-            <div className="chunky-card p-4">
+        <div className="hidden lg:block w-64 flex-shrink-0">
+          <div className="space-y-3">
+            <div className="chunky-card p-4 sticky top-20">
               <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
                 {t('navigation')}
               </h3>
@@ -1805,7 +1805,7 @@ export default function CreateTest() {
 
             {test.coverImage ? (
               /* === IMAGE PRESENT — chunky preview + toolbar === */
-              <div className="space-y-3">
+              <div className="mx-auto w-full max-w-2xl space-y-3">
                 <div
                   className="relative overflow-hidden rounded-2xl border-2 border-slate-900 bg-slate-100 dark:border-white dark:bg-slate-900"
                   style={{ aspectRatio: '16 / 9', boxShadow: '0 4px 0 #0f172a' }}
@@ -1865,7 +1865,7 @@ export default function CreateTest() {
             ) : (
               /* === NO IMAGE — clean dropzone === */
               <label
-                className={`group relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed text-center transition-colors ${
+                className={`group relative mx-auto flex w-full max-w-2xl cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed text-center transition-colors ${
                   coverDragActive
                     ? 'border-primary-500 bg-primary-50/60 dark:bg-primary-900/15'
                     : 'border-slate-300 bg-slate-50/70 hover:border-slate-400 hover:bg-slate-100/70 dark:border-slate-600 dark:bg-slate-800/40 dark:hover:bg-slate-800'
@@ -1999,24 +1999,24 @@ export default function CreateTest() {
               AI-функции недоступны для этого аккаунта. Обратитесь к администратору за доступом.
             </div>
           )}
-          <div className="lg:hidden mb-4 flex gap-2 overflow-x-auto pb-2 [&>*]:min-w-0">
+          <div className="lg:hidden mb-4 flex gap-2 overflow-x-auto pb-2">
             <button
               onClick={loadBankQuestions}
-              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
+              className="inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
               style={{ boxShadow: '0 2px 0 #cbd5e1' }}
             >
               <Database size={12} /> {t('fromQuestionBank')}
             </button>
             <button
               onClick={() => setShowImportModal(true)}
-              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
+              className="inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
               style={{ boxShadow: '0 2px 0 #cbd5e1' }}
             >
               <FileSpreadsheet size={12} /> {t('importCSV')}
             </button>
             <button
               onClick={() => checkAIAccess(() => setShowAIModal(true))}
-              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 px-3 py-1.5 text-[11px] font-bold transition-transform active:translate-y-[2px] ${
+              className={`inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 px-3 py-1.5 text-[11px] font-bold transition-transform active:translate-y-[2px] ${
                 hasAIAccess
                   ? 'border-purple-600 bg-white text-purple-600 dark:bg-slate-800 dark:text-purple-300'
                   : 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-900/10 dark:text-amber-300'
@@ -2028,7 +2028,7 @@ export default function CreateTest() {
             <button
               onClick={() => checkAIAccess(toggleBulkTranslateMode)}
               disabled={isBulkTranslating}
-              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 px-3 py-1.5 text-[11px] font-bold transition-transform active:translate-y-[2px] disabled:opacity-50 ${
+              className={`inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 px-3 py-1.5 text-[11px] font-bold transition-transform active:translate-y-[2px] disabled:opacity-50 ${
                 bulkTranslateMode
                   ? 'border-emerald-600 bg-emerald-50 text-emerald-600 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
                   : hasAIAccess
@@ -2041,7 +2041,7 @@ export default function CreateTest() {
             </button>
             <button
               onClick={saveToBank}
-              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
+              className="inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition-transform active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
               style={{ boxShadow: '0 2px 0 #cbd5e1' }}
             >
               <Save size={12} /> {t('saveToBank')}
