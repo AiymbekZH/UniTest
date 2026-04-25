@@ -1252,8 +1252,8 @@ export default function CreateTest() {
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row">
         {/* Left Sidebar: Question Navigator */}
         <div className="hidden lg:block w-64 flex-shrink-0">
-          <div className="space-y-3">
-            <div className="chunky-card p-4 sticky top-20">
+          {/* Nav card sticky directly inside tall flex item (parent must be tall enough for sticky range) */}
+          <div className="chunky-card p-4 sticky top-20">
               <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
                 {t('navigation')}
               </h3>
@@ -1311,7 +1311,7 @@ export default function CreateTest() {
               </div>
             </div>
 
-            <div className="chunky-card p-3 space-y-1.5">
+            <div className="chunky-card p-3 mt-3 space-y-1.5">
               {!hasAIAccess && (
                 <div className="rounded-lg border-2 border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
                   AI-функции закрыты. Доступ выдаётся администратором.
@@ -1359,7 +1359,6 @@ export default function CreateTest() {
                 <Save size={14} /> {t('saveToBank')}
               </button>
             </div>
-          </div>
         </div>
 
         {/* Main Content */}
