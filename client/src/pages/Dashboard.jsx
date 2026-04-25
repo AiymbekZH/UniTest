@@ -34,6 +34,7 @@ import Pagination from '../components/Pagination';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AnimatedHero from '../components/AnimatedHero';
 import TestCoverArtwork from '../components/TestCoverArtwork';
+import AnimatedFlame from '../components/AnimatedFlame';
 // (AnimatedIcon / BrandLogo removed — using raw Lucide icons for minimalism)
 
 const ACTIVE_SESSION_TTL_MS = 5 * 60 * 1000;
@@ -454,20 +455,28 @@ function DashboardTabButton({ label, tabKey, active, onClick }) {
   );
 }
 
-function SummaryMetric({ icon: Icon, label, value, tone = 'primary' }) {
+function SummaryMetric({ icon: Icon, label, value, tone = 'primary', flameStreak }) {
   const toneColors = {
     primary: 'text-primary-500',
     amber: 'text-amber-500',
     emerald: 'text-emerald-500',
     blue: 'text-primary-500'
   };
+  const animateFlame = typeof flameStreak === 'number';
+  const iconColor = toneColors[tone] || toneColors.primary;
 
   return (
     <div
       className="rounded-2xl border-2 border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 sm:p-5"
       style={{ boxShadow: '0 4px 0 #e2e8f0' }}
     >
-      <Icon size={16} className={`mb-3 ${toneColors[tone] || toneColors.primary}`} />
+      {animateFlame ? (
+        <span className={`mb-3 inline-block ${iconColor}`}>
+          <AnimatedFlame streak={flameStreak} size={16} />
+        </span>
+      ) : (
+        <Icon size={16} className={`mb-3 ${iconColor}`} />
+      )}
       <p className="font-mono text-2xl font-black tracking-tight text-dark">{value}</p>
       <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">{label}</p>
     </div>
@@ -672,9 +681,9 @@ export default function Dashboard() {
   const dailyCountdownLabel = dailyCountdownMs === 0 ? copy.resetNow : formatCountdown(dailyCountdownMs || 0);
 
   const homeCards = isAuthenticated ? (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-4 lg:grid-cols-3">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-3 [&>*]:min-w-0 sm:gap-4 lg:grid-cols-3">
       {/* Main card — continue session or latest result */}
-      <div className="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+      <div className="lg:col-span-2 chunky-card p-3 sm:p-5 lg:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
           {continueSession ? copy.continueTitle : copy.latestResultTitle}
         </p>
@@ -704,7 +713,7 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => navigate(`/test/${continueSession.shareLink}`)}
-              className="btn-primary mt-5 inline-flex items-center gap-2 text-sm"
+              className="chunky-btn-primary mt-5 inline-flex items-center gap-2 text-xs sm:text-sm"
             >
               {copy.continueButton}
               <ArrowRight size={14} />
@@ -726,13 +735,13 @@ export default function Dashboard() {
                 <p className="text-[10px] text-gray-400">{copy.timeLabel}</p>
               </div>
             </div>
-            <button type="button" onClick={() => navigate(`/result/${recentResult._id}`)} className="btn-secondary mt-5 inline-flex items-center gap-2 text-sm">
+            <button type="button" onClick={() => navigate(`/result/${recentResult._id}`)} className="chunky-btn-ghost mt-5 inline-flex items-center gap-2 text-xs sm:text-sm">
               {copy.openResult}
               <ArrowRight size={14} />
             </button>
           </>
         ) : (
-          <button type="button" onClick={() => navigate('/my-tests')} className="btn-secondary mt-5 inline-flex items-center gap-2 text-sm">
+          <button type="button" onClick={() => navigate('/my-tests')} className="chunky-btn-ghost mt-5 inline-flex items-center gap-2 text-xs sm:text-sm">
             {copy.createFirstChallenge}
             <ArrowRight size={14} />
           </button>
@@ -742,7 +751,7 @@ export default function Dashboard() {
       {/* Right column */}
       <div className="flex flex-col gap-4">
         {/* Daily challenge mini */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800">
+        <div className="chunky-card p-3 sm:p-5">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
             <CalendarDays size={12} />
             {copy.quickChallengeTitle}
@@ -770,7 +779,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick stats */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800">
+        <div className="chunky-card p-3 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">{copy.quickStats}</p>
           <div className="mt-3 space-y-3">
             <div className="flex items-center justify-between">
@@ -778,7 +787,7 @@ export default function Dashboard() {
               <span className="text-sm font-bold text-dark">{progressData?.progress?.xp || 0}</span>
             </div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-gray-500"><Flame size={14} className="text-amber-500" /> {copy.currentStreak}</div>
+              <div className="flex items-center gap-2 text-sm text-gray-500"><span className="text-amber-500"><AnimatedFlame streak={progressData?.progress?.currentStreakDays || 0} size={14} /></span> {copy.currentStreak}</div>
               <span className="text-sm font-bold text-dark">{progressData?.progress?.currentStreakDays || 0}</span>
             </div>
             <div className="flex items-center justify-between">
@@ -792,9 +801,9 @@ export default function Dashboard() {
   ) : null;
 
   const challengeCards = isAuthenticated ? (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-4 lg:grid-cols-2">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-3 [&>*]:min-w-0 sm:gap-4 lg:grid-cols-2">
       {/* Daily challenge */}
-      <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+      <div className="chunky-card p-3 sm:p-5 lg:p-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
           <CalendarDays size={12} />
           {copy.dailyChallenge}
@@ -829,12 +838,12 @@ export default function Dashboard() {
                   {dailyChallenge.rewardClaimed ? copy.doneLabel : copy.rewardReady}
                 </span>
               ) : (
-                <button type="button" onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)} className="btn-primary inline-flex items-center gap-2 text-sm">
+                <button type="button" onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)} className="chunky-btn-primary inline-flex items-center gap-2 text-xs sm:text-sm">
                   <Play size={13} />
                   {copy.startChallenge}
                 </button>
               )}
-              <button type="button" onClick={() => navigate(`/test-profile/${dailyChallenge.test.shareLink}`)} className="btn-secondary inline-flex items-center gap-2 text-sm">
+              <button type="button" onClick={() => navigate(`/test-profile/${dailyChallenge.test.shareLink}`)} className="chunky-btn-ghost inline-flex items-center gap-2 text-xs sm:text-sm">
                 {copy.exploreTests}
                 <ArrowRight size={14} />
               </button>
@@ -846,7 +855,7 @@ export default function Dashboard() {
       </div>
 
       {/* Weekly sprint */}
-      <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+      <div className="chunky-card p-3 sm:p-5 lg:p-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
           <Dumbbell size={12} />
           {copy.weeklySprint}
@@ -909,9 +918,9 @@ export default function Dashboard() {
   ) : null;
 
   const progressCards = isAuthenticated ? (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-3 [&>*]:min-w-0 sm:gap-4 lg:grid-cols-[1.15fr_0.85fr]">
       {/* Progress detail */}
-      <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+      <div className="chunky-card p-3 sm:p-5 lg:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">{copy.progressTitle}</p>
         <h3 className="mt-2 text-lg font-semibold text-dark">{copy.progressDesc}</h3>
 
@@ -937,8 +946,8 @@ export default function Dashboard() {
             </div>
 
             {/* Metrics */}
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <SummaryMetric icon={Flame} label={copy.currentStreak} value={progressData?.progress?.currentStreakDays || 0} tone="amber" />
+            <div className="mt-4 grid gap-3 [&>*]:min-w-0 sm:grid-cols-3">
+              <SummaryMetric icon={Flame} label={copy.currentStreak} value={progressData?.progress?.currentStreakDays || 0} tone="amber" flameStreak={progressData?.progress?.currentStreakDays || 0} />
               <SummaryMetric icon={Medal} label={copy.completedExams} value={progressData?.progress?.stats?.totalCompleted || 0} tone="emerald" />
               <SummaryMetric icon={Crown} label={copy.perfectScores} value={progressData?.progress?.stats?.perfectScores || 0} tone="blue" />
             </div>
@@ -969,7 +978,7 @@ export default function Dashboard() {
             {/* 7-day activity */}
             <div className="mt-5">
               <p className="text-xs font-semibold text-dark">{copy.activity7d}</p>
-              <div className="mt-2.5 grid grid-cols-7 gap-1.5">
+              <div className="mt-2.5 grid grid-cols-7 gap-1.5 [&>*]:min-w-0">
                 {(progressData?.weeklyActivity || []).map((entry) => (
                   <div key={entry.dayKey} className="flex flex-col items-center gap-1">
                     <div className="flex h-12 w-full items-end justify-center">
@@ -989,7 +998,7 @@ export default function Dashboard() {
       </div>
 
       {/* Leaderboard */}
-      <div className="rounded-2xl border border-gray-100 bg-white p-6 dark:border-slate-700/60 dark:bg-slate-800">
+      <div className="chunky-card p-3 sm:p-5 lg:p-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
           <Trophy size={12} />
           {copy.topLearners}
@@ -1089,9 +1098,9 @@ export default function Dashboard() {
 
       {/* Test grid */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 [&>*]:min-w-0 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((index) => (
-            <div key={index} className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800">
+            <div key={index} className="chunky-card p-3 sm:p-5">
               <div className="mb-4 h-36 animate-pulse rounded-xl bg-gray-100 dark:bg-slate-700" />
               <div className="mb-2.5 h-4 w-2/3 animate-pulse rounded bg-gray-100 dark:bg-slate-700" />
               <div className="mb-2 h-3 w-full animate-pulse rounded bg-gray-50 dark:bg-slate-700/50" />
@@ -1106,12 +1115,12 @@ export default function Dashboard() {
           </div>
           <h3 className="text-base font-semibold text-dark">{t('noTests')}</h3>
           <p className="mt-1 text-sm text-gray-400">{t('createFirst')}</p>
-          <button type="button" onClick={() => navigate('/create-test')} className="btn-primary mt-5 text-sm">
+          <button type="button" onClick={() => navigate('/create-test')} className="chunky-btn-primary mt-5 text-xs sm:text-sm">
             {t('createTest')}
           </button>
         </div>
       ) : (
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 gap-4 [&>*]:min-w-0 sm:grid-cols-2 lg:grid-cols-3">
           {tests.map((test) => {
             const isCreator = (test.creator?._id || test.creator?.id) === currentUserId;
             return (
@@ -1119,7 +1128,8 @@ export default function Dashboard() {
                 key={test._id}
                 variants={cardVariants}
                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
-                className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-slate-700/60 dark:bg-slate-800"
+                className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border-2 border-slate-900 bg-white transition active:translate-y-[1px] dark:border-white dark:bg-slate-900"
+                style={{ boxShadow: '0 4px 0 #0f172a' }}
               >
                 <TestCoverArtwork
                   coverImage={test.coverImage}
@@ -1309,7 +1319,7 @@ export default function Dashboard() {
         variant="danger"
       />
 
-      <main className="mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-6xl px-3 pb-12 pt-4 sm:px-6 sm:pt-6 lg:px-8">
         {/* Premium animated hero */}
         <AnimatedHero
           preset="aurora"
@@ -1322,7 +1332,7 @@ export default function Dashboard() {
             isAuthenticated
               ? [
                   { icon: <Crown size={14} />, label: copy.levelShort, value: progressData?.progress?.level || 1 },
-                  { icon: <Flame size={14} />, label: 'Streak', value: progressData?.progress?.currentStreakDays || 0 },
+                  { icon: <AnimatedFlame streak={progressData?.progress?.currentStreakDays || 0} size={14} />, label: 'Streak', value: progressData?.progress?.currentStreakDays || 0 },
                   { icon: <Trophy size={14} />, label: 'XP', value: progressData?.progress?.xp || 0 }
                 ]
               : undefined
@@ -1330,19 +1340,19 @@ export default function Dashboard() {
           actions={
             isAuthenticated ? (
               <>
-                <button type="button" onClick={() => navigate('/create-test')} className="btn-primary inline-flex items-center gap-2 text-sm">
+                <button type="button" onClick={() => navigate('/create-test')} className="chunky-btn-primary inline-flex items-center gap-2 text-xs sm:text-sm">
                   <Plus size={15} /> {t('createTest')}
                 </button>
-                <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2 text-sm">
+                <button type="button" onClick={() => setActiveTab('explore')} className="chunky-btn-ghost inline-flex items-center gap-2 text-xs sm:text-sm">
                   <Search size={15} /> {copy.exploreTests}
                 </button>
               </>
             ) : (
               <>
-                <button type="button" onClick={() => navigate('/register')} className="btn-primary inline-flex items-center gap-2 text-sm">
+                <button type="button" onClick={() => navigate('/register')} className="chunky-btn-primary inline-flex items-center gap-2 text-xs sm:text-sm">
                   <Plus size={15} /> {copy.guestCta}
                 </button>
-                <button type="button" onClick={() => setActiveTab('explore')} className="btn-secondary inline-flex items-center gap-2 text-sm">
+                <button type="button" onClick={() => setActiveTab('explore')} className="chunky-btn-ghost inline-flex items-center gap-2 text-xs sm:text-sm">
                   <Play size={15} /> {copy.exploreTests}
                 </button>
               </>
@@ -1351,8 +1361,8 @@ export default function Dashboard() {
         />
 
         {/* Tab bar - chunky pills */}
-        <div className="mt-6 -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+        <div className="mt-6">
+          <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar [&>*]:min-w-0">
             {availableTabs.map((tabKey) => (
               <DashboardTabButton
                 key={tabKey}

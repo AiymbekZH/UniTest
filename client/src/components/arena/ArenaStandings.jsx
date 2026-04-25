@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, Flame, Medal, Trophy } from 'lucide-react';
+import AnimatedFlame from '../AnimatedFlame';
 
 function formatMs(ms = 0) {
   const seconds = Math.max(0, Math.round(ms / 1000));
@@ -133,13 +134,13 @@ export default function ArenaStandings({
                           animate={{ scale: 1 }}
                           className="inline-flex items-center gap-0.5 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-slate-900"
                         >
-                          <Flame size={10} /> x{currentStreak}
+                          <AnimatedFlame streak={currentStreak} size={10} /> x{currentStreak}
                         </motion.span>
                       )}
                     </div>
                     {!compact && (
                       <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-white/50">
-                        <span className="inline-flex items-center gap-1"><Flame size={12} className="text-amber-300" /> {participant.bestStreak || 0}</span>
+                        <span className="inline-flex items-center gap-1"><AnimatedFlame streak={participant.bestStreak || 0} size={12} className="text-amber-300" /> {participant.bestStreak || 0}</span>
                         <span>{formatMs(participant.totalResponseTimeMs)}</span>
                         {participant.lastAnswer && (
                           <motion.span

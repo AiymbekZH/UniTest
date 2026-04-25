@@ -47,6 +47,19 @@ const animateByPreset = {
       ease: 'easeInOut'
     }
   },
+  'flame-flicker-strong': {
+    animate: {
+      scale: [1, 1.14, 0.94, 1.18, 1],
+      y: [0, -3, 0, -4.5, 0],
+      rotate: [0, -5, 5, -2.5, 0],
+      opacity: [0.85, 1, 0.82, 1, 0.9]
+    },
+    transition: {
+      duration: 1.1,
+      repeat: Infinity,
+      ease: 'easeInOut'
+    }
+  },
   'bell-ring': {
     animate: {
       rotate: [0, 0, -12, 12, -8, 8, 0],

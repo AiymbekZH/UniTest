@@ -4,6 +4,7 @@ import { Bell, Check, CheckCheck, Trash2, MessageCircle, AlertTriangle, Flag, In
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import AnimatedFlame from './AnimatedFlame';
 
 const typeIcons = {
   comment_reply: { icon: MessageCircle, color: 'text-primary-500', bg: 'bg-primary-50 dark:bg-primary-900/30' },
@@ -155,7 +156,13 @@ export default function NotificationBell() {
                       }`}
                     >
                       <div className={`w-7 h-7 rounded-lg ${typeInfo.bg} flex items-center justify-center flex-shrink-0`}>
-                        <Icon size={13} className={typeInfo.color} />
+                        {n.type === 'streak_risk' ? (
+                          <span className={typeInfo.color}>
+                            <AnimatedFlame streak={4} size={13} />
+                          </span>
+                        ) : (
+                          <Icon size={13} className={typeInfo.color} />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-dark truncate">{n.title}</p>

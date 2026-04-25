@@ -22,7 +22,7 @@ export default function PublicOverviewTab({
       <div className="grid gap-3 grid-cols-2 [&>*]:min-w-0 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile icon={Sparkles} label={copy.level}          value={progress?.level || 1}                          tone="primary" />
         <StatTile icon={Trophy}   label={copy.xp}             value={progress?.xp || 0}                             tone="blue" />
-        <StatTile icon={Flame}    label={copy.currentStreak}  value={progress?.currentStreakDays || 0}              tone="amber" />
+        <StatTile icon={Flame}    label={copy.currentStreak}  value={progress?.currentStreakDays || 0}              tone="amber"   flameStreak={progress?.currentStreakDays || 0} />
         <StatTile icon={Medal}    label={copy.bestStreak}     value={progress?.longestStreakDays || 0}              tone="emerald" />
         <StatTile icon={Target}   label={copy.completedExams} value={progress?.stats?.totalCompleted || 0}          tone="blue" />
         <StatTile icon={Star}     label={copy.perfectScores}  value={progress?.stats?.perfectScores || 0}           tone="amber" />
