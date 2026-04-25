@@ -15,7 +15,7 @@ WebM with VP9 + alpha works in all modern browsers (Chrome, Firefox, Edge, Safar
 ffmpeg -i flame.mp4 -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 1M -auto-alt-ref 0 -an flame.webm
 ```
 
-### Case B: Source MP4 has SOLID BLACK background (most common)
+### Case B: Source MP4 has SOLID BLACK background
 Use `colorkey` filter to chroma-key out black:
 ```bash
 ffmpeg -i flame.mp4 -filter_complex "[0:v]colorkey=0x000000:0.30:0.10[ck]" -map "[ck]" -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 1M -auto-alt-ref 0 -an flame.webm
@@ -25,7 +25,23 @@ Tweak the `0.30` (similarity) and `0.10` (blend) thresholds if edges look harsh:
 - `0x000000:0.30:0.10` — black, moderate tolerance
 - `0x000000:0.40:0.20` — more aggressive (use if dark edges remain)
 
-### Case C: Green-screen MP4
+### Case C: Source MP4 has SOLID WHITE background
+Use `colorkey` filter — start with **low tolerance** because flames often have white-hot highlights:
+```bash
+ffmpeg -i flame.mp4 -filter_complex "[0:v]colorkey=0xFFFFFF:0.20:0.05[ck]" -map "[ck]" -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 1M -auto-alt-ref 0 -an flame.webm
+```
+
+Tweaks:
+- `0xFFFFFF:0.20:0.05` — safe default for flame with bright core
+- `0xFFFFFF:0.30:0.10` — more aggressive (raise if white halo remains around edges)
+- `0xFFFFFF:0.12:0.03` — minimal (lower if hot core becomes transparent)
+
+For softer edges, prefer `chromakey` (YUV-based, anti-aliased):
+```bash
+ffmpeg -i flame.mp4 -filter_complex "[0:v]chromakey=0xFFFFFF:0.15:0.10[ck]" -map "[ck]" -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 1M -auto-alt-ref 0 -an flame.webm
+```
+
+### Case D: Green-screen MP4
 ```bash
 ffmpeg -i flame.mp4 -filter_complex "[0:v]chromakey=0x00FF00:0.10:0.05[ck]" -map "[ck]" -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 1M -auto-alt-ref 0 -an flame.webm
 ```
