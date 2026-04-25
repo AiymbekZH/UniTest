@@ -295,45 +295,26 @@ export default function Profile() {
       ? t('teacher')
       : t('student');
 
-  // Compact hero footer: identity stats (id, followers, following, published)
+  // Hero footer: chunky stat tiles in 2x2 mobile / 4-col desktop
+  const tileCls = "min-w-0 rounded-xl border-2 border-slate-900 bg-white p-2.5 text-left transition active:translate-y-[1px] dark:border-white dark:bg-slate-800 sm:p-3";
+  const tileShadow = { boxShadow: '0 2px 0 #0f172a' };
   const heroFooter = (
-    <div className="grid grid-cols-2 gap-1.5 sm:gap-2 sm:grid-cols-4">
-      <button
-        type="button"
-        onClick={copyIdToClipboard}
-        className="flex items-center justify-between rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60 sm:rounded-2xl sm:px-3 sm:py-2.5"
-      >
-        <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.uniqueId}</p>
-          <p className="mt-0.5 truncate font-mono text-[11px] font-black text-dark sm:text-xs">{profileUser?.uniqueId || 'N/A'}</p>
-        </div>
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <button type="button" onClick={copyIdToClipboard} className={tileCls} style={tileShadow}>
+        <p className="truncate text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[10px]">{copy.uniqueId}</p>
+        <p className="mt-0.5 truncate font-mono text-xs font-black text-dark dark:text-white sm:text-sm">{profileUser?.uniqueId || 'N/A'}</p>
       </button>
-
-      <button
-        type="button"
-        onClick={() => setFollowListType('followers')}
-        className="rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60 sm:rounded-2xl sm:px-3 sm:py-2.5"
-      >
-        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.followers}</p>
-        <p className="mt-0.5 font-mono text-sm font-black text-dark sm:text-base">{followCounts.followersCount || 0}</p>
+      <button type="button" onClick={() => setFollowListType('followers')} className={tileCls} style={tileShadow}>
+        <p className="truncate text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[10px]">{copy.followers}</p>
+        <p className="mt-0.5 font-mono text-sm font-black text-dark dark:text-white sm:text-base">{followCounts.followersCount || 0}</p>
       </button>
-
-      <button
-        type="button"
-        onClick={() => setFollowListType('following')}
-        className="rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60 sm:rounded-2xl sm:px-3 sm:py-2.5"
-      >
-        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.following}</p>
-        <p className="mt-0.5 font-mono text-sm font-black text-dark sm:text-base">{followCounts.followingCount || 0}</p>
+      <button type="button" onClick={() => setFollowListType('following')} className={tileCls} style={tileShadow}>
+        <p className="truncate text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[10px]">{copy.following}</p>
+        <p className="mt-0.5 font-mono text-sm font-black text-dark dark:text-white sm:text-base">{followCounts.followingCount || 0}</p>
       </button>
-
-      <button
-        type="button"
-        onClick={() => navigate('/my-tests')}
-        className="rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:border-primary-300 dark:border-slate-700 dark:bg-slate-900/60 sm:rounded-2xl sm:px-3 sm:py-2.5"
-      >
-        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 sm:text-[10px]">{copy.publishedTests}</p>
-        <p className="mt-0.5 font-mono text-sm font-black text-dark sm:text-base">{creatorStats?.publicTestsCount || 0}</p>
+      <button type="button" onClick={() => navigate('/my-tests')} className={tileCls} style={tileShadow}>
+        <p className="truncate text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:text-[10px]">{copy.publishedTests}</p>
+        <p className="mt-0.5 font-mono text-sm font-black text-dark dark:text-white sm:text-base">{creatorStats?.publicTestsCount || 0}</p>
       </button>
     </div>
   );

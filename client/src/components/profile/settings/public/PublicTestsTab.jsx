@@ -11,7 +11,7 @@ export default function PublicTestsTab({ copy, t, publicTests }) {
         subtitle={copy.publicTestsSubtitle}
       />
 
-      <section className="chunky-card p-5 sm:p-6">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6">
         {publicTests.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">

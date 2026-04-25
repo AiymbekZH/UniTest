@@ -41,7 +41,7 @@ export default function AppearanceTab({
       />
 
       {/* Cover presets with live preview */}
-      <section className="chunky-card p-5 sm:p-6">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.choosePreset}</p>
 
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -74,7 +74,7 @@ export default function AppearanceTab({
       </section>
 
       {/* Language */}
-      <section className="chunky-card p-5 sm:p-6">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{t('language')}</p>
         <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
           {LANGUAGES.map((item) => {

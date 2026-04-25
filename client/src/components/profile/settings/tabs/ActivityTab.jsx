@@ -18,7 +18,7 @@ export default function ActivityTab({
       />
 
       {/* Warnings */}
-      <section className="chunky-card p-5 sm:p-6">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{t('warnings')}</p>
@@ -54,7 +54,7 @@ export default function ActivityTab({
       </section>
 
       {/* Badges full */}
-      <section className="chunky-card p-5 sm:p-6">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.badges}</p>
@@ -90,7 +90,7 @@ export default function ActivityTab({
       </section>
 
       {/* My comments */}
-      <section className="chunky-card p-5 sm:p-6">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.comments}</p>

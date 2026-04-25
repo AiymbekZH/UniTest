@@ -10,7 +10,7 @@ export default function PublicAchievementsTab({ copy, formattedBadges }) {
         subtitle={copy.publicAchievementsSubtitle}
       />
 
-      <section className="chunky-card p-5 sm:p-6">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6">
         <div className="flex items-center justify-between gap-3">
           <p className="font-mono text-2xl font-black text-dark">{formattedBadges.length}</p>
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300">

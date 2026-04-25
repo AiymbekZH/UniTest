@@ -40,7 +40,7 @@ export default function AccountTab({
       />
 
       {/* Identity card */}
-      <section className="chunky-card p-5 sm:p-6">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.uniqueId}</p>
         <div className="mt-2 flex items-center gap-3">
           <p className="font-mono text-base font-black tracking-tight text-dark">
@@ -59,7 +59,7 @@ export default function AccountTab({
       </section>
 
       {/* Username */}
-      <section className="chunky-card p-5 sm:p-6 space-y-4">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6 space-y-3 sm:space-y-4">
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">@username</label>
@@ -84,7 +84,7 @@ export default function AccountTab({
       </section>
 
       {/* Name fields */}
-      <section className="chunky-card p-5 sm:p-6 space-y-4">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6 space-y-3 sm:space-y-4">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
           {t('firstName')} · {t('lastName')}
         </p>
@@ -105,7 +105,7 @@ export default function AccountTab({
       </section>
 
       {/* Headline & bio */}
-      <section className="chunky-card p-5 sm:p-6 space-y-4">
+      <section className="chunky-card p-3 sm:p-5 lg:p-6 space-y-3 sm:space-y-4">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{copy.about}</p>
         <label className="block">
           <span className="mb-1.5 flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-slate-400">
@@ -126,7 +126,7 @@ export default function AccountTab({
             <span className="font-mono text-[10px] text-slate-400">{bio.length}/400</span>
           </span>
           <textarea
-            className="input-field min-h-[140px] resize-y py-3 text-sm"
+            className="input-field min-h-[100px] resize-y py-3 text-sm sm:min-h-[140px]"
             value={bio}
             maxLength={400}
             placeholder={copy.bioPlaceholder}
@@ -135,22 +135,21 @@ export default function AccountTab({
         </label>
       </section>
 
-      {/* Sticky save footer (mobile only) */}
+      {/* Sticky save footer (mobile only) — NO negative margins, bulletproof */}
       <div
-        className="lg:hidden sticky bottom-0 z-10 -mx-3 sm:-mx-6 px-3 sm:px-6 pt-3"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+        className="lg:hidden sticky bottom-2 z-10 pt-3"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        <div className="chunky-card p-3">
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving}
-            className="chunky-btn-primary inline-flex w-full items-center justify-center gap-2 text-sm"
-          >
-            <Save size={15} />
-            {saving ? '...' : copy.saveProfile}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 bg-primary-500 px-4 py-3 text-sm font-black text-white transition active:translate-y-[1px] disabled:opacity-50 dark:border-white"
+          style={{ boxShadow: '0 4px 0 #9a3412' }}
+        >
+          <Save size={15} />
+          {saving ? '...' : copy.saveProfile}
+        </button>
       </div>
     </div>
   );

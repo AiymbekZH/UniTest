@@ -115,25 +115,20 @@ export default function ProfileHeroBanner({
   const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.trim() || 'U';
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm dark:border-slate-700/60 dark:bg-slate-900/90">
-      <div className="relative h-[220px] sm:h-[280px] lg:h-[320px]">
+    <div className="overflow-hidden rounded-2xl border-2 border-slate-900 bg-white dark:border-white dark:bg-slate-900" style={{ boxShadow: '0 4px 0 #0f172a' }}>
+      {/* Cover Banner: shorter on mobile (Twitter-style) */}
+      <div className="relative h-28 sm:h-44 lg:h-52">
         {user?.coverImage ? (
-          <>
-            <img src={user.coverImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/10 via-slate-900/30 to-slate-950/85 sm:via-slate-900/15 sm:to-slate-950/70" />
-          </>
+          <img src={user.coverImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          <>
-            <PresetBackdrop preset={user?.coverPreset || 'aurora'} />
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/0 via-slate-900/35 to-slate-950/85 sm:via-slate-900/10 sm:to-slate-950/65" />
-          </>
+          <PresetBackdrop preset={user?.coverPreset || 'aurora'} />
         )}
 
         {editable && (
-          <div className="absolute right-3 top-3 z-20 flex flex-wrap items-center justify-end gap-1.5 sm:right-6 sm:top-6 sm:gap-2">
-            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-white/30 bg-white/90 px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-lg backdrop-blur-xl transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 sm:gap-2 sm:px-4 sm:py-2 sm:text-xs">
-              <ImagePlus size={12} className="sm:hidden" />
-              <ImagePlus size={14} className="hidden sm:block" />
+          <div className="absolute right-2 top-2 z-20 flex items-center gap-1.5 sm:right-3 sm:top-3 sm:gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1 rounded-full border-2 border-slate-900 bg-white px-2.5 py-1 text-[10px] font-black text-slate-900 active:translate-y-[1px] dark:border-white dark:bg-slate-900 dark:text-white sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs" style={{ boxShadow: '0 2px 0 #0f172a' }}>
+              <ImagePlus size={11} className="sm:hidden" />
+              <ImagePlus size={13} className="hidden sm:block" />
               <span className="hidden sm:inline">{user?.coverImage ? replaceBannerLabel : uploadBannerLabel}</span>
               <span className="sm:hidden">{user?.coverImage ? 'Заменить' : 'Баннер'}</span>
               <input type="file" accept="image/*" className="hidden" onChange={onBannerUpload} />
@@ -142,83 +137,93 @@ export default function ProfileHeroBanner({
               <button
                 type="button"
                 onClick={onBannerRemove}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/55 px-3 py-1.5 text-[11px] font-semibold text-white shadow-lg backdrop-blur-xl transition hover:bg-slate-950/70 sm:gap-2 sm:px-4 sm:py-2 sm:text-xs"
+                className="inline-flex items-center gap-1 rounded-full border-2 border-slate-900 bg-red-500 px-2.5 py-1 text-[10px] font-black text-white active:translate-y-[1px] dark:border-white sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs"
+                style={{ boxShadow: '0 2px 0 #7f1d1d' }}
+                aria-label={removeBannerLabel}
               >
-                <Trash2 size={12} className="sm:hidden" />
-                <Trash2 size={14} className="hidden sm:block" />
-                <span className="hidden sm:inline">{removeBannerLabel}</span>
+                <Trash2 size={11} className="sm:hidden" />
+                <Trash2 size={13} className="hidden sm:block" />
               </button>
             )}
           </div>
         )}
-
-        <div className="absolute inset-x-0 bottom-0 z-10 p-4 sm:p-6 lg:p-8">
-          <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex min-w-0 flex-col items-start gap-2.5 sm:flex-row sm:items-end sm:gap-5">
-              <div className="relative flex-shrink-0">
-                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-white text-lg font-bold text-primary-600 shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-primary-300 sm:h-24 sm:w-24 sm:text-2xl lg:h-28 lg:w-28 lg:text-3xl">
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    initials
-                  )}
-                </div>
-                {editable && (
-                  <label className="absolute -bottom-1.5 -right-1.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-2xl border border-white/40 bg-slate-950/75 text-white shadow-lg backdrop-blur-xl transition hover:bg-slate-950/90 sm:-bottom-2 sm:-right-2 sm:h-10 sm:w-10">
-                    <Camera size={14} className="sm:hidden" />
-                    <Camera size={16} className="hidden sm:block" />
-                    <input type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} />
-                  </label>
-                )}
-              </div>
-
-              <div className="min-w-0 pb-0.5 text-white">
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <h1 className="truncate text-lg font-bold tracking-tight drop-shadow-md sm:text-2xl lg:text-3xl">{title}</h1>
-                  {roleLabel && (
-                    <span className="inline-flex rounded-full border border-white/30 bg-slate-900/50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-sm backdrop-blur-xl sm:px-3 sm:py-1 sm:text-[11px]">
-                      {roleLabel}
-                    </span>
-                  )}
-                </div>
-                {user?.username ? (
-                  <p className="mt-0.5 inline-flex items-center text-xs font-black tracking-tight text-orange-200 drop-shadow-md sm:mt-1 sm:text-sm">
-                    @{user.username}
-                  </p>
-                ) : null}
-                {user?.headline ? (
-                  <p className="mt-1.5 max-w-3xl text-xs font-medium text-white drop-shadow-md line-clamp-2 sm:mt-2 sm:text-sm lg:text-base">{user.headline}</p>
-                ) : null}
-                {user?.bio ? (
-                  <p className="mt-1 max-w-3xl text-[11px] leading-4 text-white/85 drop-shadow-md line-clamp-1 sm:mt-1.5 sm:text-sm sm:leading-6 sm:line-clamp-2">{user.bio}</p>
-                ) : null}
-                {meta.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1.5 sm:mt-4 sm:gap-2">
-                    {meta.map((item) => (
-                      <div
-                        key={item.label}
-                        className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-slate-900/40 px-2 py-1 text-[10px] font-medium text-white shadow-sm backdrop-blur-xl sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs"
-                      >
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {actions ? (
-              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                {actions}
-              </div>
-            ) : null}
-          </div>
-        </div>
       </div>
 
+      {/* Body: avatar overlap + content (Twitter-style) */}
+      <div className="px-3 pb-3 pt-0 sm:px-5 sm:pb-5">
+        {/* Avatar row — overlap banner */}
+        <div className="flex items-end justify-between gap-3">
+          <div className="relative -mt-10 flex-shrink-0 sm:-mt-14">
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-xl font-black text-primary-600 dark:border-white dark:bg-slate-900 dark:text-primary-300 sm:h-28 sm:w-28 sm:text-3xl"
+              style={{ boxShadow: '0 4px 0 #0f172a' }}>
+              {user?.avatar ? (
+                <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
+            </div>
+            {editable && (
+              <label className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-slate-900 bg-primary-500 text-white active:translate-y-[1px] dark:border-white sm:h-9 sm:w-9" style={{ boxShadow: '0 3px 0 #9a3412' }}>
+                <Camera size={12} className="sm:hidden" />
+                <Camera size={15} className="hidden sm:block" />
+                <input type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} />
+              </label>
+            )}
+          </div>
+
+          {/* Actions appear next to avatar on tablet+; on mobile they wrap below */}
+          {actions ? (
+            <div className="hidden flex-wrap items-center justify-end gap-2 sm:flex">
+              {actions}
+            </div>
+          ) : null}
+        </div>
+
+        {/* Name + role + username + bio (always below avatar — Twitter-style) */}
+        <div className="mt-3 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <h1 className="break-words text-lg font-black tracking-tight text-dark dark:text-white sm:text-2xl">{title}</h1>
+            {roleLabel && (
+              <span className="inline-flex rounded-full border-2 border-slate-900 bg-primary-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-white dark:border-white sm:px-2.5 sm:py-1 sm:text-[10px]" style={{ boxShadow: '0 2px 0 #9a3412' }}>
+                {roleLabel}
+              </span>
+            )}
+          </div>
+          {user?.username ? (
+            <p className="mt-0.5 text-xs font-black text-primary-600 dark:text-primary-300 sm:text-sm">@{user.username}</p>
+          ) : null}
+          {user?.headline ? (
+            <p className="mt-1.5 break-words text-xs font-semibold text-slate-700 dark:text-slate-200 sm:text-sm">{user.headline}</p>
+          ) : null}
+          {user?.bio ? (
+            <p className="mt-1.5 break-words text-[11px] leading-5 text-slate-500 dark:text-slate-400 sm:text-sm sm:leading-6">{user.bio}</p>
+          ) : null}
+          {meta.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
+              {meta.map((item) => (
+                <div
+                  key={item.label}
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-[11px]"
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile actions: full-width row below content */}
+        {actions ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">
+            {actions}
+          </div>
+        ) : null}
+      </div>
+
+      {/* Footer (stat tiles) */}
       {footer ? (
-        <div className="border-t border-gray-100/90 bg-white/95 px-3 py-3 dark:border-slate-800 dark:bg-slate-950/85 sm:px-6 sm:py-4 lg:px-8">
+        <div className="border-t-2 border-slate-900 bg-slate-50 px-3 py-3 dark:border-white dark:bg-slate-950/40 sm:px-5 sm:py-4">
           {footer}
         </div>
       ) : null}
