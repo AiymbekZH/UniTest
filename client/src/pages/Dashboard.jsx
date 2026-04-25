@@ -445,9 +445,9 @@ function DashboardTabButton({ label, tabKey, active, onClick }) {
       className={`touch-target relative inline-flex items-center gap-1.5 whitespace-nowrap rounded-2xl border-2 px-3.5 py-2 text-[12px] font-black transition-transform active:translate-y-[2px] ${
         active
           ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900'
-          : 'border-slate-200 bg-white text-slate-500 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
+          : 'border-slate-900 bg-white text-slate-700 hover:text-slate-900 dark:border-white dark:bg-slate-800 dark:text-slate-300'
       }`}
-      style={active ? { boxShadow: '0 3px 0 #0f172a' } : undefined}
+      style={{ boxShadow: active ? '0 3px 0 #0f172a' : '0 3px 0 #cbd5e1' }}
     >
       <Icon size={14} />
       {label}

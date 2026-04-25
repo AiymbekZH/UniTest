@@ -387,37 +387,43 @@ export default function AnimatedHero({
           </div>
         )}
 
-        {/* Bottom: stats pills */}
+        {/* Bottom: stats pills (chunky) */}
         {Array.isArray(stats) && stats.length > 0 ? (
           <div className="flex flex-wrap gap-2 sm:gap-3">
-            {stats.map((stat, i) => (
-              <div
-                key={stat.label || i}
-                className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 backdrop-blur-xl ${
-                  preset === 'mesh' || preset === 'neon'
-                    ? 'border border-white/15 bg-white/10 text-white'
-                    : 'border border-white/70 bg-white/85 text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100'
-                }`}
-              >
-                {stat.icon ? (
-                  <span
-                    className={
-                      preset === 'mesh' || preset === 'neon'
-                        ? 'text-primary-300'
-                        : 'text-primary-500'
-                    }
-                  >
-                    {stat.icon}
-                  </span>
-                ) : null}
-                <div className="leading-tight">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest opacity-60">
-                    {stat.label}
-                  </p>
-                  <p className="text-sm font-bold">{stat.value}</p>
+            {stats.map((stat, i) => {
+              const isDark = preset === 'mesh' || preset === 'neon';
+              return (
+                <div
+                  key={stat.label || i}
+                  className={`inline-flex items-center gap-2 rounded-2xl border-2 px-3 py-2 sm:px-4 sm:py-2.5 ${
+                    isDark
+                      ? 'border-white bg-white/15 text-white backdrop-blur-xl'
+                      : 'border-slate-900 bg-white text-slate-900 dark:border-white dark:bg-slate-900 dark:text-slate-100'
+                  }`}
+                  style={{
+                    boxShadow: isDark
+                      ? '0 3px 0 rgba(255,255,255,0.35)'
+                      : '0 3px 0 #0f172a'
+                  }}
+                >
+                  {stat.icon ? (
+                    <span
+                      className={
+                        isDark ? 'text-primary-300' : 'text-primary-500'
+                      }
+                    >
+                      {stat.icon}
+                    </span>
+                  ) : null}
+                  <div className="leading-tight">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                      {stat.label}
+                    </p>
+                    <p className="font-mono text-sm font-black">{stat.value}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : null}
       </div>
