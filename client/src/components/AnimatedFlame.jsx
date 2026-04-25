@@ -37,6 +37,10 @@ const prefersReducedMotion =
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// Raster/video assets read visually smaller than stroke-based vector icons of the same px size,
+// so we upscale them to match the visual weight of the surrounding UI text.
+const RASTER_SIZE_MULTIPLIER = 1.6;
+
 export default function AnimatedFlame({ streak = 0, size = 14, className = '' }) {
   const videoRef = useRef(null);
 
@@ -53,6 +57,7 @@ export default function AnimatedFlame({ streak = 0, size = 14, className = '' })
 
   // Custom video asset present → render <video>
   if (videoSrc) {
+    const px = Math.round(size * RASTER_SIZE_MULTIPLIER);
     return (
       <video
         ref={videoRef}
@@ -63,20 +68,21 @@ export default function AnimatedFlame({ streak = 0, size = 14, className = '' })
         playsInline
         aria-hidden="true"
         className={`inline-block shrink-0 align-middle ${className}`}
-        style={{ width: size, height: size, objectFit: 'contain' }}
+        style={{ width: px, height: px, objectFit: 'contain' }}
       />
     );
   }
 
   // Custom GIF/WebP/APNG asset present → render <img>
   if (imageSrc) {
+    const px = Math.round(size * RASTER_SIZE_MULTIPLIER);
     return (
       <img
         src={imageSrc}
         alt=""
         aria-hidden="true"
         className={`inline-block shrink-0 align-middle ${className}`}
-        style={{ width: size, height: size, objectFit: 'contain' }}
+        style={{ width: px, height: px, objectFit: 'contain' }}
       />
     );
   }
