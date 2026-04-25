@@ -1252,8 +1252,8 @@ export default function CreateTest() {
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row">
         {/* Left Sidebar: Question Navigator */}
         <div className="hidden lg:block w-64 flex-shrink-0">
-          {/* Nav card sticky directly inside tall flex item (parent must be tall enough for sticky range) */}
-          <div className="chunky-card p-4 sticky top-20">
+          <div className="sticky top-20 space-y-3">
+          <div className="chunky-card p-4">
               <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white">
                 {t('navigation')}
               </h3>
@@ -1311,7 +1311,7 @@ export default function CreateTest() {
               </div>
             </div>
 
-            <div className="chunky-card p-3 mt-3 space-y-1.5">
+            <div className="chunky-card p-3 space-y-1.5">
               {!hasAIAccess && (
                 <div className="rounded-lg border-2 border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
                   AI-функции закрыты. Доступ выдаётся администратором.
@@ -1359,6 +1359,7 @@ export default function CreateTest() {
                 <Save size={14} /> {t('saveToBank')}
               </button>
             </div>
+          </div>
         </div>
 
         {/* Main Content */}
@@ -1864,7 +1865,7 @@ export default function CreateTest() {
             ) : (
               /* === NO IMAGE — clean dropzone === */
               <label
-                className={`group relative mx-auto flex w-full max-w-2xl cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed text-center transition-colors ${
+                className={`group relative mx-auto flex w-full max-w-xl cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed text-center transition-colors ${
                   coverDragActive
                     ? 'border-primary-500 bg-primary-50/60 dark:bg-primary-900/15'
                     : 'border-slate-300 bg-slate-50/70 hover:border-slate-400 hover:bg-slate-100/70 dark:border-slate-600 dark:bg-slate-800/40 dark:hover:bg-slate-800'
@@ -1891,17 +1892,17 @@ export default function CreateTest() {
                   onChange={handleCoverFileInput}
                 />
                 <div
-                  className={`pointer-events-none inline-flex h-16 w-16 items-center justify-center rounded-2xl border-2 transition-transform ${
+                  className={`pointer-events-none inline-flex h-12 w-12 items-center justify-center rounded-2xl border-2 transition-transform ${
                     coverDragActive
                       ? 'scale-110 border-primary-500 bg-white text-primary-600'
                       : 'border-slate-300 bg-white text-slate-400 group-hover:scale-105 group-hover:text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300'
                   }`}
                   style={{ boxShadow: '0 2px 0 #cbd5e1' }}
                 >
-                  <UploadCloud size={28} strokeWidth={2.2} />
+                  <UploadCloud size={22} strokeWidth={2.2} />
                 </div>
                 <div className="pointer-events-none px-4">
-                  <p className="text-base font-black text-slate-900 dark:text-white">
+                  <p className="text-sm font-black text-slate-900 dark:text-white">
                     {coverDragActive ? 'Отпусти изображение' : 'Перетащи изображение сюда'}
                   </p>
                   <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
