@@ -127,8 +127,21 @@ router.get('/', auth, async (req, res) => {
       ];
     }
     const skip = (parseInt(page) - 1) * parseInt(limit);
+    // PERF: list view (MyArenaTests) only needs entries.length — drop the heavy
+    // embedded payloads (each can carry 4-language translations + media).
+    // Project `entries._id` so length is preserved, skip populate, use .lean().
+    const projection = {
+      title: 1, description: 1, tags: 1, settings: 1,
+      isPublished: 1, lastUsedAt: 1, usageCount: 1,
+      createdAt: 1, updatedAt: 1,
+      'entries._id': 1
+    };
     const [tests, total] = await Promise.all([
-      ArenaTest.find(query).sort({ updatedAt: -1 }).skip(skip).limit(parseInt(limit)),
+      ArenaTest.find(query, projection)
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
       ArenaTest.countDocuments(query)
     ]);
     res.json({
