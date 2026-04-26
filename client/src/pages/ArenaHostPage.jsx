@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft, ArrowRight, BookOpen, Clock, Copy, Crown, Medal, Pause, Play, Plus,
-  Share2, Shield, ShieldCheck, SkipForward, Smartphone, Sparkles, Trophy, UserX, Users, XCircle
+  ArrowLeft, ArrowRight, BookOpen, Clock, Copy, Crown, Eye, Hash, Medal, Pause, Play, Plus,
+  QrCode, Share2, Shield, ShieldCheck, SkipForward, Smartphone, Sparkles, Trophy, Tv, UserX, Users, X, XCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -200,6 +200,86 @@ function CountdownRing({ secondsLeft, totalSeconds = 5 }) {
   );
 }
 
+function PinModal({ pin, joinDomain, onClose }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 grid cursor-pointer place-items-center arena-stage-bg p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Код входа"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-4 top-4 inline-flex h-11 items-center gap-2 rounded-2xl border-2 border-slate-900 bg-white px-3 text-sm font-black text-slate-900 dark:border-white dark:bg-slate-800 dark:text-white"
+        style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
+        aria-label="Закрыть"
+      >
+        <X size={16} strokeWidth={3} /> Esc
+      </button>
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+        className="text-center"
+      >
+        <p className="text-[12px] font-black uppercase tracking-[0.32em] text-primary-600 dark:text-primary-300 sm:text-sm">
+          Заходи на
+        </p>
+        <p className="mt-2 font-mono text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">{joinDomain}</p>
+        <p
+          className="mt-8 select-all font-mono font-black leading-none text-slate-900 dark:text-white"
+          style={{ fontSize: 'clamp(6rem, 24vmin, 18rem)', letterSpacing: '0.14em' }}
+        >
+          {pin}
+        </p>
+        <p className="mt-8 text-sm font-bold text-slate-500 dark:text-slate-400">Нажми в любом месте или ESC чтобы закрыть</p>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function QrModal({ url, domain, onClose }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 grid cursor-pointer place-items-center arena-stage-bg p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="QR-код для входа"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-4 top-4 inline-flex h-11 items-center gap-2 rounded-2xl border-2 border-slate-900 bg-white px-3 text-sm font-black text-slate-900 dark:border-white dark:bg-slate-800 dark:text-white"
+        style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
+        aria-label="Закрыть"
+      >
+        <X size={16} strokeWidth={3} /> Esc
+      </button>
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+        onClick={(e) => e.stopPropagation()}
+        className="flex cursor-default flex-col items-center gap-4 rounded-3xl border-2 border-slate-900 bg-white p-6 dark:border-white dark:bg-slate-900"
+        style={{ boxShadow: '0 8px 0 var(--shadow-chunky, #1f1a14)' }}
+      >
+        <p className="text-[11px] font-black uppercase tracking-[0.32em] text-slate-500 dark:text-slate-400 sm:text-xs">Сканируй камерой</p>
+        <ArenaJoinQR url={url} size={400} caption="" />
+        <p className="font-mono text-sm font-black text-slate-500 dark:text-slate-400">{domain}</p>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function PodiumCard({ rank, participant }) {
   const tone = rank === 1
     ? { card: 'bg-amber-400 text-slate-900 border-amber-600', shadow: '0 6px 0 #b45309', icon: Crown, label: '1 место', height: 'lg:h-72', delay: 0.1 }
@@ -263,6 +343,31 @@ export default function ArenaHostPage() {
   const [loading, setLoading] = useState(true);
   const [actionBusy, setActionBusy] = useState(false);
   const [timeLeftMs, setTimeLeftMs] = useState(0);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [isPresenting, setIsPresenting] = useState(false);
+
+  // ESC closes modals / exits present mode.
+  useEffect(() => {
+    if (!pinModalOpen && !qrModalOpen && !isPresenting) return undefined;
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        setPinModalOpen(false);
+        setQrModalOpen(false);
+        setIsPresenting(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [pinModalOpen, qrModalOpen, isPresenting]);
+
+  // Lock body scroll while a modal is open.
+  useEffect(() => {
+    if (!pinModalOpen && !qrModalOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [pinModalOpen, qrModalOpen]);
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -462,55 +567,91 @@ export default function ArenaHostPage() {
         </header>
 
         <main className="flex flex-1 flex-col gap-6">
-          {/* LOBBY — Broadcast Stage */}
+          {/* LOBBY */}
           {isLobby && (
             <>
-              {/* STAGE: bare PIN on left + chunky QR card on right */}
-              <section className="grid items-center gap-8 py-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-12 lg:py-8 [&>*]:min-w-0">
-                <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-                  <p className="text-[11px] font-black uppercase tracking-[0.32em] text-primary-600 dark:text-primary-300">
-                    Заходи на
-                  </p>
+              {isPresenting ? (
+                /* PRESENT MODE: full broadcast stage (PIN + QR for projector) */
+                <section className="grid items-center gap-8 py-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-12 lg:py-8 [&>*]:min-w-0">
+                  <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+                    <p className="text-[11px] font-black uppercase tracking-[0.32em] text-primary-600 dark:text-primary-300">
+                      Заходи на
+                    </p>
+                    <button
+                      type="button"
+                      onClick={copyJoinLink}
+                      className="mt-2 inline-flex items-center gap-2 font-mono text-2xl font-black tracking-tight text-slate-900 hover:opacity-70 dark:text-white sm:text-3xl"
+                      title="Скопировать ссылку"
+                    >
+                      <span>{joinDomain}</span>
+                      <Copy size={18} className="opacity-50" />
+                    </button>
+                    <p
+                      className="mt-6 select-all font-mono font-black leading-none text-slate-900 dark:text-white"
+                      style={{ fontSize: 'clamp(5rem, 18vmin, 14rem)', letterSpacing: '0.14em' }}
+                    >
+                      {room.joinCode}
+                    </p>
+                    <div className="mt-6 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+                      <button type="button" onClick={copyJoinLink} className="chunky-btn chunky-btn-ghost">
+                        <Copy size={15} /> Скопировать ссылку
+                      </button>
+                      <button type="button" onClick={shareJoinLink} className="chunky-btn chunky-btn-ghost">
+                        <Share2 size={15} /> Поделиться
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid place-items-center">
+                    <div
+                      className="flex flex-col items-center gap-3 rounded-3xl border-2 border-slate-900 bg-white p-5 dark:border-white dark:bg-slate-900"
+                      style={{ boxShadow: '0 8px 0 var(--shadow-chunky, #1f1a14)' }}
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-500 dark:text-slate-400">
+                        Сканируй камерой
+                      </p>
+                      <ArenaJoinQR url={joinUrl} size={280} caption="" />
+                      <p className="font-mono text-[11px] font-black tracking-tight text-slate-500 dark:text-slate-400">
+                        {joinDomain}/code/{room.joinCode}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              ) : (
+                /* COMPACT CODE BANNER: slim row with code chip + show-buttons */
+                <section
+                  className="flex flex-wrap items-center gap-2 rounded-3xl border-2 border-slate-900 bg-white px-3 py-3 dark:border-white dark:bg-slate-900 sm:gap-3 sm:px-4"
+                  style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
+                >
                   <button
                     type="button"
                     onClick={copyJoinLink}
-                    className="mt-2 inline-flex items-center gap-2 font-mono text-2xl font-black tracking-tight text-slate-900 hover:opacity-70 dark:text-white sm:text-3xl"
+                    className="inline-flex items-center gap-2 rounded-2xl border-2 border-primary-700 bg-primary-500 px-3 py-2 text-white transition-transform active:translate-y-[2px]"
+                    style={{ boxShadow: '0 3px 0 #9a3412' }}
                     title="Скопировать ссылку"
                   >
-                    <span>{joinDomain}</span>
-                    <Copy size={18} className="opacity-50" />
+                    <Hash size={15} strokeWidth={2.6} />
+                    <span className="text-[10px] font-black uppercase tracking-[0.22em] opacity-80">КОД</span>
+                    <span className="font-mono text-lg font-black tracking-[0.18em] sm:text-xl">{room.joinCode}</span>
+                    <Copy size={13} className="opacity-70" />
                   </button>
-                  <p
-                    className="mt-6 select-all font-mono font-black leading-none text-slate-900 dark:text-white"
-                    style={{ fontSize: 'clamp(5rem, 18vmin, 14rem)', letterSpacing: '0.14em' }}
-                  >
-                    {room.joinCode}
-                  </p>
-                  <div className="mt-6 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
-                    <button type="button" onClick={copyJoinLink} className="chunky-btn chunky-btn-ghost">
-                      <Copy size={15} /> Скопировать ссылку
-                    </button>
-                    <button type="button" onClick={shareJoinLink} className="chunky-btn chunky-btn-ghost">
-                      <Share2 size={15} /> Поделиться
-                    </button>
-                  </div>
-                </div>
 
-                <div className="grid place-items-center">
-                  <div
-                    className="flex flex-col items-center gap-3 rounded-3xl border-2 border-slate-900 bg-white p-5 dark:border-white dark:bg-slate-900"
-                    style={{ boxShadow: '0 8px 0 var(--shadow-chunky, #1f1a14)' }}
-                  >
-                    <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-500 dark:text-slate-400">
-                      Сканируй камерой
-                    </p>
-                    <ArenaJoinQR url={joinUrl} size={280} caption="" />
-                    <p className="font-mono text-[11px] font-black tracking-tight text-slate-500 dark:text-slate-400">
-                      {joinDomain}/code/{room.joinCode}
-                    </p>
+                  <div className="ml-auto flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={() => setPinModalOpen(true)} className="chunky-btn chunky-btn-ghost" title="Показать PIN на весь экран">
+                      <Eye size={15} /> <span className="hidden sm:inline">Показать PIN</span><span className="sm:hidden">PIN</span>
+                    </button>
+                    <button type="button" onClick={() => setQrModalOpen(true)} className="chunky-btn chunky-btn-ghost" title="Показать QR на весь экран">
+                      <QrCode size={15} /> <span className="hidden sm:inline">Показать QR</span><span className="sm:hidden">QR</span>
+                    </button>
+                    <button type="button" onClick={() => setIsPresenting(true)} className="chunky-btn chunky-btn-ghost" title="Перевести в режим презентации (проектор)">
+                      <Tv size={15} /> <span className="hidden md:inline">Презентация</span>
+                    </button>
+                    <button type="button" onClick={shareJoinLink} className="chunky-btn chunky-btn-ghost" title="Поделиться ссылкой">
+                      <Share2 size={15} /> <span className="hidden md:inline">Поделиться</span>
+                    </button>
                   </div>
-                </div>
-              </section>
+                </section>
+              )}
 
               {/* PLAYERS WALL */}
               <section
@@ -736,6 +877,39 @@ export default function ArenaHostPage() {
           )}
         </div>
       )}
+
+      {/* PRESENT-MODE EXIT BUTTON (floating top-right when projecting) */}
+      {isLobby && isPresenting && (
+        <button
+          type="button"
+          onClick={() => setIsPresenting(false)}
+          className="fixed right-4 top-20 z-40 inline-flex h-11 items-center gap-2 rounded-2xl border-2 border-slate-900 bg-white px-3 text-sm font-black text-slate-900 dark:border-white dark:bg-slate-800 dark:text-white"
+          style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
+          title="Вернуться к управлению"
+        >
+          <X size={16} strokeWidth={3} /> Закрыть презентацию
+        </button>
+      )}
+
+      {/* MODALS */}
+      <AnimatePresence>
+        {pinModalOpen && (
+          <PinModal
+            key="pin-modal"
+            pin={room.joinCode}
+            joinDomain={joinDomain}
+            onClose={() => setPinModalOpen(false)}
+          />
+        )}
+        {qrModalOpen && (
+          <QrModal
+            key="qr-modal"
+            url={joinUrl}
+            domain={`${joinDomain}/code/${room.joinCode}`}
+            onClose={() => setQrModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* COMMAND BAR — sticky bottom for final */}
       {isEndState && (
