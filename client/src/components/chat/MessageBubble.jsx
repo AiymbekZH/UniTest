@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import AudioPlayer from './AudioPlayer';
-import { Check, CheckCheck, Download, FileText, Pin, Reply, Trash2 } from 'lucide-react';
+import { Check, CheckCheck, Download, FileText, Pin, Reply, Smile, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
 const CHAT_COLORS = [
   '#f97316', '#ea580c', '#fb923c', '#10b981', '#f59e0b', '#ef4444',
@@ -38,8 +40,11 @@ export default function MessageBubble({
   roleColor,
   onPreviewMedia,
   isReadByOther,
+  onReact,
+  isHighlighted,
 }) {
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+  const [showReactPicker, setShowReactPicker] = useState(false);
   const [inviteState, setInviteState] = useState(message.meta?.duelStatus || '');
   const [inviteBusy, setInviteBusy] = useState(false);
   const navigate = useNavigate();
@@ -191,7 +196,10 @@ export default function MessageBubble({
   const availableDeleteOptions = deleteOptions || { self: false, everyone: false };
 
   return (
-    <div className={`group relative mb-2 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+    <div
+      data-msg-id={message._id}
+      className={`group relative mb-2 flex rounded-2xl transition-all duration-500 ${isOwn ? 'justify-end' : 'justify-start'} ${isHighlighted ? 'ring-4 ring-amber-300 ring-offset-2 ring-offset-transparent dark:ring-amber-500/60' : ''}`}
+    >
       {!isOwn && (
         <button
           type="button"
@@ -333,7 +341,64 @@ export default function MessageBubble({
           </div>
         </div>
 
-        <div className={`mt-1 flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${isOwn ? 'justify-end' : ''}`}>
+        {/* Reactions row */}
+        {Array.isArray(message.reactions) && message.reactions.length > 0 && (
+          <div className={`mt-1 flex flex-wrap gap-1 ${isOwn ? 'justify-end' : ''}`}>
+            {message.reactions.map((r) => {
+              const count = r.users?.length || 0;
+              if (count === 0) return null;
+              const isMine = r.users?.some(u => String(u?._id || u) === String(currentUserId));
+              return (
+                <button
+                  key={r.emoji}
+                  type="button"
+                  onClick={() => onReact?.(message, r.emoji)}
+                  className={`inline-flex items-center gap-1 rounded-full border-2 px-2 py-0.5 text-[11px] font-bold transition active:translate-y-[1px] ${
+                    isMine
+                      ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-900/30 dark:text-primary-200'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                  }`}
+                >
+                  <span className="text-sm leading-none">{r.emoji}</span>
+                  <span>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className={`relative mt-1 flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${isOwn ? 'justify-end' : ''}`}>
+          {onReact && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowReactPicker(prev => !prev)}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-slate-200 bg-white text-slate-500 transition hover:border-amber-300 hover:text-amber-600 active:translate-y-[1px] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-amber-400"
+                aria-label="Реакция"
+                title="Добавить реакцию"
+              >
+                <Smile size={12} strokeWidth={2.4} />
+              </button>
+              {showReactPicker && (
+                <div
+                  className={`absolute z-30 mb-1 flex gap-0.5 rounded-full border-2 border-slate-900 bg-white p-1 dark:border-white dark:bg-slate-800 ${isOwn ? 'right-0 bottom-full' : 'left-0 bottom-full'}`}
+                  style={{ boxShadow: '0 3px 0 #0f172a' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {QUICK_REACTIONS.map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => { onReact(message, emoji); setShowReactPicker(false); }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-base transition hover:scale-125 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <button
             type="button"
             onClick={() => onReply?.(message)}

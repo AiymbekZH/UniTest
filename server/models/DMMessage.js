@@ -26,6 +26,10 @@ const dmMessageSchema = new mongoose.Schema({
   meta: { type: mongoose.Schema.Types.Mixed, default: {} },
   deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  reactions: [{
+    emoji: { type: String, required: true },
+    users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  }],
 }, { timestamps: true });
 
 dmMessageSchema.index({ conversation: 1, createdAt: -1 });

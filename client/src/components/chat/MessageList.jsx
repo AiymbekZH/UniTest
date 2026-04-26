@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 export default function MessageList({
   messages, currentUserId, onReply, onDelete, onPin,
   getDeleteOptions, canPin, onLoadMore, hasMore, loading,
-  getMemberRoleColor, otherUserId,
+  getMemberRoleColor, otherUserId, onReact, highlightMessageId,
 }) {
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
@@ -75,6 +75,8 @@ export default function MessageList({
             roleColor={getMemberRoleColor?.(msg.sender?._id)}
             onPreviewMedia={setMediaViewer}
             isReadByOther={isReadByOther}
+            onReact={onReact}
+            isHighlighted={highlightMessageId === msg._id}
           />
         );
       })}

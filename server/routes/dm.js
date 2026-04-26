@@ -109,14 +109,63 @@ router.get('/conversations', auth, async (req, res) => {
         ? conv.lastMessage
         : await findVisibleConversationMessage(conv._id, req.user._id);
 
-      return { ...conv.toJSON(), lastMessage: visibleLastMessage, unreadCount };
+      const userIdStr = req.user._id.toString();
+      const isPinned = (conv.pinnedBy || []).some(id => id.toString() === userIdStr);
+      const isMuted = (conv.mutedBy || []).some(id => id.toString() === userIdStr);
+      const isArchived = (conv.archivedBy || []).some(id => id.toString() === userIdStr);
+
+      return {
+        ...conv.toJSON(),
+        lastMessage: visibleLastMessage,
+        unreadCount,
+        isPinned,
+        isMuted,
+        isArchived,
+      };
     }));
+
+    // Sort: pinned first (preserve lastActivity order within each group)
+    result.sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+      return new Date(b.lastActivity) - new Date(a.lastActivity);
+    });
 
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка' });
   }
 });
+
+// ── Toggle pin / mute / archive ──
+async function toggleConversationFlag(req, res, field) {
+  try {
+    const conversation = await DirectMessage.findById(req.params.id);
+    if (!conversation) return res.status(404).json({ message: 'Диалог не найден' });
+
+    const userIdStr = req.user._id.toString();
+    const isParticipant = conversation.participants.some(p => p.toString() === userIdStr);
+    if (!isParticipant) return res.status(403).json({ message: 'Нет доступа' });
+
+    const list = conversation[field] || [];
+    const idx = list.findIndex(id => id.toString() === userIdStr);
+    if (idx >= 0) list.splice(idx, 1);
+    else list.push(req.user._id);
+
+    conversation[field] = list;
+    await conversation.save();
+
+    res.json({
+      ok: true,
+      [field === 'pinnedBy' ? 'isPinned' : field === 'mutedBy' ? 'isMuted' : 'isArchived']: idx < 0,
+    });
+  } catch (e) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+}
+
+router.patch('/conversations/:id/pin', auth, (req, res) => toggleConversationFlag(req, res, 'pinnedBy'));
+router.patch('/conversations/:id/mute', auth, (req, res) => toggleConversationFlag(req, res, 'mutedBy'));
+router.patch('/conversations/:id/archive', auth, (req, res) => toggleConversationFlag(req, res, 'archivedBy'));
 
 // ── Create or find conversation ──
 router.post('/conversations', auth, async (req, res) => {
@@ -182,6 +231,37 @@ router.get('/conversations/:id/messages', auth, async (req, res) => {
 
     res.json(messages.reverse());
   } catch (error) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
+// ── Search messages within a conversation ──
+router.get('/conversations/:id/search', auth, async (req, res) => {
+  try {
+    const conversation = await DirectMessage.findById(req.params.id);
+    if (!conversation) return res.status(404).json({ message: 'Диалог не найден' });
+
+    const isParticipant = conversation.participants.some(
+      p => p.toString() === req.user._id.toString()
+    );
+    if (!isParticipant) return res.status(403).json({ message: 'Нет доступа' });
+
+    const q = (req.query.q || '').trim();
+    if (q.length < 2) return res.json([]);
+
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const messages = await DMMessage.find({
+      conversation: req.params.id,
+      isDeleted: false,
+      deletedFor: { $ne: req.user._id },
+      text: { $regex: escaped, $options: 'i' },
+    })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .populate('sender', 'firstName lastName avatar uniqueId');
+
+    res.json(messages);
+  } catch (e) {
     res.status(500).json({ message: 'Ошибка' });
   }
 });

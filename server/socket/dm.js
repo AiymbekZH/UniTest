@@ -186,6 +186,59 @@ module.exports = function (io) {
       } catch (e) { /* ignore */ }
     });
 
+    // ── REACTION TOGGLE ──
+    socket.on('dm:reaction', async ({ conversationId, messageId, emoji }) => {
+      try {
+        if (!conversationId || !messageId || !emoji) return;
+        if (typeof emoji !== 'string' || emoji.length > 12) return;
+
+        const conversation = await DirectMessage.findById(conversationId);
+        if (!conversation) return;
+
+        const isParticipant = conversation.participants.some(
+          p => p.toString() === socket.user._id.toString()
+        );
+        if (!isParticipant) return;
+
+        const message = await DMMessage.findById(messageId);
+        if (!message || message.conversation.toString() !== conversationId) return;
+        if (message.isDeleted) return;
+
+        const userIdStr = socket.user._id.toString();
+        const reactions = message.reactions || [];
+        let entry = reactions.find(r => r.emoji === emoji);
+
+        if (!entry) {
+          entry = { emoji, users: [socket.user._id] };
+          reactions.push(entry);
+        } else {
+          const idx = entry.users.findIndex(u => u.toString() === userIdStr);
+          if (idx >= 0) {
+            entry.users.splice(idx, 1);
+            if (entry.users.length === 0) {
+              const removeIdx = reactions.indexOf(entry);
+              reactions.splice(removeIdx, 1);
+            }
+          } else {
+            entry.users.push(socket.user._id);
+          }
+        }
+
+        message.reactions = reactions;
+        await message.save();
+
+        for (const pid of conversation.participants) {
+          io.to(`user:${pid}`).emit('dm:reaction', {
+            conversationId,
+            messageId,
+            reactions: message.reactions,
+          });
+        }
+      } catch (e) {
+        console.error('dm:reaction error:', e.message);
+      }
+    });
+
     socket.on('dm:stopTyping', async ({ conversationId }) => {
       try {
         const conversation = await DirectMessage.findById(conversationId);

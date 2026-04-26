@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, MessageSquare, User as UserIcon, Swords, Plus, X as XIcon, Sparkles } from 'lucide-react';
+import { ArrowLeft, Search, MessageSquare, User as UserIcon, Swords, Plus, X as XIcon, Sparkles, Pin, BellOff, Archive, MoreVertical, Inbox } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +32,13 @@ export default function Messages() {
   const [duelTests, setDuelTests] = useState([]);
   const [duelLoading, setDuelLoading] = useState(false);
   const [presenceMap, setPresenceMap] = useState({}); // { userId: { online: bool, lastSeen: ISO } }
+  const [filterMode, setFilterMode] = useState('all'); // 'all' | 'archived'
+  const [menuConvId, setMenuConvId] = useState(null);
+  const [showChatSearch, setShowChatSearch] = useState(false);
+  const [chatSearchQ, setChatSearchQ] = useState('');
+  const [chatSearchResults, setChatSearchResults] = useState([]);
+  const [chatSearching, setChatSearching] = useState(false);
+  const [highlightMessageId, setHighlightMessageId] = useState(null);
   const typingTimeoutRef = useRef({});
   const socketRef = useRef(null);
   const selectedConversationIdRef = useRef(null);
@@ -140,11 +147,19 @@ export default function Messages() {
         });
       };
 
+      const handleReaction = ({ conversationId, messageId, reactions }) => {
+        if (selectedConversationIdRef.current !== conversationId) return;
+        setMessages(prev => prev.map(msg =>
+          msg._id === messageId ? { ...msg, reactions } : msg
+        ));
+      };
+
       s.on('dm:message', handleMsg);
       s.on('dm:typing', handleTyping);
       s.on('dm:stopTyping', handleStopTyping);
       s.on('dm:messageDeleted', handleDeleted);
       s.on('dm:read', handleDmRead);
+      s.on('dm:reaction', handleReaction);
       s.on('dm:error', handleError);
       s.on('presence:update', handlePresence);
       s.on('presence:list', handlePresenceList);
@@ -155,6 +170,7 @@ export default function Messages() {
         s.off('dm:stopTyping', handleStopTyping);
         s.off('dm:messageDeleted', handleDeleted);
         s.off('dm:read', handleDmRead);
+        s.off('dm:reaction', handleReaction);
         s.off('dm:error', handleError);
         s.off('presence:update', handlePresence);
         s.off('presence:list', handlePresenceList);
@@ -192,6 +208,79 @@ export default function Messages() {
       setConversations(res.data);
     } catch (e) { /* ignore */ }
     finally { setLoading(false); }
+  };
+
+  const handleReact = (message, emoji) => {
+    if (!selectedConv?._id || !message?._id || !emoji) return;
+    const s = socketRef.current || getSocket();
+    if (!s) return;
+    s.emit('dm:reaction', {
+      conversationId: selectedConv._id,
+      messageId: message._id,
+      emoji,
+    });
+  };
+
+  const runChatSearch = async (query) => {
+    setChatSearchQ(query);
+    if (!selectedConv?._id || query.trim().length < 2) {
+      setChatSearchResults([]);
+      return;
+    }
+    setChatSearching(true);
+    try {
+      const res = await api.get(`/dm/conversations/${selectedConv._id}/search`, {
+        params: { q: query.trim() },
+      });
+      setChatSearchResults(res.data || []);
+    } catch (e) {
+      setChatSearchResults([]);
+    } finally {
+      setChatSearching(false);
+    }
+  };
+
+  const jumpToMessage = (msgId) => {
+    setShowChatSearch(false);
+    setChatSearchQ('');
+    setChatSearchResults([]);
+    setHighlightMessageId(msgId);
+    setTimeout(() => {
+      const el = document.querySelector(`[data-msg-id="${msgId}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    setTimeout(() => setHighlightMessageId(null), 2200);
+  };
+
+  const toggleConvFlag = async (convId, action) => {
+    // action: 'pin' | 'mute' | 'archive'
+    const flagKey = action === 'pin' ? 'isPinned' : action === 'mute' ? 'isMuted' : 'isArchived';
+    // Optimistic update
+    setConversations(prev => prev.map(c => c._id === convId ? { ...c, [flagKey]: !c[flagKey] } : c));
+    setMenuConvId(null);
+    try {
+      const res = await api.patch(`/dm/conversations/${convId}/${action}`);
+      const newVal = res.data?.[flagKey];
+      setConversations(prev => {
+        let next = prev.map(c => c._id === convId ? { ...c, [flagKey]: newVal } : c);
+        // Re-sort to keep pinned at top
+        next = [...next].sort((a, b) => {
+          if (!!a.isPinned !== !!b.isPinned) return a.isPinned ? -1 : 1;
+          return new Date(b.lastActivity) - new Date(a.lastActivity);
+        });
+        return next;
+      });
+      const labels = {
+        pin: newVal ? 'Закреплено' : 'Откреплено',
+        mute: newVal ? 'Уведомления отключены' : 'Уведомления включены',
+        archive: newVal ? 'Перенесено в архив' : 'Возвращено из архива',
+      };
+      toast.success(labels[action]);
+    } catch (e) {
+      // Rollback
+      setConversations(prev => prev.map(c => c._id === convId ? { ...c, [flagKey]: !c[flagKey] } : c));
+      toast.error('Ошибка');
+    }
   };
 
   const loadMessages = async (convId, reset = false) => {
@@ -413,8 +502,42 @@ export default function Messages() {
               </div>
             )}
 
+            {/* Filter tabs: All / Archived */}
+            {!loading && conversations.length > 0 && (
+              <div className="flex-shrink-0 border-b-2 border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+                <div className="flex gap-1.5">
+                  {[
+                    { id: 'all', label: 'Активные', icon: Inbox, count: conversations.filter(c => !c.isArchived).length },
+                    { id: 'archived', label: 'Архив', icon: Archive, count: conversations.filter(c => c.isArchived).length },
+                  ].map(t => {
+                    const isOn = filterMode === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setFilterMode(t.id)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1 text-[11px] font-black transition active:translate-y-[1px] ${
+                          isOn
+                            ? 'border-slate-900 bg-primary-500 text-white dark:border-white'
+                            : 'border-slate-300 bg-white text-slate-600 hover:border-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                        }`}
+                        style={isOn ? { boxShadow: '0 2px 0 #9a3412' } : undefined}
+                      >
+                        <t.icon size={11} strokeWidth={2.4} />
+                        <span>{t.label}</span>
+                        {t.count > 0 && (
+                          <span className={`ml-0.5 rounded-full px-1.5 text-[9px] ${isOn ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300'}`}>
+                            {t.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Conversations list */}
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto p-2" onClick={() => menuConvId && setMenuConvId(null)}>
               {loading ? (
                 <div className="space-y-2 p-2">
                   {[1, 2, 3, 4].map(i => (
@@ -440,57 +563,127 @@ export default function Messages() {
                     Найди пользователя через поиск выше
                   </p>
                 </div>
-              ) : (
-                conversations.map(conv => {
+              ) : (() => {
+                const visible = conversations.filter(c => filterMode === 'archived' ? c.isArchived : !c.isArchived);
+                if (visible.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+                      <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-300 bg-slate-50 text-slate-400 dark:border-slate-600 dark:bg-slate-900/30">
+                        {filterMode === 'archived' ? <Archive size={20} strokeWidth={2.2} /> : <Inbox size={20} strokeWidth={2.2} />}
+                      </div>
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        {filterMode === 'archived' ? 'Архив пуст' : 'Нет активных диалогов'}
+                      </p>
+                    </div>
+                  );
+                }
+                return visible.map(conv => {
                   const other = getOtherUser(conv);
                   const isActive = selectedConv?._id === conv._id;
                   const presence = presenceFor(other?._id);
+                  const menuOpen = menuConvId === conv._id;
                   return (
-                    <button
+                    <div
                       key={conv._id}
-                      onClick={() => selectConversation(conv)}
-                      className={`group mb-1.5 flex w-full items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left transition active:translate-y-[1px] ${
+                      className={`group relative mb-1.5 rounded-2xl border-2 transition ${
                         isActive
                           ? 'border-slate-900 bg-primary-50 dark:border-white dark:bg-primary-900/15'
                           : 'border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-700/40'
                       }`}
                       style={isActive ? { boxShadow: '0 2px 0 #0f172a' } : undefined}
                     >
-                      <div className="relative flex-shrink-0">
-                        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-sm font-black text-slate-700 dark:border-white dark:bg-slate-700 dark:text-white">
-                          {other?.avatar ? <img src={other.avatar} className="h-full w-full object-cover" alt="" /> : (other?.firstName?.[0] || '?').toUpperCase()}
-                        </div>
-                        {presence.online && (
-                          <span
-                            className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-800"
-                            aria-label="online"
-                          />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
-                            {other?.firstName} {other?.lastName}
-                          </p>
-                          <span className="flex-shrink-0 text-[10px] font-bold text-slate-400">{timeAgo(conv.lastActivity)}</span>
-                        </div>
-                        <div className="mt-0.5 flex items-center justify-between gap-2">
-                          <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">
-                            {conv.lastMessage?.text || '...'}
-                          </p>
-                          {conv.unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => selectConversation(conv)}
+                        onContextMenu={(e) => { e.preventDefault(); setMenuConvId(menuOpen ? null : conv._id); }}
+                        className="flex w-full items-center gap-3 px-3 py-2.5 text-left active:translate-y-[1px]"
+                      >
+                        <div className="relative flex-shrink-0">
+                          <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-sm font-black text-slate-700 dark:border-white dark:bg-slate-700 dark:text-white">
+                            {other?.avatar ? <img src={other.avatar} className="h-full w-full object-cover" alt="" /> : (other?.firstName?.[0] || '?').toUpperCase()}
+                          </div>
+                          {presence.online && (
                             <span
-                              className="flex h-5 min-w-[20px] flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-900 bg-primary-500 px-1 text-[10px] font-black text-white dark:border-white"
-                            >
-                              {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
-                            </span>
+                              className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-800"
+                              aria-label="online"
+                            />
                           )}
                         </div>
-                      </div>
-                    </button>
+                        <div className="min-w-0 flex-1 pr-7">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                                {other?.firstName} {other?.lastName}
+                              </p>
+                              {conv.isPinned && <Pin size={11} strokeWidth={2.6} className="flex-shrink-0 text-primary-500" />}
+                              {conv.isMuted && <BellOff size={11} strokeWidth={2.6} className="flex-shrink-0 text-slate-400" />}
+                            </div>
+                            <span className="flex-shrink-0 text-[10px] font-bold text-slate-400">{timeAgo(conv.lastActivity)}</span>
+                          </div>
+                          <div className="mt-0.5 flex items-center justify-between gap-2">
+                            <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+                              {conv.lastMessage?.text || '...'}
+                            </p>
+                            {conv.unreadCount > 0 && (
+                              <span
+                                className={`flex h-5 min-w-[20px] flex-shrink-0 items-center justify-center rounded-full border-2 px-1 text-[10px] font-black ${
+                                  conv.isMuted
+                                    ? 'border-slate-400 bg-slate-300 text-white dark:border-slate-500 dark:bg-slate-600'
+                                    : 'border-slate-900 bg-primary-500 text-white dark:border-white'
+                                }`}
+                              >
+                                {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Menu trigger */}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setMenuConvId(menuOpen ? null : conv._id); }}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition hover:bg-white hover:text-slate-700 group-hover:opacity-100 dark:hover:bg-slate-700 dark:hover:text-white"
+                        aria-label="Действия"
+                        style={menuOpen ? { opacity: 1 } : undefined}
+                      >
+                        <MoreVertical size={14} strokeWidth={2.4} />
+                      </button>
+
+                      {/* Context menu */}
+                      {menuOpen && (
+                        <div
+                          className="absolute right-2 top-12 z-30 min-w-[170px] rounded-xl border-2 border-slate-900 bg-white p-1.5 dark:border-white dark:bg-slate-800"
+                          style={{ boxShadow: '0 4px 0 #0f172a' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => toggleConvFlag(conv._id, 'pin')}
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                          >
+                            <Pin size={13} strokeWidth={2.4} />
+                            {conv.isPinned ? 'Открепить' : 'Закрепить'}
+                          </button>
+                          <button
+                            onClick={() => toggleConvFlag(conv._id, 'mute')}
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                          >
+                            <BellOff size={13} strokeWidth={2.4} />
+                            {conv.isMuted ? 'Включить уведомления' : 'Отключить уведомления'}
+                          </button>
+                          <button
+                            onClick={() => toggleConvFlag(conv._id, 'archive')}
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                          >
+                            <Archive size={13} strokeWidth={2.4} />
+                            {conv.isArchived ? 'Из архива' : 'В архив'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
-                })
-              )}
+                });
+              })()}
             </div>
           </aside>
 
@@ -539,16 +732,95 @@ export default function Messages() {
                         </button>
                         <button
                           type="button"
+                          onClick={() => setShowChatSearch(prev => !prev)}
+                          className={`inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 transition active:translate-y-[2px] dark:border-white ${
+                            showChatSearch
+                              ? 'bg-primary-500 text-white'
+                              : 'bg-white text-slate-700 dark:bg-slate-900 dark:text-slate-200'
+                          }`}
+                          style={{ boxShadow: showChatSearch ? '0 3px 0 #9a3412' : '0 3px 0 #0f172a' }}
+                          aria-label="Поиск в чате"
+                          title="Поиск в чате"
+                        >
+                          <Search size={14} strokeWidth={2.4} />
+                        </button>
+                        <button
+                          type="button"
                           onClick={openDuelModal}
                           className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl border-2 border-slate-900 bg-orange-50 px-2.5 py-2 text-[11px] font-black text-orange-700 transition active:translate-y-[2px] dark:border-white dark:bg-orange-900/20 dark:text-orange-300 sm:gap-2 sm:px-3 sm:text-xs"
                           style={{ boxShadow: '0 3px 0 #c2410c' }}
                         >
-                          <Swords size={13} strokeWidth={2.4} /> Дуэль
+                          <Swords size={13} strokeWidth={2.4} /> <span className="hidden sm:inline">Дуэль</span>
                         </button>
                       </>
                     );
                   })()}
                 </div>
+
+                {/* In-chat search overlay */}
+                {showChatSearch && (
+                  <div className="flex-shrink-0 border-b-2 border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/40">
+                    <div className="px-3 py-2 sm:px-4">
+                      <div className="relative">
+                        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" strokeWidth={2.4} />
+                        <input
+                          autoFocus
+                          type="text"
+                          value={chatSearchQ}
+                          onChange={(e) => runChatSearch(e.target.value)}
+                          placeholder="Поиск по сообщениям..."
+                          className="w-full rounded-xl border-2 border-slate-300 bg-white py-2 pl-9 pr-9 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { setShowChatSearch(false); setChatSearchQ(''); setChatSearchResults([]); }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"
+                          aria-label="Закрыть поиск"
+                        >
+                          <XIcon size={13} />
+                        </button>
+                      </div>
+                    </div>
+                    {chatSearchQ.trim().length >= 2 && (
+                      <div className="max-h-72 overflow-y-auto border-t-2 border-slate-200 dark:border-slate-700">
+                        {chatSearching ? (
+                          <p className="py-4 text-center text-xs font-medium text-slate-400">Поиск...</p>
+                        ) : chatSearchResults.length === 0 ? (
+                          <p className="py-4 text-center text-xs font-medium text-slate-400">Ничего не найдено</p>
+                        ) : (
+                          <>
+                            <p className="px-4 pt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                              Найдено: {chatSearchResults.length}
+                            </p>
+                            <div className="py-1">
+                              {chatSearchResults.map(m => {
+                                const senderName = m.sender?._id === currentUserId
+                                  ? 'Вы'
+                                  : m.sender?.firstName || '';
+                                const dateStr = new Date(m.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                                return (
+                                  <button
+                                    key={m._id}
+                                    onClick={() => jumpToMessage(m._id)}
+                                    className="block w-full px-4 py-2 text-left transition hover:bg-white dark:hover:bg-slate-800"
+                                  >
+                                    <div className="flex items-baseline justify-between gap-3">
+                                      <span className="truncate text-[11px] font-black text-primary-600 dark:text-primary-300">{senderName}</span>
+                                      <span className="flex-shrink-0 text-[10px] font-bold text-slate-400">{dateStr}</span>
+                                    </div>
+                                    <p className="mt-0.5 line-clamp-2 text-xs font-medium text-slate-700 dark:text-slate-200">
+                                      {m.text}
+                                    </p>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Messages */}
                 <MessageList
@@ -557,6 +829,7 @@ export default function Messages() {
                   otherUserId={getOtherUser(selectedConv)?._id}
                   onReply={setReplyTo}
                   onDelete={deleteMessage}
+                  onReact={handleReact}
                   onPin={() => {}}
                   getDeleteOptions={(message, isOwn) => ({ self: true, everyone: isOwn })}
                   canPin={false}
@@ -564,6 +837,7 @@ export default function Messages() {
                   hasMore={hasMore}
                   loading={chatLoading}
                   getMemberRoleColor={() => null}
+                  highlightMessageId={highlightMessageId}
                 />
                 <TypingIndicator typingUsers={typingUsers} />
                 <ChatInput
