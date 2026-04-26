@@ -7,6 +7,7 @@ const {
   buildArenaRoomState,
   buildArenaSnapshotFromTest,
   buildArenaSnapshotFromBank,
+  buildArenaSnapshotFromArenaTestEntries,
   generateJoinCode,
   gradeArenaAnswer,
   normalizeArenaSettings,
@@ -225,14 +226,21 @@ async function updateParticipantRanks(roomId) {
     await ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } })
   );
 
+  // Crown Carry: top-1 (with at least 1 point) wears the crown.
+  // Ties broken by totalResponseTimeMs (faster wins) — sortArenaParticipants already does this.
+  const crownHolderId = participants[0] && (participants[0].score || 0) > 0
+    ? String(participants[0]._id) : null;
+
   for (let index = 0; index < participants.length; index += 1) {
     const participant = participants[index];
-    if (participant.rank !== index + 1) {
-      participant.rank = index + 1;
+    const nextRank = index + 1;
+    const nextCrown = crownHolderId === String(participant._id);
+    if (participant.rank !== nextRank || !!participant.crown !== nextCrown) {
+      participant.rank = nextRank;
+      participant.crown = nextCrown;
       await participant.save();
     }
   }
-
   return participants;
 }
 
@@ -307,6 +315,21 @@ async function startArenaCountdown(roomId, io) {
   clearArenaTimers(roomId);
   const settings = normalizeArenaSettings(room.settings);
   const endsAt = new Date(Date.now() + settings.countdownSeconds * 1000);
+
+  // Session-level shuffle: randomize question order ONCE when the host starts.
+  // If Boss Round is on, the LAST question stays at the end (preserves boss).
+  if (settings.shuffleQuestions && Array.isArray(room.questionSnapshot) && room.questionSnapshot.length > 1) {
+    const arr = [...room.questionSnapshot];
+    const lastBoss = settings.bossRoundEnabled && arr[arr.length - 1]?.tag === 'boss'
+      ? arr.pop() : null;
+    for (let i = arr.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    if (lastBoss) arr.push(lastBoss);
+    room.questionSnapshot = arr;
+    room.markModified('questionSnapshot');
+  }
 
   room.settings = settings;
   room.status = ARENA_STATUS.COUNTDOWN;
@@ -518,6 +541,23 @@ async function handleArenaAnswer(roomId, actor, payload, io) {
     }
   }
 
+  // ─── Boss Round catch-up bonus ────────────────────────────────────────
+  // If this is the BOSS question and the participant is currently last
+  // (or worse than median), reward correct answers with +500 to give a
+  // last-chance comeback moment.
+  let bossCatchUpApplied = false;
+  if (graded.isCorrect && currentQuestion.tag === 'boss' && room.settings?.bossRoundEnabled) {
+    const ranked = await ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } })
+      .sort({ score: -1, totalResponseTimeMs: 1 })
+      .select('_id');
+    const myIdx = ranked.findIndex(r => String(r._id) === String(participant._id));
+    // Bottom half qualifies for catch-up.
+    if (ranked.length >= 2 && myIdx >= Math.floor(ranked.length / 2)) {
+      graded.pointsAwarded += 500;
+      bossCatchUpApplied = true;
+    }
+  }
+
   participant.answers.push({
     questionId: currentQuestion.questionId,
     questionIndex: room.currentQuestionIndex,
@@ -543,6 +583,8 @@ async function handleArenaAnswer(roomId, actor, payload, io) {
   participant.lastSeenAt = new Date();
   await participant.save();
   graded.underdogApplied = underdogApplied;
+  graded.bossCatchUpApplied = bossCatchUpApplied;
+  graded.tag = currentQuestion.tag || 'normal';
 
   const participants = await ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } });
   const joinedPlayers = participants.filter(item => item.state === 'joined');
@@ -630,6 +672,13 @@ async function applyArenaPowerUp(roomId, actor, type, io = null) {
     throw error;
   }
 
+  // Boss Round: power-ups blocked during the boss question.
+  if (currentQuestion.tag === 'boss' && room.settings?.bossRoundEnabled) {
+    const error = new Error('На BOSS-вопросе бустеры заблокированы');
+    error.status = 400;
+    throw error;
+  }
+
   // Already answered? No power-ups after submission.
   if ((participant.answers || []).some(answer => answer.questionIndex === currentIndex)) {
     const error = new Error('Ответ уже отправлен');
@@ -701,15 +750,20 @@ async function applyArenaPowerUp(roomId, actor, type, io = null) {
       error.status = 400;
       throw error;
     }
-    target.score = Math.max(0, (target.score || 0) - 50);
-    participant.score = (participant.score || 0) + 50;
+    // Crown Carry bonus: stealing FROM the crown holder is ×2 (when feature on).
+    const baseStealAmount = 50;
+    const isCrownTarget = !!target.crown && !!room.settings?.crownCarryEnabled;
+    const stealAmount = isCrownTarget ? baseStealAmount * 2 : baseStealAmount;
+    target.score = Math.max(0, (target.score || 0) - stealAmount);
+    participant.score = (participant.score || 0) + stealAmount;
     await target.save();
     stolenFrom = {
       participantId: String(target._id),
       displayName: target.user
         ? `${target.user.firstName || ''} ${target.user.lastName || ''}`.trim()
         : (target.guestName || 'Player'),
-      amount: 50
+      amount: stealAmount,
+      crownStrike: isCrownTarget
     };
     // Notify everyone — emit a soft event so leaderboards/UIs can react.
     if (io) {
@@ -717,7 +771,8 @@ async function applyArenaPowerUp(roomId, actor, type, io = null) {
         roomId: String(roomId),
         actorId: String(participant._id),
         targetId: String(target._id),
-        amount: 50
+        amount: stealAmount,
+        crownStrike: isCrownTarget
       });
     }
   }
@@ -1108,6 +1163,73 @@ async function createArenaRoomFromBank({
   });
 }
 
+/**
+ * Build a room from a saved ArenaTest template. Supports mixed entries:
+ *   - kind:'bank'     → references BankQuestion (must be populated by caller)
+ *   - kind:'embedded' → uses inline embedded payload
+ *
+ * Bridges full ArenaTest.settings into the room (powerUpPool, audioVibe,
+ * bossRoundEnabled, crownCarryEnabled, shuffleQuestions, etc.).
+ */
+async function createArenaRoomFromArenaTest({
+  sourceType = 'public',
+  title,
+  hostUser,
+  arenaTest,                 // ArenaTest doc with `entries.bankQuestion` populated
+  countdownSeconds = undefined,
+  settingsOverride = {},
+  status = ARENA_STATUS.LOBBY
+}) {
+  if (!arenaTest || !Array.isArray(arenaTest.entries) || !arenaTest.entries.length) {
+    const error = new Error('Арена-тест без вопросов');
+    error.status = 400;
+    throw error;
+  }
+
+  const baseSettings = arenaTest.settings?.toObject?.() || arenaTest.settings || {};
+  const merged = {
+    ...baseSettings,
+    ...settingsOverride,
+    ...(countdownSeconds === undefined ? {} : { countdownSeconds })
+  };
+  const roomSettings = normalizeArenaSettings(merged);
+
+  // Filter out bank entries whose populated bankQuestion is missing (deleted).
+  const validEntries = arenaTest.entries.filter(e =>
+    e.kind === 'embedded' ? !!e.embedded : !!e.bankQuestion
+  );
+  if (!validEntries.length) {
+    const error = new Error('В арена-тесте нет доступных вопросов');
+    error.status = 400;
+    throw error;
+  }
+
+  const snapshot = buildArenaSnapshotFromArenaTestEntries(
+    validEntries,
+    roomSettings,
+    { bossRoundEnabled: roomSettings.bossRoundEnabled }
+  );
+  if (!snapshot.length) {
+    const error = new Error('Нет поддерживаемых вопросов для арены');
+    error.status = 400;
+    throw error;
+  }
+
+  return ArenaRoom.create({
+    sourceType,
+    title: title || arenaTest.title || 'Арена',
+    hostUser,
+    invitedUser: null,
+    test: null,
+    group: null,
+    conversation: null,
+    joinCode: generateJoinCode(),
+    questionSnapshot: snapshot,
+    status,
+    settings: roomSettings
+  });
+}
+
 module.exports = {
   ARENA_STATUS,
   bumpArenaActivity,
@@ -1116,6 +1238,7 @@ module.exports = {
   clearHostDisconnectTimer,
   createArenaRoomDocument,
   createArenaRoomFromBank,
+  createArenaRoomFromArenaTest,
   createArenaSnapshotOrThrow,
   emitArenaState,
   applyArenaPowerUp,

@@ -9,7 +9,9 @@ import {
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
-import ArenaQuestionPicker from '../components/arena/ArenaQuestionPicker';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import ArenaQuestionsStep from '../components/arena/ArenaQuestionsStep';
 
 const TIMER_PRESETS = [10, 15, 20, 30, 45, 60];
 
@@ -42,6 +44,9 @@ export default function CreateArenaTest() {
   const navigate = useNavigate();
   const { id } = useParams(); // present in edit mode
   const isEdit = !!id;
+  const { user } = useAuth();
+  const { lang } = useLanguage();
+  const hasAIAccess = user?.role === 'admin' || Boolean(user?.aiAccess);
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(isEdit);
@@ -65,6 +70,9 @@ export default function CreateArenaTest() {
     streaksEnabled: false,
     underdogBonus: false,
     shuffleQuestions: false,
+    bossRoundEnabled: false,
+    crownCarryEnabled: false,
+    audioVibe: 'default',
   });
 
   // ── Hydrate when editing ───────────────────────────────────────────────
@@ -81,13 +89,21 @@ export default function CreateArenaTest() {
         setDescription(t.description || '');
         setTagsInput((t.tags || []).join(', '));
         setSettings(prev => ({ ...prev, ...t.settings }));
-        setSnapshot((t.entries || []).map((entry, i) => ({
-          id: `snap-edit-${i}-${Date.now()}`,
-          bankId: entry.bankQuestion?._id || entry.bankQuestion,
-          q: entry.bankQuestion,
-          timerOverride: entry.timerOverride,
-          pointsOverride: entry.pointsOverride,
-        })));
+        // Hydrate mixed entries (bank + embedded) into the unified shape used by
+        // ArenaQuestionsStep. Bank entries carry the populated bankQuestion as `q`.
+        // Embedded entries store the inline payload as `q` and have bankId === null.
+        setSnapshot((t.entries || []).map((entry, i) => {
+          const isEmbedded = entry.kind === 'embedded' && entry.embedded;
+          return {
+            id: `snap-edit-${i}-${Date.now()}`,
+            kind: isEmbedded ? 'embedded' : 'bank',
+            bankId: isEmbedded ? null : (entry.bankQuestion?._id || entry.bankQuestion),
+            q: isEmbedded ? entry.embedded : entry.bankQuestion,
+            tag: entry.tag || 'normal',
+            timerOverride: entry.timerOverride,
+            pointsOverride: entry.pointsOverride,
+          };
+        }));
       } catch (e) {
         toast.error(e?.response?.data?.message || 'Не удалось загрузить шаблон');
         navigate('/arena');
@@ -109,11 +125,22 @@ export default function CreateArenaTest() {
     title: title.trim(),
     description: description.trim(),
     tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
-    entries: snapshot.map(s => ({
-      bankQuestionId: s.bankId,
-      timerOverride: s.timerOverride ?? null,
-      pointsOverride: s.pointsOverride ?? null,
-    })),
+    entries: snapshot.map(s => s.kind === 'embedded'
+      ? {
+          kind: 'embedded',
+          embedded: s.q,
+          tag: s.tag || 'normal',
+          timerOverride: s.timerOverride ?? null,
+          pointsOverride: s.pointsOverride ?? null,
+        }
+      : {
+          kind: 'bank',
+          bankQuestionId: s.bankId,
+          tag: s.tag || 'normal',
+          timerOverride: s.timerOverride ?? null,
+          pointsOverride: s.pointsOverride ?? null,
+        }
+    ),
     settings,
   });
 
@@ -261,10 +288,13 @@ export default function CreateArenaTest() {
               />
             )}
             {step === 1 && (
-              <QuestionsStep
-                snapshot={snapshot}
+              <ArenaQuestionsStep
+                entries={snapshot}
                 onChange={setSnapshot}
                 defaultTimer={settings.answerTimeSec}
+                arenaTestId={isEdit ? id : null}
+                hasAIAccess={hasAIAccess}
+                currentLanguage={lang}
               />
             )}
             {step === 2 && (
@@ -393,32 +423,7 @@ function BasicsStep({ title, setTitle, description, setDescription, tagsInput, s
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// STEP 2 — Questions (delegates to ArenaQuestionPicker)
-function QuestionsStep({ snapshot, onChange, defaultTimer }) {
-  return (
-    <div className="space-y-3">
-      <div
-        className="rounded-[1.75rem] border-2 border-slate-900 bg-white p-3 dark:border-white dark:bg-slate-900"
-        style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
-      >
-        <h2 className="mb-2 flex items-center gap-2 px-1 text-base font-black text-slate-900 dark:text-white">
-          <ListChecks size={18} className="text-primary-600" strokeWidth={2.6} /> Вопросы
-        </h2>
-        <p className="mb-2 px-1 text-[11px] text-slate-500 dark:text-slate-400">
-          Перетащите вопросы из банка слева в список арены справа. Меняйте порядок и переопределяйте таймер/очки на каждой карточке.
-        </p>
-      </div>
-
-      <ArenaQuestionPicker
-        defaultTimer={defaultTimer}
-        initialSnapshot={snapshot}
-        onChange={onChange}
-        height={560}
-      />
-    </div>
-  );
-}
+// (Step 2 — Questions — moved to <ArenaQuestionsStep /> in components/arena.)
 
 // ──────────────────────────────────────────────────────────────────────────
 // STEP 3 — Arena settings (timers + power-up pool + abilities)
@@ -594,17 +599,70 @@ function SettingsStep({ settings, setSettings, stats }) {
           <ToggleCard
             icon={Trophy}
             title="Underdog бонус"
-            desc="Игрокам в нижней тройке +20% очков за правильный ответ."
+            desc="Игрокам в нижней половине +20% очков за правильный ответ."
             value={settings.underdogBonus}
             onChange={v => setSettings(s => ({ ...s, underdogBonus: v }))}
           />
           <ToggleCard
             icon={Sparkles}
             title="Перемешать вопросы"
-            desc="Каждый игрок видит вопросы в разном порядке."
+            desc="Порядок вопросов случайный (фиксируется при старте арены)."
             value={settings.shuffleQuestions}
             onChange={v => setSettings(s => ({ ...s, shuffleQuestions: v }))}
           />
+          <ToggleCard
+            icon={Crown}
+            title="Crown Carry"
+            desc="У лидера видна корона; кража у него — ×2 очков (100 вместо 50)."
+            value={settings.crownCarryEnabled}
+            onChange={v => setSettings(s => ({ ...s, crownCarryEnabled: v }))}
+          />
+          <ToggleCard
+            icon={Zap}
+            title="Boss Round"
+            desc="Последний вопрос — BOSS: ×3 очков, бустеры выкл., catch-up +500 для отстающих."
+            value={settings.bossRoundEnabled}
+            onChange={v => setSettings(s => ({ ...s, bossRoundEnabled: v }))}
+          />
+        </div>
+      </div>
+
+      {/* AUDIO VIBE */}
+      <div
+        className="rounded-[1.75rem] border-2 border-slate-900 bg-white p-5 dark:border-white dark:bg-slate-900"
+        style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
+      >
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
+          <Sparkles size={18} className="text-cyan-500" strokeWidth={2.6} /> Audio Vibe
+        </h2>
+        <p className="mb-3 text-[11px] text-slate-500 dark:text-slate-400">
+          Звуковая палитра арены — меняет SFX ответов, реакций и финала.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {[
+            { value: 'default',   label: 'По умолчанию', emoji: '🎵', desc: 'Стандартные SFX' },
+            { value: 'quizshow',  label: 'Quiz Show',     emoji: '📺', desc: 'Яркие, mid-high' },
+            { value: '8bit',      label: '8-bit',         emoji: '👾', desc: 'Lo-fi square wave' },
+            { value: 'cinematic', label: 'Cinematic',     emoji: '🎬', desc: 'Глубокий, с реверб.' },
+            { value: 'chill',     label: 'Chill',         emoji: '🌙', desc: 'Мягкие sine волны' },
+          ].map(v => {
+            const active = settings.audioVibe === v.value;
+            return (
+              <button
+                key={v.value}
+                type="button"
+                onClick={() => setSettings(s => ({ ...s, audioVibe: v.value }))}
+                className={`flex flex-col items-start gap-0.5 rounded-2xl border-2 p-3 text-left transition
+                  ${active
+                    ? 'border-cyan-500 bg-cyan-50 shadow-[0_3px_0_#0e7490] dark:bg-cyan-900/30'
+                    : 'border-slate-300 bg-white hover:border-slate-500 dark:border-slate-600 dark:bg-slate-800'}`}
+              >
+                <span className="text-xl">{v.emoji}</span>
+                <span className="text-xs font-black text-slate-900 dark:text-white">{v.label}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">{v.desc}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

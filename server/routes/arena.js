@@ -19,6 +19,7 @@ const {
   clearArenaTimers,
   createArenaRoomDocument,
   createArenaRoomFromBank,
+  createArenaRoomFromArenaTest,
   emitArenaState,
   extendArenaTimer,
   finalizeArenaRoom,
@@ -325,31 +326,13 @@ router.post('/rooms/from-arena-test', auth, async (req, res) => {
       .populate('entries.bankQuestion');
     if (!arenaTest) return res.status(404).json({ message: 'Арена-тест не найден' });
 
-    const validEntries = (arenaTest.entries || [])
-      .filter(e => e.bankQuestion) // dropped questions (e.g. deleted from bank) are skipped
-      .map(e => ({
-        bankQuestion: e.bankQuestion,
-        timerOverride: e.timerOverride,
-        pointsOverride: e.pointsOverride
-      }));
-
-    if (!validEntries.length) {
-      return res.status(400).json({ message: 'В арена-тесте нет доступных вопросов' });
-    }
-
-    const mergedSettings = {
-      ...(arenaTest.settings?.toObject?.() || arenaTest.settings || {}),
-      ...overrideSettings
-    };
-
-    const room = await createArenaRoomFromBank({
+    // Mixed entries (bank + embedded) handled by createArenaRoomFromArenaTest.
+    const room = await createArenaRoomFromArenaTest({
       sourceType: 'public',
       title: arenaTest.title || 'Арена',
       hostUser: req.user._id,
-      bankEntries: validEntries,
-      allowGuests: mergedSettings.allowGuests !== false,
-      maxPlayers: Math.max(2, Math.min(500, Number(mergedSettings.maxPlayers) || 100)),
-      settings: mergedSettings
+      arenaTest,
+      settingsOverride: overrideSettings || {}
     });
 
     // Mark template as used.
@@ -357,8 +340,10 @@ router.post('/rooms/from-arena-test', auth, async (req, res) => {
     arenaTest.usageCount = (arenaTest.usageCount || 0) + 1;
     await arenaTest.save();
 
-    // Bump bank usage.
-    const bankIds = validEntries.map(e => e.bankQuestion._id).filter(Boolean);
+    // Bump bank usage (only bank-kind entries).
+    const bankIds = (arenaTest.entries || [])
+      .filter(e => e.kind === 'bank' && e.bankQuestion?._id)
+      .map(e => e.bankQuestion._id);
     if (bankIds.length) {
       BankQuestion.updateMany(
         { _id: { $in: bankIds }, creator: req.user._id },

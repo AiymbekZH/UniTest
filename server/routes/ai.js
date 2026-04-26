@@ -585,4 +585,204 @@ Rules:
   }
 });
 
+// ──────────────────────────────────────────────────────────────────────────
+// ARENA-SPECIFIC AI ENDPOINTS (Phase 3 — CreateArenaTest improvements)
+// ──────────────────────────────────────────────────────────────────────────
+
+// POST /api/ai/arena-remix — Rewrite a single question in a punchier "live arena"
+// style: shorter wording, optional emoji, more vivid distractors, snappy explanation.
+//
+// Body: { question: { type, questionText, options, explanation, points }, language }
+// Returns: { remixed: { questionText, options[], explanation } }
+router.post('/arena-remix', auth, async (req, res) => {
+  try {
+    if (!req.user.aiAccess && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'У вас нет доступа к AI функциям. Обратитесь к администратору.' });
+    }
+    const { question, language = 'ru' } = req.body || {};
+    if (!question || !question.type || !question.questionText) {
+      return res.status(400).json({ error: 'question.type и question.questionText обязательны' });
+    }
+
+    const { client, model } = getClient();
+    const langName = SUPPORTED_AI_LANGUAGES[language] || SUPPORTED_AI_LANGUAGES.ru;
+    const QTYPES_OK = ['single-choice', 'multiple-choice', 'true-false', 'fill-blank', 'matching', 'essay'];
+    if (!QTYPES_OK.includes(question.type)) {
+      return res.status(400).json({ error: 'Unsupported question type' });
+    }
+
+    // Compact options view passed to the model.
+    const optionsForPrompt = (question.options || []).map((o, i) => ({
+      idx: i,
+      text: String(o.text || '').slice(0, 200),
+      isCorrect: !!o.isCorrect,
+      ...(question.type === 'matching' ? { matchPair: String(o.matchPair || '').slice(0, 200) } : {})
+    }));
+
+    const systemPrompt = `You are an expert quiz designer for live, kahoot-style ARENA gameplay.
+Your job: REMIX a question to make it shorter, punchier, and more engaging on a giant screen.
+Rules:
+- Keep the SAME meaning and the SAME correct answer(s).
+- Shorten the question text by ~30-50%. Front-load the key entity. Avoid filler words.
+- For options: keep them short (max 6 words). Make distractors PLAUSIBLE, not silly.
+- Add ONE relevant emoji at the start of the question if it fits naturally.
+- Write a 1-sentence explanation suitable for a 4-second reveal screen.
+- Output language: ${langName}.
+
+Return ONLY valid JSON in this exact shape:
+{
+  "questionText": "string",
+  "options": [{"idx": 0, "text": "...", "isCorrect": true|false, "matchPair": "..."}],
+  "explanation": "string"
+}
+For non-choice types (essay, fill-blank), options can be an empty array.`;
+
+    const userPayload = {
+      type: question.type,
+      questionText: question.questionText,
+      options: optionsForPrompt,
+      explanation: question.explanation || '',
+      points: question.points || 1
+    };
+
+    const completion = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: 'Remix this question:\n\n' + JSON.stringify(userPayload) }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+      max_tokens: 1200
+    });
+
+    const raw = completion.choices?.[0]?.message?.content || '{}';
+    let parsed = {};
+    try { parsed = JSON.parse(raw); } catch { parsed = {}; }
+
+    // Map the model's idx-keyed options back onto the originals so we PRESERVE
+    // option ids + isCorrect (we never trust the model with grading).
+    const remixedOptions = (question.options || []).map((orig, i) => {
+      const replacement = (parsed.options || []).find(o => o.idx === i);
+      return {
+        id: orig.id,
+        text: replacement?.text ? String(replacement.text).slice(0, 500) : orig.text,
+        isCorrect: orig.isCorrect, // never override grading
+        matchPair: question.type === 'matching'
+          ? (replacement?.matchPair ? String(replacement.matchPair).slice(0, 500) : orig.matchPair)
+          : (orig.matchPair || '')
+      };
+    });
+
+    res.json({
+      remixed: {
+        questionText: typeof parsed.questionText === 'string' && parsed.questionText.trim()
+          ? parsed.questionText.slice(0, 1000) : question.questionText,
+        options: remixedOptions,
+        explanation: typeof parsed.explanation === 'string' ? parsed.explanation.slice(0, 500) : ''
+      }
+    });
+  } catch (err) {
+    console.error('AI arena-remix error:', err);
+    if (err.message?.includes('not configured')) {
+      return res.status(503).json({ error: err.message });
+    }
+    res.status(500).json({ error: 'Remix failed: ' + (err.message || 'Unknown error') });
+  }
+});
+
+// POST /api/ai/arena-balance — Reorder + retime a list of questions for an arena.
+// AI estimates difficulty 1-5, suggests a "warm-up → climax" curve, and breaks
+// up identical types in a row.
+//
+// Body: { entries: [{ idx, questionText, type, points }], language, defaultTimer }
+// Returns: { ordering: [originalIdx...], timers: [seconds...], difficulties: ['easy'|'medium'|'hard'|'jackpot'|'boss'] }
+router.post('/arena-balance', auth, async (req, res) => {
+  try {
+    if (!req.user.aiAccess && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'У вас нет доступа к AI функциям. Обратитесь к администратору.' });
+    }
+    const { entries = [], language = 'ru', defaultTimer = 20 } = req.body || {};
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return res.status(400).json({ error: 'entries required' });
+    }
+    if (entries.length > 60) {
+      return res.status(400).json({ error: 'Слишком много вопросов (макс 60)' });
+    }
+
+    const { client, model } = getClient();
+    const langName = SUPPORTED_AI_LANGUAGES[language] || SUPPORTED_AI_LANGUAGES.ru;
+
+    // Trim each question text aggressively so the prompt stays small.
+    const compactEntries = entries.map((e, i) => ({
+      idx: i,
+      type: e.type,
+      questionText: String(e.questionText || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240),
+      points: e.points || 1
+    }));
+
+    const systemPrompt = `You are a live-quiz pacing expert. Given a list of questions, you:
+1) Estimate difficulty 1-5 for each (1=very easy, 5=expert).
+2) Reorder them so the player experience curves from easy → medium → hard, with one or two big "jackpot" moments and a final BOSS climax.
+3) Avoid 2 identical types in a row when possible.
+4) Suggest a per-question timer in seconds: easy 10-15, medium 18-25, hard 25-40. Never below 5 or above 60.
+5) Categorize each as one of 'easy' | 'medium' | 'hard' | 'jackpot' | 'boss'.
+   - exactly one 'boss' (goes last)
+   - 0–2 'jackpot's
+6) Default timer for unrated medium questions: ${defaultTimer}.
+Output language for any text: ${langName}.
+
+Return ONLY JSON in this exact shape (no extra keys):
+{
+  "ordering":     [int...],   // length === input length, permutation of 0..N-1
+  "timers":       [int...],   // length === input length, in NEW order
+  "difficulties": ["easy"|"medium"|"hard"|"jackpot"|"boss" ...] // length === input length, in NEW order
+}`;
+
+    const completion = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: JSON.stringify(compactEntries) }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.4,
+      max_tokens: 1500
+    });
+
+    const raw = completion.choices?.[0]?.message?.content || '{}';
+    let parsed = {};
+    try { parsed = JSON.parse(raw); } catch { parsed = {}; }
+
+    // Defensive: validate ordering is a perfect permutation; fallback to identity.
+    const N = entries.length;
+    const ordering = Array.isArray(parsed.ordering) && parsed.ordering.length === N
+      && parsed.ordering.every(n => Number.isInteger(n) && n >= 0 && n < N)
+      && new Set(parsed.ordering).size === N
+      ? parsed.ordering : Array.from({ length: N }, (_, i) => i);
+
+    const timers = Array.isArray(parsed.timers) && parsed.timers.length === N
+      ? parsed.timers.map(t => Math.max(5, Math.min(60, parseInt(t, 10) || defaultTimer)))
+      : Array(N).fill(defaultTimer);
+
+    const DIFF_ENUM = new Set(['easy', 'medium', 'hard', 'jackpot', 'boss']);
+    let difficulties = Array.isArray(parsed.difficulties) && parsed.difficulties.length === N
+      ? parsed.difficulties.map(d => DIFF_ENUM.has(d) ? d : 'medium')
+      : Array(N).fill('medium');
+
+    // Ensure exactly one boss (the last position) when N >= 1.
+    if (N >= 1) {
+      difficulties = difficulties.map((d, i) => i === N - 1 ? 'boss' : (d === 'boss' ? 'medium' : d));
+    }
+
+    res.json({ ordering, timers, difficulties });
+  } catch (err) {
+    console.error('AI arena-balance error:', err);
+    if (err.message?.includes('not configured')) {
+      return res.status(503).json({ error: err.message });
+    }
+    res.status(500).json({ error: 'Balance failed: ' + (err.message || 'Unknown error') });
+  }
+});
+
 module.exports = router;

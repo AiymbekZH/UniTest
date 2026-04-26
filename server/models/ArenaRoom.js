@@ -9,15 +9,30 @@ const arenaQuestionSchema = new mongoose.Schema({
   questionId: { type: String, required: true },
   type: {
     type: String,
-    enum: ['single-choice', 'multiple-choice', 'true-false', 'matching', 'fill-blank'],
+    enum: ['single-choice', 'multiple-choice', 'true-false', 'matching', 'fill-blank', 'essay'],
     required: true
   },
   questionText: { type: String, required: true },
   passage: { type: String, default: '' },
-  points: { type: Number, default: 1, min: 1 },
+  explanation: { type: String, default: '' },
+  media: {
+    type:     { type: String, default: '' },
+    url:      { type: String, default: '' },
+    fileName: { type: String, default: '' }
+  },
+  points: { type: Number, default: 1, min: 0 },
   timeLimitSec: { type: Number, default: 20, min: 5 },
   options: { type: [arenaOptionSchema], default: [] },
   matchingRightSide: { type: [arenaOptionSchema], default: [] },
+  // Per-question tag carried over from ArenaTest entry.tag.
+  // Affects scoring multiplier + UI styling at runtime.
+  tag: {
+    type: String,
+    enum: ['normal', 'blitz', 'think', 'jackpot', 'boss'],
+    default: 'normal'
+  },
+  // Translations: keyed by lang code, used by client when player switches language.
+  translations: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
   grading: {
     correctOptionIds: { type: [String], default: [] },
     acceptedAnswers: { type: [String], default: [] },
@@ -86,7 +101,23 @@ const arenaRoomSchema = new mongoose.Schema({
     answerRevealSec: { type: Number, default: 5, min: 2, max: 20 },
     leaderboardSec: { type: Number, default: 6, min: 2, max: 30 },
     allowGuests: { type: Boolean, default: false },
-    maxPlayers: { type: Number, default: 100, min: 2, max: 500 }
+    maxPlayers: { type: Number, default: 100, min: 2, max: 500 },
+    // ── Bridged from ArenaTest.settings at room creation time ───────────────
+    powerUpPool: {
+      type: [String],
+      enum: ['fiftyFifty', 'doublePoints', 'shield', 'timeFreeze', 'steal', 'mirror', 'suddenDeath'],
+      default: ['fiftyFifty', 'doublePoints', 'shield']
+    },
+    streaksEnabled:    { type: Boolean, default: false },
+    underdogBonus:     { type: Boolean, default: false },
+    shuffleQuestions:  { type: Boolean, default: false },
+    bossRoundEnabled:  { type: Boolean, default: false },
+    crownCarryEnabled: { type: Boolean, default: false },
+    audioVibe: {
+      type: String,
+      enum: ['default', 'quizshow', '8bit', 'cinematic', 'chill'],
+      default: 'default'
+    }
   }
 }, { timestamps: true });
 

@@ -34,6 +34,13 @@ const arenaParticipantSchema = new mongoose.Schema({
   correctCount: { type: Number, default: 0 },
   answeredCount: { type: Number, default: 0 },
   totalResponseTimeMs: { type: Number, default: 0 },
+  // Crown Carry: true if this participant currently holds the leader crown.
+  // Recomputed by finalizeCurrentArenaQuestion after each round.
+  crown: { type: Boolean, default: false },
+  // Shuffle Questions: per-player permutation of room.questionSnapshot indices.
+  // Empty = default (use room.currentQuestionIndex directly).
+  // Length === questionSnapshot.length when shuffle is enabled.
+  questionOrder: { type: [Number], default: [] },
   answers: { type: [arenaAnswerSchema], default: [] },
   joinedAt: { type: Date, default: Date.now },
   lastSeenAt: { type: Date, default: Date.now },

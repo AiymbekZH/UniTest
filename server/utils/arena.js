@@ -1,6 +1,9 @@
 const jwt = require('jsonwebtoken');
 
-const ARENA_ALLOWED_TYPES = ['single-choice', 'multiple-choice', 'true-false', 'matching', 'fill-blank'];
+// Note: 'essay' is technically allowed in arena snapshots so embedded essay questions
+// can reach the snapshot, but they are auto-graded as "incorrect" in gradeArenaAnswer
+// (essay grading is out of scope for live arena). UI can still display them.
+const ARENA_ALLOWED_TYPES = ['single-choice', 'multiple-choice', 'true-false', 'matching', 'fill-blank', 'essay'];
 
 const ARENA_STATUS = {
   PENDING: 'pending_acceptance',
@@ -43,6 +46,12 @@ function clampNumber(value, fallback, min, max) {
 }
 
 function normalizeArenaSettings(settings = {}, fallback = {}) {
+  const VIBES = ['default', 'quizshow', '8bit', 'cinematic', 'chill'];
+  const audioVibe = settings.audioVibe ?? fallback.audioVibe ?? 'default';
+  const powerUpPool = Array.isArray(settings.powerUpPool)
+    ? settings.powerUpPool
+    : (Array.isArray(fallback.powerUpPool) ? fallback.powerUpPool : ['fiftyFifty', 'doublePoints', 'shield']);
+
   return {
     countdownSeconds: clampNumber(settings.countdownSeconds ?? fallback.countdownSeconds, 5, 3, 15),
     questionIntroSec: clampNumber(settings.questionIntroSec ?? fallback.questionIntroSec, 3, 1, 10),
@@ -50,7 +59,15 @@ function normalizeArenaSettings(settings = {}, fallback = {}) {
     answerRevealSec: clampNumber(settings.answerRevealSec ?? fallback.answerRevealSec, 5, 2, 20),
     leaderboardSec: clampNumber(settings.leaderboardSec ?? fallback.leaderboardSec, 6, 2, 30),
     allowGuests: Boolean(settings.allowGuests ?? fallback.allowGuests ?? false),
-    maxPlayers: clampNumber(settings.maxPlayers ?? fallback.maxPlayers, 100, 2, 500)
+    maxPlayers: clampNumber(settings.maxPlayers ?? fallback.maxPlayers, 100, 2, 500),
+    // ── Extended (Phase-2 / Phase-3) settings — passed through, not stripped ──
+    powerUpPool,
+    streaksEnabled:    Boolean(settings.streaksEnabled    ?? fallback.streaksEnabled    ?? false),
+    underdogBonus:     Boolean(settings.underdogBonus     ?? fallback.underdogBonus     ?? false),
+    shuffleQuestions:  Boolean(settings.shuffleQuestions  ?? fallback.shuffleQuestions  ?? false),
+    bossRoundEnabled:  Boolean(settings.bossRoundEnabled  ?? fallback.bossRoundEnabled  ?? false),
+    crownCarryEnabled: Boolean(settings.crownCarryEnabled ?? fallback.crownCarryEnabled ?? false),
+    audioVibe: VIBES.includes(audioVibe) ? audioVibe : 'default'
   };
 }
 
@@ -83,16 +100,29 @@ function buildArenaQuestionSnapshot(question, settings = {}) {
     type: question.type,
     questionText: question.questionText,
     passage: question.passage || '',
-    points: Math.max(1, Number(question.points) || 1),
-    timeLimitSec: clampNumber(settings.answerTimeSec, getArenaQuestionDuration(question.type), 5, 120),
+    explanation: question.explanation || '',
+    media: question.media && typeof question.media === 'object' ? {
+      type:     question.media.type || '',
+      url:      question.media.url || '',
+      fileName: question.media.fileName || ''
+    } : { type: '', url: '', fileName: '' },
+    points: Math.max(0, Number(question.points) || 1),
+    timeLimitSec: clampNumber(settings.answerTimeSec, getArenaQuestionDuration(question.type), 5, 300),
     options: [],
     matchingRightSide: [],
+    tag: ['normal', 'blitz', 'think', 'jackpot', 'boss'].includes(question.tag)
+      ? question.tag : 'normal',
+    translations: question.translations || {},
     grading: {
       correctOptionIds: [],
       acceptedAnswers: [],
       correctPairs: {}
     }
   };
+
+  // Tag-based timer override: blitz forces 5s, think forces 60s.
+  if (base.tag === 'blitz') base.timeLimitSec = 5;
+  else if (base.tag === 'think') base.timeLimitSec = 60;
 
   if (question.type === 'matching') {
     const leftOptions = [];
@@ -138,7 +168,7 @@ function buildArenaSnapshotFromTest(test, settings = {}) {
 /**
  * Build an arena question snapshot from a list of BankQuestion documents.
  * `entries` may be plain bank docs or override objects of shape:
- *   { bankQuestion, timerOverride?, pointsOverride? }
+ *   { bankQuestion, timerOverride?, pointsOverride?, tag? }
  * Per-question overrides win over the room default.
  */
 function buildArenaSnapshotFromBank(entries, settings = {}) {
@@ -153,6 +183,7 @@ function buildArenaSnapshotFromBank(entries, settings = {}) {
         type: bq.type,
         questionText: bq.questionText,
         passage: bq.passage || '',
+        explanation: bq.explanation || '',
         points: Math.max(1, Number(entry.pointsOverride ?? bq.points) || 1),
         options: (bq.options || []).map(o => ({
           id: o.id || String(o._id || ''),
@@ -161,7 +192,8 @@ function buildArenaSnapshotFromBank(entries, settings = {}) {
           matchPair: o.matchPair || ''
         })),
         correctAnswer: bq.correctAnswer || '',
-        translations: bq.translations || {}
+        translations: bq.translations || {},
+        tag: entry.tag || 'normal'
       };
       const perQuestionSettings = entry.timerOverride
         ? { ...normalizedSettings, answerTimeSec: entry.timerOverride }
@@ -169,6 +201,78 @@ function buildArenaSnapshotFromBank(entries, settings = {}) {
       return buildArenaQuestionSnapshot(questionLike, perQuestionSettings);
     })
     .filter(Boolean);
+}
+
+/**
+ * Build an arena snapshot from ArenaTest entries (mixed kinds: 'bank' + 'embedded').
+ * Bank entries must have `bankQuestion` populated as a full doc.
+ * Embedded entries use entry.embedded directly.
+ *
+ * If `bossRoundEnabled` is true, the LAST snapshot entry is forced to tag 'boss'.
+ */
+function buildArenaSnapshotFromArenaTestEntries(entries, settings = {}, opts = {}) {
+  const normalizedSettings = normalizeArenaSettings(settings);
+  const bossRound = !!opts.bossRoundEnabled;
+  const result = (entries || [])
+    .map((entry, idx) => {
+      const tag = entry.tag || 'normal';
+      const perQuestionSettings = entry.timerOverride
+        ? { ...normalizedSettings, answerTimeSec: entry.timerOverride }
+        : normalizedSettings;
+
+      if (entry.kind === 'embedded' && entry.embedded) {
+        const e = entry.embedded;
+        const questionLike = {
+          id: `emb-${idx}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          type: e.type,
+          questionText: e.questionText,
+          passage: e.passage || '',
+          explanation: e.explanation || '',
+          media: e.media || { type: '', url: '', fileName: '' },
+          points: Math.max(0, Number(entry.pointsOverride ?? e.points) || 1),
+          options: (e.options || []).map(o => ({
+            id: o.id,
+            text: o.text,
+            isCorrect: !!o.isCorrect,
+            matchPair: o.matchPair || ''
+          })),
+          correctAnswer: e.correctAnswer || '',
+          translations: e.translations instanceof Map
+            ? Object.fromEntries(e.translations) : (e.translations || {}),
+          tag
+        };
+        return buildArenaQuestionSnapshot(questionLike, perQuestionSettings);
+      }
+
+      // bank-kind
+      const bq = entry.bankQuestion;
+      if (!bq || !ARENA_ALLOWED_TYPES.includes(bq.type)) return null;
+      const questionLike = {
+        id: String(bq._id || `bank-${idx}-${Date.now()}`),
+        type: bq.type,
+        questionText: bq.questionText,
+        passage: bq.passage || '',
+        explanation: bq.explanation || '',
+        points: Math.max(1, Number(entry.pointsOverride ?? bq.points) || 1),
+        options: (bq.options || []).map(o => ({
+          id: o.id || String(o._id || ''),
+          text: o.text,
+          isCorrect: !!o.isCorrect,
+          matchPair: o.matchPair || ''
+        })),
+        correctAnswer: bq.correctAnswer || '',
+        translations: bq.translations || {},
+        tag
+      };
+      return buildArenaQuestionSnapshot(questionLike, perQuestionSettings);
+    })
+    .filter(Boolean);
+
+  // Boss Round: force last question to 'boss' tag.
+  if (bossRound && result.length > 0) {
+    result[result.length - 1].tag = 'boss';
+  }
+  return result;
 }
 
 function mapLikeToObject(value) {
@@ -197,13 +301,22 @@ function sanitizeArenaQuestion(question, questionIndex = 0, totalQuestions = 0, 
   const answerSummary = options.includeAnswer ? buildAnswerSummary(question) : null;
   const correctOptionIds = new Set(answerSummary?.correctOptionIds || []);
 
+  // Translations may be a Mongoose Map — flatten before sending to client.
+  const flatTranslations = question.translations instanceof Map
+    ? Object.fromEntries(question.translations)
+    : (question.translations || {});
+
   return {
     questionId: question.questionId,
     type: question.type,
     questionText: question.questionText,
     passage: question.passage || '',
+    explanation: question.explanation || '',
+    media: question.media || { type: '', url: '', fileName: '' },
     points: question.points,
     timeLimitSec: question.timeLimitSec,
+    tag: question.tag || 'normal',
+    translations: flatTranslations,
     options: (question.options || []).map(option => ({
       id: option.id,
       text: option.text,
@@ -249,7 +362,11 @@ function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTim
   const doubleMultiplier = modifiers.doublePoints && isCorrect ? 2 : 1;
   // Sudden Death: armed on previous question — ×2 if correct, −100 if wrong.
   const suddenDeathMultiplier = modifiers.suddenDeath && isCorrect ? 2 : 1;
-  const multiplier = streakMultiplier * doubleMultiplier * suddenDeathMultiplier;
+  // Tag multiplier: jackpot ×2, boss ×3 (only on correct).
+  const tag = question.tag || 'normal';
+  const tagMultiplier = isCorrect && tag === 'boss' ? 3
+    : isCorrect && tag === 'jackpot' ? 2 : 1;
+  const multiplier = streakMultiplier * doubleMultiplier * suddenDeathMultiplier * tagMultiplier;
   const basePoints = isCorrect ? (question.points || 1) * 100 : 0;
   const speedBonus = isCorrect ? Math.round((question.points || 1) * 50 * remainingRatio) : 0;
   let pointsAwarded = isCorrect ? Math.round((basePoints + speedBonus) * multiplier) : 0;
@@ -324,6 +441,7 @@ function buildArenaParticipantSummary(participant, options = {}) {
     rank: participant.rank || 0,
     streak: participant.streak || 0,
     bestStreak: participant.bestStreak || 0,
+    crown: !!participant.crown,
     correctCount: participant.correctCount || 0,
     answeredCount: participant.answeredCount || 0,
     answeredCurrentQuestion: Boolean(currentAnswer),
@@ -453,6 +571,7 @@ module.exports = {
   buildArenaRoomState,
   buildArenaSnapshotFromTest,
   buildArenaSnapshotFromBank,
+  buildArenaSnapshotFromArenaTestEntries,
   buildArenaParticipantSummary,
   generateJoinCode,
   gradeArenaAnswer,
