@@ -114,7 +114,7 @@ export default memo(function Navbar() {
 
               <Link to="/dashboard" className="flex min-w-0 items-center gap-2 group">
                 <BrandLogo
-                  size={32}
+                  size={38}
                   showWordmark
                   className="transition-transform duration-300 group-hover:scale-[1.03]"
                   wordmarkClassName="text-base text-dark tracking-tight"
