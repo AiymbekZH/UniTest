@@ -268,10 +268,12 @@ router.get('/', optionalAuth, async (req, res) => {
     if (sort === 'title') sortOption = { title: 1 };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    // PERF: keep `coverImage` (нужно для баннеров на дашборде) — это часть UX.
-    // Но всё равно отбрасываем ratings[] / difficultyRatings[] / полные questions[]
-    // (они тяжёлые и не используются на превью-карточках). `questions._id` оставляем,
-    // чтобы работал счётчик вопросов на бейдже.
+    // PERF (КРИТИЧНО): НЕ включать coverImage в проекцию списочных endpoints.
+    // coverImage хранится как base64 data URL ~300-600KB на тест, и при limit=12
+    // это превращалось в 6MB на каждый запрос дашборда → запрос занимал 2-3 минуты.
+    // TestCoverArtwork.jsx красиво заменяет отсутствующий coverImage на
+    // AnimatedPlaceholder (градиент + первая буква). Полный coverImage грузится
+    // только когда пользователь открывает конкретный тест через GET /api/tests/:id.
     const projection = {
       title: 1, description: 1, creator: 1, tags: 1,
       shareLink: 1, settings: 1, isDeleted: 1,
@@ -279,7 +281,6 @@ router.get('/', optionalAuth, async (req, res) => {
       difficultyScore: 1, difficultyCount: 1,
       totalPoints: 1, firstPublishedAt: 1,
       createdAt: 1, updatedAt: 1,
-      coverImage: 1,
       'questions._id': 1
     };
     const [tests, total] = await Promise.all([
@@ -306,8 +307,8 @@ router.get('/', optionalAuth, async (req, res) => {
 // Get my tests
 router.get('/my', auth, async (req, res) => {
   try {
-    // PERF: keep coverImage (нужно для баннеров на странице "Мои тесты"),
-    // но сбрасываем ratings/difficultyRatings/полные questions[].
+    // PERF: same as / endpoint — НЕ включать coverImage (тяжёлый base64).
+    // TestCoverArtwork падает на красивый AnimatedPlaceholder.
     const projection = {
       title: 1, description: 1, creator: 1, tags: 1,
       shareLink: 1, settings: 1, isDeleted: 1,
@@ -315,7 +316,6 @@ router.get('/my', auth, async (req, res) => {
       difficultyScore: 1, difficultyCount: 1,
       totalPoints: 1, firstPublishedAt: 1,
       createdAt: 1, updatedAt: 1,
-      coverImage: 1,
       'questions._id': 1
     };
     const tests = await Test.find({ creator: req.user._id }, projection)
