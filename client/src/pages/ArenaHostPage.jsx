@@ -734,17 +734,23 @@ export default function ArenaHostPage() {
             </section>
           )}
 
-          {/* QUESTION INTRO — kept */}
+          {/* QUESTION INTRO — compact: pill + question text + countdown ring */}
           {room.status === 'question_intro' && (
-            <section
-              className="flex flex-1 flex-col justify-center rounded-[2.5rem] border-2 border-slate-900 bg-white p-6 text-slate-900 dark:border-white dark:bg-slate-900 dark:text-white sm:p-8"
-              style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
-            >
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-600 dark:text-primary-300">Вопрос {room.currentQuestion?.questionNumber}</p>
-              <h1 className="mt-4 max-w-6xl text-4xl font-black leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
-                {room.currentQuestion?.questionText}
-              </h1>
-              <p className="mt-8 font-mono text-5xl font-black text-primary-500 dark:text-primary-300 sm:text-6xl">{countdownSec}</p>
+            <section className="grid flex-1 place-items-center">
+              <div className="flex w-full max-w-4xl flex-col items-center gap-6 text-center">
+                <span
+                  className="chunky-pill border-2 border-primary-700 bg-primary-500 text-white"
+                  style={{ boxShadow: '0 3px 0 #9a3412' }}
+                >
+                  <Sparkles size={13} strokeWidth={2.6} /> Вопрос {room.currentQuestion?.questionNumber}/{room.currentQuestion?.totalQuestions}
+                </span>
+                <h1
+                  className="prose prose-headings:!my-0 max-w-3xl text-2xl font-black leading-tight tracking-tight text-slate-900 dark:prose-invert prose-p:!my-0 prose-strong:font-black dark:text-white sm:text-3xl md:text-4xl"
+                  dangerouslySetInnerHTML={{ __html: room.currentQuestion?.questionText || '' }}
+                />
+                <CountdownRing secondsLeft={countdownSec} totalSeconds={Math.max(countdownSec, 3)} />
+                <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Готовьтесь отвечать</p>
+              </div>
             </section>
           )}
 
@@ -759,18 +765,30 @@ export default function ArenaHostPage() {
             />
           )}
 
-          {/* LEADERBOARD — kept */}
+          {/* LEADERBOARD — compact header + dominant standings */}
           {(room.status === 'leaderboard' || room.status === 'round_result') && (
-            <section className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] [&>*]:min-w-0">
+            <section className="flex flex-1 flex-col gap-4">
               <div
-                className="w-full rounded-[2.5rem] border-2 border-slate-900 bg-primary-500 p-6 text-white dark:border-white sm:p-7"
-                style={{ boxShadow: '0 6px 0 #9a3412' }}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border-2 border-slate-900 bg-primary-500 px-5 py-4 text-white dark:border-white sm:px-6"
+                style={{ boxShadow: '0 5px 0 #9a3412' }}
               >
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-white/85">Leaderboard</p>
-                <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-6xl md:text-7xl">Текущий топ</h1>
-                <p className="mt-5 font-mono text-5xl font-black text-amber-200">{countdownSec}</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.32em] text-white/80">Leaderboard</p>
+                  <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
+                    {room.status === 'round_result' ? 'Итоги раунда' : 'Текущий топ'}
+                  </h1>
+                </div>
+                <div
+                  className="flex items-center gap-2 rounded-2xl border-2 border-white/40 bg-white/15 px-3 py-2"
+                  style={{ boxShadow: '0 3px 0 #7c2d12' }}
+                >
+                  <Clock size={16} strokeWidth={2.6} />
+                  <span className="font-mono text-2xl font-black tabular-nums sm:text-3xl">{countdownSec}с</span>
+                </div>
               </div>
-              <ArenaStandings participants={participants} title="Рейтинг" limit={8} />
+              <div className="flex-1">
+                <ArenaStandings participants={participants} title="Рейтинг" limit={10} />
+              </div>
             </section>
           )}
 

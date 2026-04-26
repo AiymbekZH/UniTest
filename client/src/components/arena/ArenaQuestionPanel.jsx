@@ -162,9 +162,10 @@ export default function ArenaQuestionPanel({
             >
               {question.questionNumber}/{question.totalQuestions}
             </div>
-            <h2 className={`${isHostView ? 'mt-5 text-4xl md:text-6xl lg:text-7xl' : 'mt-4 text-2xl sm:text-3xl'} font-black leading-[0.98] tracking-tight`}>
-              {question.questionText}
-            </h2>
+            <h2
+              className={`${isHostView ? 'mt-5 text-3xl md:text-5xl lg:text-6xl' : 'mt-4 text-2xl sm:text-3xl'} prose prose-headings:!my-0 max-w-none font-black leading-[1.05] tracking-tight dark:prose-invert prose-p:!my-0 prose-strong:font-black`}
+              dangerouslySetInnerHTML={{ __html: question.questionText || '' }}
+            />
           </div>
           <TimerRing timeLeftMs={timeLeftMs} totalDurationMs={question.totalDurationMs || question.timeLimitMs || 30000} size={isHostView ? 120 : 96} />
         </div>
@@ -222,9 +223,10 @@ export default function ArenaQuestionPanel({
                 <div className="relative z-10 flex h-full flex-col justify-between gap-4">
                   <Icon size={isHostView ? 44 : 30} strokeWidth={3.2} />
                   <div>
-                    <p className={`${isHostView ? 'text-3xl md:text-5xl' : 'text-xl sm:text-2xl'} font-black leading-tight`}>
-                      {option.text}
-                    </p>
+                    <p
+                      className={`${isHostView ? 'text-2xl md:text-4xl' : 'text-xl sm:text-2xl'} prose prose-p:!my-0 max-w-none font-black leading-tight prose-headings:!my-0 prose-strong:font-black`}
+                      dangerouslySetInnerHTML={{ __html: option.text || '' }}
+                    />
                     <AnimatePresence>
                       {showAnswer && isCorrect && (
                         <motion.span

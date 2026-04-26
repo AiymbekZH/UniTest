@@ -10,10 +10,10 @@ import Confetti from '../components/ui/Confetti';
 import { haptic } from '../utils/haptics';
 
 export default function ArenaResultsPage() {
-  const { code } = useParams();
+  const { roomId } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
-  const [questions, setQuestions] = useState([]);
+  const [breakdowns, setBreakdowns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -23,10 +23,10 @@ export default function ArenaResultsPage() {
     const load = async () => {
       try {
         setLoading(true);
-        const { data: payload } = await api.get(`/api/arena/rooms/code/${encodeURIComponent(code)}/results`);
+        const { data: payload } = await api.get(`/arena/rooms/${encodeURIComponent(roomId)}/results`);
         if (!mounted) return;
-        setData(payload.room || payload);
-        setQuestions(payload.questions || payload.room?.questions || []);
+        setData(payload.room || null);
+        setBreakdowns(payload.questionBreakdowns || []);
         setShowConfetti(true);
         haptic.success();
         setTimeout(() => mounted && setShowConfetti(false), 3500);
@@ -37,9 +37,9 @@ export default function ArenaResultsPage() {
         if (mounted) setLoading(false);
       }
     };
-    if (code) load();
+    if (roomId) load();
     return () => { mounted = false; };
-  }, [code]);
+  }, [roomId]);
 
   const participants = useMemo(() => {
     const list = data?.participants || [];
@@ -47,20 +47,17 @@ export default function ArenaResultsPage() {
   }, [data]);
 
   const analytics = useMemo(() => {
-    if (!questions?.length || !participants?.length) return null;
-    return questions.map((q, idx) => {
-      let correct = 0, total = 0, avgMs = 0;
-      participants.forEach(p => {
-        const ans = (p.answers || []).find(a => (a.questionIndex ?? a.index) === idx);
-        if (!ans) return;
-        total += 1;
-        if (ans.isCorrect) correct += 1;
-        avgMs += ans.responseTimeMs || 0;
-      });
-      const pct = total ? Math.round((correct / total) * 100) : 0;
-      return { idx, text: q.text || q.question || `Вопрос ${idx + 1}`, pct, correct, total, avgMs: total ? Math.round(avgMs / total) : 0 };
-    });
-  }, [questions, participants]);
+    if (!breakdowns?.length) return null;
+    return breakdowns.map(b => ({
+      idx: b.questionIndex,
+      text: b.questionText || `Вопрос ${b.questionNumber}`,
+      pct: b.accuracy ?? 0,
+      correct: b.correctAnswered ?? 0,
+      total: b.totalAnswered ?? 0,
+      avgMs: b.avgResponseTimeMs ?? 0,
+      fastest: b.fastest || null
+    }));
+  }, [breakdowns]);
 
   if (loading) {
     return (
@@ -116,11 +113,11 @@ export default function ArenaResultsPage() {
       >
         <ChunkyCard className="overflow-hidden">
           <div className="relative bg-primary-500 px-5 py-6 text-white sm:px-8 sm:py-8">
-            <div className="absolute -right-8 -top-8 text-9xl font-black opacity-10">#{data?.code}</div>
+            <div className="absolute -right-8 -top-8 text-9xl font-black opacity-10">#{data?.joinCode}</div>
             <div className="relative">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary-100">{data?.title || 'Соревнователь'}</p>
               <h1 className="mt-1 text-2xl font-black sm:text-4xl">Финал!</h1>
-              <p className="mt-1 text-sm font-bold text-primary-50">Код комнаты · {data?.code}</p>
+              <p className="mt-1 text-sm font-bold text-primary-50">Код комнаты · {data?.joinCode}</p>
             </div>
           </div>
         </ChunkyCard>
@@ -153,7 +150,7 @@ export default function ArenaResultsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Вопрос {a.idx + 1}</p>
-                      <p className="mt-0.5 line-clamp-2 text-sm font-black text-slate-800">{a.text}</p>
+                      <p className="prose prose-sm mt-0.5 line-clamp-2 max-w-none text-sm font-black text-slate-800" dangerouslySetInnerHTML={{ __html: a.text }} />
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="font-mono text-2xl font-black text-slate-900">{a.pct}%</p>

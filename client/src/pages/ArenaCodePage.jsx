@@ -467,7 +467,10 @@ export default function ArenaCodePage() {
             <section className="grid flex-1 place-items-center">
               <ChunkyCard variant="primary" className="w-full max-w-3xl p-6 sm:p-8">
                 <p className="text-xs font-black uppercase tracking-[0.3em] text-white/85">Следующий вопрос</p>
-                <h1 className="mt-3 text-3xl font-black leading-tight text-white sm:text-5xl">{room.currentQuestion?.questionText}</h1>
+                <h1
+                  className="prose prose-headings:!my-0 prose-invert mt-3 max-w-none text-2xl font-black leading-tight text-white prose-p:!my-0 prose-strong:font-black sm:text-3xl md:text-4xl"
+                  dangerouslySetInnerHTML={{ __html: room.currentQuestion?.questionText || '' }}
+                />
                 <p className="mt-6 font-mono text-5xl font-black text-amber-200 sm:text-6xl">{countdownSec}</p>
               </ChunkyCard>
             </section>
