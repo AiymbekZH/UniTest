@@ -1,10 +1,14 @@
 const ArenaRoom = require('../models/ArenaRoom');
 const { verifyArenaGuestToken } = require('../utils/arena');
 const {
+  ARENA_STATUS,
   applyArenaPowerUp,
+  bumpArenaActivity,
+  clearHostDisconnectTimer,
   emitArenaState,
   handleArenaAnswer,
   resolveArenaParticipant,
+  scheduleHostDisconnectCancel,
   setArenaParticipantPresence
 } = require('../utils/arenaEngine');
 
@@ -45,9 +49,20 @@ module.exports = function attachArenaSocket(io) {
         socket.join(`arena:${roomId}`);
         socket.data.arenaRooms.add(String(roomId));
 
+        // Track host's room IDs separately so disconnect grace can target only host sockets.
+        if (isHost) {
+          if (!socket.data.arenaHostRooms) socket.data.arenaHostRooms = new Set();
+          socket.data.arenaHostRooms.add(String(roomId));
+          // Host re-connected within grace period — cancel any pending auto-cancel.
+          clearHostDisconnectTimer(roomId);
+        }
+
         if (participant) {
           await setArenaParticipantPresence(roomId, actor, 'joined');
         }
+
+        // Bump activity so cleanup loop knows lobby is alive.
+        await bumpArenaActivity(roomId);
 
         const state = await emitArenaState(io, roomId, 'arena:lobbyState');
         socket.emit('arena:lobbyState', state);
@@ -88,6 +103,7 @@ module.exports = function attachArenaSocket(io) {
         }
 
         const result = await handleArenaAnswer(roomId, actor, payload, io);
+        await bumpArenaActivity(roomId);
         socket.emit('arena:answerAck', {
           roomId,
           questionIndex: result.questionIndex,
@@ -143,6 +159,7 @@ module.exports = function attachArenaSocket(io) {
 
     socket.on('disconnect', async () => {
       const roomIds = [...(socket.data.arenaRooms || [])];
+      const hostRoomIds = [...(socket.data.arenaHostRooms || [])];
       for (const roomId of roomIds) {
         try {
           if (socket.user?._id) {
@@ -153,6 +170,27 @@ module.exports = function attachArenaSocket(io) {
           await emitArenaState(io, roomId, 'arena:lobbyState');
         } catch (_) {
           // ignore disconnect race
+        }
+      }
+
+      // If the host disconnected while the room is still in lobby, schedule
+      // a 30s grace cancellation so abandoned lobbies don't linger.
+      for (const roomId of hostRoomIds) {
+        try {
+          const fresh = await ArenaRoom.findById(roomId).select('status hostUser').lean();
+          if (!fresh) continue;
+          if (fresh.status !== ARENA_STATUS.LOBBY) continue;
+          if (!socket.user?._id) continue;
+          if (String(fresh.hostUser) !== String(socket.user._id)) continue;
+          // Check if any other socket from the same host user is still connected to this room.
+          const room = `arena:${roomId}`;
+          const sockets = await io.in(room).fetchSockets();
+          const stillHere = sockets.some(s => s.id !== socket.id && s.user?._id && String(s.user._id) === String(socket.user._id));
+          if (!stillHere) {
+            scheduleHostDisconnectCancel(roomId, io);
+          }
+        } catch (_) {
+          // best-effort
         }
       }
     });

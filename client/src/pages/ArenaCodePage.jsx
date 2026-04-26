@@ -51,9 +51,9 @@ function getParticipantId(participant) {
   return String(participant?._id || '');
 }
 
-function PlayerShell({ dark, children }) {
+function PlayerShell({ children }) {
   return (
-    <div className={dark ? 'min-h-screen arena-stage-bg text-white' : 'min-h-screen bg-[#FFFAF0] text-dark dark:bg-slate-900 dark:text-gray-100'}>
+    <div className="min-h-screen arena-stage-bg">
       <div className="relative mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-4 sm:max-w-3xl sm:px-6 sm:py-6">
         {children}
       </div>
@@ -241,12 +241,9 @@ export default function ArenaCodePage() {
     || ack?.questionIndex === room?.currentQuestionIndex
     || room?.status !== 'live_question';
 
-  // Dark stage during active gameplay, light otherwise
-  const isGameplay = room && ['live_question', 'answer_reveal', 'question_intro', 'countdown', 'starting_countdown', 'leaderboard', 'round_result'].includes(room.status);
-
   if (loading || !room) {
     return (
-      <PlayerShell dark={false}>
+      <PlayerShell>
         <div className="grid min-h-screen place-items-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary-200 border-t-primary-500" />
         </div>
@@ -260,18 +257,18 @@ export default function ArenaCodePage() {
   const isWinner = myPlacement === 1;
 
   return (
-    <PlayerShell dark={isGameplay}>
+    <PlayerShell>
       {/* Header */}
       <header className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate('/arena')}
-            className={`chunky-card touch-target grid h-11 w-11 place-items-center ${isGameplay ? 'bg-white/10 text-white border-white/20' : 'bg-white text-slate-700 dark:bg-slate-800 dark:text-slate-200'}`}
-            style={isGameplay ? { boxShadow: '0 4px 0 rgba(0,0,0,0.35)' } : { boxShadow: '0 4px 0 #e2e8f0' }}
+            className="touch-target grid h-11 w-11 place-items-center rounded-2xl border-2 border-slate-900 bg-white text-slate-900 dark:border-white dark:bg-slate-800 dark:text-slate-100"
+            style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
             aria-label="Назад"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} strokeWidth={2.6} />
           </button>
           <div className="rounded-2xl bg-white px-3 py-2">
             <BrandLogo />
@@ -283,8 +280,7 @@ export default function ArenaCodePage() {
             navigator.clipboard.writeText(`${window.location.origin}/arena/code/${room.joinCode}`);
             toast.success('Ссылка скопирована');
           }}
-          className={`chunky-btn ${isGameplay ? 'bg-white/10 text-white border-2 border-white/20' : 'chunky-btn-ghost'} touch-target`}
-          style={isGameplay ? { boxShadow: '0 4px 0 rgba(0,0,0,0.35)' } : undefined}
+          className="chunky-btn chunky-btn-ghost touch-target"
         >
           <Copy size={15} /> <span className="font-mono tracking-[0.2em]">{room.joinCode}</span>
         </button>
@@ -447,9 +443,9 @@ export default function ArenaCodePage() {
                 transition={{ type: 'spring', stiffness: 300, damping: 16 }}
                 className="text-center"
               >
-                <p className="text-sm font-black uppercase tracking-[0.4em] text-primary-300">Старт</p>
-                <p className="mt-4 text-[8rem] font-black leading-none text-white sm:text-[12rem]">{countdownSec}</p>
-                <p className="mt-4 text-xl font-black text-white/80">Смотри на главный экран</p>
+                <p className="text-sm font-black uppercase tracking-[0.4em] text-primary-600 dark:text-primary-300">Старт</p>
+                <p className="mt-4 text-[8rem] font-black leading-none text-slate-900 dark:text-white sm:text-[12rem]">{countdownSec}</p>
+                <p className="mt-4 text-xl font-black text-slate-600 dark:text-slate-300">Смотри на главный экран</p>
               </motion.div>
             </section>
           )}
@@ -469,10 +465,10 @@ export default function ArenaCodePage() {
 
           {room.status === 'question_intro' && (
             <section className="grid flex-1 place-items-center">
-              <ChunkyCard variant="dark" className="w-full max-w-3xl p-6 sm:p-8">
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-300">Следующий вопрос</p>
+              <ChunkyCard variant="primary" className="w-full max-w-3xl p-6 sm:p-8">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-white/85">Следующий вопрос</p>
                 <h1 className="mt-3 text-3xl font-black leading-tight text-white sm:text-5xl">{room.currentQuestion?.questionText}</h1>
-                <p className="mt-6 font-mono text-5xl font-black text-amber-300 sm:text-6xl">{countdownSec}</p>
+                <p className="mt-6 font-mono text-5xl font-black text-amber-200 sm:text-6xl">{countdownSec}</p>
               </ChunkyCard>
             </section>
           )}
@@ -491,10 +487,10 @@ export default function ArenaCodePage() {
 
           {(room.status === 'leaderboard' || room.status === 'round_result') && (
             <section className="grid flex-1 content-start gap-4">
-              <ChunkyCard variant="dark" className="p-6">
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-300">Рейтинг</p>
+              <ChunkyCard variant="primary" className="p-6">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-white/85">Рейтинг</p>
                 <h2 className="mt-2 text-3xl font-black text-white sm:text-4xl">Следующий вопрос скоро</h2>
-                <p className="mt-4 font-mono text-5xl font-black text-amber-300">{countdownSec}</p>
+                <p className="mt-4 font-mono text-5xl font-black text-amber-200">{countdownSec}</p>
               </ChunkyCard>
               <ArenaStandings participants={participants} title="Текущий топ" />
             </section>

@@ -75,6 +75,9 @@ const arenaRoomSchema = new mongoose.Schema({
   pauseEndsAt: { type: Date, default: null },
   finalizedAt: { type: Date, default: null },
   cancelledAt: { type: Date, default: null },
+  // Used by the lobby auto-cleanup loop. Bumped on host actions, joins,
+  // answers, etc. (not bumped by automatic phase progression saves).
+  lastActivityAt: { type: Date, default: Date.now, index: true },
   settings: {
     countdownSeconds: { type: Number, default: 5, min: 3, max: 15 },
     questionIntroSec: { type: Number, default: 3, min: 1, max: 10 },

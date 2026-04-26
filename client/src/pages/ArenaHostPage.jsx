@@ -43,9 +43,12 @@ function statusLabel(status) {
 function PlayerPill({ participant, onKick }) {
   const name = participant.displayName || 'Игрок';
   return (
-    <div className="group relative flex items-center gap-2 rounded-full border-2 border-white/20 bg-white/10 pl-3 pr-2 py-2">
-      <span className={`h-2.5 w-2.5 rounded-full ${participant.state === 'joined' ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
-      <span className="max-w-[180px] truncate text-sm font-black text-white">{name}</span>
+    <div
+      className="group relative flex items-center gap-2 rounded-full border-2 border-slate-900 bg-white pl-3 pr-2 py-2 dark:border-white dark:bg-slate-800"
+      style={{ boxShadow: '0 3px 0 var(--shadow-chunky, #1f1a14)' }}
+    >
+      <span className={`h-2.5 w-2.5 rounded-full ${participant.state === 'joined' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+      <span className="max-w-[180px] truncate text-sm font-black text-slate-900 dark:text-white">{name}</span>
       {onKick && (
         <button
           type="button"
@@ -63,14 +66,14 @@ function PlayerPill({ participant, onKick }) {
 function HostActionBtn({ children, variant = 'ghost', title, onClick, disabled }) {
   const base = 'touch-target inline-flex items-center justify-center gap-1.5 rounded-2xl px-3 font-black text-sm transition-transform active:translate-y-[3px]';
   const tones = {
-    ghost: 'bg-white/10 text-white border-2 border-white/20',
+    ghost: 'bg-white text-slate-900 border-2 border-slate-900 dark:bg-slate-800 dark:text-white dark:border-white',
     primary: 'bg-amber-400 text-slate-900 border-2 border-amber-600',
     success: 'bg-emerald-500 text-white border-2 border-emerald-700',
     warning: 'bg-amber-500 text-white border-2 border-amber-700',
     danger: 'bg-red-500 text-white border-2 border-red-700'
   };
   const shadowMap = {
-    ghost: '0 4px 0 rgba(0,0,0,0.35)',
+    ghost: '0 4px 0 var(--shadow-chunky, #1f1a14)',
     primary: '0 4px 0 #b45309',
     success: '0 4px 0 #065f46',
     warning: '0 4px 0 #b45309',
@@ -186,7 +189,7 @@ export default function ArenaHostPage() {
   if (loading || !room) {
     return (
       <div className="flex min-h-screen items-center justify-center arena-stage-bg">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-primary-500" />
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-300 border-t-primary-500 dark:border-slate-700" />
       </div>
     );
   }
@@ -194,7 +197,7 @@ export default function ArenaHostPage() {
   const countdownSec = Math.max(0, Math.ceil(timeLeftMs / 1000));
 
   return (
-    <div className="min-h-screen arena-stage-bg text-white">
+    <div className="min-h-screen arena-stage-bg text-slate-900 dark:text-white">
       {isFinal ? <Confetti active duration={3000} /> : null}
 
       <div className="relative z-10 flex min-h-screen flex-col p-4 pb-24 sm:pb-8 lg:p-6">
@@ -204,8 +207,8 @@ export default function ArenaHostPage() {
             <button
               type="button"
               onClick={() => navigate('/arena')}
-              className="chunky-card touch-target grid h-11 w-11 place-items-center bg-white/10 text-white border-2 border-white/20"
-              style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.35)' }}
+              className="touch-target grid h-11 w-11 place-items-center rounded-2xl border-2 border-slate-900 bg-white text-slate-900 dark:border-white dark:bg-slate-800 dark:text-slate-100"
+              style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
               aria-label="Назад"
             >
               <ArrowLeft size={18} />
@@ -227,8 +230,8 @@ export default function ArenaHostPage() {
             </HostActionBtn>
             <Link
               to={`/arena/code/${room.joinCode}`}
-              className="chunky-card touch-target hidden h-11 items-center gap-2 rounded-2xl bg-white/10 px-3 text-sm font-black text-white border-2 border-white/20 md:inline-flex"
-              style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.35)' }}
+              className="touch-target hidden h-11 items-center gap-2 rounded-2xl border-2 border-slate-900 bg-white px-3 text-sm font-black text-slate-900 dark:border-white dark:bg-slate-800 dark:text-slate-100 md:inline-flex"
+              style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
             >
               <Smartphone size={15} /> Player
             </Link>
@@ -264,9 +267,12 @@ export default function ArenaHostPage() {
           {/* Lobby */}
           {room.status === 'lobby' && (
             <section className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]">
-              <div className="flex min-h-[60vh] flex-col justify-between rounded-[2.5rem] border-2 border-white/10 bg-[#111111] p-6">
+              <div
+                className="flex min-h-[60vh] flex-col justify-between rounded-[2.5rem] border-2 border-slate-900 bg-white p-6 dark:border-white dark:bg-slate-900"
+                style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
+              >
                 <div>
-                  <span className="inline-flex items-center gap-1 rounded-full border-2 border-primary-500/50 bg-primary-500/15 px-3 py-1 text-xs font-black uppercase tracking-[0.3em] text-primary-200">
+                  <span className="inline-flex items-center gap-1 rounded-full border-2 border-primary-700 bg-primary-50 px-3 py-1 text-xs font-black uppercase tracking-[0.3em] text-primary-700 dark:border-primary-300 dark:bg-primary-900/30 dark:text-primary-300">
                     UniTest Arena
                   </span>
                   <h1 className="mt-5 max-w-5xl text-4xl font-black leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl">
@@ -306,10 +312,13 @@ export default function ArenaHostPage() {
                 </div>
               </div>
 
-              <div className="flex min-h-[60vh] flex-col rounded-[2.5rem] border-2 border-white/10 bg-black/40 p-5">
+              <div
+                className="flex min-h-[60vh] flex-col rounded-[2.5rem] border-2 border-slate-900 bg-white p-5 dark:border-white dark:bg-slate-900"
+                style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-primary-300">Players</p>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-primary-600 dark:text-primary-300">Players</p>
                     <h2 className="text-2xl font-black">Лобби</h2>
                   </div>
                   <span className="chunky-pill bg-white text-slate-900" style={{ boxShadow: '0 3px 0 #94a3b8' }}>
@@ -320,7 +329,7 @@ export default function ArenaHostPage() {
                   {participants.length ? participants.map(p => (
                     <PlayerPill key={p._id} participant={p} onKick={kickParticipant} />
                   )) : (
-                    <div className="rounded-3xl border-2 border-dashed border-white/15 p-5 text-sm font-bold text-white/55">
+                    <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                       Игроки появятся здесь после входа по коду.
                     </div>
                   )}
@@ -339,17 +348,20 @@ export default function ArenaHostPage() {
                 transition={{ type: 'spring', stiffness: 300, damping: 16 }}
                 className="text-center"
               >
-                <p className="text-sm font-black uppercase tracking-[0.4em] text-primary-300">Матч начинается</p>
-                <p className="mt-4 text-[10rem] font-black leading-none text-white sm:text-[16rem]">{countdownSec}</p>
-                <p className="mt-4 text-xl font-black text-white/70 sm:text-3xl">Первый вопрос открывается</p>
+                <p className="text-sm font-black uppercase tracking-[0.4em] text-primary-600 dark:text-primary-300">Матч начинается</p>
+                <p className="mt-4 text-[10rem] font-black leading-none text-slate-900 dark:text-white sm:text-[16rem]">{countdownSec}</p>
+                <p className="mt-4 text-xl font-black text-slate-600 dark:text-slate-300 sm:text-3xl">Первый вопрос открывается</p>
               </motion.div>
             </section>
           )}
 
           {/* Intro */}
           {room.status === 'question_intro' && (
-            <section className="flex flex-1 flex-col justify-center rounded-[2.5rem] bg-[#111111] p-6 sm:p-8">
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-300">Вопрос {room.currentQuestion?.questionNumber}</p>
+            <section
+              className="flex flex-1 flex-col justify-center rounded-[2.5rem] border-2 border-slate-900 bg-white p-6 text-slate-900 dark:border-white dark:bg-slate-900 dark:text-white sm:p-8"
+              style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
+            >
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-600 dark:text-primary-300">Вопрос {room.currentQuestion?.questionNumber}</p>
               <h1 className="mt-4 max-w-6xl text-4xl font-black leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
                 {room.currentQuestion?.questionText}
               </h1>
@@ -371,10 +383,13 @@ export default function ArenaHostPage() {
           {/* Leaderboard */}
           {(room.status === 'leaderboard' || room.status === 'round_result') && (
             <section className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-              <div className="w-full rounded-[2.5rem] border-2 border-white/10 bg-[#111111] p-6 sm:p-7">
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-300">Leaderboard</p>
+              <div
+                className="w-full rounded-[2.5rem] border-2 border-slate-900 bg-primary-500 p-6 text-white dark:border-white sm:p-7"
+                style={{ boxShadow: '0 6px 0 #9a3412' }}
+              >
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-white/85">Leaderboard</p>
                 <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-6xl md:text-7xl">Текущий топ</h1>
-                <p className="mt-5 font-mono text-5xl font-black text-primary-300">{countdownSec}</p>
+                <p className="mt-5 font-mono text-5xl font-black text-amber-200">{countdownSec}</p>
               </div>
               <ArenaStandings participants={participants} title="Рейтинг" limit={8} />
             </section>

@@ -67,6 +67,90 @@ function safeTimer(callback, label) {
   };
 }
 
+// Lightweight activity bump for cleanup logic (does not trigger room save hooks).
+async function bumpArenaActivity(roomId) {
+  if (!roomId) return;
+  try {
+    await ArenaRoom.updateOne({ _id: roomId }, { $set: { lastActivityAt: new Date() } });
+  } catch (error) {
+    // Non-critical; cleanup loop will eventually act on stale rooms.
+    console.error('bumpArenaActivity error:', error.message);
+  }
+}
+
+// Per-room host disconnect grace timers (set when host socket disconnects from lobby).
+const hostDisconnectTimers = new Map();
+const HOST_DISCONNECT_GRACE_MS = 30 * 1000;
+
+function clearHostDisconnectTimer(roomId) {
+  const key = String(roomId);
+  const timer = hostDisconnectTimers.get(key);
+  if (timer) {
+    clearTimeout(timer);
+    hostDisconnectTimers.delete(key);
+  }
+}
+
+async function cancelArenaRoom(roomId, io, reason = 'cancelled') {
+  const room = await ArenaRoom.findById(roomId);
+  if (!room) return null;
+  if ([ARENA_STATUS.FINAL, ARENA_STATUS.CANCELLED, ARENA_STATUS.DECLINED].includes(room.status)) return room;
+
+  clearArenaTimers(roomId);
+  clearHostDisconnectTimer(roomId);
+
+  room.status = ARENA_STATUS.CANCELLED;
+  room.cancelledAt = new Date();
+  await room.save();
+
+  if (io) {
+    try {
+      await emitArenaState(io, roomId, 'arena:final');
+    } catch (_) {
+      // ignore emit failures during cleanup
+    }
+  }
+  console.log(`[arena cleanup] room ${roomId} cancelled (${reason})`);
+  return room;
+}
+
+function scheduleHostDisconnectCancel(roomId, io) {
+  if (!roomId) return;
+  const key = String(roomId);
+  clearHostDisconnectTimer(key);
+  const timer = setTimeout(safeTimer(async () => {
+    hostDisconnectTimers.delete(key);
+    const fresh = await ArenaRoom.findById(roomId).lean();
+    if (!fresh) return;
+    // Only cancel if still in lobby; if game started, host re-grace doesn't apply.
+    if (fresh.status === ARENA_STATUS.LOBBY) {
+      await cancelArenaRoom(roomId, io, 'host disconnected');
+    }
+  }, 'hostDisconnectCancel'), HOST_DISCONNECT_GRACE_MS);
+  hostDisconnectTimers.set(key, timer);
+}
+
+// Background loop: cancels lobbies inactive for `idleMs` ms.
+function startArenaCleanupLoop(io, { intervalMs = 60 * 1000, idleMs = 15 * 60 * 1000 } = {}) {
+  const tick = async () => {
+    try {
+      const cutoff = new Date(Date.now() - idleMs);
+      const stale = await ArenaRoom.find({
+        status: ARENA_STATUS.LOBBY,
+        lastActivityAt: { $lt: cutoff }
+      }).select('_id').lean();
+      for (const row of stale) {
+        await cancelArenaRoom(row._id, io, `idle > ${Math.round(idleMs / 60000)}min`);
+      }
+    } catch (error) {
+      console.error('[arena cleanup] loop error:', error.message);
+    }
+  };
+  // Run once on boot (after a short delay so DB is ready), then on interval.
+  setTimeout(tick, 5000);
+  return setInterval(tick, intervalMs);
+}
+
 async function loadArenaRoom(roomId) {
   return ArenaRoom.findById(roomId)
     .populate('hostUser', 'firstName lastName username avatar uniqueId')
@@ -868,7 +952,10 @@ async function createArenaRoomDocument({
 
 module.exports = {
   ARENA_STATUS,
+  bumpArenaActivity,
+  cancelArenaRoom,
   clearArenaTimers,
+  clearHostDisconnectTimer,
   createArenaRoomDocument,
   createArenaSnapshotOrThrow,
   emitArenaState,
@@ -883,8 +970,10 @@ module.exports = {
   pauseArenaRoom,
   resolveArenaParticipant,
   resumeArenaRoom,
+  scheduleHostDisconnectCancel,
   setArenaParticipantPresence,
   skipArenaPhase,
+  startArenaCleanupLoop,
   startArenaCountdown,
   startArenaLeaderboard,
   startCurrentArenaQuestion,

@@ -60,13 +60,19 @@ export default function ArenaStandings({
   if (variant === 'podium') {
     const [first, second, third] = participants || [];
     return (
-      <section className="rounded-[2rem] border-2 border-white/15 bg-black/50 p-4 text-white backdrop-blur">
+      <section
+        className="rounded-[2rem] border-2 border-slate-900 bg-white p-4 text-slate-900 dark:border-white dark:bg-slate-900 dark:text-white"
+        style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
+      >
         <div className="mb-4 flex items-center gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary-500 text-white" style={{ boxShadow: '0 5px 0 #9a3412' }}>
-            <Trophy size={22} />
+          <div
+            className="grid h-12 w-12 place-items-center rounded-2xl border-2 border-slate-900 bg-primary-500 text-white dark:border-white"
+            style={{ boxShadow: '0 4px 0 #9a3412' }}
+          >
+            <Trophy size={22} strokeWidth={2.6} />
           </div>
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary-300">Final</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary-600 dark:text-primary-300">Final</p>
             <h3 className="text-2xl font-black tracking-tight sm:text-3xl">{title}</h3>
           </div>
         </div>
@@ -80,19 +86,25 @@ export default function ArenaStandings({
   }
 
   return (
-    <section className="rounded-[2rem] border-2 border-white/15 bg-black/50 p-4 text-white backdrop-blur">
+    <section
+      className="rounded-[2rem] border-2 border-slate-900 bg-white p-4 text-slate-900 dark:border-white dark:bg-slate-900 dark:text-white"
+      style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
+    >
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary-300">Leaderboard</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary-600 dark:text-primary-300">Leaderboard</p>
           <h3 className="text-2xl font-black tracking-tight">{title}</h3>
         </div>
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary-500 text-white" style={{ boxShadow: '0 4px 0 #9a3412' }}>
-          <Trophy size={20} />
+        <div
+          className="grid h-11 w-11 place-items-center rounded-2xl border-2 border-slate-900 bg-primary-500 text-white dark:border-white"
+          style={{ boxShadow: '0 4px 0 #9a3412' }}
+        >
+          <Trophy size={20} strokeWidth={2.6} />
         </div>
       </div>
 
       {top.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-white/15 bg-white/5 p-5 text-sm font-semibold text-white/55">
+        <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
           Пока нет игроков.
         </div>
       ) : (
@@ -114,40 +126,44 @@ export default function ArenaStandings({
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   className={`relative flex items-center gap-3 rounded-2xl border-2 px-3 py-3 ${
                     isFirst
-                      ? 'border-primary-500/60 bg-primary-500/20'
+                      ? 'border-primary-700 bg-primary-50 dark:border-primary-300 dark:bg-primary-900/30'
                       : hotCombo
-                        ? 'border-amber-400/50 bg-amber-400/10'
-                        : 'border-white/15 bg-white/8'
+                        ? 'border-amber-700 bg-amber-50 dark:border-amber-300 dark:bg-amber-900/20'
+                        : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800'
                   }`}
+                  style={{ boxShadow: isFirst ? '0 3px 0 #9a3412' : hotCombo ? '0 3px 0 #b45309' : '0 3px 0 #cbd5e1' }}
                 >
-                  <div className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-sm font-black ${
-                    isFirst ? 'bg-primary-500 text-white' : 'bg-white/10 text-white'
+                  <div className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl border-2 text-sm font-black ${
+                    isFirst
+                      ? 'border-slate-900 bg-primary-500 text-white dark:border-white'
+                      : 'border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
                   }`}>
-                    {index < 3 ? <Medal size={18} /> : place}
+                    {index < 3 ? <Medal size={18} strokeWidth={2.6} /> : place}
                   </div>
                   <div className="relative min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-black">{participant.displayName}</p>
+                      <p className="truncate text-sm font-black text-slate-900 dark:text-white">{participant.displayName}</p>
                       {hotCombo && (
                         <motion.span
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="inline-flex items-center gap-0.5 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-slate-900"
+                          className="inline-flex items-center gap-0.5 rounded-full border-2 border-amber-700 bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-900"
+                          style={{ boxShadow: '0 2px 0 #78350f' }}
                         >
                           <AnimatedFlame streak={currentStreak} size={10} /> x{currentStreak}
                         </motion.span>
                       )}
                     </div>
                     {!compact && (
-                      <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-white/50">
-                        <span className="inline-flex items-center gap-1"><AnimatedFlame streak={participant.bestStreak || 0} size={12} className="text-amber-300" /> {participant.bestStreak || 0}</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1"><AnimatedFlame streak={participant.bestStreak || 0} size={12} className="text-amber-500" /> {participant.bestStreak || 0}</span>
                         <span>{formatMs(participant.totalResponseTimeMs)}</span>
                         {participant.lastAnswer && (
                           <motion.span
                             key={`${participant.lastAnswer.questionId || ''}-${participant.score}`}
                             initial={{ opacity: 0, y: -6 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className={participant.lastAnswer.isCorrect ? 'text-emerald-300' : 'text-red-300'}
+                            className={`font-black ${participant.lastAnswer.isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}
                           >
                             {participant.lastAnswer.isCorrect ? '+' : ''}{participant.lastAnswer.pointsAwarded || 0}
                           </motion.span>
@@ -158,12 +174,12 @@ export default function ArenaStandings({
                   <motion.div
                     key={participant.score || 0}
                     initial={{ scale: 1.2, color: '#f59e0b' }}
-                    animate={{ scale: 1, color: '#ffffff' }}
+                    animate={{ scale: 1, color: 'currentColor' }}
                     transition={{ duration: 0.4 }}
-                    className="relative text-right"
+                    className="relative text-right text-slate-900 dark:text-white"
                   >
                     <p className="font-mono text-2xl font-black">{participant.score || 0}</p>
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">pts</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">pts</p>
                   </motion.div>
                 </motion.div>
               );

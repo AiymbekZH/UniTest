@@ -198,6 +198,10 @@ require('./socket/presence')(io);
 // Make io available to routes
 app.set('io', io);
 
+// Background: auto-cancel stale arena lobbies (15min idle).
+const { startArenaCleanupLoop } = require('./utils/arenaEngine');
+startArenaCleanupLoop(io, { intervalMs: 60 * 1000, idleMs: 15 * 60 * 1000 });
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`UniTest server running on port ${PORT}`);

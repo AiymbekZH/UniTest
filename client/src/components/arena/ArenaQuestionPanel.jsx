@@ -39,8 +39,9 @@ function TimerRing({ timeLeftMs = 0, totalDurationMs = 30000, size = 96 }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.08)"
+          stroke="rgba(15,23,42,0.08)"
           strokeWidth="8"
+          className="dark:[stroke:rgba(255,255,255,0.08)]"
         />
         <motion.circle
           cx={size / 2}
@@ -56,7 +57,7 @@ function TimerRing({ timeLeftMs = 0, totalDurationMs = 30000, size = 96 }) {
           style={{ filter: `drop-shadow(0 0 8px ${color}80)` }}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-900 dark:text-white">
         <Clock3 size={14} style={{ color }} />
         <span className="mt-0.5 text-2xl font-black leading-none tabular-nums">{formatTimer(timeLeftMs)}</span>
       </div>
@@ -148,11 +149,17 @@ export default function ArenaQuestionPanel({
   };
 
   return (
-    <section className={`${isHostView ? 'min-h-[70vh]' : 'min-h-[calc(100vh-140px)]'} flex flex-col gap-4 text-white`}>
-      <div className="rounded-[2rem] border-2 border-white/10 bg-[#111111] p-4 sm:p-6">
+    <section className={`${isHostView ? 'min-h-[70vh]' : 'min-h-[calc(100vh-140px)]'} flex flex-col gap-4 text-slate-900 dark:text-white`}>
+      <div
+        className="rounded-[2rem] border-2 border-slate-900 bg-white p-4 dark:border-white dark:bg-slate-900 sm:p-6"
+        style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-500 px-3 py-1 font-mono text-xs font-black tracking-[0.2em] text-white" style={{ boxShadow: '0 3px 0 #9a3412' }}>
+            <div
+              className="inline-flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-primary-500 px-3 py-1 font-mono text-xs font-black tracking-[0.2em] text-white dark:border-white"
+              style={{ boxShadow: '0 3px 0 #9a3412' }}
+            >
               {question.questionNumber}/{question.totalQuestions}
             </div>
             <h2 className={`${isHostView ? 'mt-5 text-4xl md:text-6xl lg:text-7xl' : 'mt-4 text-2xl sm:text-3xl'} font-black leading-[0.98] tracking-tight`}>
@@ -163,19 +170,19 @@ export default function ArenaQuestionPanel({
         </div>
 
         {question.passage ? (
-          <div className={`${isHostView ? 'max-h-[180px] text-xl' : 'max-h-[140px] text-sm'} mt-5 overflow-auto whitespace-pre-wrap rounded-[1.5rem] border border-white/10 bg-white/7 p-4 leading-7 text-white/75`}>
+          <div className={`${isHostView ? 'max-h-[180px] text-xl' : 'max-h-[140px] text-sm'} mt-5 overflow-auto whitespace-pre-wrap rounded-[1.5rem] border-2 border-slate-200 bg-slate-50 p-4 leading-7 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200`}>
             {question.passage}
           </div>
         ) : null}
 
         {answerStats && (
           <div className="mt-5">
-            <div className="flex items-center justify-between text-xs font-black uppercase tracking-[0.18em] text-white/55">
+            <div className="flex items-center justify-between text-xs font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               <span>Ответили {answerStats.answeredCount}/{answerStats.totalParticipants}</span>
               {showAnswer && <span>Верно {answerStats.correctCount}</span>}
             </div>
-            <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-orange-500 transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+            <div className="mt-2 h-3 overflow-hidden rounded-full border-2 border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+              <div className="h-full rounded-full bg-primary-500 transition-all duration-500" style={{ width: `${progressPercent}%` }} />
             </div>
           </div>
         )}
@@ -248,16 +255,19 @@ export default function ArenaQuestionPanel({
       )}
 
       {question.type === 'fill-blank' && (
-        <div className="flex flex-1 flex-col gap-4 rounded-[2rem] border-2 border-white/10 bg-[#111111] p-4 sm:p-6">
+        <div
+          className="flex flex-1 flex-col gap-4 rounded-[2rem] border-2 border-slate-900 bg-white p-4 dark:border-white dark:bg-slate-900 sm:p-6"
+          style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
+        >
           <textarea
             value={textAnswer}
             disabled={locked || isHostView || showAnswer}
             onChange={(event) => setTextAnswer(event.target.value)}
-            className="min-h-[180px] flex-1 resize-none rounded-[1.5rem] border-2 border-white/15 bg-white/10 px-5 py-4 text-xl font-black text-white outline-none transition placeholder:text-white/35 focus:border-primary-400"
+            className="min-h-[180px] flex-1 resize-none rounded-[1.5rem] border-2 border-slate-300 bg-slate-50 px-5 py-4 text-xl font-black text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
             placeholder="Введите ответ"
           />
           {showAnswer && (
-            <div className="rounded-[1.5rem] border-2 border-emerald-600 bg-emerald-500 px-5 py-4 text-white" style={{ boxShadow: '0 5px 0 #065f46' }}>
+            <div className="rounded-[1.5rem] border-2 border-emerald-700 bg-emerald-500 px-5 py-4 text-white" style={{ boxShadow: '0 5px 0 #065f46' }}>
               <p className="text-xs font-black uppercase tracking-[0.18em]">Правильный ответ</p>
               <p className="mt-1 text-2xl font-black">{correctText || 'Ответ не указан'}</p>
             </div>
@@ -266,17 +276,20 @@ export default function ArenaQuestionPanel({
       )}
 
       {question.type === 'matching' && (
-        <div className="flex flex-1 flex-col gap-3 rounded-[2rem] border border-white/10 bg-[#111111] p-4">
+        <div
+          className="flex flex-1 flex-col gap-3 rounded-[2rem] border-2 border-slate-900 bg-white p-4 dark:border-white dark:bg-slate-900"
+          style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
+        >
           {(question.options || []).map(option => (
             <div key={option.id} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)]">
-              <div className="rounded-[1.35rem] bg-white/10 px-4 py-4 text-base font-black text-white">
+              <div className="rounded-[1.35rem] border-2 border-slate-300 bg-slate-50 px-4 py-4 text-base font-black text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
                 {option.text}
               </div>
               <select
                 value={matchingPairs[option.id] || ''}
                 disabled={locked || isHostView || showAnswer}
                 onChange={(event) => setMatchingPairs(prev => ({ ...prev, [option.id]: event.target.value }))}
-                className="rounded-[1.35rem] border border-white/10 bg-white px-4 py-4 text-sm font-black text-black outline-none transition focus:border-orange-300"
+                className="rounded-[1.35rem] border-2 border-slate-300 bg-white px-4 py-4 text-sm font-black text-slate-900 outline-none transition focus:border-primary-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
               >
                 <option value="">Выбери пару</option>
                 {(question.matchingRightSide || []).map(rightOption => (
@@ -286,7 +299,10 @@ export default function ArenaQuestionPanel({
             </div>
           ))}
           {showAnswer && correctText && (
-            <div className="rounded-[1.5rem] bg-emerald-400 px-5 py-4 text-sm font-black text-black">
+            <div
+              className="rounded-[1.5rem] border-2 border-emerald-700 bg-emerald-400 px-5 py-4 text-sm font-black text-slate-900"
+              style={{ boxShadow: '0 4px 0 #065f46' }}
+            >
               {correctText}
             </div>
           )}
@@ -294,7 +310,10 @@ export default function ArenaQuestionPanel({
       )}
 
       {!isHostView && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border-2 border-white/10 bg-black/50 p-3">
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border-2 border-slate-900 bg-white p-3 dark:border-white dark:bg-slate-900"
+          style={{ boxShadow: '0 4px 0 var(--shadow-chunky, #1f1a14)' }}
+        >
           <AnimatePresence mode="wait">
             {ack ? (
               <motion.div
@@ -302,15 +321,16 @@ export default function ArenaQuestionPanel({
                 initial={{ opacity: 0, y: 12, scale: 0.8 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 18 }}
-                className="flex items-center gap-2 text-sm font-black text-emerald-300"
+                className="flex items-center gap-2 text-sm font-black text-emerald-700 dark:text-emerald-300"
               >
-                <Check size={16} /> Ответ принят
+                <Check size={16} strokeWidth={2.8} /> Ответ принят
                 {ack.pointsAwarded ? (
                   <motion.span
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="ml-1 rounded-full bg-emerald-400 px-2 py-0.5 text-xs text-black"
+                    className="ml-1 rounded-full border-2 border-emerald-700 bg-emerald-300 px-2 py-0.5 text-xs font-black text-slate-900"
+                    style={{ boxShadow: '0 2px 0 #065f46' }}
                   >
                     +{ack.pointsAwarded}
                   </motion.span>
@@ -322,7 +342,7 @@ export default function ArenaQuestionPanel({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="text-sm font-black text-white/60"
+                className="text-sm font-black text-slate-500 dark:text-slate-400"
               >
                 {locked
                   ? 'Ответ уже отправлен'
@@ -346,7 +366,7 @@ export default function ArenaQuestionPanel({
       )}
 
       {showAnswer && correctText && question.type !== 'fill-blank' && question.type !== 'matching' && (
-        <div className="rounded-[1.5rem] border-2 border-emerald-600 bg-emerald-500 px-5 py-4 text-white" style={{ boxShadow: '0 5px 0 #065f46' }}>
+        <div className="rounded-[1.5rem] border-2 border-emerald-700 bg-emerald-500 px-5 py-4 text-white" style={{ boxShadow: '0 5px 0 #065f46' }}>
           <p className="text-xs font-black uppercase tracking-[0.18em]">Правильный ответ</p>
           <p className="mt-1 text-xl font-black">{correctText}</p>
         </div>

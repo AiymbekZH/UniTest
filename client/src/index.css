@@ -428,13 +428,18 @@
     body.has-mobile-nav, main.has-mobile-nav-pad { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   }
 
-  /* Arena stage background (dark, subtle, no neon/glow) */
+  /* Arena stage background — warm cream with subtle dot grid (chunky) */
   .arena-stage-bg {
-    background-color: #0b0b10;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-    background-size: 44px 44px;
+    background-color: #FFF8EE;
+    background-image: radial-gradient(rgba(15,23,42,0.07) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+    color: #1f1a14;
+  }
+  .dark .arena-stage-bg {
+    background-color: #1a1612;
+    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+    color: #f5e9d3;
   }
 
   /* ---- End New Design System Utilities ---- */

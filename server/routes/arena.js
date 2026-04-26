@@ -13,6 +13,7 @@ const { auth, optionalAuth } = require('../middleware/auth');
 const { buildArenaRoomState, buildArenaParticipantSummary, signArenaGuestToken, verifyArenaGuestToken } = require('../utils/arena');
 const {
   ARENA_STATUS,
+  bumpArenaActivity,
   clearArenaTimers,
   createArenaRoomDocument,
   emitArenaState,
@@ -428,6 +429,9 @@ router.post('/rooms/:id/join', optionalAuth, async (req, res) => {
     participant.state = 'joined';
     participant.lastSeenAt = new Date();
     await participant.save();
+
+    // Mark lobby as active so cleanup loop knows it's alive.
+    await bumpArenaActivity(room._id);
 
     const io = req.app.get('io');
     if (io) {

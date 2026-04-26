@@ -148,8 +148,8 @@ export default function ArenaGameplayOverlay({
           key={e}
           type="button"
           onClick={() => sendReaction(e)}
-          className="touch-target flex h-12 items-center justify-center rounded-2xl bg-white/10 text-2xl transition-transform hover:bg-white/20 active:translate-y-[2px]"
-          style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.35)' }}
+          className="touch-target flex h-12 items-center justify-center rounded-2xl border-2 border-slate-300 bg-slate-50 text-2xl transition-transform hover:bg-slate-100 active:translate-y-[2px] dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
+          style={{ boxShadow: '0 3px 0 #cbd5e1' }}
         >
           {e}
         </button>
@@ -185,13 +185,16 @@ export default function ArenaGameplayOverlay({
 
       {/* Desktop / tablet control bar */}
       <div className="pointer-events-auto fixed bottom-4 left-1/2 z-40 hidden -translate-x-1/2 sm:block">
-        <div className="flex items-center gap-2 rounded-full border-2 border-white/15 bg-black/75 p-2 backdrop-blur-xl">
+        <div
+          className="flex items-center gap-2 rounded-full border-2 border-slate-900 bg-white p-2 dark:border-white dark:bg-slate-900"
+          style={{ boxShadow: '0 5px 0 var(--shadow-chunky, #1f1a14)' }}
+        >
           {showPowerUps && (
             <>
               <div className="flex items-center gap-2 pl-1">
                 {POWER_UPS.map(p => <PowerUpButton key={p.type} p={p} size="h-11 w-11 text-sm" />)}
               </div>
-              <div className="h-7 w-px bg-white/20" />
+              <div className="h-7 w-px bg-slate-300 dark:bg-slate-700" />
             </>
           )}
 
@@ -199,11 +202,11 @@ export default function ArenaGameplayOverlay({
             <button
               type="button"
               onClick={() => setPickerOpen(p => !p)}
-              className={`touch-target flex h-11 w-11 items-center justify-center rounded-2xl text-white transition ${pickerOpen ? 'bg-primary-500' : 'bg-white/10 hover:bg-white/20'}`}
-              style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.35)' }}
+              className={`touch-target flex h-11 w-11 items-center justify-center rounded-2xl border-2 transition ${pickerOpen ? 'border-slate-900 bg-primary-500 text-white dark:border-white' : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'}`}
+              style={{ boxShadow: pickerOpen ? '0 3px 0 #9a3412' : '0 3px 0 #cbd5e1' }}
               title="Реакции"
             >
-              <Smile size={17} />
+              <Smile size={17} strokeWidth={2.6} />
             </button>
             <AnimatePresence>
               {pickerOpen ? (
@@ -211,8 +214,8 @@ export default function ArenaGameplayOverlay({
                   initial={{ opacity: 0, y: 10, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                  className="absolute bottom-14 left-1/2 w-[320px] -translate-x-1/2 rounded-3xl border-2 border-white/15 bg-[#111]/95 p-3 backdrop-blur-xl"
-                  style={{ boxShadow: '0 8px 0 rgba(0,0,0,0.45)' }}
+                  className="absolute bottom-14 left-1/2 w-[320px] -translate-x-1/2 rounded-3xl border-2 border-slate-900 bg-white p-3 dark:border-white dark:bg-slate-900"
+                  style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
                 >
                   <EmojiGrid cols={4} />
                 </motion.div>
@@ -224,17 +227,20 @@ export default function ArenaGameplayOverlay({
             type="button"
             onClick={toggleMute}
             title={muted ? 'Включить звуки' : 'Выключить звуки'}
-            className="touch-target flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
-            style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.35)' }}
+            className="touch-target flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-slate-300 bg-slate-50 text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            style={{ boxShadow: '0 3px 0 #cbd5e1' }}
           >
-            {muted ? <VolumeX size={17} /> : <Volume2 size={17} />}
+            {muted ? <VolumeX size={17} strokeWidth={2.6} /> : <Volume2 size={17} strokeWidth={2.6} />}
           </button>
         </div>
 
         {activePowerUp ? (
           <div className="mt-2 flex justify-center">
-            <span className="chunky-pill bg-amber-300 text-slate-900" style={{ boxShadow: '0 3px 0 #b45309' }}>
-              <Sparkles size={12} /> Бустер: {POWER_UPS.find(p => p.type === activePowerUp)?.label}
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border-2 border-amber-700 bg-amber-300 px-3 py-1 text-xs font-black text-slate-900"
+              style={{ boxShadow: '0 3px 0 #b45309' }}
+            >
+              <Sparkles size={12} strokeWidth={2.8} /> Бустер: {POWER_UPS.find(p => p.type === activePowerUp)?.label}
             </span>
           </div>
         ) : null}
@@ -261,7 +267,7 @@ export default function ArenaGameplayOverlay({
               className="fixed inset-0 z-50"
             >
               <motion.div
-                className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
                 onClick={() => setSheetOpen(false)}
               />
               <motion.div
@@ -269,51 +275,54 @@ export default function ArenaGameplayOverlay({
                 animate={{ y: 0 }}
                 exit={{ y: 360 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-                className="absolute inset-x-0 bottom-0 rounded-t-[2rem] border-t-2 border-white/15 bg-[#111] p-5 text-white safe-bottom"
+                className="absolute inset-x-0 bottom-0 rounded-t-[2rem] border-t-2 border-slate-900 bg-white p-5 text-slate-900 safe-bottom dark:border-white dark:bg-slate-900 dark:text-white"
               >
-                <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20" />
+                <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-300 dark:bg-slate-700" />
 
                 {showPowerUps ? (
                   <>
-                    <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-primary-300">Бустеры</p>
+                    <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-primary-600 dark:text-primary-300">Бустеры</p>
                     <div className="grid grid-cols-3 gap-3">
                       {POWER_UPS.map(p => (
                         <div key={p.type} className="flex flex-col items-center gap-1">
                           <PowerUpButton p={p} size="h-16 w-16 text-lg" />
-                          <span className="text-[10px] font-black text-white/70">{p.label}</span>
+                          <span className="text-[10px] font-black text-slate-500 dark:text-slate-400">{p.label}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="my-4 h-px bg-white/10" />
+                    <div className="my-4 h-px bg-slate-200 dark:bg-slate-700" />
                   </>
                 ) : null}
 
-                <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-primary-300">Реакции</p>
+                <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-primary-600 dark:text-primary-300">Реакции</p>
                 <EmojiGrid cols={4} />
 
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={toggleMute}
-                    className="inline-flex items-center gap-2 rounded-2xl border-2 border-white/15 bg-white/10 px-4 py-3 text-xs font-black text-white"
-                    style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.35)' }}
+                    className="inline-flex items-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                    style={{ boxShadow: '0 3px 0 #cbd5e1' }}
                   >
-                    {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                    {muted ? <VolumeX size={16} strokeWidth={2.6} /> : <Volume2 size={16} strokeWidth={2.6} />}
                     {muted ? 'Включить звук' : 'Выключить звук'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setSheetOpen(false)}
-                    className="inline-flex items-center rounded-2xl border-2 border-white/15 bg-white/10 px-4 py-3 text-xs font-black text-white"
-                    style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.35)' }}
+                    className="inline-flex items-center rounded-2xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                    style={{ boxShadow: '0 3px 0 #cbd5e1' }}
                   >
                     Закрыть
                   </button>
                 </div>
 
                 {activePowerUp ? (
-                  <div className="mt-4 rounded-2xl border-2 border-amber-400/40 bg-amber-400/15 px-3 py-2 text-center text-xs font-black text-amber-200">
-                    <Sparkles size={12} className="mr-1 inline" /> Активен: {POWER_UPS.find(p => p.type === activePowerUp)?.label}
+                  <div
+                    className="mt-4 rounded-2xl border-2 border-amber-700 bg-amber-100 px-3 py-2 text-center text-xs font-black text-amber-800 dark:border-amber-300 dark:bg-amber-900/30 dark:text-amber-200"
+                    style={{ boxShadow: '0 3px 0 #b45309' }}
+                  >
+                    <Sparkles size={12} className="mr-1 inline" strokeWidth={2.8} /> Активен: {POWER_UPS.find(p => p.type === activePowerUp)?.label}
                   </div>
                 ) : null}
               </motion.div>
