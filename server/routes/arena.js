@@ -542,6 +542,7 @@ router.post('/rooms/:id/start', auth, async (req, res) => {
     }
 
     const io = req.app.get('io');
+    await bumpArenaActivity(room._id);
     await startArenaCountdown(room._id, io);
     const populated = await populateRoomState(room._id);
     res.json({ room: populated.state });
@@ -559,6 +560,7 @@ async function skipArenaPhaseRoute(req, res) {
     }
 
     const io = req.app.get('io');
+    await bumpArenaActivity(room._id);
     const updated = await skipArenaPhase(room._id, io);
     if (!updated) {
       return res.status(400).json({ message: 'Сейчас нельзя пропустить фазу арены' });
@@ -583,6 +585,7 @@ router.post('/rooms/:id/pause', auth, async (req, res) => {
     }
 
     const io = req.app.get('io');
+    await bumpArenaActivity(room._id);
     await pauseArenaRoom(room._id, io);
     const populated = await populateRoomState(room._id);
     res.json({ room: populated.state });
@@ -600,6 +603,7 @@ router.post('/rooms/:id/resume', auth, async (req, res) => {
     }
 
     const io = req.app.get('io');
+    await bumpArenaActivity(room._id);
     const updated = await resumeArenaRoom(room._id, io);
     if (!updated) {
       return res.status(400).json({ message: 'Комната не на паузе' });
@@ -621,6 +625,7 @@ router.post('/rooms/:id/extend-timer', auth, async (req, res) => {
 
     const extraSec = Number(req.body?.extraSec) || 15;
     const io = req.app.get('io');
+    await bumpArenaActivity(room._id);
     await extendArenaTimer(room._id, extraSec, io);
     const populated = await populateRoomState(room._id);
     res.json({ room: populated.state });
@@ -638,6 +643,7 @@ router.post('/rooms/:id/kick/:participantId', auth, async (req, res) => {
     }
 
     const io = req.app.get('io');
+    await bumpArenaActivity(room._id);
     await kickArenaParticipant(room._id, req.params.participantId, io);
     const populated = await populateRoomState(room._id);
     res.json({ room: populated.state });

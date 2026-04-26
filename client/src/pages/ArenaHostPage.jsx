@@ -683,6 +683,9 @@ export default function ArenaHostPage() {
                     <p className="mt-4 text-center text-sm font-bold text-slate-500 dark:text-slate-400">
                       Ждём игроков. Пусть сканируют QR ↑
                     </p>
+                    <p className="mt-1 flex items-center justify-center gap-1.5 text-center text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+                      <Clock size={11} strokeWidth={2.6} /> Авто-закрытие через 15 мин неактивности
+                    </p>
                   </>
                 ) : (
                   <motion.div
