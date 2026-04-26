@@ -32,6 +32,16 @@ const arenaRoutes = require('./routes/arena');
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
+// DigitalOcean App Platform / Heroku / Vercel — приложение всегда сидит за
+// одним прокси-хопом, который выставляет X-Forwarded-For. Без `trust proxy`
+// express-rate-limit бросает ERR_ERL_UNEXPECTED_X_FORWARDED_FOR на каждый
+// запрос, и сайт «висит» бесконечной загрузкой.
+// Значение `1` = доверять только первому прокси (правильный безопасный default
+// для managed-хостингов). На локальном dev оставляем по умолчанию.
+if (isProd) {
+  app.set('trust proxy', 1);
+}
+
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || '')
   .split(',')
   .map(origin => origin.trim())
