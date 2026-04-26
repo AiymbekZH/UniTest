@@ -618,4 +618,196 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
+// ── Comparison: percentile / rank vs other takers ──
+router.get('/:id/comparison', optionalAuth, async (req, res) => {
+  try {
+    const result = await Result.findById(req.params.id).select('test percentage isPractice').lean();
+    if (!result) return res.status(404).json({ message: 'Результат не найден' });
+
+    const match = {
+      test: result.test,
+      status: 'completed',
+      isPractice: { $ne: true },
+    };
+
+    const all = await Result.find(match).select('percentage user guestId').lean();
+    const totalAttempts = all.length;
+
+    if (totalAttempts === 0) {
+      return res.json({
+        totalAttempts: 0,
+        rank: null,
+        percentile: null,
+        avgPercentage: null,
+        bestPercentage: null,
+        worsePercentage: null,
+        currentPercentage: result.percentage,
+      });
+    }
+
+    const sorted = [...all].sort((a, b) => b.percentage - a.percentage);
+    const myPct = result.percentage;
+    const rank = sorted.findIndex(r => r.percentage <= myPct) + 1; // 1-based first position where score <= mine
+    const adjustedRank = rank > 0 ? rank : totalAttempts;
+    const worseCount = all.filter(r => r.percentage < myPct).length;
+    const percentile = Math.round((worseCount / totalAttempts) * 100);
+    const avg = Math.round(all.reduce((sum, r) => sum + (r.percentage || 0), 0) / totalAttempts);
+    const best = sorted[0]?.percentage || 0;
+
+    res.json({
+      totalAttempts,
+      rank: adjustedRank,
+      percentile,
+      avgPercentage: avg,
+      bestPercentage: best,
+      worsePercentage: percentile,
+      currentPercentage: result.percentage,
+    });
+  } catch (e) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
+// ── My history: attempts of current user/guest on the same test ──
+router.get('/:id/my-history', optionalAuth, async (req, res) => {
+  try {
+    const result = await Result.findById(req.params.id).select('test user guestId isPractice').lean();
+    if (!result) return res.status(404).json({ message: 'Результат не найден' });
+
+    const query = {
+      test: result.test,
+      status: 'completed',
+      isPractice: { $ne: true },
+    };
+
+    if (req.user?._id) {
+      query.user = req.user._id;
+    } else if (result.guestId) {
+      query.guestId = result.guestId;
+    } else {
+      // No way to identify guest without guestId — return only current attempt
+      return res.json({
+        attempts: [{
+          _id: result._id,
+          percentage: 0,
+          completedAt: null,
+          isCurrent: true,
+        }],
+        best: 0,
+        deltaVsPrevious: null,
+        totalAttempts: 1,
+      });
+    }
+
+    const attempts = await Result.find(query)
+      .sort({ completedAt: 1 })
+      .select('percentage completedAt')
+      .lean();
+
+    if (attempts.length === 0) {
+      return res.json({
+        attempts: [],
+        best: 0,
+        deltaVsPrevious: null,
+        totalAttempts: 0,
+      });
+    }
+
+    const enriched = attempts.map(a => ({
+      _id: a._id,
+      percentage: a.percentage || 0,
+      completedAt: a.completedAt,
+      isCurrent: a._id.toString() === result._id.toString(),
+    }));
+
+    const currentIdx = enriched.findIndex(a => a.isCurrent);
+    const deltaVsPrevious = currentIdx > 0
+      ? enriched[currentIdx].percentage - enriched[currentIdx - 1].percentage
+      : null;
+
+    const best = Math.max(...enriched.map(a => a.percentage));
+
+    res.json({
+      attempts: enriched,
+      best,
+      deltaVsPrevious,
+      totalAttempts: enriched.length,
+    });
+  } catch (e) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
+// ── Topic analysis: group answers by question type, recommend related tests ──
+router.get('/:id/topic-analysis', optionalAuth, async (req, res) => {
+  try {
+    const result = await Result.findById(req.params.id).populate('test').lean();
+    if (!result) return res.status(404).json({ message: 'Результат не найден' });
+    if (!result.test) return res.json({ byTopic: [], weakTopics: [], recommendedTests: [] });
+
+    const TYPE_LABELS = {
+      'single-choice': 'Один вариант',
+      'multiple-choice': 'Несколько вариантов',
+      'true-false': 'Верно/Неверно',
+      'essay': 'Эссе',
+      'matching': 'Сопоставление',
+      'fill-blank': 'Заполнить пропуск',
+    };
+
+    // Group answers by question type
+    const byType = {};
+    for (const answer of result.answers || []) {
+      const q = result.test.questions?.find(qq => qq.id === answer.questionId);
+      const type = q?.type || answer.type || 'unknown';
+      if (!byType[type]) byType[type] = { total: 0, correct: 0, points: 0, maxPoints: 0 };
+      byType[type].total += 1;
+      if (answer.isCorrect) byType[type].correct += 1;
+      byType[type].points += answer.pointsEarned || 0;
+      byType[type].maxPoints += answer.maxPoints || q?.points || 1;
+    }
+
+    const byTopic = Object.entries(byType).map(([type, stats]) => {
+      const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+      const weakness = accuracy < 50 ? 'high' : accuracy < 75 ? 'medium' : 'low';
+      return {
+        topic: TYPE_LABELS[type] || type,
+        topicKey: type,
+        total: stats.total,
+        correct: stats.correct,
+        accuracy,
+        weakness,
+        pointsEarned: Math.round(stats.points * 10) / 10,
+        maxPoints: stats.maxPoints,
+      };
+    }).sort((a, b) => a.accuracy - b.accuracy);
+
+    const weakTopics = byTopic.filter(t => t.weakness === 'high').slice(0, 3);
+
+    // Recommended tests by tag overlap (test-level tags)
+    const myTags = (result.test.tags || []).filter(Boolean);
+    let recommendedTests = [];
+    if (myTags.length > 0) {
+      const recs = await Test.find({
+        _id: { $ne: result.test._id },
+        isDeleted: { $ne: true },
+        'settings.isPublic': true,
+        tags: { $in: myTags },
+      })
+        .sort({ attemptCount: -1, averageScore: -1 })
+        .limit(3)
+        .select('title shareLink coverImage tags attemptCount averageScore')
+        .lean();
+      recommendedTests = recs.map(t => ({
+        ...t,
+        matchedTags: (t.tags || []).filter(tag => myTags.includes(tag)),
+      }));
+    }
+
+    res.json({ byTopic, weakTopics, recommendedTests });
+  } catch (e) {
+    console.error('topic-analysis error:', e);
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 module.exports = router;
