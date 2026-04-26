@@ -3,6 +3,7 @@ const Group = require('../models/Group');
 const Test = require('../models/Test');
 const User = require('../models/User');
 const Message = require('../models/Message');
+const Result = require('../models/Result');
 const { auth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { v4: uuidv4 } = require('uuid');
@@ -144,7 +145,8 @@ router.get('/:id', auth, async (req, res) => {
     const group = await Group.findById(req.params.id)
       .populate('creator', 'firstName lastName avatar')
       .populate('members.user', 'firstName lastName email avatar uniqueId')
-      .populate('assignedTests.test', 'title shareLink totalPoints attemptCount averageScore');
+      .populate('assignedTests.test', 'title shareLink totalPoints attemptCount averageScore')
+      .populate('announcement.updatedBy', 'firstName lastName avatar');
 
     if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
 
@@ -729,6 +731,153 @@ router.post('/:id/regenerate-code', auth, async (req, res) => {
     await group.save();
     res.json({ inviteCode: group.inviteCode });
   } catch (error) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
+// ── Update group announcement ──
+router.patch('/:id/announcement', auth, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
+
+    if (!group.hasPermission(req.user._id, 'manageGroup')) {
+      return res.status(403).json({ message: 'Нет прав' });
+    }
+
+    const text = String(req.body?.text || '').trim().slice(0, 500);
+    group.announcement = {
+      text,
+      updatedBy: text ? req.user._id : null,
+      updatedAt: text ? new Date() : null,
+    };
+    await group.save();
+
+    const populated = await Group.findById(req.params.id)
+      .populate('announcement.updatedBy', 'firstName lastName avatar')
+      .lean();
+    res.json({ ok: true, announcement: populated.announcement });
+  } catch (e) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
+// ── Group statistics ──
+router.get('/:id/stats', auth, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
+
+    const isMember = group.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ message: 'Нет доступа' });
+
+    const memberIds = group.members.map(m => m.user);
+    const testIds = (group.assignedTests || []).map(t => t.test).filter(Boolean);
+
+    // Members count
+    const totalMembers = memberIds.length;
+    const totalAssignedTests = testIds.length;
+
+    // Total messages in group
+    const totalMessages = await Message.countDocuments({
+      group: req.params.id,
+      isDeleted: false,
+    });
+
+    // Results for assigned tests by group members
+    let totalAttempts = 0;
+    let avgScore = null;
+    let topPerformers = [];
+    let testStats = [];
+
+    if (memberIds.length > 0 && testIds.length > 0) {
+      const results = await Result.find({
+        test: { $in: testIds },
+        user: { $in: memberIds },
+        status: 'completed',
+      })
+        .populate('user', 'firstName lastName avatar')
+        .populate('test', 'title')
+        .lean();
+
+      totalAttempts = results.length;
+      if (results.length > 0) {
+        avgScore = Math.round(
+          results.reduce((sum, r) => sum + (r.percentage || 0), 0) / results.length
+        );
+      }
+
+      // Per-user aggregation: best score per user across all tests
+      const byUser = new Map();
+      for (const r of results) {
+        const uid = r.user?._id?.toString();
+        if (!uid) continue;
+        const cur = byUser.get(uid) || { user: r.user, total: 0, count: 0, best: 0 };
+        cur.total += r.percentage || 0;
+        cur.count += 1;
+        cur.best = Math.max(cur.best, r.percentage || 0);
+        byUser.set(uid, cur);
+      }
+      topPerformers = [...byUser.values()]
+        .map(u => ({
+          user: u.user,
+          attempts: u.count,
+          avgPercentage: Math.round(u.total / u.count),
+          bestPercentage: u.best,
+        }))
+        .sort((a, b) => b.avgPercentage - a.avgPercentage)
+        .slice(0, 5);
+
+      // Per-test aggregation
+      const byTest = new Map();
+      for (const r of results) {
+        const tid = r.test?._id?.toString();
+        if (!tid) continue;
+        const cur = byTest.get(tid) || { test: r.test, total: 0, count: 0, distinctUsers: new Set() };
+        cur.total += r.percentage || 0;
+        cur.count += 1;
+        if (r.user?._id) cur.distinctUsers.add(r.user._id.toString());
+        byTest.set(tid, cur);
+      }
+      testStats = [...byTest.values()].map(t => ({
+        test: t.test,
+        attempts: t.count,
+        avgPercentage: Math.round(t.total / t.count),
+        uniqueParticipants: t.distinctUsers.size,
+      }));
+    }
+
+    // Activity last 7 days (messages per day)
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentMessages = await Message.find({
+      group: req.params.id,
+      isDeleted: false,
+      createdAt: { $gte: since },
+    }).select('createdAt').lean();
+    const activityByDay = {};
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      activityByDay[key] = 0;
+    }
+    for (const m of recentMessages) {
+      const key = new Date(m.createdAt).toISOString().slice(0, 10);
+      if (key in activityByDay) activityByDay[key] += 1;
+    }
+    const activity7d = Object.entries(activityByDay).map(([date, count]) => ({ date, count }));
+
+    res.json({
+      totalMembers,
+      totalAssignedTests,
+      totalMessages,
+      totalAttempts,
+      avgScore,
+      topPerformers,
+      testStats,
+      activity7d,
+    });
+  } catch (e) {
+    console.error('group stats error:', e);
     res.status(500).json({ message: 'Ошибка' });
   }
 });

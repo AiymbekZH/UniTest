@@ -89,6 +89,13 @@ const groupSchema = new mongoose.Schema({
   isPrivate: { type: Boolean, default: false },
   password: { type: String, default: '' },
 
+  // Pinned announcement banner shown above chat
+  announcement: {
+    text: { type: String, default: '', trim: true, maxlength: 500 },
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    updatedAt: { type: Date, default: null },
+  },
+
   // Members with role reference
   members: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

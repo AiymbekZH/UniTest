@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Copy, ExternalLink, ArrowLeft, X, Trash2,
   BookOpen, UserPlus, LogOut, RefreshCw, Link2, MessageSquare,
-  Settings, Shield, Hash, Search, ChevronDown, Ban, Check, Pencil, Upload, ImagePlus, Swords
+  Settings, Shield, Hash, Search, ChevronDown, Ban, Check, Pencil, Upload, ImagePlus, Swords,
+  Megaphone, BarChart3, Trophy, TrendingUp, Edit3, Save
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -83,6 +84,14 @@ export default function Groups() {
   const [unbanConfirmId, setUnbanConfirmId] = useState(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const avatarInputRef = useRef(null);
+
+  // Phase 5: announcement, member search, stats
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [editingAnnouncement, setEditingAnnouncement] = useState(false);
+  const [announcementDraft, setAnnouncementDraft] = useState('');
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
+  const [groupStats, setGroupStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const syncGroupState = useCallback((group) => {
     setSelectedGroup(group);
@@ -712,8 +721,53 @@ export default function Groups() {
     { id: 'chat', label: 'Чат', icon: MessageSquare },
     { id: 'members', label: 'Участники', icon: Users },
     { id: 'tests', label: 'Тесты', icon: BookOpen },
+    { id: 'stats', label: 'Статистика', icon: BarChart3 },
     { id: 'settings', label: 'Настройки', icon: Settings },
   ];
+
+  // Save announcement
+  const saveAnnouncement = async () => {
+    if (!selectedGroup?._id) return;
+    const text = announcementDraft.trim().slice(0, 500);
+    setSavingAnnouncement(true);
+    try {
+      const res = await api.patch(`/groups/${selectedGroup._id}/announcement`, { text });
+      const updated = { ...selectedGroup, announcement: res.data.announcement };
+      syncGroupState(updated);
+      setEditingAnnouncement(false);
+      toast.success(text ? 'Объявление обновлено' : 'Объявление удалено');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Ошибка');
+    } finally {
+      setSavingAnnouncement(false);
+    }
+  };
+
+  // Lazy-load stats when entering Stats tab
+  useEffect(() => {
+    if (activeTab !== 'stats' || !selectedGroup?._id) return;
+    let cancelled = false;
+    setStatsLoading(true);
+    api.get(`/groups/${selectedGroup._id}/stats`)
+      .then(res => { if (!cancelled) setGroupStats(res.data); })
+      .catch(() => { if (!cancelled) setGroupStats(null); })
+      .finally(() => { if (!cancelled) setStatsLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeTab, selectedGroup?._id]);
+
+  // Filtered member list (memberSearchQuery is applied case-insensitively to name+username+id)
+  const filteredMembers = (() => {
+    if (!selectedGroup?.members) return [];
+    const q = memberSearchQuery.trim().toLowerCase();
+    if (!q) return selectedGroup.members;
+    return selectedGroup.members.filter(m => {
+      const u = m.user || {};
+      const hay = [
+        u.firstName, u.lastName, u.username, u.uniqueId, u.email,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  })();
 
   return (
     <div className="min-h-screen bg-surface">
@@ -807,20 +861,106 @@ export default function Groups() {
 
               {/* Tab content */}
               {activeTab === 'chat' && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                <MessageList
-                  messages={messages}
-                  currentUserId={currentUserId}
-                  onReply={setReplyTo}
-                  onDelete={deleteMessage}
-                  onPin={pinMessage}
-                  getDeleteOptions={(message, isOwn) => ({
-                    self: true,
-                    everyone: isOwn || hasPermission(selectedGroup, 'deleteMessages'),
-                  })}
-                  canPin={hasPermission(selectedGroup, 'pinMessages')}
-                  onLoadMore={loadMoreMessages}
-                  hasMore={hasMore}
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  {/* Announcement banner */}
+                  {(() => {
+                    const ann = selectedGroup.announcement;
+                    const canManage = hasPermission(selectedGroup, 'manageGroup');
+                    const hasText = ann?.text && ann.text.trim().length > 0;
+                    if (!hasText && !canManage) return null;
+                    if (editingAnnouncement) {
+                      return (
+                        <div className="flex-shrink-0 border-b-2 border-amber-300 bg-amber-50 px-3 py-2.5 dark:border-amber-500/60 dark:bg-amber-950/30 sm:px-4">
+                          <div className="mb-2 flex items-center gap-2">
+                            <Megaphone size={14} strokeWidth={2.6} className="flex-shrink-0 text-amber-600 dark:text-amber-300" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300">
+                              Объявление
+                            </p>
+                          </div>
+                          <textarea
+                            autoFocus
+                            value={announcementDraft}
+                            onChange={(e) => setAnnouncementDraft(e.target.value.slice(0, 500))}
+                            placeholder="Напиши важное объявление для участников..."
+                            rows={2}
+                            className="w-full resize-none rounded-xl border-2 border-amber-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-amber-500/40 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                          />
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold text-amber-700/70 dark:text-amber-300/70">{announcementDraft.length}/500</span>
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => { setEditingAnnouncement(false); setAnnouncementDraft(ann?.text || ''); }}
+                                className="chunky-btn-ghost px-3 py-1.5 text-[11px]"
+                              >
+                                Отмена
+                              </button>
+                              <button
+                                onClick={saveAnnouncement}
+                                disabled={savingAnnouncement}
+                                className="chunky-btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px]"
+                              >
+                                <Save size={12} strokeWidth={2.6} />
+                                {savingAnnouncement ? '...' : 'Сохранить'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="flex-shrink-0 border-b-2 border-amber-300 bg-amber-50 px-3 py-2.5 dark:border-amber-500/60 dark:bg-amber-950/30 sm:px-4">
+                        <div className="flex items-start gap-2.5">
+                          <div
+                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border-2 border-amber-700 bg-amber-200 text-amber-800 dark:border-amber-300 dark:bg-amber-700/40 dark:text-amber-200"
+                            style={{ boxShadow: '0 2px 0 #92400e' }}
+                          >
+                            <Megaphone size={14} strokeWidth={2.6} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            {hasText ? (
+                              <p className="break-words text-xs font-bold text-amber-900 dark:text-amber-100 sm:text-sm">
+                                {ann.text}
+                              </p>
+                            ) : (
+                              <p className="text-[11px] font-medium italic text-amber-700/70 dark:text-amber-300/70">
+                                Закрепи важное сообщение для участников
+                              </p>
+                            )}
+                            {hasText && ann.updatedBy && (
+                              <p className="mt-1 text-[10px] font-bold text-amber-700/70 dark:text-amber-300/70">
+                                {ann.updatedBy.firstName} {ann.updatedBy.lastName}
+                                {ann.updatedAt && ` · ${new Date(ann.updatedAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`}
+                              </p>
+                            )}
+                          </div>
+                          {canManage && (
+                            <button
+                              onClick={() => { setEditingAnnouncement(true); setAnnouncementDraft(ann?.text || ''); }}
+                              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border-2 border-amber-700 bg-white text-amber-700 transition active:translate-y-[1px] dark:border-amber-300 dark:bg-slate-900 dark:text-amber-300"
+                              aria-label="Редактировать"
+                              title="Редактировать"
+                            >
+                              <Edit3 size={12} strokeWidth={2.6} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <MessageList
+                    messages={messages}
+                    currentUserId={currentUserId}
+                    onReply={setReplyTo}
+                    onDelete={deleteMessage}
+                    onPin={pinMessage}
+                    getDeleteOptions={(message, isOwn) => ({
+                      self: true,
+                      everyone: isOwn || hasPermission(selectedGroup, 'deleteMessages'),
+                    })}
+                    canPin={hasPermission(selectedGroup, 'pinMessages')}
+                    onLoadMore={loadMoreMessages}
+                    hasMore={hasMore}
                     loading={chatLoading}
                     getMemberRoleColor={getMemberRoleColor}
                   />
@@ -835,10 +975,39 @@ export default function Groups() {
               )}
 
               {activeTab === 'members' && (
-                <div className="flex-1 overflow-y-auto p-5">
-                  <p className="section-title mb-4">Участники ({selectedGroup.members?.length})</p>
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+                  <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                      Участники ({selectedGroup.members?.length || 0})
+                    </p>
+                    <div className="relative w-full sm:max-w-xs">
+                      <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" strokeWidth={2.4} />
+                      <input
+                        type="text"
+                        value={memberSearchQuery}
+                        onChange={(e) => setMemberSearchQuery(e.target.value)}
+                        placeholder="Поиск участника..."
+                        className="w-full rounded-xl border-2 border-slate-300 bg-white py-2 pl-9 pr-9 text-xs font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                      />
+                      {memberSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setMemberSearchQuery('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"
+                          aria-label="Очистить"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {filteredMembers.length === 0 && memberSearchQuery && (
+                    <div className="py-8 text-center">
+                      <p className="text-xs font-bold text-slate-400">Никого не найдено по «{memberSearchQuery}»</p>
+                    </div>
+                  )}
                   <div className="space-y-1">
-                    {selectedGroup.members?.map(m => {
+                    {filteredMembers.map(m => {
                       const memberUserId = m.user?._id || m.user;
                       const role = getMemberRole(memberUserId);
                       const canManageRolesForMember = canManageMember(selectedGroup, memberUserId, 'manageRoles');
@@ -980,6 +1149,165 @@ export default function Groups() {
                           )}
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'stats' && (
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+                  {statsLoading ? (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="chunky-card animate-pulse p-4">
+                          <div className="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-700" />
+                          <div className="mt-2 h-6 w-1/2 rounded bg-slate-300 dark:bg-slate-600" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : !groupStats ? (
+                    <div className="chunky-card p-10 text-center">
+                      <div
+                        className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-slate-900 bg-slate-50 text-slate-400 dark:border-white dark:bg-slate-900/30"
+                        style={{ boxShadow: '0 3px 0 #0f172a' }}
+                      >
+                        <BarChart3 size={26} strokeWidth={2.2} />
+                      </div>
+                      <p className="text-sm font-black text-slate-900 dark:text-white">Нет данных</p>
+                      <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Назначь тесты группе и попроси участников их пройти
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      {/* Big metric tiles */}
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
+                        {[
+                          { icon: Users, label: 'Участников', value: groupStats.totalMembers, color: 'text-blue-600 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                          { icon: BookOpen, label: 'Назначено тестов', value: groupStats.totalAssignedTests, color: 'text-emerald-600 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+                          { icon: TrendingUp, label: 'Прохождений', value: groupStats.totalAttempts, color: 'text-primary-600 dark:text-primary-300', bg: 'bg-primary-50 dark:bg-primary-900/20' },
+                          { icon: BarChart3, label: 'Средний %', value: groupStats.avgScore == null ? '—' : `${groupStats.avgScore}%`, color: 'text-amber-600 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+                        ].map((s, i) => (
+                          <div key={i} className="chunky-card p-4">
+                            <div className={`mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl border-2 border-slate-900 ${s.bg} ${s.color} dark:border-white`} style={{ boxShadow: '0 2px 0 #0f172a' }}>
+                              <s.icon size={15} strokeWidth={2.4} />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{s.label}</p>
+                            <p className="mt-0.5 text-2xl font-black text-slate-900 dark:text-white">{s.value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Activity sparkline (last 7 days) */}
+                      {groupStats.activity7d && groupStats.activity7d.length > 0 && (
+                        <div className="chunky-card p-4 sm:p-5">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                              Сообщения · последние 7 дней
+                            </p>
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                              Всего {groupStats.totalMessages}
+                            </p>
+                          </div>
+                          {(() => {
+                            const max = Math.max(1, ...groupStats.activity7d.map(d => d.count));
+                            return (
+                              <div className="flex h-24 items-end gap-1.5">
+                                {groupStats.activity7d.map((d) => {
+                                  const h = Math.max(2, Math.round((d.count / max) * 100));
+                                  const dayLabel = new Date(d.date).toLocaleDateString('ru-RU', { weekday: 'short' });
+                                  return (
+                                    <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
+                                      <div className="flex h-full w-full items-end">
+                                        <div
+                                          className="w-full rounded-t-md border-2 border-slate-900 bg-primary-500 dark:border-white"
+                                          style={{ height: `${h}%`, boxShadow: '0 2px 0 #9a3412', minHeight: '4px' }}
+                                          title={`${d.count} сообщ.`}
+                                        />
+                                      </div>
+                                      <span className="text-[9px] font-bold text-slate-400">{dayLabel}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Top performers */}
+                      {groupStats.topPerformers && groupStats.topPerformers.length > 0 && (
+                        <div className="chunky-card p-4 sm:p-5">
+                          <div className="mb-3 flex items-center gap-2">
+                            <Trophy size={14} strokeWidth={2.6} className="text-amber-500" />
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                              Топ участников
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            {groupStats.topPerformers.map((p, idx) => {
+                              const medalColors = ['bg-amber-400 text-amber-900', 'bg-slate-300 text-slate-800', 'bg-orange-400 text-orange-900'];
+                              const medalCls = idx < 3 ? medalColors[idx] : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
+                              return (
+                                <button
+                                  key={p.user?._id || idx}
+                                  onClick={() => p.user?._id && navigate(`/profile/${p.user._id}`)}
+                                  className="flex w-full items-center gap-3 rounded-xl border-2 border-slate-200 bg-white p-2.5 text-left transition hover:border-slate-300 active:translate-y-[1px] dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-500"
+                                >
+                                  <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-black ${medalCls}`}>
+                                    {idx + 1}
+                                  </div>
+                                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-slate-900 bg-slate-100 text-xs font-black text-slate-600 dark:border-white dark:bg-slate-700 dark:text-slate-300">
+                                    {p.user?.avatar ? <img src={p.user.avatar} alt="" className="h-full w-full object-cover" /> : (p.user?.firstName?.[0] || '?').toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                                      {p.user?.firstName} {p.user?.lastName}
+                                    </p>
+                                    <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                      {p.attempts} прохожд. · средн. <span className="text-primary-600 dark:text-primary-300">{p.avgPercentage}%</span>
+                                    </p>
+                                  </div>
+                                  <span
+                                    className="rounded-full border-2 border-slate-900 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-white dark:bg-emerald-900/30 dark:text-emerald-300"
+                                    style={{ boxShadow: '0 2px 0 #065f46' }}
+                                  >
+                                    лучш. {p.bestPercentage}%
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Per-test stats */}
+                      {groupStats.testStats && groupStats.testStats.length > 0 && (
+                        <div className="chunky-card p-4 sm:p-5">
+                          <div className="mb-3 flex items-center gap-2">
+                            <BookOpen size={14} strokeWidth={2.6} className="text-emerald-500" />
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                              По тестам
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            {groupStats.testStats.map((t, idx) => (
+                              <div key={t.test?._id || idx} className="flex items-center gap-3 rounded-xl border-2 border-slate-200 bg-white p-2.5 dark:border-slate-700 dark:bg-slate-800">
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{t.test?.title || 'Тест'}</p>
+                                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                    {t.attempts} прохожд. · {t.uniqueParticipants} участн.
+                                  </p>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <p className="text-base font-black text-primary-600 dark:text-primary-300">{t.avgPercentage}%</p>
+                                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">средн.</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
