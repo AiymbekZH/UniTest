@@ -1222,6 +1222,11 @@ export default function CreateTest() {
     setTest(prev => ({ ...prev, questions: [...prev.questions, ...toAdd] }));
     toast.success(`${t('addedFromBank')}: ${toAdd.length}`);
     setShowBankModal(false);
+    // Fire-and-forget usage tracking so the bank shows which questions are popular.
+    const ids = questions.map(q => q._id).filter(Boolean);
+    if (ids.length) {
+      api.post('/question-bank/bump-usage', { ids }).catch(() => {});
+    }
   };
 
   const saveToBank = async () => {
