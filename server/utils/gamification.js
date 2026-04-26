@@ -107,19 +107,35 @@ async function ensureStreakRiskNotification(userId, progress, now) {
   });
 }
 
+// Cache public tests for daily challenge selection (refreshes every 10 min)
+let _cachedPublicTests = null;
+let _cachedPublicTestsAt = 0;
+const PUBLIC_TESTS_CACHE_MS = 10 * 60 * 1000; // 10 minutes
+
+async function getCachedPublicTests() {
+  const now = Date.now();
+  if (_cachedPublicTests && (now - _cachedPublicTestsAt) < PUBLIC_TESTS_CACHE_MS) {
+    return _cachedPublicTests;
+  }
+  _cachedPublicTests = await Test.find({
+    isDeleted: false,
+    'settings.isPublic': true
+  })
+    .sort({ rating: -1, attemptCount: -1, createdAt: -1 })
+    .select('_id title shareLink')
+    .limit(200)
+    .lean();
+  _cachedPublicTestsAt = now;
+  return _cachedPublicTests;
+}
+
 async function syncGamificationNotifications(userId, now = new Date()) {
   if (!userId) return;
 
   try {
     const [progress, publicTests] = await Promise.all([
       ensureUserProgress(userId),
-      Test.find({
-        isDeleted: { $ne: true },
-        'settings.isPublic': true
-      })
-        .sort({ rating: -1, attemptCount: -1, createdAt: -1 })
-        .select('_id title shareLink')
-        .lean()
+      getCachedPublicTests()
     ]);
 
     await Promise.all([

@@ -18,7 +18,8 @@ function getRecentDayKeys(days = 7) {
 
 router.get('/me', auth, async (req, res) => {
   try {
-    await syncGamificationNotifications(req.user._id);
+    // Fire-and-forget: don't block response waiting for notification sync
+    syncGamificationNotifications(req.user._id).catch(() => {});
 
     const progress = await ensureUserProgress(req.user._id);
     const recentResults = await Result.find({

@@ -228,7 +228,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const query = {};
 
     // Filter out deleted tests
-    query.isDeleted = { $ne: true };
+    query.isDeleted = false;
 
     // Show user's own tests + public tests (guests see only public)
     if (req.user) {

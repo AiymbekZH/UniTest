@@ -365,15 +365,14 @@ router.post('/activate-admin', auth, async (req, res) => {
       return res.status(400).json({ message: 'Вы уже администратор!' });
     }
 
-    // Grant admin role to requesting user
-    req.user.role = 'admin';
-    await req.user.save();
+    // Grant admin role to requesting user (auth uses .lean(), so use updateOne)
+    await User.updateOne({ _id: req.user._id }, { role: 'admin' });
 
     res.json({
       message: 'Поздравляем! Вам предоставлены права администратора! 🎉',
       user: {
         id: req.user._id,
-        role: req.user.role,
+        role: 'admin',
         uniqueId: req.user.uniqueId
       }
     });
