@@ -363,12 +363,21 @@ export default function ArenaHubPage() {
                 <ChunkyButton variant="primary" size="lg" onClick={quickPlay} icon={<Zap size={18} />}>
                   Быстрая игра
                 </ChunkyButton>
-                <ChunkyButton variant="dark" size="lg" onClick={openStartModal} icon={<Plus size={18} />}>
-                  Из теста
+                <ChunkyButton variant="amber" size="lg" onClick={() => navigate('/arena/templates')} icon={<Sparkles size={18} />}>
+                  Мои шаблоны
                 </ChunkyButton>
-                <ChunkyButton variant="amber" size="lg" onClick={() => navigate('/arena/quick-start')} icon={<Sparkles size={18} />}>
-                  Из банка
+                <ChunkyButton variant="dark" size="lg" onClick={() => navigate('/arena-tests/new')} icon={<Plus size={18} />}>
+                  Новый шаблон
                 </ChunkyButton>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                <button type="button" onClick={openStartModal} className="underline-offset-2 hover:text-slate-900 hover:underline dark:hover:text-white">
+                  Запустить из обычного теста →
+                </button>
+                <span>·</span>
+                <button type="button" onClick={() => navigate('/arena/quick-start')} className="underline-offset-2 hover:text-slate-900 hover:underline dark:hover:text-white">
+                  Быстрая арена из банка (без шаблона) →
+                </button>
               </div>
             </div>
 
