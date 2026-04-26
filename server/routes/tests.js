@@ -304,6 +304,30 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
+// Batch endpoint: вернуть только coverImage для списка тестов.
+// Дашборд загружает список тестов БЕЗ coverImage (быстро),
+// потом в фоне дозагружает обложки этим эндпоинтом.
+// Возвращает { testId: coverImageBase64 } map.
+router.get('/covers', optionalAuth, async (req, res) => {
+  try {
+    const idsParam = String(req.query.ids || '').trim();
+    if (!idsParam) return res.json({});
+    const ids = idsParam.split(',').map(s => s.trim()).filter(Boolean).slice(0, 24);
+    if (!ids.length) return res.json({});
+    const tests = await Test.find(
+      { _id: { $in: ids }, isDeleted: { $ne: true } },
+      { coverImage: 1 }
+    ).lean();
+    const map = {};
+    tests.forEach(t => {
+      if (t.coverImage) map[String(t._id)] = t.coverImage;
+    });
+    res.json(map);
+  } catch (error) {
+    res.json({});
+  }
+});
+
 // Get my tests
 router.get('/my', auth, async (req, res) => {
   try {

@@ -495,6 +495,11 @@ const cardVariants = {
 
 export default function Dashboard() {
   const [tests, setTests] = useState([]);
+  // Lazy-loaded covers map: { testId: coverImageBase64 }. Dashboard fetches
+  // tests list WITHOUT coverImage (fast), then in background fetches covers
+  // for visible tests via batch /tests/covers endpoint. UI renders the
+  // AnimatedPlaceholder until cover arrives, then swaps in.
+  const [coversMap, setCoversMap] = useState({});
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('latest');
   const [loading, setLoading] = useState(true);
@@ -596,6 +601,27 @@ export default function Dashboard() {
     if (activeTab !== 'explore') return;
     fetchTests();
   }, [activeTab, fetchTests]);
+
+  // Lazy-load covers in background after tests list arrives.
+  // Skip tests we already have a cover for (avoid refetching on pagination).
+  useEffect(() => {
+    if (!tests.length) return;
+    const missingIds = tests
+      .map(t => t._id)
+      .filter(id => !(id in coversMap));
+    if (!missingIds.length) return;
+    const idsParam = missingIds.join(',');
+    api.get('/tests/covers', { params: { ids: idsParam } })
+      .then(res => {
+        // Mark all requested ids as 'fetched' (even if no cover) so we don't refetch.
+        const update = {};
+        missingIds.forEach(id => { update[id] = res.data?.[id] || ''; });
+        setCoversMap(prev => ({ ...prev, ...update }));
+      })
+      .catch(() => {
+        // Silent fail — placeholder stays.
+      });
+  }, [tests, coversMap]);
 
   useEffect(() => {
     if (!isAuthenticated || !challengeData?.dailyResetAt || !challengeData?.serverNow || !challengeData?.dailyChallenge?.test) {
@@ -897,7 +923,7 @@ export default function Dashboard() {
               }`}
             >
               <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary-500 to-sky-500 text-xs font-semibold text-white">
-                {test.coverImage ? <img src={test.coverImage} alt="" className="h-full w-full object-cover" /> : (test.title?.[0] || 'T').toUpperCase()}
+                {(test.coverImage || coversMap[test._id]) ? <img src={test.coverImage || coversMap[test._id]} alt="" className="h-full w-full object-cover" /> : (test.title?.[0] || 'T').toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-dark">{test.title}</p>
@@ -1132,7 +1158,7 @@ export default function Dashboard() {
                 style={{ boxShadow: '0 4px 0 #0f172a' }}
               >
                 <TestCoverArtwork
-                  coverImage={test.coverImage}
+                  coverImage={test.coverImage || coversMap[test._id]}
                   title={test.title}
                   className="w-full"
                   imageClassName="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
