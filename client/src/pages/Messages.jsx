@@ -31,6 +31,7 @@ export default function Messages() {
   const [showDuelModal, setShowDuelModal] = useState(false);
   const [duelTests, setDuelTests] = useState([]);
   const [duelLoading, setDuelLoading] = useState(false);
+  const [presenceMap, setPresenceMap] = useState({}); // { userId: { online: bool, lastSeen: ISO } }
   const typingTimeoutRef = useRef({});
   const socketRef = useRef(null);
   const selectedConversationIdRef = useRef(null);
@@ -109,21 +110,70 @@ export default function Messages() {
         if (message) toast.error(message);
       };
 
+      const handleDmRead = ({ conversationId, readBy }) => {
+        // The other party read messages in this conversation —
+        // mark all our own messages there as readBy them.
+        if (selectedConversationIdRef.current !== conversationId) return;
+        const readerId = String(readBy);
+        setMessages(prev => prev.map(msg => {
+          const senderId = String(msg.sender?._id || msg.sender || '');
+          if (senderId !== currentUserId) return msg;
+          const cur = Array.isArray(msg.readBy) ? msg.readBy : [];
+          if (cur.some(id => String(id?._id || id) === readerId)) return msg;
+          return { ...msg, readBy: [...cur, readerId] };
+        }));
+      };
+
+      const handlePresence = ({ userId, online, lastSeen }) => {
+        if (!userId) return;
+        setPresenceMap(prev => ({ ...prev, [String(userId)]: { online: !!online, lastSeen } }));
+      };
+
+      const handlePresenceList = ({ statuses }) => {
+        if (!Array.isArray(statuses)) return;
+        setPresenceMap(prev => {
+          const next = { ...prev };
+          for (const st of statuses) {
+            if (st?.userId) next[String(st.userId)] = { online: !!st.online, lastSeen: st.lastSeen };
+          }
+          return next;
+        });
+      };
+
       s.on('dm:message', handleMsg);
       s.on('dm:typing', handleTyping);
       s.on('dm:stopTyping', handleStopTyping);
       s.on('dm:messageDeleted', handleDeleted);
+      s.on('dm:read', handleDmRead);
       s.on('dm:error', handleError);
+      s.on('presence:update', handlePresence);
+      s.on('presence:list', handlePresenceList);
 
       return () => {
         s.off('dm:message', handleMsg);
         s.off('dm:typing', handleTyping);
         s.off('dm:stopTyping', handleStopTyping);
         s.off('dm:messageDeleted', handleDeleted);
+        s.off('dm:read', handleDmRead);
         s.off('dm:error', handleError);
+        s.off('presence:update', handlePresence);
+        s.off('presence:list', handlePresenceList);
       };
     }
   }, []);
+
+  // Request presence for all conversation partners when conversations load
+  useEffect(() => {
+    if (!conversations.length) return;
+    const s = socketRef.current || getSocket();
+    if (!s) return;
+    const userIds = conversations
+      .map(c => getOtherUser(c)?._id)
+      .filter(Boolean);
+    if (userIds.length > 0) {
+      s.emit('presence:get', { userIds });
+    }
+  }, [conversations.length]);
 
   useEffect(() => {
     if (selectedConv?._id) {
@@ -259,6 +309,22 @@ export default function Messages() {
     return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
   };
 
+  const formatLastSeen = (lastSeen) => {
+    if (!lastSeen) return 'был давно';
+    const d = new Date(lastSeen);
+    const diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return 'был только что';
+    if (diff < 3600) return `был ${Math.floor(diff / 60)} мин назад`;
+    if (diff < 86400) return `был ${Math.floor(diff / 3600)} ч назад`;
+    if (diff < 86400 * 7) return `был ${Math.floor(diff / 86400)} дн назад`;
+    return `был ${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`;
+  };
+
+  const presenceFor = (userId) => {
+    if (!userId) return { online: false, lastSeen: null };
+    return presenceMap[String(userId)] || { online: false, lastSeen: null };
+  };
+
   return (
     <div className="min-h-screen bg-surface">
       <Navbar />
@@ -378,6 +444,7 @@ export default function Messages() {
                 conversations.map(conv => {
                   const other = getOtherUser(conv);
                   const isActive = selectedConv?._id === conv._id;
+                  const presence = presenceFor(other?._id);
                   return (
                     <button
                       key={conv._id}
@@ -389,8 +456,16 @@ export default function Messages() {
                       }`}
                       style={isActive ? { boxShadow: '0 2px 0 #0f172a' } : undefined}
                     >
-                      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-sm font-black text-slate-700 dark:border-white dark:bg-slate-700 dark:text-white">
-                        {other?.avatar ? <img src={other.avatar} className="h-full w-full object-cover" alt="" /> : (other?.firstName?.[0] || '?').toUpperCase()}
+                      <div className="relative flex-shrink-0">
+                        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-sm font-black text-slate-700 dark:border-white dark:bg-slate-700 dark:text-white">
+                          {other?.avatar ? <img src={other.avatar} className="h-full w-full object-cover" alt="" /> : (other?.firstName?.[0] || '?').toUpperCase()}
+                        </div>
+                        {presence.online && (
+                          <span
+                            className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-800"
+                            aria-label="online"
+                          />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline justify-between gap-2">
@@ -435,14 +510,18 @@ export default function Messages() {
                   </button>
                   {(() => {
                     const other = getOtherUser(selectedConv);
+                    const presence = presenceFor(other?._id);
                     return (
                       <>
                         <button
                           type="button"
                           onClick={() => other?._id && navigate(`/profile/${other._id}`)}
-                          className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-xs font-black text-slate-700 transition hover:scale-[1.04] dark:border-white dark:bg-slate-700 dark:text-white"
+                          className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-xs font-black text-slate-700 transition hover:scale-[1.04] dark:border-white dark:bg-slate-700 dark:text-white"
                         >
                           {other?.avatar ? <img src={other.avatar} className="h-full w-full object-cover" alt="" /> : (other?.firstName?.[0] || '?').toUpperCase()}
+                          {presence.online && (
+                            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-800" />
+                          )}
                         </button>
                         <button
                           type="button"
@@ -452,8 +531,10 @@ export default function Messages() {
                           <p className="truncate text-sm font-black text-slate-900 dark:text-white">
                             {other?.firstName} {other?.lastName}
                           </p>
-                          <p className="truncate text-[11px] font-bold text-primary-500 dark:text-primary-300">
-                            {other?.username ? `@${other.username}` : `#${(other?.uniqueId || '').slice(0, 6)}`}
+                          <p className="truncate text-[11px] font-bold">
+                            {presence.online
+                              ? <span className="text-emerald-600 dark:text-emerald-400">в сети</span>
+                              : <span className="text-slate-400">{formatLastSeen(presence.lastSeen)}</span>}
                           </p>
                         </button>
                         <button
@@ -473,6 +554,7 @@ export default function Messages() {
                 <MessageList
                   messages={messages}
                   currentUserId={currentUserId}
+                  otherUserId={getOtherUser(selectedConv)?._id}
                   onReply={setReplyTo}
                   onDelete={deleteMessage}
                   onPin={() => {}}

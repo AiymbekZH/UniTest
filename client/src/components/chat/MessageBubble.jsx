@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import AudioPlayer from './AudioPlayer';
-import { Download, FileText, Pin, Reply, Trash2 } from 'lucide-react';
+import { Check, CheckCheck, Download, FileText, Pin, Reply, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -37,6 +37,7 @@ export default function MessageBubble({
   canPin,
   roleColor,
   onPreviewMedia,
+  isReadByOther,
 }) {
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [inviteState, setInviteState] = useState(message.meta?.duelStatus || '');
@@ -324,6 +325,11 @@ export default function MessageBubble({
             <span className={`text-[10px] ${isOwn ? 'text-orange-100' : 'text-gray-400'}`}>
               {timeStr(message.createdAt)}
             </span>
+            {isOwn && (
+              isReadByOther
+                ? <CheckCheck size={12} className="text-orange-100" strokeWidth={2.6} />
+                : <Check size={12} className="text-orange-100/80" strokeWidth={2.4} />
+            )}
           </div>
         </div>
 

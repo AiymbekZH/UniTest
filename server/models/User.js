@@ -45,6 +45,7 @@ const userSchema = new mongoose.Schema({
   passwordResetTokenHash: { type: String, default: '' },
   passwordResetExpiresAt: { type: Date, default: null },
   language: { type: String, enum: ['en', 'ru', 'kz', 'es'], default: 'en' },
+  lastSeen: { type: Date, default: Date.now, index: true },
   createdAt: { type: Date, default: Date.now }
 });
 

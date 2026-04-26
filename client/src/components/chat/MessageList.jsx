@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 export default function MessageList({
   messages, currentUserId, onReply, onDelete, onPin,
   getDeleteOptions, canPin, onLoadMore, hasMore, loading,
-  getMemberRoleColor,
+  getMemberRoleColor, otherUserId,
 }) {
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
@@ -59,20 +59,25 @@ export default function MessageList({
           <span className="text-[11px] text-gray-400">Начало истории</span>
         </div>
       )}
-      {messages.map((msg) => (
-        <MessageBubble
-          key={msg._id}
-          message={msg}
-          isOwn={msg.sender?._id === currentUserId}
-          onReply={onReply}
-          onDelete={onDelete}
-          onPin={onPin}
-          deleteOptions={getDeleteOptions?.(msg, msg.sender?._id === currentUserId)}
-          canPin={canPin}
-          roleColor={getMemberRoleColor?.(msg.sender?._id)}
-          onPreviewMedia={setMediaViewer}
-        />
-      ))}
+      {messages.map((msg) => {
+        const isOwn = msg.sender?._id === currentUserId;
+        const isReadByOther = isOwn && otherUserId && Array.isArray(msg.readBy) && msg.readBy.some(id => String(id?._id || id) === String(otherUserId));
+        return (
+          <MessageBubble
+            key={msg._id}
+            message={msg}
+            isOwn={isOwn}
+            onReply={onReply}
+            onDelete={onDelete}
+            onPin={onPin}
+            deleteOptions={getDeleteOptions?.(msg, isOwn)}
+            canPin={canPin}
+            roleColor={getMemberRoleColor?.(msg.sender?._id)}
+            onPreviewMedia={setMediaViewer}
+            isReadByOther={isReadByOther}
+          />
+        );
+      })}
       <div ref={bottomRef} />
       <MediaViewerModal media={mediaViewer} onClose={() => setMediaViewer(null)} />
     </div>

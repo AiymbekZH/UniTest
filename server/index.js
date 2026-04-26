@@ -193,6 +193,7 @@ io.use(async (socket, next) => {
 require('./socket/chat')(io);
 require('./socket/dm')(io);
 require('./socket/arena')(io);
+require('./socket/presence')(io);
 
 // Make io available to routes
 app.set('io', io);
