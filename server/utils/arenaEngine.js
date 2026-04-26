@@ -6,6 +6,7 @@ const {
   ARENA_STATUS,
   buildArenaRoomState,
   buildArenaSnapshotFromTest,
+  buildArenaSnapshotFromBank,
   generateJoinCode,
   gradeArenaAnswer,
   normalizeArenaSettings,
@@ -940,11 +941,58 @@ async function createArenaRoomDocument({
     title,
     hostUser,
     invitedUser,
-    test,
+    test: test?._id || test || null,
     group,
     conversation,
     joinCode: generateJoinCode(),
     questionSnapshot: createArenaSnapshotOrThrow(test, roomSettings),
+    status,
+    settings: roomSettings
+  });
+}
+
+/**
+ * Variant of createArenaRoomDocument that builds the snapshot from a list of
+ * BankQuestion docs (with optional per-question timer/points overrides) instead
+ * of a Test. Used by the ArenaQuestionPicker / ArenaQuickStart flow.
+ *
+ * `bankEntries` shape: [{ bankQuestion, timerOverride?, pointsOverride? }, ...]
+ */
+async function createArenaRoomFromBank({
+  sourceType = 'public',
+  title,
+  hostUser,
+  bankEntries = [],
+  allowGuests = true,
+  maxPlayers = 100,
+  countdownSeconds = undefined,
+  settings = {},
+  status = ARENA_STATUS.LOBBY
+}) {
+  const roomSettings = normalizeArenaSettings({
+    ...settings,
+    ...(countdownSeconds === undefined ? {} : { countdownSeconds }),
+    allowGuests,
+    maxPlayers
+  });
+
+  const snapshot = buildArenaSnapshotFromBank(bankEntries, roomSettings);
+  if (!snapshot.length) {
+    const error = new Error('Нет поддерживаемых вопросов для арены');
+    error.status = 400;
+    throw error;
+  }
+
+  return ArenaRoom.create({
+    sourceType,
+    title: title || 'Арена',
+    hostUser,
+    invitedUser: null,
+    test: null,
+    group: null,
+    conversation: null,
+    joinCode: generateJoinCode(),
+    questionSnapshot: snapshot,
     status,
     settings: roomSettings
   });
@@ -957,6 +1005,7 @@ module.exports = {
   clearArenaTimers,
   clearHostDisconnectTimer,
   createArenaRoomDocument,
+  createArenaRoomFromBank,
   createArenaSnapshotOrThrow,
   emitArenaState,
   applyArenaPowerUp,

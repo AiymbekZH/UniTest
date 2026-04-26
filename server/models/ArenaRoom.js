@@ -54,7 +54,8 @@ const arenaRoomSchema = new mongoose.Schema({
   joinCode: { type: String, required: true, unique: true, uppercase: true, trim: true },
   hostUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   invitedUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
+  // Optional: bank-sourced arenas (created via ArenaQuestionPicker) have no source Test.
+  test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', default: null },
   group: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', default: null },
   conversation: { type: mongoose.Schema.Types.ObjectId, ref: 'DirectMessage', default: null },
   questionSnapshot: { type: [arenaQuestionSchema], default: [] },

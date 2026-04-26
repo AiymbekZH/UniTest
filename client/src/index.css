@@ -352,6 +352,12 @@
   }
   .chunky-btn-success:active:not(:disabled) { box-shadow: 0 0 0 #065f46; }
 
+  .chunky-btn-amber {
+    @apply chunky-btn bg-amber-400 text-slate-900 border-slate-900;
+    box-shadow: 0 6px 0 #92400e;
+  }
+  .chunky-btn-amber:active:not(:disabled) { box-shadow: 0 0 0 #92400e; }
+
   .chunky-card {
     @apply relative rounded-3xl bg-white border-2 border-slate-200;
     box-shadow: 0 6px 0 #e2e8f0;

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const arenaResultSchema = new mongoose.Schema({
   room: { type: mongoose.Schema.Types.ObjectId, ref: 'ArenaRoom', required: true, index: true },
-  test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
+  test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', default: null },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   guestName: { type: String, default: '' },
   sourceType: { type: String, enum: ['public', 'group', 'dm_duel'], required: true },

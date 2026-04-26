@@ -6,7 +6,8 @@ const VARIANT_CLASSES = {
   ghost: 'chunky-btn-ghost',
   secondary: 'chunky-btn-ghost',
   danger: 'chunky-btn-danger',
-  success: 'chunky-btn-success'
+  success: 'chunky-btn-success',
+  amber: 'chunky-btn-amber'
 };
 
 const SIZE_CLASSES = {

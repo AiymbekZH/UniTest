@@ -135,6 +135,42 @@ function buildArenaSnapshotFromTest(test, settings = {}) {
     .filter(Boolean);
 }
 
+/**
+ * Build an arena question snapshot from a list of BankQuestion documents.
+ * `entries` may be plain bank docs or override objects of shape:
+ *   { bankQuestion, timerOverride?, pointsOverride? }
+ * Per-question overrides win over the room default.
+ */
+function buildArenaSnapshotFromBank(entries, settings = {}) {
+  const normalizedSettings = normalizeArenaSettings(settings);
+  return (entries || [])
+    .map((entry, idx) => {
+      const bq = entry.bankQuestion || entry;
+      if (!bq || !ARENA_ALLOWED_TYPES.includes(bq.type)) return null;
+      // BankQuestion has no question-level `id`. Use _id (or synth) for questionId.
+      const questionLike = {
+        id: String(bq._id || `bank-${idx}-${Date.now()}`),
+        type: bq.type,
+        questionText: bq.questionText,
+        passage: bq.passage || '',
+        points: Math.max(1, Number(entry.pointsOverride ?? bq.points) || 1),
+        options: (bq.options || []).map(o => ({
+          id: o.id || String(o._id || ''),
+          text: o.text,
+          isCorrect: !!o.isCorrect,
+          matchPair: o.matchPair || ''
+        })),
+        correctAnswer: bq.correctAnswer || '',
+        translations: bq.translations || {}
+      };
+      const perQuestionSettings = entry.timerOverride
+        ? { ...normalizedSettings, answerTimeSec: entry.timerOverride }
+        : normalizedSettings;
+      return buildArenaQuestionSnapshot(questionLike, perQuestionSettings);
+    })
+    .filter(Boolean);
+}
+
 function mapLikeToObject(value) {
   if (!value) return {};
   if (value instanceof Map) return Object.fromEntries(value);
@@ -406,6 +442,7 @@ module.exports = {
   ARENA_STATUS,
   buildArenaRoomState,
   buildArenaSnapshotFromTest,
+  buildArenaSnapshotFromBank,
   buildArenaParticipantSummary,
   generateJoinCode,
   gradeArenaAnswer,

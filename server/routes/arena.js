@@ -11,11 +11,13 @@ const Message = require('../models/Message');
 const Notification = require('../models/Notification');
 const { auth, optionalAuth } = require('../middleware/auth');
 const { buildArenaRoomState, buildArenaParticipantSummary, signArenaGuestToken, verifyArenaGuestToken } = require('../utils/arena');
+const BankQuestion = require('../models/BankQuestion');
 const {
   ARENA_STATUS,
   bumpArenaActivity,
   clearArenaTimers,
   createArenaRoomDocument,
+  createArenaRoomFromBank,
   emitArenaState,
   extendArenaTimer,
   finalizeArenaRoom,
@@ -222,6 +224,79 @@ router.post('/rooms', auth, async (req, res) => {
         settings
       });
     }
+
+    const populated = await populateRoomState(room._id);
+    res.status(201).json({
+      room: populated.state,
+      hostUrl: `/arena/host/${room._id}`,
+      joinUrl: `/arena/code/${room.joinCode}`
+    });
+  } catch (error) {
+    const status = error.status || 500;
+    res.status(status).json({ message: error.message || 'Ошибка создания арены' });
+  }
+});
+
+/**
+ * Create an arena room from a bank-question snapshot (no Test needed).
+ * Used by ArenaQuickStart / ArenaQuestionPicker.
+ *
+ * Body:
+ *   {
+ *     title?:        string (default 'Арена'),
+ *     entries:       [{ bankQuestionId, timerOverride?, pointsOverride? }, ...] (required, >=1),
+ *     allowGuests?:  boolean,
+ *     maxPlayers?:   number,
+ *     settings?:     { countdownSeconds, answerTimeSec, ... }
+ *   }
+ */
+router.post('/rooms/from-bank', auth, async (req, res) => {
+  try {
+    const { title, entries, allowGuests = true, maxPlayers, settings = {} } = req.body || {};
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return res.status(400).json({ message: 'Список вопросов пуст' });
+    }
+
+    const ids = entries.map(e => e.bankQuestionId).filter(Boolean);
+    if (!ids.length) {
+      return res.status(400).json({ message: 'Не указаны bankQuestionId' });
+    }
+
+    // Pull all bank questions in one query, ensuring ownership.
+    const bankDocs = await BankQuestion.find({ _id: { $in: ids }, creator: req.user._id });
+    const byId = new Map(bankDocs.map(d => [String(d._id), d]));
+
+    const orderedEntries = entries
+      .map(e => {
+        const bq = byId.get(String(e.bankQuestionId));
+        if (!bq) return null;
+        return {
+          bankQuestion: bq,
+          timerOverride: Number.isFinite(Number(e.timerOverride)) ? Math.max(5, Math.min(300, Number(e.timerOverride))) : null,
+          pointsOverride: Number.isFinite(Number(e.pointsOverride)) ? Math.max(0, Math.min(1000, Number(e.pointsOverride))) : null
+        };
+      })
+      .filter(Boolean);
+
+    if (!orderedEntries.length) {
+      return res.status(400).json({ message: 'Ни один из вопросов не доступен' });
+    }
+
+    const room = await createArenaRoomFromBank({
+      sourceType: 'public',
+      title: (title && String(title).trim()) || 'Арена из банка',
+      hostUser: req.user._id,
+      bankEntries: orderedEntries,
+      allowGuests: !!allowGuests,
+      maxPlayers: Math.max(2, Math.min(500, Number(maxPlayers) || 100)),
+      settings
+    });
+
+    // Bump usage stats so the bank UI reflects how often questions are pulled.
+    BankQuestion.updateMany(
+      { _id: { $in: ids }, creator: req.user._id },
+      { $inc: { usageCount: 1 } }
+    ).catch(() => { /* non-critical */ });
 
     const populated = await populateRoomState(room._id);
     res.status(201).json({

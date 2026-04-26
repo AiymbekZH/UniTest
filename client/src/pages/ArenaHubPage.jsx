@@ -364,7 +364,10 @@ export default function ArenaHubPage() {
                   Быстрая игра
                 </ChunkyButton>
                 <ChunkyButton variant="dark" size="lg" onClick={openStartModal} icon={<Plus size={18} />}>
-                  Создать арену
+                  Из теста
+                </ChunkyButton>
+                <ChunkyButton variant="amber" size="lg" onClick={() => navigate('/arena/quick-start')} icon={<Sparkles size={18} />}>
+                  Из банка
                 </ChunkyButton>
               </div>
             </div>

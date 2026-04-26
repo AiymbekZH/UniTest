@@ -26,6 +26,7 @@ const ArenaCodePage = lazy(() => import('./pages/ArenaCodePage'));
 const ArenaHostPage = lazy(() => import('./pages/ArenaHostPage'));
 const ArenaResultsPage = lazy(() => import('./pages/ArenaResultsPage'));
 const ArenaHubPage = lazy(() => import('./pages/ArenaHubPage'));
+const ArenaQuickStart = lazy(() => import('./pages/ArenaQuickStart'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-surface">
@@ -71,6 +72,7 @@ export default function App() {
       <Route path="/groups" element={<PrivateRoute><Groups /></PrivateRoute>} />
       <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
       <Route path="/arena/host/:roomId" element={<PrivateRoute><ArenaHostPage /></PrivateRoute>} />
+      <Route path="/arena/quick-start" element={<PrivateRoute><ArenaQuickStart /></PrivateRoute>} />
       <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
 
       {/* Default redirect */}
