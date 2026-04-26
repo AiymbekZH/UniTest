@@ -328,7 +328,7 @@ export default memo(function Navbar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowMobile(false)}
-              className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm dark:bg-black/70"
+              className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm dark:bg-black/55"
               aria-label="Close navigation menu"
             />
             <motion.aside
@@ -336,7 +336,7 @@ export default memo(function Navbar() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -360, opacity: 0.7 }}
               transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-              className="fixed left-0 top-0 z-[60] flex h-full w-[min(88vw,340px)] flex-col overflow-y-auto border-r border-gray-100 bg-white px-3 pb-5 pt-3 dark:border-r-[#2a241c] dark:bg-[#181410]"
+              className="fixed left-0 top-0 z-[60] flex h-full w-[min(88vw,340px)] flex-col overflow-y-auto border-r-2 border-gray-100 bg-white px-3 pb-5 pt-3 shadow-2xl dark:border-r-[#3a3226] dark:bg-[#1f1a14]"
             >
               <div className="flex items-center justify-between gap-2 pb-3">
                 <Link
