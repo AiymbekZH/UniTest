@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, MessageSquare, User as UserIcon, Swords } from 'lucide-react';
+import { ArrowLeft, Search, MessageSquare, User as UserIcon, Swords, Plus, X as XIcon, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -262,98 +262,153 @@ export default function Messages() {
   return (
     <div className="min-h-screen bg-surface">
       <Navbar />
-      <main className="mx-auto max-w-6xl px-2 py-3 sm:px-6 sm:py-6">
-        <div
-          className="flex h-[calc(100vh-150px)] overflow-hidden rounded-3xl border-2 border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 sm:h-[calc(100vh-140px)]"
-          style={{ boxShadow: '0 6px 0 #e2e8f0' }}
-        >
-          {/* Sidebar – conversations list */}
-          <div className={`w-full sm:w-80 flex-shrink-0 border-r border-gray-200 dark:border-slate-700 flex flex-col ${selectedConv ? 'hidden sm:flex' : 'flex'}`}>
-            <div className="p-4 border-b border-gray-100 dark:border-slate-700">
-              <div className="flex items-center gap-2 mb-3">
-                <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition">
-                  <ArrowLeft size={16} className="text-gray-400" />
+      <main className="mx-auto max-w-6xl px-2 py-3 sm:px-4 sm:py-5 lg:px-6">
+        <div className="chunky-card flex h-[calc(100vh-110px)] overflow-hidden p-0 sm:h-[calc(100vh-130px)]">
+          {/* ── Sidebar: conversations list ── */}
+          <aside
+            className={`w-full flex-shrink-0 flex-col border-r-2 border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 sm:flex sm:w-[320px] ${
+              selectedConv ? 'hidden sm:flex' : 'flex'
+            }`}
+          >
+            {/* Sidebar header */}
+            <div className="flex-shrink-0 border-b-2 border-slate-200 px-3 py-3 dark:border-slate-700 sm:px-4 sm:py-4">
+              <div className="mb-3 flex items-center gap-2">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 bg-white text-slate-900 transition active:translate-y-[2px] dark:border-white dark:bg-slate-900 dark:text-white"
+                  style={{ boxShadow: '0 3px 0 #0f172a' }}
+                  aria-label="Назад"
+                >
+                  <ArrowLeft size={15} strokeWidth={2.4} />
                 </button>
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Сообщения</h1>
+                <h1 className="text-base font-black tracking-tight text-slate-900 dark:text-white">Сообщения</h1>
+                {conversations.length > 0 && (
+                  <span className="ml-auto inline-flex h-6 min-w-[24px] items-center justify-center rounded-full border-2 border-slate-900 bg-primary-50 px-1.5 text-[10px] font-black text-primary-700 dark:border-white dark:bg-primary-900/20 dark:text-primary-200">
+                    {conversations.length}
+                  </span>
+                )}
               </div>
-              {/* Search */}
+              {/* Chunky search */}
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-gray-50 dark:bg-slate-700 border-0 text-sm text-gray-800 dark:text-gray-100 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30"
+                  className="w-full rounded-xl border-2 border-slate-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-primary-900/30"
                   placeholder="Поиск по нику, email, ID..."
                   value={searchQuery}
                   onChange={(e) => searchUsers(e.target.value)}
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"
+                    aria-label="Очистить"
+                  >
+                    <XIcon size={13} />
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Search results */}
             {searchQuery.length >= 2 && (
-              <div className="border-b border-gray-100 dark:border-slate-700 max-h-48 overflow-y-auto">
-                {searching ? (
-                  <p className="text-xs text-gray-400 text-center py-4">Поиск...</p>
-                ) : searchResults.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-4">Не найдено</p>
-                ) : (
-                  searchResults.map(u => (
-                    <button key={u._id} onClick={() => startConversation(u._id)}
-                      className="w-full text-left flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-slate-700 transition">
-                      <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-300 overflow-hidden flex-shrink-0">
-                        {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : (u.firstName?.[0] || '?').toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p
-                          onClick={(e) => { e.stopPropagation(); navigate(`/profile/${u._id}`); }}
-                          className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate transition hover:text-primary-600"
-                        >
-                          {u.lastName} {u.firstName}
-                        </p>
-                        <p className="text-[11px] truncate font-semibold text-primary-500 dark:text-primary-300">{u.username ? `@${u.username}` : `#${(u.uniqueId || '').slice(0, 6)}`}</p>
-                      </div>
-                    </button>
-                  ))
-                )}
+              <div className="flex-shrink-0 border-b-2 border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/40">
+                <p className="px-4 pt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Найдено
+                </p>
+                <div className="max-h-56 overflow-y-auto py-2">
+                  {searching ? (
+                    <p className="py-4 text-center text-xs font-medium text-slate-400">Поиск...</p>
+                  ) : searchResults.length === 0 ? (
+                    <p className="py-4 text-center text-xs font-medium text-slate-400">Никого не найдено</p>
+                  ) : (
+                    searchResults.map(u => (
+                      <button
+                        key={u._id}
+                        onClick={() => startConversation(u._id)}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-white dark:hover:bg-slate-800"
+                      >
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-xs font-black text-slate-700 dark:border-white dark:bg-slate-700 dark:text-white">
+                          {u.avatar ? <img src={u.avatar} className="h-full w-full object-cover" alt="" /> : (u.firstName?.[0] || '?').toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                            {u.firstName} {u.lastName}
+                          </p>
+                          <p className="truncate text-[11px] font-bold text-primary-500 dark:text-primary-300">
+                            {u.username ? `@${u.username}` : `#${(u.uniqueId || '').slice(0, 6)}`}
+                          </p>
+                        </div>
+                        <Plus size={14} className="flex-shrink-0 text-slate-400" />
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Conversations */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {/* Conversations list */}
+            <div className="flex-1 overflow-y-auto p-2">
               {loading ? (
-                <div className="space-y-2 p-3">{[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-gray-100 dark:bg-slate-700 animate-pulse" />)}</div>
+                <div className="space-y-2 p-2">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/40">
+                      <div className="h-11 w-11 flex-shrink-0 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-2/3 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+                        <div className="h-2.5 w-1/2 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : conversations.length === 0 && searchQuery.length < 2 ? (
-                <div className="text-center py-16">
-                  <MessageSquare size={28} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">Нет диалогов</p>
-                  <p className="text-xs text-gray-400 mt-1">Найдите пользователя через поиск</p>
+                <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+                  <div
+                    className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-slate-900 bg-primary-50 text-primary-500 dark:border-white dark:bg-primary-900/20 dark:text-primary-300"
+                    style={{ boxShadow: '0 3px 0 #0f172a' }}
+                  >
+                    <MessageSquare size={24} strokeWidth={2.2} />
+                  </div>
+                  <p className="text-sm font-black text-slate-900 dark:text-white">Нет диалогов</p>
+                  <p className="mt-1 text-xs font-medium text-slate-400">
+                    Найди пользователя через поиск выше
+                  </p>
                 </div>
               ) : (
                 conversations.map(conv => {
                   const other = getOtherUser(conv);
                   const isActive = selectedConv?._id === conv._id;
                   return (
-                    <button key={conv._id} onClick={() => selectConversation(conv)}
-                      className={`w-full text-left flex items-center gap-3 p-3 transition ${isActive ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-slate-700/50'}`}>
-                      <div className="w-11 h-11 rounded-full bg-gray-200 dark:bg-slate-600 flex items-center justify-center text-sm font-bold text-gray-500 dark:text-gray-300 overflow-hidden flex-shrink-0">
-                        {other?.avatar ? <img src={other.avatar} className="w-full h-full object-cover" /> : (other?.firstName?.[0] || '?').toUpperCase()}
+                    <button
+                      key={conv._id}
+                      onClick={() => selectConversation(conv)}
+                      className={`group mb-1.5 flex w-full items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left transition active:translate-y-[1px] ${
+                        isActive
+                          ? 'border-slate-900 bg-primary-50 dark:border-white dark:bg-primary-900/15'
+                          : 'border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-700/40'
+                      }`}
+                      style={isActive ? { boxShadow: '0 2px 0 #0f172a' } : undefined}
+                    >
+                      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-sm font-black text-slate-700 dark:border-white dark:bg-slate-700 dark:text-white">
+                        {other?.avatar ? <img src={other.avatar} className="h-full w-full object-cover" alt="" /> : (other?.firstName?.[0] || '?').toUpperCase()}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (other?._id) navigate(`/profile/${other._id}`);
-                            }}
-                            className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate transition hover:text-primary-600"
-                          >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
                             {other?.firstName} {other?.lastName}
                           </p>
-                          <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">{timeAgo(conv.lastActivity)}</span>
+                          <span className="flex-shrink-0 text-[10px] font-bold text-slate-400">{timeAgo(conv.lastActivity)}</span>
                         </div>
-                        <div className="flex items-center justify-between mt-0.5">
-                          <p className="text-xs text-gray-400 truncate">{conv.lastMessage?.text || '...'}</p>
+                        <div className="mt-0.5 flex items-center justify-between gap-2">
+                          <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+                            {conv.lastMessage?.text || '...'}
+                          </p>
                           {conv.unreadCount > 0 && (
-                            <span className="ml-2 w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] flex items-center justify-center font-medium flex-shrink-0">{conv.unreadCount}</span>
+                            <span
+                              className="flex h-5 min-w-[20px] flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-900 bg-primary-500 px-1 text-[10px] font-black text-white dark:border-white"
+                            >
+                              {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -362,45 +417,53 @@ export default function Messages() {
                 })
               )}
             </div>
-          </div>
+          </aside>
 
-          {/* Chat area */}
-          <div className={`flex-1 flex flex-col ${selectedConv ? 'flex' : 'hidden sm:flex'}`}>
+          {/* ── Chat area ── */}
+          <section className={`flex-1 flex-col ${selectedConv ? 'flex' : 'hidden sm:flex'}`}>
             {selectedConv ? (
               <>
-                {/* Header */}
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-slate-700">
-                  <button onClick={() => { setSelectedConv(null); setMessages([]); }} className="sm:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition">
-                    <ArrowLeft size={16} className="text-gray-400" />
+                {/* Chat header */}
+                <div className="flex flex-shrink-0 items-center gap-2.5 border-b-2 border-slate-200 bg-white px-3 py-3 dark:border-slate-700 dark:bg-slate-800 sm:gap-3 sm:px-4">
+                  <button
+                    onClick={() => { setSelectedConv(null); setMessages([]); }}
+                    className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 bg-white text-slate-900 transition active:translate-y-[2px] dark:border-white dark:bg-slate-900 dark:text-white sm:hidden"
+                    style={{ boxShadow: '0 3px 0 #0f172a' }}
+                    aria-label="Назад к списку"
+                  >
+                    <ArrowLeft size={15} strokeWidth={2.4} />
                   </button>
                   {(() => {
                     const other = getOtherUser(selectedConv);
                     return (
                       <>
-                        <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-300 overflow-hidden flex-shrink-0">
-                          {other?.avatar ? <img src={other.avatar} className="w-full h-full object-cover" /> : (other?.firstName?.[0] || '?').toUpperCase()}
-                        </div>
-                        <div>
-                          <p
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (other?._id) navigate(`/profile/${other._id}`);
-                            }}
-                            className="text-sm font-semibold text-gray-900 dark:text-gray-100 transition hover:text-primary-600"
-                          >
+                        <button
+                          type="button"
+                          onClick={() => other?._id && navigate(`/profile/${other._id}`)}
+                          className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-xs font-black text-slate-700 transition hover:scale-[1.04] dark:border-white dark:bg-slate-700 dark:text-white"
+                        >
+                          {other?.avatar ? <img src={other.avatar} className="h-full w-full object-cover" alt="" /> : (other?.firstName?.[0] || '?').toUpperCase()}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => other?._id && navigate(`/profile/${other._id}`)}
+                          className="min-w-0 flex-1 text-left transition hover:opacity-80"
+                        >
+                          <p className="truncate text-sm font-black text-slate-900 dark:text-white">
                             {other?.firstName} {other?.lastName}
                           </p>
-                          <p className="text-[10px] font-semibold text-primary-500 dark:text-primary-300">{other?.username ? `@${other.username}` : `#${(other?.uniqueId || '').slice(0, 6)}`}</p>
-                        </div>
-                        <div className="ml-auto">
-                          <button
-                            type="button"
-                            onClick={openDuelModal}
-                            className="inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-600 transition hover:bg-orange-100 dark:border-orange-900/30 dark:bg-orange-900/10 dark:text-orange-300"
-                          >
-                            <Swords size={14} /> Дуэль
-                          </button>
-                        </div>
+                          <p className="truncate text-[11px] font-bold text-primary-500 dark:text-primary-300">
+                            {other?.username ? `@${other.username}` : `#${(other?.uniqueId || '').slice(0, 6)}`}
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={openDuelModal}
+                          className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl border-2 border-slate-900 bg-orange-50 px-2.5 py-2 text-[11px] font-black text-orange-700 transition active:translate-y-[2px] dark:border-white dark:bg-orange-900/20 dark:text-orange-300 sm:gap-2 sm:px-3 sm:text-xs"
+                          style={{ boxShadow: '0 3px 0 #c2410c' }}
+                        >
+                          <Swords size={13} strokeWidth={2.4} /> Дуэль
+                        </button>
                       </>
                     );
                   })()}
@@ -428,60 +491,95 @@ export default function Messages() {
                 />
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center">
+              /* Empty state — desktop only (mobile shows sidebar) */
+              <div className="flex flex-1 items-center justify-center bg-slate-50/40 px-6 py-12 dark:bg-slate-900/30">
                 <div className="text-center">
-                  <MessageSquare size={40} className="text-gray-200 dark:text-slate-600 mx-auto mb-3" />
-                  <p className="text-sm text-gray-400">Выберите диалог</p>
+                  <div
+                    className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl border-2 border-slate-900 bg-primary-50 text-primary-500 dark:border-white dark:bg-primary-900/20 dark:text-primary-300"
+                    style={{ boxShadow: '0 4px 0 #0f172a' }}
+                  >
+                    <MessageSquare size={36} strokeWidth={2} />
+                  </div>
+                  <p className="text-base font-black text-slate-900 dark:text-white">Выбери диалог</p>
+                  <p className="mt-2 max-w-xs text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Открой переписку слева или найди нового собеседника через поиск
+                  </p>
                 </div>
               </div>
             )}
-          </div>
+          </section>
         </div>
       </main>
 
+      {/* ── Duel modal ── */}
       <AnimatePresence>
         {showDuelModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
             onClick={() => setShowDuelModal(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              initial={{ opacity: 0, y: 40, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.96 }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-xl rounded-2xl border border-gray-100 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+              className="chunky-card w-full max-w-xl overflow-hidden p-0 sm:rounded-3xl"
+              style={{ borderTopLeftRadius: '24px', borderTopRightRadius: '24px' }}
             >
-              <div className="mb-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">DM Duel</p>
-                <h3 className="mt-2 text-2xl font-bold text-dark">Выбери тест для дуэли</h3>
-                <p className="mt-2 text-sm text-gray-500">В дуэль можно отправить любой публичный тест или любой свой собственный.</p>
+              <div className="flex items-start gap-3 border-b-2 border-slate-200 p-5 dark:border-slate-700 sm:p-6">
+                <div
+                  className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border-2 border-slate-900 bg-orange-100 text-orange-600 dark:border-white dark:bg-orange-900/30 dark:text-orange-300"
+                  style={{ boxShadow: '0 3px 0 #c2410c' }}
+                >
+                  <Swords size={20} strokeWidth={2.4} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">DM Duel</p>
+                  <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white sm:text-xl">Выбери тест для дуэли</h3>
+                  <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Любой публичный или твой собственный.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDuelModal(false)}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 bg-white text-slate-700 transition active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-white"
+                  style={{ boxShadow: '0 3px 0 #0f172a' }}
+                  aria-label="Закрыть"
+                >
+                  <XIcon size={15} strokeWidth={2.4} />
+                </button>
               </div>
 
-              {duelLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500" />
-                </div>
-              ) : duelTests.length === 0 ? (
-                <p className="text-sm text-gray-400">Нет доступных тестов для дуэли.</p>
-              ) : (
-                <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
-                  {duelTests.map((test) => (
-                    <button
-                      key={test._id}
-                      type="button"
-                      onClick={() => startDuel(test._id)}
-                      className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-left transition hover:border-orange-200 hover:bg-orange-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-orange-900/30 dark:hover:bg-orange-900/10"
-                    >
-                      <p className="text-sm font-semibold text-dark">{test.title}</p>
-                      <p className="mt-1 text-xs text-gray-500">{test.questions?.length || 0} вопросов · {test.settings?.isPublic ? 'public' : 'private / ваш тест'}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="p-4 sm:p-5">
+                {duelLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500" />
+                  </div>
+                ) : duelTests.length === 0 ? (
+                  <p className="py-8 text-center text-sm font-medium text-slate-400">Нет доступных тестов для дуэли</p>
+                ) : (
+                  <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
+                    {duelTests.map((test) => (
+                      <button
+                        key={test._id}
+                        type="button"
+                        onClick={() => startDuel(test._id)}
+                        className="w-full rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-left transition active:translate-y-[2px] hover:border-orange-400 hover:bg-orange-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-orange-500 dark:hover:bg-orange-900/15"
+                        style={{ boxShadow: '0 2px 0 #e2e8f0' }}
+                      >
+                        <p className="truncate text-sm font-black text-slate-900 dark:text-white">{test.title}</p>
+                        <p className="mt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          {test.questions?.length || 0} вопросов · {test.settings?.isPublic ? 'public' : 'private / твой'}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}

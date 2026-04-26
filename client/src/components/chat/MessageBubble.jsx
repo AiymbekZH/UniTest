@@ -327,24 +327,26 @@ export default function MessageBubble({
           </div>
         </div>
 
-        <div className={`mt-0.5 flex items-center gap-0.5 ${isOwn ? 'justify-end' : ''}`}>
+        <div className={`mt-1 flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${isOwn ? 'justify-end' : ''}`}>
           <button
             type="button"
             onClick={() => onReply?.(message)}
-            className="rounded p-1 text-gray-400 opacity-0 transition hover:bg-gray-200 hover:text-gray-600 group-hover:opacity-100 dark:hover:bg-slate-600 dark:hover:text-gray-300"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700 active:translate-y-[1px] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+            aria-label="Ответить"
             title="Ответить"
           >
-            <Reply size={13} />
+            <Reply size={12} strokeWidth={2.4} />
           </button>
 
           {canPin && (
             <button
               type="button"
               onClick={() => onPin?.(message)}
-              className="rounded p-1 text-gray-400 opacity-0 transition hover:bg-gray-200 hover:text-amber-500 group-hover:opacity-100 dark:hover:bg-slate-600"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-slate-200 bg-white text-slate-500 transition hover:border-amber-300 hover:text-amber-600 active:translate-y-[1px] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-amber-400"
+              aria-label={message.isPinned ? 'Открепить' : 'Закрепить'}
               title={message.isPinned ? 'Открепить' : 'Закрепить'}
             >
-              <Pin size={13} />
+              <Pin size={12} strokeWidth={2.4} />
             </button>
           )}
 
@@ -353,18 +355,22 @@ export default function MessageBubble({
               <button
                 type="button"
                 onClick={() => setShowDeleteMenu(prev => !prev)}
-                className="rounded p-1 text-gray-400 opacity-0 transition hover:bg-red-100 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-900/20"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-slate-200 bg-white text-slate-500 transition hover:border-red-300 hover:text-red-600 active:translate-y-[1px] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-red-400"
+                aria-label="Удалить"
                 title="Удалить"
               >
-                <Trash2 size={13} />
+                <Trash2 size={12} strokeWidth={2.4} />
               </button>
 
               {showDeleteMenu && (
-                <div className={`absolute z-20 mt-1 min-w-[160px] rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-slate-600 dark:bg-slate-800 ${
-                  isOwn ? 'right-0' : 'left-0'
-                }`}>
-                  <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400">
-                    Подтверждение
+                <div
+                  className={`absolute z-20 mt-1.5 min-w-[170px] rounded-2xl border-2 border-slate-900 bg-white p-2 dark:border-white dark:bg-slate-800 ${
+                    isOwn ? 'right-0' : 'left-0'
+                  }`}
+                  style={{ boxShadow: '0 4px 0 #0f172a' }}
+                >
+                  <p className="px-2 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Удалить?
                   </p>
 
                   {availableDeleteOptions.self && (
@@ -374,9 +380,9 @@ export default function MessageBubble({
                         onDelete?.(message, 'self');
                         setShowDeleteMenu(false);
                       }}
-                      className="mb-1 w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-slate-700"
+                      className="mb-1 w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
                     >
-                      Удалить у себя
+                      Только у себя
                     </button>
                   )}
 
@@ -387,16 +393,16 @@ export default function MessageBubble({
                         onDelete?.(message, 'everyone');
                         setShowDeleteMenu(false);
                       }}
-                      className="mb-1 w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20"
+                      className="mb-1 w-full rounded-xl px-3 py-2 text-left text-xs font-black text-red-600 transition hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
-                      Удалить у всех
+                      У всех
                     </button>
                   )}
 
                   <button
                     type="button"
                     onClick={() => setShowDeleteMenu(false)}
-                    className="w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-gray-500 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+                    className="w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
                   >
                     Отмена
                   </button>

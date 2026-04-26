@@ -64,17 +64,25 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
     onCancelReply?.();
   };
 
+  const canSend = !disabled && (text.trim() || attachments.length > 0);
+
   return (
-    <div className="border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3">
+    <div className="flex-shrink-0 border-t-2 border-slate-200 bg-white px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800 sm:px-4 sm:py-3">
       {/* Reply preview */}
       {replyTo && (
-        <div className="mb-2 flex items-center gap-2 border-l-2 border-primary-400 pl-3 text-sm text-gray-600 dark:text-gray-300">
-          <div className="flex-1 min-w-0 truncate">
-            <span className="font-medium text-primary-500">{replyTo.sender?.firstName}</span>:{' '}
-            <span className="text-gray-400">{replyTo.text?.slice(0, 80) || '(вложение)'}</span>
+        <div className="mb-2 flex items-center gap-2 rounded-xl border-2 border-primary-400 bg-primary-50/50 px-3 py-2 text-xs dark:border-primary-500 dark:bg-primary-900/15">
+          <div className="min-w-0 flex-1 truncate">
+            <span className="font-black text-primary-600 dark:text-primary-300">{replyTo.sender?.firstName}</span>
+            <span className="ml-1.5 font-medium text-slate-500 dark:text-slate-400">
+              {replyTo.text?.slice(0, 80) || '(вложение)'}
+            </span>
           </div>
-          <button onClick={onCancelReply} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-400">
-            <X size={14} />
+          <button
+            onClick={onCancelReply}
+            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white"
+            aria-label="Отменить ответ"
+          >
+            <X size={13} />
           </button>
         </div>
       )}
@@ -83,37 +91,48 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
       {attachments.length > 0 && (
         <div className="mb-2 flex items-center gap-2">
           {attachments[0].preview && attachments[0].mimetype.startsWith('image/') ? (
-            <img src={attachments[0].preview} alt="" className="h-16 w-16 rounded-xl object-cover" />
+            <img src={attachments[0].preview} alt="" className="h-16 w-16 rounded-xl border-2 border-slate-200 object-cover dark:border-slate-700" />
           ) : attachments[0].preview && attachments[0].mimetype.startsWith('video/') ? (
-            <video src={attachments[0].preview} className="h-16 w-16 rounded-xl bg-black object-cover" muted playsInline />
+            <video src={attachments[0].preview} className="h-16 w-16 rounded-xl border-2 border-slate-200 bg-black object-cover dark:border-slate-700" muted playsInline />
           ) : (
-            <div className="h-10 px-3 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-              <Paperclip size={14} /> {attachments[0].filename}
+            <div className="flex h-10 items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-700 dark:text-slate-200">
+              <Paperclip size={13} /> {attachments[0].filename}
             </div>
           )}
-          <button onClick={() => setAttachments([])} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-400">
+          <button
+            onClick={() => setAttachments([])}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white"
+            aria-label="Убрать вложение"
+          >
             <X size={14} />
           </button>
         </div>
       )}
 
       {/* Input row */}
-      <div className="flex items-end gap-2">
-        <button onClick={() => fileRef.current?.click()} className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition" title="Прикрепить файл">
-          <Paperclip size={18} />
+      <div className="flex items-end gap-1.5 sm:gap-2">
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={disabled}
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-slate-500 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-700 active:translate-y-[2px] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 dark:hover:text-white"
+          style={{ boxShadow: '0 2px 0 #cbd5e1' }}
+          aria-label="Прикрепить файл"
+          title="Прикрепить файл"
+        >
+          <Paperclip size={16} strokeWidth={2.4} />
         </button>
         <input ref={fileRef} type="file" className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar" onChange={handleFile} />
 
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Сообщение..."
+            placeholder={disabled ? 'Отправка отключена' : 'Сообщение...'}
             disabled={disabled}
             rows={1}
-            className="max-h-32 w-full resize-none overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 dark:focus:ring-primary-900/30"
-            style={{ minHeight: '42px' }}
+            className="block max-h-32 w-full resize-none overflow-y-auto rounded-xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-primary-900/30"
+            style={{ minHeight: '40px' }}
             onInput={(e) => {
               e.target.style.height = 'auto';
               e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
@@ -123,9 +142,14 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
 
         <VoiceRecorder onRecorded={handleVoice} onCancel={() => {}} />
 
-        <button onClick={handleSend} disabled={disabled || (!text.trim() && attachments.length === 0)}
-          className="rounded-xl bg-primary-500 p-2.5 text-white transition hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-40">
-          <Send size={18} />
+        <button
+          onClick={handleSend}
+          disabled={!canSend}
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 bg-primary-500 text-white transition active:translate-y-[2px] disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none dark:border-white dark:disabled:border-slate-600 dark:disabled:bg-slate-700 dark:disabled:text-slate-500"
+          style={{ boxShadow: canSend ? '0 3px 0 #9a3412' : 'none' }}
+          aria-label="Отправить"
+        >
+          <Send size={16} strokeWidth={2.4} />
         </button>
       </div>
     </div>

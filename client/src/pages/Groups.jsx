@@ -718,22 +718,26 @@ export default function Groups() {
   return (
     <div className="min-h-screen bg-surface">
       <Navbar />
-      <main className="mx-auto max-w-6xl px-2 py-3 sm:px-6 sm:py-6">
+      <main className="mx-auto max-w-6xl px-2 py-3 sm:px-4 sm:py-5 lg:px-6">
         {selectedGroup ? (
-          <div className="flex h-[calc(100vh-150px)] flex-col lg:h-[calc(100vh-140px)] lg:flex-row">
+          <div className="flex h-[calc(100vh-110px)] flex-col overflow-hidden chunky-card p-0 lg:h-[calc(100vh-130px)] lg:flex-row">
             {/* Sidebar: group info + member list (desktop only) */}
-            <div className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-800 rounded-l-2xl border border-r-0 border-gray-200 dark:border-slate-700">
-              <div className="p-4 border-b border-gray-100 dark:border-slate-700">
-                <button onClick={resetGroupView} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-3 transition">
-                  <ArrowLeft size={14} /> Все группы
+            <div className="hidden lg:flex flex-col w-64 flex-shrink-0 bg-white border-r-2 border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+              <div className="flex-shrink-0 border-b-2 border-slate-200 p-4 dark:border-slate-700">
+                <button
+                  onClick={resetGroupView}
+                  className="mb-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-2.5 py-1.5 text-[11px] font-black text-slate-900 transition active:translate-y-[2px] dark:border-white dark:bg-slate-900 dark:text-white"
+                  style={{ boxShadow: '0 2px 0 #0f172a' }}
+                >
+                  <ArrowLeft size={12} strokeWidth={2.4} /> Все группы
                 </button>
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getGrad(selectedGroup.name)} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-                    {selectedGroup.avatar ? <img src={selectedGroup.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : (selectedGroup.name?.[0] || 'G').toUpperCase()}
+                  <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-gradient-to-br ${getGrad(selectedGroup.name)} text-base font-black text-white dark:border-white`}>
+                    {selectedGroup.avatar ? <img src={selectedGroup.avatar} alt="" className="h-full w-full object-cover" /> : (selectedGroup.name?.[0] || 'G').toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{selectedGroup.name}</h3>
-                    <p className="text-[10px] text-gray-400">{selectedGroup.members?.length} участников</p>
+                    <h3 className="truncate text-sm font-black text-slate-900 dark:text-white">{selectedGroup.name}</h3>
+                    <p className="text-[10px] font-bold text-slate-400">{selectedGroup.members?.length} участников</p>
                   </div>
                 </div>
               </div>
@@ -760,22 +764,44 @@ export default function Groups() {
             </div>
 
             {/* Main content */}
-            <div className="flex-1 flex flex-col bg-white dark:bg-slate-800 lg:rounded-r-2xl rounded-2xl lg:rounded-l-none border border-gray-200 dark:border-slate-700 overflow-hidden">
+            <div className="flex flex-1 min-w-0 flex-col overflow-hidden bg-white dark:bg-slate-800">
               {/* Header */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-slate-700">
-                <button onClick={resetGroupView} className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition">
-                  <ArrowLeft size={16} className="text-gray-400" />
+              <div className="flex flex-shrink-0 items-center gap-2 border-b-2 border-slate-200 px-3 py-3 dark:border-slate-700 sm:gap-3 sm:px-4">
+                <button
+                  onClick={resetGroupView}
+                  className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 bg-white text-slate-900 transition active:translate-y-[2px] dark:border-white dark:bg-slate-900 dark:text-white lg:hidden"
+                  style={{ boxShadow: '0 3px 0 #0f172a' }}
+                  aria-label="Назад"
+                >
+                  <ArrowLeft size={15} strokeWidth={2.4} />
                 </button>
-                <Hash size={16} className="text-gray-400 hidden sm:block" />
-                <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate flex-1">{selectedGroup.name}</h2>
-                {/* Tabs */}
-                <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-700 rounded-xl p-0.5">
-                  {TABS.map(t => (
-                    <button key={t.id} onClick={() => setActiveTab(t.id)}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition ${activeTab === t.id ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
-                      <t.icon size={12} /> <span className="hidden sm:inline">{t.label}</span>
-                    </button>
-                  ))}
+                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-gradient-to-br ${getGrad(selectedGroup.name)} text-xs font-black text-white dark:border-white lg:hidden`}>
+                  {selectedGroup.avatar ? <img src={selectedGroup.avatar} alt="" className="h-full w-full object-cover" /> : (selectedGroup.name?.[0] || 'G').toUpperCase()}
+                </div>
+                <h2 className="min-w-0 flex-1 truncate text-sm font-black text-slate-900 dark:text-white">{selectedGroup.name}</h2>
+              </div>
+
+              {/* Tabs — horizontal scrollable chunky pills */}
+              <div className="flex-shrink-0 border-b-2 border-slate-200 bg-slate-50/40 dark:border-slate-700 dark:bg-slate-900/30">
+                <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-3 py-2 sm:gap-2 sm:px-4">
+                  {TABS.map(t => {
+                    const isActive = activeTab === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setActiveTab(t.id)}
+                        className={`flex-shrink-0 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 px-3 py-1.5 text-[11px] font-black transition active:translate-y-[1px] sm:gap-2 sm:px-4 sm:py-2 sm:text-xs ${
+                          isActive
+                            ? 'border-slate-900 bg-primary-500 text-white dark:border-white'
+                            : 'border-slate-900 bg-white text-slate-900 dark:border-white dark:bg-slate-800 dark:text-white'
+                        }`}
+                        style={{ boxShadow: isActive ? '0 3px 0 #9a3412' : '0 2px 0 #0f172a' }}
+                      >
+                        <t.icon size={13} strokeWidth={2.4} />
+                        <span>{t.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1247,9 +1273,13 @@ export default function Groups() {
           </div>
         ) : (
           /* ── Groups List ── */
-          <div className="space-y-6">
-            <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:opacity-70 transition">
-              <ArrowLeft size={16} /> Назад
+          <div className="space-y-5">
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-1.5 rounded-xl border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-black text-slate-900 transition active:translate-y-[2px] dark:border-white dark:bg-slate-900 dark:text-white"
+              style={{ boxShadow: '0 3px 0 #0f172a' }}
+            >
+              <ArrowLeft size={13} strokeWidth={2.4} /> Назад
             </button>
 
             {/* Hero */}
@@ -1266,8 +1296,18 @@ export default function Groups() {
               ] : undefined}
               actions={
                 <>
-                  <button onClick={() => setShowJoin(true)} className="btn-secondary inline-flex items-center gap-1.5 text-xs"><UserPlus size={14} /> Вступить</button>
-                  <button onClick={() => setShowCreate(true)} className="btn-primary inline-flex items-center gap-1.5 text-xs"><Plus size={14} /> Создать</button>
+                  <button
+                    onClick={() => setShowJoin(true)}
+                    className="chunky-btn-ghost inline-flex items-center gap-2 px-4 py-2 text-xs"
+                  >
+                    <UserPlus size={14} strokeWidth={2.4} /> Вступить
+                  </button>
+                  <button
+                    onClick={() => setShowCreate(true)}
+                    className="chunky-btn-primary inline-flex items-center gap-2 px-4 py-2 text-xs"
+                  >
+                    <Plus size={14} strokeWidth={2.4} /> Создать
+                  </button>
                 </>
               }
             />
@@ -1275,19 +1315,32 @@ export default function Groups() {
             {loading ? (
               <div className="grid gap-3 md:grid-cols-2">{[1,2,3,4].map(i => (<div key={i} className="chunky-card p-5 animate-pulse"><div className="flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-slate-700" /><div className="flex-1"><div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-1/3 mb-2" /><div className="h-3 bg-gray-100 dark:bg-slate-700 rounded w-1/4" /></div></div></div>))}</div>
             ) : groups.length === 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
-                <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4"><Users className="w-7 h-7 text-primary-400" /></div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Нет групп</h3>
-                <p className="text-gray-400 text-sm mb-6">Создайте группу или присоединитесь</p>
-                <div className="flex gap-2 justify-center">
-                  <button onClick={() => setShowJoin(true)} className="btn-secondary py-2.5 px-5 text-sm flex items-center gap-2"><UserPlus size={15} /> Вступить</button>
-                  <button onClick={() => setShowCreate(true)} className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2"><Plus size={15} /> Создать</button>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="chunky-card p-10 text-center">
+                <div
+                  className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-slate-900 bg-primary-50 text-primary-500 dark:border-white dark:bg-primary-900/20 dark:text-primary-300"
+                  style={{ boxShadow: '0 3px 0 #0f172a' }}
+                >
+                  <Users size={28} strokeWidth={2.2} />
+                </div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">Нет групп</h3>
+                <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Создай группу или вступи по коду</p>
+                <div className="mt-5 flex justify-center gap-2">
+                  <button onClick={() => setShowJoin(true)} className="chunky-btn-ghost inline-flex items-center gap-2 px-4 py-2 text-xs">
+                    <UserPlus size={14} strokeWidth={2.4} /> Вступить
+                  </button>
+                  <button onClick={() => setShowCreate(true)} className="chunky-btn-primary inline-flex items-center gap-2 px-4 py-2 text-xs">
+                    <Plus size={14} strokeWidth={2.4} /> Создать
+                  </button>
                 </div>
               </motion.div>
             ) : (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-3 md:grid-cols-2">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
                 {groups.map((g, i) => (
-                  <motion.div key={g._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                  <motion.button
+                    key={g._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
                     onClick={() => {
                       setSelectedGroup(g);
                       setKickConfirmId(null);
@@ -1300,21 +1353,30 @@ export default function Groups() {
                       setEditingRoleId(null);
                       setRoleDrafts({});
                       setBannedMembers([]);
-                    }} className="chunky-card p-5 flex items-center gap-4 cursor-pointer group hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getGrad(g.name)} flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-sm overflow-hidden`}>
-                      {g.avatar ? <img src={g.avatar} alt="" className="w-full h-full object-cover" /> : (g.name?.[0] || 'G').toUpperCase()}
+                    }}
+                    className="group chunky-card flex w-full cursor-pointer items-center gap-4 p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-[2px] sm:p-5"
+                  >
+                    <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-gradient-to-br ${getGrad(g.name)} text-xl font-black text-white dark:border-white`}>
+                      {g.avatar ? <img src={g.avatar} alt="" className="h-full w-full object-cover" /> : (g.name?.[0] || 'G').toUpperCase()}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition">{g.name}</h3>
-                        {isOwner(g) && <span className="text-[10px] bg-red-50 dark:bg-red-900/30 text-red-500 px-2 py-0.5 rounded-full font-medium">owner</span>}
+                        <h3 className="truncate text-sm font-black text-slate-900 transition group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400 sm:text-base">{g.name}</h3>
+                        {isOwner(g) && (
+                          <span
+                            className="flex-shrink-0 rounded-full border-2 border-slate-900 bg-red-50 px-2 py-0.5 text-[9px] font-black text-red-600 dark:border-white dark:bg-red-900/30 dark:text-red-300"
+                            style={{ boxShadow: '0 2px 0 #7f1d1d' }}
+                          >
+                            OWNER
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
-                        <span className="flex items-center gap-1"><Users size={12} /> {g.members?.length}</span>
-                        <span className="flex items-center gap-1"><BookOpen size={12} /> {g.assignedTests?.length || 0}</span>
+                      <div className="mt-1.5 flex items-center gap-3 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1"><Users size={12} strokeWidth={2.4} /> {g.members?.length}</span>
+                        <span className="inline-flex items-center gap-1"><BookOpen size={12} strokeWidth={2.4} /> {g.assignedTests?.length || 0}</span>
                       </div>
                     </div>
-                  </motion.div>
+                  </motion.button>
                 ))}
               </motion.div>
             )}
@@ -1327,14 +1389,31 @@ export default function Groups() {
           {showCreate && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowCreate(false)}>
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="chunky-card p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Создать группу</h3>
-                <div className="space-y-3 mb-5">
-                  <div><label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Название</label><input className="input-field text-sm" placeholder="Математика 101" value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} autoFocus /></div>
-                  <div><label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Описание</label><textarea className="input-field resize-none text-sm" rows={2} placeholder="Необязательно" value={createForm.description} onChange={e => setCreateForm(p => ({ ...p, description: e.target.value }))} /></div>
+                <div className="mb-5 flex items-start gap-3">
+                  <div
+                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border-2 border-slate-900 bg-primary-50 text-primary-500 dark:border-white dark:bg-primary-900/20 dark:text-primary-300"
+                    style={{ boxShadow: '0 3px 0 #9a3412' }}
+                  >
+                    <Plus size={20} strokeWidth={2.4} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary-500">New community</p>
+                    <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white">Создать группу</h3>
+                  </div>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => setShowCreate(false)} className="btn-secondary py-2 px-4 text-sm">Отмена</button>
-                  <button onClick={createGroup} disabled={submitting} className="btn-primary py-2 px-5 text-sm">{submitting ? '...' : 'Создать'}</button>
+                <div className="mb-5 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Название</label>
+                    <input className="w-full rounded-xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" placeholder="Математика 101" value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} autoFocus />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Описание</label>
+                    <textarea className="w-full resize-none rounded-xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" rows={3} placeholder="Необязательно" value={createForm.description} onChange={e => setCreateForm(p => ({ ...p, description: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setShowCreate(false)} className="chunky-btn-ghost px-4 py-2 text-xs">Отмена</button>
+                  <button onClick={createGroup} disabled={submitting} className="chunky-btn-primary px-5 py-2 text-xs">{submitting ? '...' : 'Создать'}</button>
                 </div>
               </motion.div>
             </motion.div>
@@ -1346,16 +1425,33 @@ export default function Groups() {
           {showJoin && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => { setShowJoin(false); setNeedsPassword(false); }}>
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="chunky-card p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Присоединиться</h3>
-                <div className="space-y-3 mb-5">
-                  <div><label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Код приглашения</label><input className="input-field text-sm font-mono" placeholder="abc123" value={joinCode} onChange={e => setJoinCode(e.target.value)} autoFocus /></div>
+                <div className="mb-5 flex items-start gap-3">
+                  <div
+                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border-2 border-slate-900 bg-emerald-50 text-emerald-600 dark:border-white dark:bg-emerald-900/20 dark:text-emerald-300"
+                    style={{ boxShadow: '0 3px 0 #065f46' }}
+                  >
+                    <UserPlus size={20} strokeWidth={2.4} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Join group</p>
+                    <h3 className="mt-1 text-lg font-black text-slate-900 dark:text-white">Присоединиться</h3>
+                  </div>
+                </div>
+                <div className="mb-5 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Код приглашения</label>
+                    <input className="w-full rounded-xl border-2 border-slate-300 bg-white px-3.5 py-2.5 font-mono text-sm font-bold uppercase text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" placeholder="abc123" value={joinCode} onChange={e => setJoinCode(e.target.value)} autoFocus />
+                  </div>
                   {needsPassword && (
-                    <div><label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Пароль группы</label><input type="password" className="input-field text-sm" placeholder="Введите пароль" value={joinPassword} onChange={e => setJoinPassword(e.target.value)} /></div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Пароль группы</label>
+                      <input type="password" className="w-full rounded-xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" placeholder="Введите пароль" value={joinPassword} onChange={e => setJoinPassword(e.target.value)} />
+                    </div>
                   )}
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => { setShowJoin(false); setNeedsPassword(false); }} className="btn-secondary py-2 px-4 text-sm">Отмена</button>
-                  <button onClick={joinGroup} disabled={submitting} className="btn-primary py-2 px-5 text-sm">{submitting ? '...' : 'Вступить'}</button>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => { setShowJoin(false); setNeedsPassword(false); }} className="chunky-btn-ghost px-4 py-2 text-xs">Отмена</button>
+                  <button onClick={joinGroup} disabled={submitting} className="chunky-btn-success px-5 py-2 text-xs">{submitting ? '...' : 'Вступить'}</button>
                 </div>
               </motion.div>
             </motion.div>
