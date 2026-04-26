@@ -33,5 +33,6 @@ const dmMessageSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 dmMessageSchema.index({ conversation: 1, createdAt: -1 });
+dmMessageSchema.index({ conversation: 1, sender: 1, readBy: 1, isDeleted: 1 });
 
 module.exports = mongoose.model('DMMessage', dmMessageSchema);

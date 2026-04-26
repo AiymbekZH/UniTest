@@ -1,15 +1,12 @@
 const express = require('express');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
-const { syncGamificationNotifications } = require('../utils/gamification');
 
 const router = express.Router();
 
 // Get my notifications
 router.get('/', auth, async (req, res) => {
   try {
-    await syncGamificationNotifications(req.user._id);
-
     const notifications = await Notification.find({ user: req.user._id })
       .sort({ createdAt: -1 })
       .limit(50);
@@ -23,8 +20,6 @@ router.get('/', auth, async (req, res) => {
 // Get unread count
 router.get('/unread-count', auth, async (req, res) => {
   try {
-    await syncGamificationNotifications(req.user._id);
-
     const count = await Notification.countDocuments({ user: req.user._id, isRead: false });
     res.json({ count });
   } catch (error) {

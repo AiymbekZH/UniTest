@@ -50,23 +50,30 @@ router.get('/search/users', auth, async (req, res) => {
 // ── Get my conversations ──
 router.get('/unread-summary', auth, async (req, res) => {
   try {
-    const conversations = await DirectMessage.find({
-      participants: req.user._id,
-    }).select('_id');
+    // Single aggregate instead of N+1 loop
+    const unread = await DMMessage.aggregate([
+      {
+        $match: {
+          sender: { $ne: req.user._id },
+          readBy: { $ne: req.user._id },
+          isDeleted: false,
+          deletedFor: { $ne: req.user._id },
+        }
+      },
+      {
+        $lookup: {
+          from: 'directmessages',
+          localField: 'conversation',
+          foreignField: '_id',
+          as: 'conv'
+        }
+      },
+      { $unwind: '$conv' },
+      { $match: { 'conv.participants': req.user._id } },
+      { $group: { _id: '$conversation' } }
+    ]);
 
-    const unreadConversationIds = [];
-
-    for (const conversation of conversations) {
-      const hasUnread = await DMMessage.exists({
-        conversation: conversation._id,
-        sender: { $ne: req.user._id },
-        readBy: { $ne: req.user._id },
-        isDeleted: false,
-        deletedFor: { $ne: req.user._id },
-      });
-
-      if (hasUnread) unreadConversationIds.push(conversation._id.toString());
-    }
+    const unreadConversationIds = unread.map(u => u._id.toString());
 
     res.json({
       hasUnread: unreadConversationIds.length > 0,

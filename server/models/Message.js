@@ -30,5 +30,6 @@ const messageSchema = new mongoose.Schema({
 
 messageSchema.index({ group: 1, createdAt: -1 });
 messageSchema.index({ group: 1, isPinned: 1 });
+messageSchema.index({ group: 1, sender: 1, type: 1, isDeleted: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);

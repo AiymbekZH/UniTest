@@ -108,28 +108,41 @@ router.get('/my', auth, async (req, res) => {
 // ── Get single group ──
 router.get('/unread-summary', auth, async (req, res) => {
   try {
-    const groups = await Group.find({
+    const userGroups = await Group.find({
       isDeleted: false,
       'members.user': req.user._id
-    }).select('members updatedAt');
+    }).select('_id members').lean();
 
-    const unreadGroupIds = [];
-
-    for (const group of groups) {
-      const lastReadAt = await ensureGroupReadBaseline(group, req.user._id);
-      if (!lastReadAt) continue;
-
-      const hasUnread = await Message.exists({
-        group: group._id,
-        sender: { $ne: req.user._id },
-        type: { $ne: 'system' },
-        isDeleted: false,
-        deletedFor: { $ne: req.user._id },
-        createdAt: { $gt: lastReadAt }
-      });
-
-      if (hasUnread) unreadGroupIds.push(group._id.toString());
+    if (!userGroups.length) {
+      return res.json({ hasUnread: false, unreadGroupIds: [] });
     }
+
+    // Build a map of groupId -> lastReadAt for aggregate $match
+    const groupFilters = [];
+    for (const g of userGroups) {
+      const member = g.members.find(m => m.user.toString() === req.user._id.toString());
+      const lastReadAt = member?.lastReadAt || new Date(0);
+      groupFilters.push({ group: g._id, after: lastReadAt });
+    }
+
+    // Single aggregate: check all groups at once
+    const unread = await Message.aggregate([
+      {
+        $match: {
+          $or: groupFilters.map(f => ({
+            group: f.group,
+            createdAt: { $gt: f.after }
+          })),
+          sender: { $ne: req.user._id },
+          type: { $ne: 'system' },
+          isDeleted: false,
+          deletedFor: { $ne: req.user._id },
+        }
+      },
+      { $group: { _id: '$group' } }
+    ]);
+
+    const unreadGroupIds = unread.map(u => u._id.toString());
 
     res.json({
       hasUnread: unreadGroupIds.length > 0,
