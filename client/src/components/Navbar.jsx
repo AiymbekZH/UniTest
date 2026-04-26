@@ -492,11 +492,11 @@ export default memo(function Navbar() {
                   className="flex w-full items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2 text-xs font-medium text-gray-500 transition hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700"
                 >
                   <span className="flex items-center gap-2">
-                    {mode === 'light' ? <Moon size={13} /> : mode === 'dark' ? <Sunset size={13} /> : <Sun size={13} />}
+                    {mode === 'light' ? <Moon size={13} /> : mode === 'dark' ? <Monitor size={13} /> : <Sun size={13} />}
                     {mode === 'light'
                       ? t('darkTheme')
                       : mode === 'dark'
-                        ? (t('autoTheme') || 'Auto')
+                        ? (t('systemTheme') || 'Системная тема')
                         : t('lightTheme')}
                   </span>
                   <RefreshCw size={13} className="text-gray-300" />
