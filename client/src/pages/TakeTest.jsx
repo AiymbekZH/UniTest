@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, AlertTriangle, ChevronLeft, ChevronRight, Send,
-  Image, Video, Music, Shield, User, Check, X, Ticket, Loader2, Dumbbell, Globe
+  Image, Video, Music, Shield, User, Check, X, Ticket, Loader2, Dumbbell, Globe,
+  Play, Star, Users as UsersIcon, BarChart3, FileText, RefreshCw, ArrowRight,
+  TrendingUp, Trophy, ChevronRight as ChevronRightIcon
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -296,6 +298,29 @@ function getQuestionPreviewText(question, testLang, t, fallbackIndex = 0) {
   return `${t('question') || 'Question'} ${fallbackIndex + 1}`;
 }
 
+// Pre-start metric tile (chunky)
+function PreStartTile({ icon: Icon, label, value, tone = 'primary', valueClassName = '' }) {
+  const tones = {
+    primary: { bg: 'bg-primary-50 dark:bg-primary-900/20', text: 'text-primary-700 dark:text-primary-300', icon: 'text-primary-600 dark:text-primary-300', shadow: '#9a3412' },
+    amber: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-300', icon: 'text-amber-600 dark:text-amber-300', shadow: '#78350f' },
+    emerald: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', icon: 'text-emerald-600 dark:text-emerald-300', shadow: '#065f46' },
+    blue: { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-300', icon: 'text-blue-600 dark:text-blue-300', shadow: '#1e3a8a' },
+    red: { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-300', icon: 'text-red-600 dark:text-red-300', shadow: '#7f1d1d' },
+    slate: { bg: 'bg-slate-50 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-200', icon: 'text-slate-500 dark:text-slate-400', shadow: '#0f172a' },
+  };
+  const c = tones[tone] || tones.primary;
+  return (
+    <div
+      className={`rounded-2xl border-2 border-slate-900 ${c.bg} p-3 dark:border-white sm:p-4`}
+      style={{ boxShadow: `0 4px 0 ${c.shadow}` }}
+    >
+      <Icon className={`mb-1 h-5 w-5 ${c.icon} sm:h-6 sm:w-6`} strokeWidth={2.4} />
+      <p className={`font-mono text-xl font-black ${c.text} sm:text-2xl ${valueClassName}`}>{value}</p>
+      <p className={`text-[9px] font-black uppercase tracking-widest ${c.icon} sm:text-[10px]`}>{label}</p>
+    </div>
+  );
+}
+
 export default function TakeTest() {
   const { shareLink } = useParams();
   const [searchParams] = useSearchParams();
@@ -319,6 +344,7 @@ export default function TakeTest() {
   const [showViolationWarning, setShowViolationWarning] = useState(false);
   const [lastViolationText, setLastViolationText] = useState('');
   const [attemptInfo, setAttemptInfo] = useState({ attempts: 0, maxAttempts: 0 });
+  const [pastAttempts, setPastAttempts] = useState({ attempts: [], count: 0, best: 0 });
   const [isPublicTest, setIsPublicTest] = useState(false);
   const [testLang, setTestLang] = useState(null); // null = original, 'en'/'ru'/'kz'/'es' = translated
   const [elapsedActiveSeconds, setElapsedActiveSeconds] = useState(0);
@@ -558,6 +584,13 @@ export default function TakeTest() {
       const attUrl = `/results/my-attempts/${currentTest._id}${guestId ? `?guestId=${guestId}` : ''}`;
       const attRes = await api.get(attUrl);
       setAttemptInfo({ attempts: attRes.data.attempts, maxAttempts: currentTest.settings?.maxAttempts || 0 });
+    } catch (_) {}
+    // Past attempts list (for pre-start "Твои попытки" block)
+    try {
+      const guestId = !user ? getGuestId() : '';
+      const listUrl = `/results/my-attempts-list/${currentTest._id}${guestId ? `?guestId=${guestId}` : ''}`;
+      const listRes = await api.get(listUrl);
+      setPastAttempts(listRes.data || { attempts: [], count: 0, best: 0 });
     } catch (_) {}
   }, [user]);
 
@@ -1231,118 +1264,312 @@ export default function TakeTest() {
 
   // Pre-start screen
   if (!started) {
+    const creator = test.creator;
+    const creatorName = creator
+      ? `${creator.firstName || ''} ${creator.lastName || ''}`.trim() || creator.email || 'Автор'
+      : null;
+    const ratingValue = Number(test.rating || 0);
+    const ratingCount = Number(test.ratingCount || 0);
+    const attemptCount = Number(test.attemptCount || 0);
+    const averageScore = Number(test.averageScore || 0);
+    const startDisabled =
+      (!isPractice && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts) ||
+      (test.settings?.variants?.enabled && !isPractice && !selectedVariant);
+
+    const formatRelative = (date) => {
+      if (!date) return '';
+      const d = new Date(date);
+      const diffMs = Date.now() - d.getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      if (diffMin < 1) return 'только что';
+      if (diffMin < 60) return `${diffMin} мин назад`;
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return `${diffHr} ч назад`;
+      const diffDay = Math.floor(diffHr / 24);
+      if (diffDay < 7) return `${diffDay} дн назад`;
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+    };
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface p-4">
-        
+      <div className="min-h-screen bg-surface px-3 py-6 sm:px-6 sm:py-10">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full glass-card p-5 sm:p-8 text-center"
+          className="mx-auto w-full max-w-xl space-y-4 sm:space-y-5"
         >
           {/* Practice mode banner */}
           {isPractice && (
-            <div className="flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-4 py-2.5 mb-5 text-green-700 dark:text-green-400">
-              <Dumbbell size={15} />
-              <span className="text-sm font-semibold">{t('practiceMode')}</span>
+            <div
+              className="flex items-center justify-center gap-2 rounded-2xl border-2 border-emerald-700 bg-emerald-50 px-4 py-2.5 text-emerald-700 dark:border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300"
+              style={{ boxShadow: '0 3px 0 #065f46' }}
+            >
+              <Dumbbell size={15} strokeWidth={2.4} />
+              <span className="text-xs font-black uppercase tracking-widest">{t('practiceMode')}</span>
             </div>
           )}
 
-          <div className="mb-5 overflow-hidden rounded-[26px] border border-white/60 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.45)] dark:border-slate-700/70">
+          {/* Cover */}
+          <div
+            className="overflow-hidden rounded-3xl border-2 border-slate-900 dark:border-white"
+            style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #e2e8f0)' }}
+          >
             <TestCoverArtwork
               coverImage={test.coverImage}
               title={test.title}
               className="w-full"
-              imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-slate-950/3 to-transparent"
+              imageOverlayClassName="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent"
               style={{ aspectRatio: '16 / 9' }}
             >
-              <div className="absolute left-4 top-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-primary-600/90 shadow-lg shadow-primary-600/30 backdrop-blur">
-                <Shield className="h-6 w-6 text-white" />
-              </div>
+              {leaveMonitoringEnabled && (
+                <div
+                  className="absolute left-3 top-3 flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-slate-900 bg-red-500 text-white dark:border-white"
+                  style={{ boxShadow: '0 3px 0 #7f1d1d' }}
+                  title="Anti-cheat"
+                >
+                  <Shield size={18} strokeWidth={2.6} />
+                </div>
+              )}
+              {ratingValue > 0 && (
+                <div
+                  className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border-2 border-slate-900 bg-amber-400 px-2.5 py-1 text-xs font-black text-slate-900 dark:border-white"
+                  style={{ boxShadow: '0 3px 0 #78350f' }}
+                >
+                  <Star size={11} strokeWidth={2.8} className="fill-slate-900" />
+                  {ratingValue.toFixed(1)}
+                </div>
+              )}
             </TestCoverArtwork>
           </div>
 
-          <h1 className="text-2xl font-bold text-dark mb-2">{test.title}</h1>
-          {test.description && <p className="mb-4 text-sm leading-6 text-gray-500">{test.description}</p>}
+          {/* Title + description */}
+          <div className="text-center">
+            <h1 className="font-mono text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+              {test.title}
+            </h1>
+            {test.description && (
+              <p className="mt-1.5 text-sm font-medium text-slate-500 dark:text-slate-400">
+                {test.description}
+              </p>
+            )}
+          </div>
 
-          <div className="flex flex-wrap justify-center gap-3 mb-6 text-sm">
-            <span className="badge-info">{test.questions.length} {t('questions')}</span>
-            {test.settings?.timeLimit > 0 && (
-              <span className="badge-warning flex items-center gap-1">
-                <Clock size={12} /> {test.settings.timeLimit} {t('min')}
-              </span>
+          {/* Author + social signals */}
+          {(creator || ratingCount > 0 || attemptCount > 0) && (
+            <div
+              className="chunky-card flex items-center gap-3 p-3 sm:p-4"
+            >
+              {creator ? (
+                <Link
+                  to={`/user/${creator._id}`}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 transition active:translate-y-[1px]"
+                >
+                  <div
+                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-900 bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-black text-white dark:border-white"
+                    style={{ boxShadow: '0 2px 0 #0f172a' }}
+                  >
+                    {creator.avatar ? (
+                      <img src={creator.avatar} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      `${(creator.firstName?.[0] || 'U').toUpperCase()}${(creator.lastName?.[0] || '').toUpperCase()}`
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Автор</p>
+                    <p className="truncate text-sm font-black text-slate-900 dark:text-white">{creatorName}</p>
+                  </div>
+                  <ArrowRight size={14} strokeWidth={2.6} className="flex-shrink-0 text-slate-400" />
+                </Link>
+              ) : (
+                <div className="min-w-0 flex-1" />
+              )}
+              {(attemptCount > 0 || averageScore > 0) && (
+                <div className="flex flex-shrink-0 items-center gap-2 border-l-2 border-slate-200 pl-3 text-[11px] font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300">
+                  {attemptCount > 0 && (
+                    <span className="inline-flex items-center gap-1" title="Прохождений">
+                      <UsersIcon size={11} strokeWidth={2.6} /> {attemptCount}
+                    </span>
+                  )}
+                  {averageScore > 0 && (
+                    <span className="inline-flex items-center gap-1" title="Средний балл">
+                      <BarChart3 size={11} strokeWidth={2.6} /> {averageScore}%
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Metric tiles */}
+          <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0 sm:grid-cols-4">
+            <PreStartTile
+              icon={FileText}
+              label={t('questions')}
+              value={test.questions.length}
+              tone="primary"
+            />
+            {test.settings?.timeLimit > 0 ? (
+              <PreStartTile
+                icon={Clock}
+                label={t('min')}
+                value={test.settings.timeLimit}
+                tone="amber"
+              />
+            ) : (
+              <PreStartTile
+                icon={Clock}
+                label="Время"
+                value="∞"
+                tone="emerald"
+              />
             )}
-            {test.settings?.maxAttempts > 0 && (
-              <span className="badge-info flex items-center gap-1">
-                {t('attempts')}: {attemptInfo.attempts}/{test.settings.maxAttempts}
-              </span>
+            {test.settings?.maxAttempts > 0 ? (
+              <PreStartTile
+                icon={RefreshCw}
+                label={t('attempts')}
+                value={`${attemptInfo.attempts}/${test.settings.maxAttempts}`}
+                tone={attemptInfo.attempts >= test.settings.maxAttempts ? 'red' : 'blue'}
+              />
+            ) : (
+              <PreStartTile
+                icon={RefreshCw}
+                label={t('attempts')}
+                value="∞"
+                tone="blue"
+              />
             )}
+            <PreStartTile
+              icon={test.settings?.instantFeedback ? Check : Send}
+              label="Режим"
+              value={test.settings?.instantFeedback ? 'Мгновенный' : 'Обычный'}
+              tone={test.settings?.instantFeedback ? 'emerald' : 'slate'}
+              valueClassName="text-xs sm:text-sm"
+            />
+          </div>
+
+          {/* Mode badges */}
+          <div className="flex flex-wrap justify-center gap-2">
             {leaveMonitoringEnabled && (
-              <span className="badge-danger flex items-center gap-1">
-                <AlertTriangle size={12} /> Anti-cheat
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border-2 border-red-700 bg-red-50 px-3 py-1 text-[11px] font-black text-red-700 dark:border-red-300 dark:bg-red-900/30 dark:text-red-300"
+                style={{ boxShadow: '0 2px 0 #7f1d1d' }}
+              >
+                <Shield size={11} strokeWidth={2.8} /> Anti-cheat
               </span>
             )}
             {test.settings?.instantFeedback && (
-              <span className="badge-info flex items-center gap-1">
-                <Check size={12} /> {t('instantFeedback')}
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border-2 border-primary-700 bg-primary-50 px-3 py-1 text-[11px] font-black text-primary-700 dark:border-primary-300 dark:bg-primary-900/30 dark:text-primary-300"
+                style={{ boxShadow: '0 2px 0 #9a3412' }}
+              >
+                <Check size={11} strokeWidth={2.8} /> {t('instantFeedback')}
+              </span>
+            )}
+            {test.settings?.variants?.enabled && (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border-2 border-purple-700 bg-purple-50 px-3 py-1 text-[11px] font-black text-purple-700 dark:border-purple-300 dark:bg-purple-900/30 dark:text-purple-300"
+                style={{ boxShadow: '0 2px 0 #581c87' }}
+              >
+                <Ticket size={11} strokeWidth={2.8} /> Билеты
+              </span>
+            )}
+            {isPractice && (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border-2 border-emerald-700 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700 dark:border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300"
+                style={{ boxShadow: '0 2px 0 #065f46' }}
+              >
+                <Dumbbell size={11} strokeWidth={2.8} /> Практика
               </span>
             )}
           </div>
 
-          {/* Anti-cheat rules warning */}
+          {/* Anti-cheat rules */}
           {leaveMonitoringEnabled && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 text-left">
-              <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
-                <Shield size={16} /> {t('testRules')}
+            <div
+              className="rounded-3xl border-2 border-red-700 bg-red-50 p-4 text-left dark:border-red-300 dark:bg-red-900/20"
+              style={{ boxShadow: '0 6px 0 #7f1d1d' }}
+            >
+              <h3 className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-red-700 dark:text-red-300">
+                <Shield size={14} strokeWidth={2.6} /> {t('testRules')}
               </h3>
-              <ul className="text-xs text-red-600 dark:text-red-300 space-y-1.5">
-                {blockTabSwitchEnabled && <li>-- {t('tabSwitchBlocked')}: {test.settings.antiCheat.maxViolations}</li>}
-                {warnOnLeaveEnabled && <li>-- {t('ruleLeaveWarning')}</li>}
-                {warnOnLeaveEnabled && <li>-- {t('ruleMaxViolations', { max: test.settings.antiCheat.maxViolations })}</li>}
-                {finishOnLeaveEnabled && <li>-- {t('ruleLeaveEndsTest')}</li>}
+              <ul className="space-y-1.5 text-xs font-medium text-red-700 dark:text-red-200">
+                {blockTabSwitchEnabled && (
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-600" />
+                    {t('tabSwitchBlocked')}: {test.settings.antiCheat.maxViolations}
+                  </li>
+                )}
+                {warnOnLeaveEnabled && (
+                  <>
+                    <li className="flex items-start gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-600" />
+                      {t('ruleLeaveWarning')}
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-600" />
+                      {t('ruleMaxViolations', { max: test.settings.antiCheat.maxViolations })}
+                    </li>
+                  </>
+                )}
+                {finishOnLeaveEnabled && (
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-600" />
+                    {t('ruleLeaveEndsTest')}
+                  </li>
+                )}
               </ul>
             </div>
           )}
 
           {/* Instant feedback info */}
           {test.settings?.instantFeedback && (
-            <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4 mb-4 text-left">
-              <h3 className="text-sm font-semibold text-primary-700 dark:text-primary-400 mb-1 flex items-center gap-2">
-                <Check size={16} /> {t('modeInstantFeedback')}
+            <div
+              className="rounded-3xl border-2 border-primary-700 bg-primary-50 p-4 text-left dark:border-primary-300 dark:bg-primary-900/20"
+              style={{ boxShadow: '0 6px 0 #9a3412' }}
+            >
+              <h3 className="mb-1 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary-700 dark:text-primary-300">
+                <Check size={14} strokeWidth={2.6} /> {t('modeInstantFeedback')}
               </h3>
-              <p className="text-xs text-primary-600 dark:text-primary-300">
+              <p className="text-xs font-medium text-primary-700 dark:text-primary-200">
                 {t('instantFeedbackInfo')}
               </p>
             </div>
           )}
 
-
           {/* Practice mode info */}
           {isPractice && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-4 text-center">
-              <h3 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-1 flex items-center justify-center gap-2">
-                <Dumbbell size={14} /> {t('practiceMode')}
+            <div
+              className="rounded-3xl border-2 border-emerald-700 bg-emerald-50 p-4 text-left dark:border-emerald-300 dark:bg-emerald-900/20"
+              style={{ boxShadow: '0 6px 0 #065f46' }}
+            >
+              <h3 className="mb-1 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+                <Dumbbell size={14} strokeWidth={2.6} /> {t('practiceMode')}
               </h3>
-              <p className="text-xs text-green-600 dark:text-green-300">
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-200">
                 {t('practiceModeDesc')}
               </p>
             </div>
           )}
 
-          {/* Ticket/Variant picker */}
+          {/* Ticket / Variant picker */}
           {test.settings?.variants?.enabled && !isPractice && (
-            <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4 mb-4">
+            <div
+              className="rounded-3xl border-2 border-purple-700 bg-purple-50 p-4 dark:border-purple-300 dark:bg-purple-900/20"
+              style={{ boxShadow: '0 6px 0 #581c87' }}
+            >
               {selectedVariant ? (
                 <div className="text-center">
-                  <div className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg font-bold text-lg mb-2">
-                    <Ticket size={20} />
+                  <div
+                    className="mx-auto mb-2 inline-flex items-center gap-2 rounded-2xl border-2 border-slate-900 bg-purple-600 px-4 py-2 text-base font-black text-white dark:border-white"
+                    style={{ boxShadow: '0 3px 0 #581c87' }}
+                  >
+                    <Ticket size={18} strokeWidth={2.6} />
                     {t('ticketN', { n: selectedVariant })}
                   </div>
-                  <p className="text-xs text-primary-600 dark:text-primary-400">{t('ticketReady')}</p>
-                  {/* For public tests, allow changing ticket */}
+                  <p className="text-xs font-bold text-purple-700 dark:text-purple-300">{t('ticketReady')}</p>
                   {isPublicTest && (
                     <button
                       onClick={() => setSelectedVariant(null)}
-                      className="mt-2 text-xs text-primary-500 hover:text-primary-700 underline"
+                      className="mt-2 text-xs font-black text-purple-600 underline hover:text-purple-800 dark:text-purple-300"
                     >
                       {t('changeTicket') || 'Сменить билет'}
                     </button>
@@ -1350,46 +1577,44 @@ export default function TakeTest() {
                 </div>
               ) : (
                 <>
-                  <h3 className="text-sm font-semibold text-primary-700 dark:text-primary-400 mb-3 flex items-center justify-center gap-2">
-                    <Ticket size={16} />
+                  <h3 className="mb-3 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-purple-700 dark:text-purple-300">
+                    <Ticket size={14} strokeWidth={2.6} />
                     {t('chooseTicket')}
                   </h3>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-5 gap-2 [&>*]:min-w-0">
                     {ticketState?.variants?.map((v) => {
                       const isDisabled = !isPublicTest && v.claimed;
                       return (
                         <motion.button
                           key={v.number}
-                          whileHover={!isDisabled ? { scale: 1.1 } : {}}
-                          whileTap={!isDisabled ? { scale: 0.95 } : {}}
+                          whileHover={!isDisabled ? { scale: 1.06 } : {}}
+                          whileTap={!isDisabled ? { scale: 0.94 } : {}}
                           onClick={() => !isDisabled && !ticketLoading && claimTicket(v.number)}
                           disabled={isDisabled || ticketLoading}
-                          className={`relative aspect-square rounded-lg font-bold text-sm flex items-center justify-center transition-all ${isDisabled
-                              ? 'bg-red-100 dark:bg-red-900/30 text-red-400 dark:text-red-500 cursor-not-allowed border border-red-200 dark:border-red-800'
-                              : 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-800/50 cursor-pointer border border-primary-200 dark:border-primary-700 shadow-sm hover:shadow-md'
-                            }`}
+                          className={`relative flex aspect-square items-center justify-center rounded-xl border-2 text-sm font-black transition active:translate-y-[2px] disabled:cursor-not-allowed ${
+                            isDisabled
+                              ? 'border-red-700 bg-red-100 text-red-400 dark:border-red-300 dark:bg-red-900/30 dark:text-red-500'
+                              : 'border-slate-900 bg-white text-purple-700 hover:bg-purple-100 dark:border-white dark:bg-slate-800 dark:text-purple-300 dark:hover:bg-purple-900/30'
+                          }`}
+                          style={{ boxShadow: isDisabled ? '0 2px 0 #7f1d1d' : '0 3px 0 #0f172a' }}
                         >
                           {v.number}
                           {isDisabled && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <X size={24} className="text-red-400/50" />
-                            </div>
+                            <X size={20} className="absolute text-red-400/60" strokeWidth={3} />
                           )}
                         </motion.button>
                       );
                     })}
                   </div>
                   {ticketLoading && (
-                    <div className="mt-3 text-center">
-                      <div className="inline-flex items-center gap-2 text-primary-600 dark:text-primary-400 text-sm">
-                        <Loader2 size={14} className="animate-spin" />
-                        {t('claimingTicket')}
-                      </div>
+                    <div className="mt-3 inline-flex w-full items-center justify-center gap-2 text-xs font-bold text-purple-700 dark:text-purple-300">
+                      <Loader2 size={13} className="animate-spin" />
+                      {t('claimingTicket')}
                     </div>
                   )}
-                  <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-3 text-center">
+                  <p className="mt-3 text-center text-[11px] font-bold text-purple-600 dark:text-purple-300">
                     {isPublicTest
-                      ? (t('ticketHintPublic') || 'Выберите любой билет. Каждый билет доступен для всех.')
+                      ? (t('ticketHintPublic') || 'Выберите любой билет.')
                       : t('ticketHint')
                     }
                   </p>
@@ -1398,32 +1623,91 @@ export default function TakeTest() {
             </div>
           )}
 
+          {/* Past attempts (только если есть) */}
+          {pastAttempts.attempts.length > 0 && (
+            <div className="chunky-card p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  <TrendingUp size={14} strokeWidth={2.6} className="text-emerald-500" />
+                  Твои попытки
+                </h3>
+                {pastAttempts.best > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full border-2 border-amber-700 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700 dark:border-amber-300 dark:bg-amber-900/30 dark:text-amber-300"
+                    style={{ boxShadow: '0 2px 0 #78350f' }}
+                  >
+                    <Trophy size={10} strokeWidth={2.8} /> Лучший: {pastAttempts.best}%
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                {pastAttempts.attempts.map((a) => {
+                  const tone = a.percentage >= 75 ? 'emerald' : a.percentage >= 50 ? 'amber' : 'red';
+                  const toneClasses = {
+                    emerald: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300',
+                    amber: 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300',
+                    red: 'border-red-300 bg-red-50 text-red-700 dark:border-red-600 dark:bg-red-900/20 dark:text-red-300',
+                  };
+                  return (
+                    <Link
+                      key={a._id}
+                      to={`/result/${a._id}`}
+                      className={`flex items-center justify-between gap-2 rounded-xl border-2 px-3 py-2 text-sm font-bold transition active:translate-y-[1px] ${toneClasses[tone]}`}
+                    >
+                      <span className="font-mono text-base font-black">{a.percentage}%</span>
+                      <span className="flex-1 text-right text-[11px] font-bold opacity-70">
+                        {formatRelative(a.completedAt)}
+                      </span>
+                      <ChevronRightIcon size={14} strokeWidth={2.6} className="opacity-50" />
+                    </Link>
+                  );
+                })}
+                {pastAttempts.count > pastAttempts.attempts.length && (
+                  <p className="pt-1 text-center text-[11px] font-bold text-slate-400">
+                    + ещё {pastAttempts.count - pastAttempts.attempts.length}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Attempt limit exceeded */}
           {!isPractice && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 text-center">
-              <p className="text-sm font-semibold text-red-600">{t('allAttemptsUsed')} ({attemptInfo.maxAttempts})</p>
+            <div
+              className="rounded-3xl border-2 border-red-700 bg-red-50 p-4 text-center dark:border-red-300 dark:bg-red-900/20"
+              style={{ boxShadow: '0 6px 0 #7f1d1d' }}
+            >
+              <p className="flex items-center justify-center gap-2 text-sm font-black text-red-700 dark:text-red-300">
+                <X size={16} strokeWidth={2.6} />
+                {t('allAttemptsUsed')} ({attemptInfo.maxAttempts})
+              </p>
             </div>
           )}
 
           {/* Guest name form */}
           {showGuestForm && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 text-left">{t('yourName')}</label>
-              <input className="input-field" placeholder={t('enterFullName')}
-                value={guestName} onChange={e => setGuestName(e.target.value)} />
+            <div className="chunky-card p-4">
+              <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                {t('yourName')}
+              </label>
+              <input
+                className="chunky-input"
+                placeholder={t('enterFullName')}
+                value={guestName}
+                onChange={e => setGuestName(e.target.value)}
+              />
             </div>
           )}
 
+          {/* Start button */}
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={!startDisabled ? { scale: 1.01 } : {}}
+            whileTap={!startDisabled ? { scale: 0.98 } : {}}
             onClick={startTest}
-            disabled={
-              (!isPractice && attemptInfo.maxAttempts > 0 && attemptInfo.attempts >= attemptInfo.maxAttempts) ||
-              (test.settings?.variants?.enabled && !isPractice && !selectedVariant)
-            }
-            className="chunky-btn-primary w-full py-3 text-base"
+            disabled={startDisabled}
+            className="chunky-btn-primary w-full justify-center gap-2 py-4 text-base"
           >
+            <Play size={18} strokeWidth={2.8} />
             {t('startTestBtn')}
           </motion.button>
         </motion.div>

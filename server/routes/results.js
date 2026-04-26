@@ -528,6 +528,40 @@ router.get('/leaderboard/:testId', async (req, res) => {
   }
 });
 
+// Get user's recent attempt LIST for a test (last 5 with scores + dates)
+router.get('/my-attempts-list/:testId', optionalAuth, async (req, res) => {
+  try {
+    const baseQuery = {
+      test: req.params.testId,
+      status: 'completed',
+      isPractice: { $ne: true },
+    };
+    if (req.user?._id) {
+      baseQuery.user = req.user._id;
+    } else if (req.query.guestId) {
+      baseQuery.guestId = req.query.guestId;
+    } else {
+      return res.json({ attempts: [], count: 0, best: 0 });
+    }
+
+    const [attempts, count] = await Promise.all([
+      Result.find(baseQuery)
+        .sort({ completedAt: -1 })
+        .limit(5)
+        .select('_id percentage score totalPoints completedAt')
+        .lean(),
+      Result.countDocuments(baseQuery),
+    ]);
+
+    const allForBest = await Result.find(baseQuery).select('percentage').lean();
+    const best = allForBest.length ? Math.max(...allForBest.map(a => a.percentage || 0)) : 0;
+
+    res.json({ attempts, count, best });
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка получения попыток' });
+  }
+});
+
 // Get user's attempt count for a test
 router.get('/my-attempts/:testId', optionalAuth, async (req, res) => {
   try {
