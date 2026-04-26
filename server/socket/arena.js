@@ -124,7 +124,7 @@ module.exports = function attachArenaSocket(io) {
         else if (socket.arenaGuest?.guestTokenId) actor.guestTokenId = socket.arenaGuest.guestTokenId;
         else return socket.emit('arena:error', { message: 'Нет доступа к бустерам' });
 
-        const result = await applyArenaPowerUp(roomId, actor, type);
+        const result = await applyArenaPowerUp(roomId, actor, type, io);
         socket.emit('arena:powerUpApplied', { roomId, ...result });
         await emitArenaState(io, roomId, 'arena:question');
       } catch (error) {
@@ -132,7 +132,9 @@ module.exports = function attachArenaSocket(io) {
       }
     });
 
-    socket.on('arena:reaction', async ({ roomId, emoji, guestToken }) => {
+    // Reactions: include optional targetParticipantId so the receiver UI can
+    // float the emoji over a specific player avatar (Epic E targeted reactions).
+    socket.on('arena:reaction', async ({ roomId, emoji, guestToken, targetParticipantId }) => {
       try {
         if (!roomId || !emoji || !ALLOWED_REACTIONS.has(emoji)) return;
         let actor = {};
@@ -145,11 +147,18 @@ module.exports = function attachArenaSocket(io) {
           ? `${participant.user.firstName || ''} ${participant.user.lastName || ''}`.trim()
           : (participant?.guestName || 'Guest');
 
+        // Whitelist a small set of "burst" emojis that trigger screen-wide effects.
+        // The client uses this to choose between a small floating bubble and a confetti shower.
+        const BURST_EMOJIS = new Set(['🔥', '🎉', '💯', '👏']);
+        const burst = BURST_EMOJIS.has(emoji);
+
         io.to(`arena:${roomId}`).emit('arena:reaction', {
           roomId: String(roomId),
           emoji,
           displayName,
           participantId: participant?._id ? String(participant._id) : null,
+          targetParticipantId: targetParticipantId ? String(targetParticipantId) : null,
+          burst,
           at: Date.now()
         });
       } catch (_) {

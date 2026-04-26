@@ -39,16 +39,27 @@ const arenaParticipantSchema = new mongoose.Schema({
   lastSeenAt: { type: Date, default: Date.now },
   kickedAt: { type: Date, default: null },
   powerUps: {
-    fiftyFifty: { type: Number, default: 1 },
+    fiftyFifty:   { type: Number, default: 1 },
     doublePoints: { type: Number, default: 1 },
-    shield: { type: Number, default: 1 }
+    shield:       { type: Number, default: 1 },
+    timeFreeze:   { type: Number, default: 1 },
+    steal:        { type: Number, default: 1 },
+    mirror:       { type: Number, default: 1 },
+    suddenDeath:  { type: Number, default: 1 }
   },
   activePowerUps: {
     type: Map,
     of: new mongoose.Schema({
-      type: { type: String, enum: ['fiftyFifty', 'doublePoints', 'shield'] },
+      type: {
+        type: String,
+        enum: ['fiftyFifty', 'doublePoints', 'shield', 'timeFreeze', 'mirror', 'suddenDeath']
+      },
       questionIndex: { type: Number },
-      removedOptionIds: [{ type: String }]
+      removedOptionIds: [{ type: String }],
+      // For mirror: cached vote distribution at activation time.
+      voteDistribution: { type: Map, of: Number },
+      // For timeFreeze: when (ms timestamp) the freeze was applied.
+      freezeAppliedAt: { type: Number }
     }, { _id: false }),
     default: {}
   }

@@ -247,10 +247,16 @@ function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTim
   const nextStreak = isCorrect ? currentStreak + 1 : 0;
   const streakMultiplier = isCorrect ? 1 + (Math.min(Math.max(nextStreak - 1, 0), 5) * 0.1) : 1;
   const doubleMultiplier = modifiers.doublePoints && isCorrect ? 2 : 1;
-  const multiplier = streakMultiplier * doubleMultiplier;
+  // Sudden Death: armed on previous question — ×2 if correct, −100 if wrong.
+  const suddenDeathMultiplier = modifiers.suddenDeath && isCorrect ? 2 : 1;
+  const multiplier = streakMultiplier * doubleMultiplier * suddenDeathMultiplier;
   const basePoints = isCorrect ? (question.points || 1) * 100 : 0;
   const speedBonus = isCorrect ? Math.round((question.points || 1) * 50 * remainingRatio) : 0;
-  const pointsAwarded = isCorrect ? Math.round((basePoints + speedBonus) * multiplier) : 0;
+  let pointsAwarded = isCorrect ? Math.round((basePoints + speedBonus) * multiplier) : 0;
+  // Sudden Death penalty: -100 on wrong answer (modifier armed via the previous question).
+  if (!isCorrect && modifiers.suddenDeath) {
+    pointsAwarded = -100;
+  }
   // Shield: keep streak alive when answered wrong.
   const resolvedNextStreak = !isCorrect && modifiers.shield ? currentStreak : nextStreak;
 
@@ -301,9 +307,13 @@ function buildArenaParticipantSummary(participant, options = {}) {
     } : null,
     guestName: participant.guestName || '',
     powerUps: {
-      fiftyFifty: participant.powerUps?.fiftyFifty ?? 0,
+      fiftyFifty:   participant.powerUps?.fiftyFifty   ?? 0,
       doublePoints: participant.powerUps?.doublePoints ?? 0,
-      shield: participant.powerUps?.shield ?? 0
+      shield:       participant.powerUps?.shield       ?? 0,
+      timeFreeze:   participant.powerUps?.timeFreeze   ?? 0,
+      steal:        participant.powerUps?.steal        ?? 0,
+      mirror:       participant.powerUps?.mirror       ?? 0,
+      suddenDeath:  participant.powerUps?.suddenDeath  ?? 0
     },
     displayName: participant.user
       ? `${participant.user.firstName || ''} ${participant.user.lastName || ''}`.trim()

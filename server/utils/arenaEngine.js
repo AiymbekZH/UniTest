@@ -488,14 +488,35 @@ async function handleArenaAnswer(roomId, actor, payload, io) {
     throw error;
   }
 
-  const responseTimeMs = Date.now() - new Date(room.questionStartedAt).getTime();
+  // ─── Per-question power-up modifiers ───────────────────────────────────
+  // suddenDeath is armed on the *previous* question — check both this and prev.
   const activeForQuestion = participant.activePowerUps?.get?.(String(room.currentQuestionIndex))
     || (participant.activePowerUps?.[String(room.currentQuestionIndex)]);
+  const armedFromPrev = participant.activePowerUps?.get?.(String(room.currentQuestionIndex - 1))
+    || (participant.activePowerUps?.[String(room.currentQuestionIndex - 1)]);
   const modifiers = {
     doublePoints: activeForQuestion?.type === 'doublePoints',
-    shield: activeForQuestion?.type === 'shield'
+    shield:       activeForQuestion?.type === 'shield',
+    suddenDeath:  armedFromPrev?.type === 'suddenDeath'
   };
+  const responseTimeMs = Date.now() - new Date(room.questionStartedAt).getTime();
   const graded = gradeArenaAnswer(currentQuestion, payload, participant.streak, responseTimeMs, modifiers);
+
+  // ─── Underdog bonus (room.settings.underdogBonus) ──────────────────────
+  // Bottom-3 players get +20% on each correct answer. Settings flag bridged
+  // from ArenaTest into the room via createArenaRoomFromBank.
+  let underdogApplied = false;
+  if (graded.isCorrect && room.settings?.underdogBonus) {
+    const ranked = await ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } })
+      .sort({ score: -1, totalResponseTimeMs: 1 })
+      .select('_id score');
+    const myIdx = ranked.findIndex(r => String(r._id) === String(participant._id));
+    if (myIdx >= ranked.length - 3 && ranked.length >= 4) {
+      graded.pointsAwarded = Math.round(graded.pointsAwarded * 1.2);
+      graded.multiplier = (graded.multiplier || 1) * 1.2;
+      underdogApplied = true;
+    }
+  }
 
   participant.answers.push({
     questionId: currentQuestion.questionId,
@@ -512,7 +533,7 @@ async function handleArenaAnswer(roomId, actor, payload, io) {
     responseTimeMs: graded.responseTimeMs,
     answeredAt: new Date()
   });
-  participant.score += graded.pointsAwarded;
+  participant.score = Math.max(0, participant.score + graded.pointsAwarded);
   participant.streak = graded.nextStreak;
   participant.bestStreak = Math.max(participant.bestStreak || 0, graded.nextStreak || 0);
   participant.correctCount += graded.isCorrect ? 1 : 0;
@@ -521,6 +542,7 @@ async function handleArenaAnswer(roomId, actor, payload, io) {
   participant.state = 'joined';
   participant.lastSeenAt = new Date();
   await participant.save();
+  graded.underdogApplied = underdogApplied;
 
   const participants = await ArenaParticipant.find({ room: roomId, state: { $ne: 'declined' } });
   const joinedPlayers = participants.filter(item => item.state === 'joined');
@@ -539,14 +561,43 @@ async function handleArenaAnswer(roomId, actor, payload, io) {
   };
 }
 
+// Power-ups that mutate the per-question state. Each maps to a handler.
+const ALL_POWER_UP_TYPES = new Set([
+  'fiftyFifty', 'doublePoints', 'shield',
+  'timeFreeze', 'steal', 'mirror', 'suddenDeath'
+]);
+
+// 50/50 + mirror require multi-choice. Sudden death applies to next question.
+function isPowerUpAllowedForQuestion(type, currentQuestion) {
+  if (type === 'fiftyFifty' || type === 'mirror') {
+    return ['single-choice', 'multiple-choice', 'true-false'].includes(currentQuestion.type);
+  }
+  return true;
+}
+
+function getRemainingPowerUps(participant) {
+  const p = participant.powerUps || {};
+  return {
+    fiftyFifty:   p.fiftyFifty   ?? 0,
+    doublePoints: p.doublePoints ?? 0,
+    shield:       p.shield       ?? 0,
+    timeFreeze:   p.timeFreeze   ?? 0,
+    steal:        p.steal        ?? 0,
+    mirror:       p.mirror       ?? 0,
+    suddenDeath:  p.suddenDeath  ?? 0
+  };
+}
+
 /**
- * Apply a power-up for the current question. 50/50 returns which 2 wrong
- * option ids to hide from the player; doublePoints/shield mark modifiers
- * to be consumed at answer-grading time.
+ * Apply a power-up for the current question.
+ *   fiftyFifty  → returns 2 wrong option ids to hide from the player.
+ *   doublePoints/shield/suddenDeath → marker modifiers consumed at grading time.
+ *   timeFreeze  → grants this player a 5s personal extension past the global deadline.
+ *   steal       → immediately deducts 50 from the current leader and grants 50 to actor.
+ *   mirror      → snapshots the live vote distribution and returns it to the actor.
  */
-async function applyArenaPowerUp(roomId, actor, type) {
-  const allowed = new Set(['fiftyFifty', 'doublePoints', 'shield']);
-  if (!allowed.has(type)) {
+async function applyArenaPowerUp(roomId, actor, type, io = null) {
+  if (!ALL_POWER_UP_TYPES.has(type)) {
     const error = new Error('Неизвестный бустер');
     error.status = 400;
     throw error;
@@ -601,27 +652,88 @@ async function applyArenaPowerUp(roomId, actor, type) {
     throw error;
   }
 
-  if (type === 'fiftyFifty' && !['single-choice', 'multiple-choice', 'true-false'].includes(currentQuestion.type)) {
-    const error = new Error('50/50 доступен только для вопросов с вариантами');
+  if (!isPowerUpAllowedForQuestion(type, currentQuestion)) {
+    const error = new Error('Этот бустер не доступен для текущего вопроса');
     error.status = 400;
     throw error;
   }
 
-  // Compute 50/50 removed options
+  // ── Type-specific computations ─────────────────────────────────────────
   let removedOptionIds = [];
+  let voteDistribution = null;
+  let stolenFrom = null;
+
   if (type === 'fiftyFifty') {
     const correctIds = new Set(currentQuestion.grading?.correctOptionIds || []);
     const wrongOptions = (currentQuestion.options || []).filter(opt => !correctIds.has(opt.id));
-    // Shuffle and take 2
     const shuffled = [...wrongOptions].sort(() => Math.random() - 0.5);
-    removedOptionIds = shuffled.slice(0, Math.min(2, Math.max(0, wrongOptions.length - 0))).map(o => o.id);
+    removedOptionIds = shuffled.slice(0, Math.min(2, wrongOptions.length)).map(o => o.id);
   }
 
+  if (type === 'mirror') {
+    // Snapshot live vote counts from already-submitted answers for this question.
+    const answersAgg = await ArenaParticipant.aggregate([
+      { $match: { room: room._id, _id: { $ne: participant._id }, state: { $ne: 'declined' } } },
+      { $unwind: '$answers' },
+      { $match: { 'answers.questionIndex': currentIndex } },
+      { $unwind: '$answers.selectedOptions' },
+      { $group: { _id: '$answers.selectedOptions', count: { $sum: 1 } } }
+    ]);
+    voteDistribution = {};
+    answersAgg.forEach(row => { voteDistribution[row._id] = row.count; });
+  }
+
+  if (type === 'steal') {
+    // Find the highest-scoring participant (excluding the actor and declined).
+    const others = await ArenaParticipant.find({
+      room: room._id,
+      _id: { $ne: participant._id },
+      state: { $ne: 'declined' }
+    }).sort({ score: -1, totalResponseTimeMs: 1 }).limit(1);
+    const target = others[0];
+    if (!target) {
+      const error = new Error('Не у кого красть');
+      error.status = 400;
+      throw error;
+    }
+    if ((target.score || 0) <= participant.score) {
+      const error = new Error('Кража доступна только если вы не лидер');
+      error.status = 400;
+      throw error;
+    }
+    target.score = Math.max(0, (target.score || 0) - 50);
+    participant.score = (participant.score || 0) + 50;
+    await target.save();
+    stolenFrom = {
+      participantId: String(target._id),
+      displayName: target.user
+        ? `${target.user.firstName || ''} ${target.user.lastName || ''}`.trim()
+        : (target.guestName || 'Player'),
+      amount: 50
+    };
+    // Notify everyone — emit a soft event so leaderboards/UIs can react.
+    if (io) {
+      io.to(`arena:${roomId}`).emit('arena:steal', {
+        roomId: String(roomId),
+        actorId: String(participant._id),
+        targetId: String(target._id),
+        amount: 50
+      });
+    }
+  }
+
+  if (type === 'timeFreeze') {
+    // Personal +5s — verified at handleArenaAnswer.
+  }
+
+  // ── Persist activation ─────────────────────────────────────────────────
   participant.powerUps[type] = Math.max(0, (participant.powerUps[type] || 0) - 1);
   participant.activePowerUps.set(String(currentIndex), {
     type,
     questionIndex: currentIndex,
-    removedOptionIds
+    removedOptionIds,
+    voteDistribution: voteDistribution || undefined,
+    freezeAppliedAt: type === 'timeFreeze' ? Date.now() : undefined
   });
   await participant.save();
 
@@ -629,11 +741,9 @@ async function applyArenaPowerUp(roomId, actor, type) {
     type,
     questionIndex: currentIndex,
     removedOptionIds,
-    remaining: {
-      fiftyFifty: participant.powerUps.fiftyFifty,
-      doublePoints: participant.powerUps.doublePoints,
-      shield: participant.powerUps.shield
-    }
+    voteDistribution,
+    stolenFrom,
+    remaining: getRemainingPowerUps(participant)
   };
 }
 
