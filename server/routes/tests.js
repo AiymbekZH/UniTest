@@ -268,13 +268,16 @@ router.get('/', optionalAuth, async (req, res) => {
     if (sort === 'title') sortOption = { title: 1 };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const tests = await Test.find(query)
-      .populate('creator', 'firstName lastName email role avatar')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Test.countDocuments(query);
+    const projection = { questions: { _id: 1 } };
+    const [tests, total] = await Promise.all([
+      Test.find(query, projection)
+        .populate('creator', 'firstName lastName email role avatar')
+        .sort(sortOption)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Test.countDocuments(query)
+    ]);
 
     res.json({
       tests,
@@ -290,9 +293,11 @@ router.get('/', optionalAuth, async (req, res) => {
 // Get my tests
 router.get('/my', auth, async (req, res) => {
   try {
-    const tests = await Test.find({ creator: req.user._id })
+    // PERF: same projection trick — list view doesn't need full questions array.
+    const tests = await Test.find({ creator: req.user._id }, '-questions')
       .populate('creator', 'firstName lastName email role avatar')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(tests);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка получения тестов' });
