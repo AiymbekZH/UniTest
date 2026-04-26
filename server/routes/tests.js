@@ -285,7 +285,10 @@ router.get('/', optionalAuth, async (req, res) => {
     };
     const [tests, total] = await Promise.all([
       Test.find(query, projection)
-        .populate('creator', 'firstName lastName email role avatar')
+        // PERF (КРИТИЧНО): НЕ populate `avatar` — это base64 картинка ~600KB,
+        // которая на 12 тестов = ~7MB на запрос → /api/tests отдавался за 17 секунд!
+        // Аватары авторов на дашборде не отображаются. Только в одиночных endpoints (`/share/:link`, `/:id`).
+        .populate('creator', 'firstName lastName email role')
         .sort(sortOption)
         .skip(skip)
         .limit(parseInt(limit))
@@ -343,7 +346,8 @@ router.get('/my', auth, async (req, res) => {
       'questions._id': 1
     };
     const tests = await Test.find({ creator: req.user._id }, projection)
-      .populate('creator', 'firstName lastName email role avatar')
+      // PERF: same as / endpoint — не populate тяжёлый base64 avatar.
+      .populate('creator', 'firstName lastName email role')
       .sort({ createdAt: -1 })
       .lean();
     res.json(tests);

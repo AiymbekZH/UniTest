@@ -100,7 +100,8 @@ router.get('/me', auth, async (req, res) => {
 router.get('/leaderboard', auth, async (req, res) => {
   try {
     const leaderboard = await UserProgress.find({})
-      .populate('user', 'firstName lastName avatar uniqueId')
+      // PERF: не populate `avatar` — base64 поля по ~600KB на user. UI покажет initials.
+      .populate('user', 'firstName lastName uniqueId')
       .sort({ xp: -1, updatedAt: -1 })
       .limit(10)
       .lean();
