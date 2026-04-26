@@ -268,10 +268,10 @@ router.get('/', optionalAuth, async (req, res) => {
     if (sort === 'title') sortOption = { title: 1 };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    // PERF: explicit field selection — `coverImage` (base64 data URLs ~500 KB
-    // each), `ratings[]`, and `difficultyRatings[]` are NOT needed for the
-    // dashboard preview cards. Keep `questions._id` so questions.length still
-    // works for the count badge.
+    // PERF: keep `coverImage` (нужно для баннеров на дашборде) — это часть UX.
+    // Но всё равно отбрасываем ratings[] / difficultyRatings[] / полные questions[]
+    // (они тяжёлые и не используются на превью-карточках). `questions._id` оставляем,
+    // чтобы работал счётчик вопросов на бейдже.
     const projection = {
       title: 1, description: 1, creator: 1, tags: 1,
       shareLink: 1, settings: 1, isDeleted: 1,
@@ -279,6 +279,7 @@ router.get('/', optionalAuth, async (req, res) => {
       difficultyScore: 1, difficultyCount: 1,
       totalPoints: 1, firstPublishedAt: 1,
       createdAt: 1, updatedAt: 1,
+      coverImage: 1,
       'questions._id': 1
     };
     const [tests, total] = await Promise.all([
@@ -305,7 +306,8 @@ router.get('/', optionalAuth, async (req, res) => {
 // Get my tests
 router.get('/my', auth, async (req, res) => {
   try {
-    // PERF: same explicit projection (skip coverImage + ratings + full questions).
+    // PERF: keep coverImage (нужно для баннеров на странице "Мои тесты"),
+    // но сбрасываем ratings/difficultyRatings/полные questions[].
     const projection = {
       title: 1, description: 1, creator: 1, tags: 1,
       shareLink: 1, settings: 1, isDeleted: 1,
@@ -313,6 +315,7 @@ router.get('/my', auth, async (req, res) => {
       difficultyScore: 1, difficultyCount: 1,
       totalPoints: 1, firstPublishedAt: 1,
       createdAt: 1, updatedAt: 1,
+      coverImage: 1,
       'questions._id': 1
     };
     const tests = await Test.find({ creator: req.user._id }, projection)
