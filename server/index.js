@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
@@ -61,6 +62,10 @@ const corsOptions = {
 
 // Middleware
 app.disable('x-powered-by');
+
+// Gzip/Brotli compression — reduces JS/CSS payload by ~70%
+app.use(compression());
+
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false
@@ -148,8 +153,17 @@ app.use('/api/dm', dmRoutes);
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist');
 const indexHtmlPath = path.join(clientDistPath, 'index.html');
 
-// Static files
-app.use(express.static(clientDistPath));
+// Hashed assets (JS/CSS) — cache for 1 year (filenames change on rebuild)
+app.use('/assets', express.static(path.join(clientDistPath, 'assets'), {
+  maxAge: '1y',
+  immutable: true
+}));
+
+// Other static files (images, sounds, SVGs) — cache 1 day
+app.use(express.static(clientDistPath, {
+  maxAge: '1d',
+  index: false  // SPA fallback handles index.html separately
+}));
 
 // Fallback to index.html for SPA routes
 app.get('*', (req, res) => {

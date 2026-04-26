@@ -21,7 +21,7 @@ export default function BrandLogo({
         aria-hidden="true"
       >
         <img
-          src="/Logo_UniTest.png"
+          src="/Logo_UniTest.webp"
           alt="UniTest"
           loading="eager"
           decoding="async"
