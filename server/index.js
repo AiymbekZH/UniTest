@@ -32,15 +32,11 @@ const arenaRoutes = require('./routes/arena');
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
-// DigitalOcean App Platform / Heroku / Vercel — приложение всегда сидит за
-// одним прокси-хопом, который выставляет X-Forwarded-For. Без `trust proxy`
-// express-rate-limit бросает ERR_ERL_UNEXPECTED_X_FORWARDED_FOR на каждый
-// запрос, и сайт «висит» бесконечной загрузкой.
-// Значение `1` = доверять только первому прокси (правильный безопасный default
-// для managed-хостингов). На локальном dev оставляем по умолчанию.
-if (isProd) {
-  app.set('trust proxy', 1);
-}
+// trust proxy=1 — обязательно для DigitalOcean App Platform / Heroku / Vercel.
+// Прокси выставляет X-Forwarded-For на каждый запрос, без этого setting'а
+// express-rate-limit бросает ERR_ERL_UNEXPECTED_X_FORWARDED_FOR и страница виснет.
+// Ставим безусловно (даже на локалке безопасно — `1` доверяет только одному hop'у).
+app.set('trust proxy', 1);
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || '')
   .split(',')
@@ -83,12 +79,15 @@ app.use('/api', ensureCsrfCookie);
 app.use('/api', csrfProtection);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// validate.xForwardedForHeader: false выключает strict-validation
+// rate-limit'a — belt-and-suspenders на случай если trust proxy не применился.
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 500, // limit each IP to 500 requests per windowMs
   message: { message: 'Слишком много запросов с этого IP, пожалуйста, попробуйте позже.' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, trustProxy: false }
 });
 
 const authLimiter = rateLimit({
@@ -97,7 +96,8 @@ const authLimiter = rateLimit({
   message: { message: 'Слишком много попыток входа. Повторите позже.' },
   skipSuccessfulRequests: true,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, trustProxy: false }
 });
 
 const forgotPasswordLimiter = rateLimit({
@@ -105,7 +105,8 @@ const forgotPasswordLimiter = rateLimit({
   max: 5,
   message: { message: 'Слишком много запросов на сброс пароля. Повторите позже.' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, trustProxy: false }
 });
 
 const resetPasswordLimiter = rateLimit({
@@ -113,7 +114,8 @@ const resetPasswordLimiter = rateLimit({
   max: 10,
   message: { message: 'Слишком много попыток смены пароля. Повторите позже.' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, trustProxy: false }
 });
 
 // Routes
