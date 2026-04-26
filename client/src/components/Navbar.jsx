@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, LogOut, Menu, X,
-  LayoutDashboard, FileText, BarChart3, Database, Sun, Moon, Sunset,
+  LayoutDashboard, FileText, BarChart3, Database, Sun, Moon, Monitor,
   User, Shield, Globe, Users, RefreshCw, Trash2, UserPlus, MessageSquare, Swords
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -160,13 +160,13 @@ export default memo(function Navbar() {
                 </AnimatePresence>
               </div>
 
-              {/* Theme mode toggle: light → dark → auto */}
+              {/* Theme mode toggle: light → dark → system */}
               <button
                 onClick={cycleTheme}
                 className="icon-btn"
-                title={mode === 'light' ? t('darkTheme') : mode === 'dark' ? (t('autoTheme') || 'Auto (Night)') : t('lightTheme')}
+                title={mode === 'light' ? t('darkTheme') : mode === 'dark' ? (t('systemTheme') || 'Системная тема') : t('lightTheme')}
               >
-                {mode === 'light' ? <Moon size={16} /> : mode === 'dark' ? <Sunset size={16} /> : <Sun size={16} />}
+                {mode === 'light' ? <Moon size={16} /> : mode === 'dark' ? <Monitor size={16} /> : <Sun size={16} />}
               </button>
 
               {isAuthenticated ? (

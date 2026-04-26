@@ -13,6 +13,20 @@
 }
 
 @layer base {
+  /* ── Warm Dark palette (Spotify / Apple Notes inspired) ── */
+  html.dark {
+    --bg-app: #0f0d0a;
+    --bg-elev-1: #181410;
+    --bg-elev-2: #1f1a14;
+    --bg-elev-3: #28221a;
+    --border-soft: #2a241c;
+    --border-strong: #3a3226;
+    --shadow-chunky: #000000;
+    --text-primary: #f5efe6;
+    --text-muted: #a89e90;
+    --text-dim: #766c5c;
+  }
+
   html, body {
     max-width: 100%;
   }
@@ -33,13 +47,18 @@
   body {
     @apply bg-surface text-dark font-sans antialiased;
   }
-  
+
   .dark body, html.dark body {
-    @apply bg-slate-900 text-gray-100;
+    background-color: var(--bg-app);
+    color: var(--text-primary);
   }
 
-  * {
-    @apply transition-colors duration-200;
+  /* Limit transitions to a small set of elements to avoid theme-toggle stutter */
+  body, button, a, input, textarea, select,
+  .card, .glass-card, .glass-card-solid, .chunky-card, .chunky-card-dark, .chunky-card-cream,
+  .btn-primary, .btn-secondary, .btn-danger, .icon-btn, .menu-item,
+  .badge, .input-field, .chunky-input {
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
   }
 }
 
@@ -48,15 +67,20 @@
     @apply bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-glass;
   }
   .dark .glass-card {
-    @apply bg-slate-800/80 border-slate-700/50;
+    background-color: rgba(31, 26, 20, 0.85);
+    border-color: var(--border-soft);
   }
-  
+
   .glass-card-solid {
     @apply bg-white rounded-2xl border border-gray-100
            transition-shadow duration-200 hover:shadow-sm;
   }
   .dark .glass-card-solid {
-    @apply bg-slate-800 border-slate-700/60 hover:shadow-none;
+    background-color: var(--bg-elev-2);
+    border-color: var(--border-soft);
+  }
+  .dark .glass-card-solid:hover {
+    box-shadow: none;
   }
 
   .btn-primary {
@@ -72,7 +96,12 @@
            active:scale-[0.98];
   }
   .dark .btn-secondary {
-    @apply bg-slate-800 hover:bg-slate-700 text-gray-200 border-slate-700/60;
+    background-color: var(--bg-elev-2);
+    border-color: var(--border-soft);
+    color: var(--text-primary);
+  }
+  .dark .btn-secondary:hover {
+    background-color: var(--bg-elev-3);
   }
 
   .btn-danger {
@@ -88,8 +117,14 @@
            transition-all duration-200;
   }
   .dark .input-field {
-    @apply bg-slate-800 border-slate-700 text-gray-100 placeholder-gray-500
-           focus:border-primary-500 focus:ring-primary-500/30;
+    background-color: var(--bg-elev-1);
+    border-color: var(--border-soft);
+    color: var(--text-primary);
+  }
+  .dark .input-field::placeholder { color: var(--text-dim); }
+  .dark .input-field:focus {
+    border-color: theme('colors.primary.500');
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
   }
 
   .badge {
@@ -100,28 +135,28 @@
     @apply badge bg-emerald-50 text-emerald-600;
   }
   .dark .badge-success {
-    @apply bg-emerald-900/20 text-emerald-400;
+    @apply bg-emerald-500/15 text-emerald-300;
   }
 
   .badge-warning {
     @apply badge bg-amber-50 text-amber-600;
   }
   .dark .badge-warning {
-    @apply bg-amber-900/20 text-amber-400;
+    @apply bg-amber-500/15 text-amber-300;
   }
 
   .badge-danger {
     @apply badge bg-red-50 text-red-600;
   }
   .dark .badge-danger {
-    @apply bg-red-900/20 text-red-400;
+    @apply bg-red-500/15 text-red-300;
   }
 
   .badge-info {
     @apply badge bg-primary-50 text-primary-600;
   }
   .dark .badge-info {
-    @apply bg-primary-900/20 text-primary-400;
+    @apply bg-primary-500/15 text-primary-300;
   }
 
   /* ---- New Design System Utilities ---- */
@@ -131,14 +166,16 @@
            transition-all duration-200;
   }
   .dark .card {
-    @apply bg-slate-800 border-slate-700/60;
+    background-color: var(--bg-elev-2);
+    border-color: var(--border-soft);
   }
 
   .card-interactive {
     @apply card hover:shadow-sm cursor-pointer;
   }
-  .dark .card-interactive {
-    @apply hover:bg-slate-700/80 hover:border-slate-600;
+  .dark .card-interactive:hover {
+    background-color: var(--bg-elev-3);
+    border-color: var(--border-strong);
   }
 
   .icon-btn {
@@ -146,7 +183,11 @@
            hover:bg-gray-50 hover:text-dark transition-colors duration-200;
   }
   .dark .icon-btn {
-    @apply text-gray-400 hover:bg-slate-800 hover:text-gray-100;
+    color: var(--text-muted);
+  }
+  .dark .icon-btn:hover {
+    background-color: var(--bg-elev-2);
+    color: var(--text-primary);
   }
 
   .menu-item {
@@ -154,42 +195,45 @@
            hover:bg-gray-50 transition-colors;
   }
   .dark .menu-item {
-    @apply text-gray-300 hover:bg-slate-700;
+    color: var(--text-primary);
+  }
+  .dark .menu-item:hover {
+    background-color: var(--bg-elev-3);
   }
 
   .section-title {
     @apply text-xs font-semibold uppercase tracking-wider text-gray-400;
   }
   .dark .section-title {
-    @apply text-gray-500;
+    color: var(--text-dim);
   }
 
   .stat-value {
     @apply text-3xl font-bold tracking-tight text-gray-900;
   }
   .dark .stat-value {
-    @apply text-gray-100;
+    color: var(--text-primary);
   }
 
   .stat-label {
     @apply text-sm text-gray-500 font-medium;
   }
   .dark .stat-label {
-    @apply text-gray-400;
+    color: var(--text-muted);
   }
 
   .divider {
     @apply border-t border-gray-100;
   }
   .dark .divider {
-    @apply border-slate-700;
+    border-top-color: var(--border-soft);
   }
 
   .divider-vertical {
     @apply w-px bg-gray-200 self-stretch;
   }
   .dark .divider-vertical {
-    @apply bg-slate-700;
+    background-color: var(--border-soft);
   }
 
   .tab-underline {
@@ -198,14 +242,17 @@
            hover:text-gray-700;
   }
   .dark .tab-underline {
-    @apply text-gray-400 hover:text-gray-200;
+    color: var(--text-muted);
+  }
+  .dark .tab-underline:hover {
+    color: var(--text-primary);
   }
 
   .tab-underline.active {
     @apply text-primary-600;
   }
   .dark .tab-underline.active {
-    @apply text-primary-400;
+    color: theme('colors.primary.300');
   }
 
   .tab-underline.active::after {
@@ -225,7 +272,7 @@
     @apply bg-primary-600;
   }
   .dark .toggle-switch {
-    @apply bg-slate-600;
+    background-color: var(--border-strong);
   }
   .dark .toggle-switch.active {
     @apply bg-primary-500;
@@ -274,7 +321,8 @@
   .chunky-btn-primary:active:not(:disabled) { box-shadow: 0 0 0 #9a3412; }
 
   .chunky-btn-dark {
-    @apply chunky-btn bg-slate-900 text-white;
+    @apply chunky-btn text-white;
+    background-color: theme('colors.slate.900');
     box-shadow: 0 6px 0 #020617;
   }
   .chunky-btn-dark:active:not(:disabled) { box-shadow: 0 0 0 #020617; }
@@ -285,10 +333,12 @@
   }
   .chunky-btn-ghost:active:not(:disabled) { box-shadow: 0 0 0 #e2e8f0; }
   .dark .chunky-btn-ghost {
-    @apply bg-slate-800 text-gray-100 border-slate-700;
-    box-shadow: 0 6px 0 #0f172a;
+    background-color: var(--bg-elev-2);
+    color: var(--text-primary);
+    border-color: var(--border-soft);
+    box-shadow: 0 6px 0 var(--shadow-chunky);
   }
-  .dark .chunky-btn-ghost:active:not(:disabled) { box-shadow: 0 0 0 #0f172a; }
+  .dark .chunky-btn-ghost:active:not(:disabled) { box-shadow: 0 0 0 var(--shadow-chunky); }
 
   .chunky-btn-danger {
     @apply chunky-btn bg-red-500 text-white;
@@ -307,13 +357,21 @@
     box-shadow: 0 6px 0 #e2e8f0;
   }
   .dark .chunky-card {
-    @apply bg-slate-800 border-slate-700;
-    box-shadow: 0 6px 0 #0f172a;
+    background-color: var(--bg-elev-2);
+    border-color: var(--border-soft);
+    box-shadow: 0 6px 0 var(--shadow-chunky);
   }
 
   .chunky-card-dark {
-    @apply relative rounded-3xl bg-slate-900 border-2 border-slate-800 text-white;
+    @apply relative rounded-3xl border-2 text-white;
+    background-color: theme('colors.slate.900');
+    border-color: theme('colors.slate.800');
     box-shadow: 0 6px 0 #020617;
+  }
+  .dark .chunky-card-dark {
+    background-color: var(--bg-elev-1);
+    border-color: var(--border-soft);
+    box-shadow: 0 6px 0 var(--shadow-chunky);
   }
 
   .chunky-card-cream {
@@ -321,8 +379,11 @@
     box-shadow: 0 6px 0 #fde68a;
   }
   .dark .chunky-card-cream {
-    @apply bg-slate-800 border-slate-700;
-    box-shadow: 0 6px 0 #0f172a;
+    /* Preserve cream identity in dark via subtle warm tint over elev-2 */
+    background-color: #221c14;
+    border-color: #3a2f1f;
+    color: var(--text-primary);
+    box-shadow: 0 6px 0 var(--shadow-chunky);
   }
 
   .chunky-pill {
@@ -339,9 +400,12 @@
     box-shadow: 0 4px 0 #e2e8f0;
   }
   .dark .chunky-input {
-    @apply bg-slate-800 border-slate-700 text-gray-100;
-    box-shadow: 0 4px 0 #0f172a;
+    background-color: var(--bg-elev-1);
+    border-color: var(--border-soft);
+    color: var(--text-primary);
+    box-shadow: 0 4px 0 var(--shadow-chunky);
   }
+  .dark .chunky-input::placeholder { color: var(--text-dim); }
 
   /* Mobile helpers */
   .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.75rem); }
@@ -356,7 +420,8 @@
     @apply fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200 bg-white/95 backdrop-blur-xl safe-bottom sm:hidden;
   }
   .dark .mobile-nav-shell {
-    @apply border-slate-800 bg-slate-900/95;
+    border-top-color: var(--border-soft);
+    background-color: rgba(15, 13, 10, 0.96);
   }
   /* Reserve bottom space on mobile pages to avoid content being hidden by bottom nav */
   @media (max-width: 639px) {
@@ -374,40 +439,59 @@
 
   /* ---- End New Design System Utilities ---- */
 
-  /* Dark mode page backgrounds */
+  /* Dark mode page backgrounds + text */
   .dark .bg-surface {
-    background-color: #0f172a;
+    background-color: var(--bg-app);
   }
-
-  /* Dark mode text overrides */
   .dark .text-dark {
-    color: #f1f5f9;
-  }
-
-  /* ---- Night Mode (ultra-dark, warm tones — auto after 22:00) ---- */
-  .night-mode .bg-surface {
-    background-color: #080c14;
-  }
-  .night-mode body {
-    background-color: #080c14;
-  }
-  .night-mode .glass-card-solid,
-  .night-mode .card {
-    @apply bg-slate-900 border-slate-800;
-  }
-  .night-mode .glass-card {
-    @apply bg-slate-900/90 border-slate-800/60;
-  }
-  .night-mode nav {
-    @apply bg-slate-950/90 border-slate-800/50;
-  }
-  .night-mode .input-field {
-    @apply bg-slate-800 border-slate-700;
-  }
-  .night-mode .btn-secondary {
-    @apply bg-slate-800 border-slate-700 hover:bg-slate-700;
+    color: var(--text-primary);
   }
 }
+
+/* ── Slate → Warm Dark mapping (outside @layer to avoid @apply circular deps) ──
+   Many components hardcode dark:bg-slate-{800,900} / border-slate-{700,800} /
+   text-{gray,slate}-{100,300,400}. Remap them globally to warm palette so we
+   don't have to touch every component file. */
+.dark .bg-slate-900 { background-color: var(--bg-app) !important; }
+.dark .bg-slate-800 { background-color: var(--bg-elev-2) !important; }
+.dark .bg-slate-950 { background-color: #08070a !important; }
+.dark .bg-slate-900\/90 { background-color: rgba(15, 13, 10, 0.92) !important; }
+.dark .bg-slate-900\/95 { background-color: rgba(15, 13, 10, 0.96) !important; }
+.dark .bg-slate-800\/80 { background-color: rgba(31, 26, 20, 0.86) !important; }
+.dark .bg-slate-800\/90 { background-color: rgba(31, 26, 20, 0.92) !important; }
+.dark .bg-slate-700\/30,
+.dark .bg-slate-700\/50,
+.dark .bg-slate-700\/80 { background-color: rgba(40, 34, 26, 0.7) !important; }
+.dark .hover\:bg-slate-700:hover,
+.dark .hover\:bg-slate-700\/30:hover,
+.dark .hover\:bg-slate-800:hover { background-color: var(--bg-elev-3) !important; }
+
+.dark .border-slate-700 { border-color: var(--border-soft) !important; }
+.dark .border-slate-800 { border-color: var(--border-soft) !important; }
+.dark .border-slate-600 { border-color: var(--border-strong) !important; }
+.dark .border-slate-700\/50,
+.dark .border-slate-700\/60 { border-color: rgba(42, 36, 28, 0.7) !important; }
+.dark .border-slate-800\/50 { border-color: rgba(42, 36, 28, 0.5) !important; }
+.dark .divide-slate-700 > :not([hidden]) ~ :not([hidden]) { border-color: var(--border-soft) !important; }
+
+.dark .text-white { color: var(--text-primary) !important; }
+.dark .text-gray-100,
+.dark .text-gray-200,
+.dark .text-slate-100,
+.dark .text-slate-200 { color: var(--text-primary) !important; }
+.dark .text-gray-300,
+.dark .text-slate-300 { color: #d4ccc0 !important; }
+.dark .text-gray-400,
+.dark .text-slate-400 { color: var(--text-muted) !important; }
+.dark .text-gray-500,
+.dark .text-slate-500 { color: var(--text-dim) !important; }
+.dark .text-gray-600,
+.dark .text-slate-600 { color: #8a8175 !important; }
+.dark .placeholder-gray-300::placeholder,
+.dark .placeholder-gray-400::placeholder,
+.dark .placeholder-gray-500::placeholder,
+.dark .placeholder-slate-400::placeholder,
+.dark .placeholder-slate-500::placeholder { color: var(--text-dim) !important; }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
@@ -429,10 +513,16 @@
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #3a3226;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #4a4030;
+}
+
+/* Dark mode selection */
+.dark ::selection {
+  background-color: #7C2D12;
+  color: #FFEDD5;
 }
 
 /* Smooth scroll */
