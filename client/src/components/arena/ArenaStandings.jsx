@@ -142,6 +142,17 @@ export default function ArenaStandings({
                   </div>
                   <div className="relative min-w-0 flex-1">
                     <div className="flex items-center gap-2">
+                      {participant.crown && (
+                        <motion.span
+                          initial={{ scale: 0, rotate: -20 }}
+                          animate={{ scale: [1, 1.15, 1], rotate: [0, -5, 5, 0] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                          className="inline-flex items-center justify-center"
+                          title="Лидер · корона"
+                        >
+                          <Crown size={16} className="fill-amber-400 text-amber-600 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)]" strokeWidth={2.4} />
+                        </motion.span>
+                      )}
                       <p className="truncate text-sm font-black text-slate-900 dark:text-white">{participant.displayName}</p>
                       {hotCombo && (
                         <motion.span

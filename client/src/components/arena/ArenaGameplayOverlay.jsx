@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Smile, Volume2, VolumeX, Zap } from 'lucide-react';
 import { getArenaSocket } from '../../services/arenaSocket';
-import { arenaSounds, setArenaMuted, getArenaMuted } from '../../utils/arenaSounds';
+import { arenaSounds, setArenaMuted, getArenaMuted, setAudioVibe } from '../../utils/arenaSounds';
 import { haptic } from '../../utils/haptics';
 
 // All 7 power-ups (3 legacy + 4 from Epic E expansion).
@@ -39,6 +39,8 @@ export default function ArenaGameplayOverlay({
   const [sheetOpen, setSheetOpen] = useState(false);
   const reactionIdRef = useRef(0);
   const lastStatusRef = useRef(null);
+  const lastQuestionIdxRef = useRef(-1);
+  const lastCrownIdRef = useRef(null);
 
   // Burst effect overlay state (screen-wide flash + confetti when a burst emoji lands).
   const [burst, setBurst] = useState(null);
@@ -137,6 +139,37 @@ export default function ArenaGameplayOverlay({
     if (status === 'answer_reveal') arenaSounds.correct();
     if (status === 'final') arenaSounds.final();
   }, [room?.status]);
+
+  // ── Sync audio vibe whenever room.settings.audioVibe changes ───────────
+  useEffect(() => {
+    const vibe = room?.settings?.audioVibe;
+    if (vibe) setAudioVibe(vibe);
+  }, [room?.settings?.audioVibe]);
+
+  // ── Boss Round intro: when entering a question tagged 'boss' on LIVE ──
+  useEffect(() => {
+    const idx = room?.currentQuestionIndex;
+    if (typeof idx !== 'number' || idx === lastQuestionIdxRef.current) return;
+    lastQuestionIdxRef.current = idx;
+    const q = room?.questionSnapshot?.[idx];
+    if (q?.tag === 'boss' && room?.settings?.bossRoundEnabled
+        && (room?.status === 'live_question' || room?.status === 'question_intro')) {
+      arenaSounds.bossIntro();
+      haptic.warning();
+    }
+  }, [room?.currentQuestionIndex, room?.status, room?.questionSnapshot, room?.settings?.bossRoundEnabled]);
+
+  // ── Crown change SFX: detect leader id changing across leaderboard updates ──
+  useEffect(() => {
+    if (!room?.settings?.crownCarryEnabled) return;
+    const leaderId = room?.leaderboard?.[0]?.participantId;
+    if (!leaderId || leaderId === lastCrownIdRef.current) return;
+    if (lastCrownIdRef.current !== null) {
+      // Only chime on CHANGE, not initial population.
+      arenaSounds.crown();
+    }
+    lastCrownIdRef.current = leaderId;
+  }, [room?.leaderboard, room?.settings?.crownCarryEnabled]);
 
   const sendReaction = useCallback((emoji) => {
     if (!roomId) return;

@@ -1,7 +1,42 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Circle, Clock3, Diamond, Send, Square, Triangle, X } from 'lucide-react';
+import { Check, Circle, Clock3, Diamond, Hourglass, Send, Skull, Square, Star, Triangle, X, Zap } from 'lucide-react';
 import ChunkyTile from '../ui/ChunkyTile';
+
+// Tag → visual badge metadata. Mirrors QUESTION_TAGS in ArenaQuestionsStep.
+const TAG_BADGES = {
+  blitz:   { label: 'БЛИЦ',    icon: Zap,        bg: '#06b6d4', text: '#fff' },
+  think:   { label: 'ДУМАЙ',   icon: Hourglass,  bg: '#10b981', text: '#fff' },
+  jackpot: { label: 'ДЖЕКПОТ', icon: Star,       bg: '#f59e0b', text: '#fff' },
+  boss:    { label: 'BOSS',    icon: Skull,      bg: '#dc2626', text: '#fff' }
+};
+
+function QuestionTagBadge({ tag }) {
+  const meta = TAG_BADGES[tag];
+  if (!meta) return null;
+  const Icon = meta.icon;
+  const isBoss = tag === 'boss';
+  return (
+    <motion.div
+      initial={{ scale: 0.6, rotate: -6, opacity: 0 }}
+      animate={isBoss
+        ? { scale: [1, 1.08, 1], rotate: [0, -2, 0], opacity: 1 }
+        : { scale: 1, rotate: 0, opacity: 1 }}
+      transition={isBoss
+        ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+        : { duration: 0.25 }}
+      className="inline-flex items-center gap-1 rounded-full border-2 border-slate-900 px-2.5 py-1 font-mono text-[11px] font-black tracking-[0.16em] dark:border-white"
+      style={{
+        background: meta.bg,
+        color: meta.text,
+        boxShadow: isBoss ? '0 3px 0 #7f1d1d, 0 0 18px rgba(220,38,38,0.6)' : '0 3px 0 rgba(15,23,42,0.4)'
+      }}
+    >
+      <Icon size={11} strokeWidth={3} />
+      {meta.label}
+    </motion.div>
+  );
+}
 
 const TILE_STYLES = [
   { icon: Triangle, color: 'red' },
@@ -156,11 +191,14 @@ export default function ArenaQuestionPanel({
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div
-              className="inline-flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-primary-500 px-3 py-1 font-mono text-xs font-black tracking-[0.2em] text-white dark:border-white"
-              style={{ boxShadow: '0 3px 0 #9a3412' }}
-            >
-              {question.questionNumber}/{question.totalQuestions}
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                className="inline-flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-primary-500 px-3 py-1 font-mono text-xs font-black tracking-[0.2em] text-white dark:border-white"
+                style={{ boxShadow: '0 3px 0 #9a3412' }}
+              >
+                {question.questionNumber}/{question.totalQuestions}
+              </div>
+              <QuestionTagBadge tag={question.tag} />
             </div>
             <h2
               className={`${isHostView ? 'mt-5 text-3xl md:text-5xl lg:text-6xl' : 'mt-4 text-2xl sm:text-3xl'} prose prose-headings:!my-0 max-w-none font-black leading-[1.05] tracking-tight dark:prose-invert prose-p:!my-0 prose-strong:font-black`}
