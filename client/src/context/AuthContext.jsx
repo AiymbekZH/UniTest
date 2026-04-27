@@ -10,6 +10,8 @@ const SAVED_SESSIONS_KEY = 'unitest_saved_sessions';
 
 const getSessionId = (user) => user?.id || user?._id || user?.email || '';
 
+const isAuthFailure = (error) => [401, 403].includes(error?.response?.status);
+
 const readSavedSessions = () => {
   try {
     const raw = localStorage.getItem(SAVED_SESSIONS_KEY);
@@ -156,8 +158,12 @@ export const AuthProvider = ({ children }) => {
           syncCurrentSession(res.data.user);
           connectSocket();
         })
-        .catch(() => {
-          clearActiveSession();
+        .catch((error) => {
+          if (isAuthFailure(error)) {
+            clearActiveSession();
+            return;
+          }
+          connectSocket();
         })
         .finally(() => setLoading(false));
     } else {

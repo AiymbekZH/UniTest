@@ -11,9 +11,11 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { ensureCsrfCookie, csrfProtection } = require('./middleware/csrf');
-const User = require('./models/User');
 require('dotenv').config();
 
+mongoose.set('bufferCommands', false);
+
+const User = require('./models/User');
 const authRoutes = require('./routes/auth');
 const testRoutes = require('./routes/tests');
 const resultRoutes = require('./routes/results');
@@ -84,6 +86,18 @@ app.use('/api', ensureCsrfCookie);
 app.use('/api', csrfProtection);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+const slowRequestMs = Number(process.env.SLOW_REQUEST_MS || 1000);
+app.use((req, res, next) => {
+  const startedAt = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - startedAt;
+    if (duration >= slowRequestMs) {
+      console.warn(`[slow] ${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`);
+    }
+  });
+  next();
+});
+
 // validate.xForwardedForHeader: false выключает strict-validation
 // rate-limit'a — belt-and-suspenders на случай если trust proxy не применился.
 const apiLimiter = rateLimit({
@@ -149,6 +163,15 @@ app.use('/api/arena', arenaRoutes);
 const dmRoutes = require('./routes/dm');
 app.use('/api/dm', dmRoutes);
 
+app.get('/api/health', (req, res) => {
+  const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  res.json({
+    ok: mongoose.connection.readyState === 1,
+    mongo: states[mongoose.connection.readyState] || 'unknown',
+    uptime: Math.round(process.uptime())
+  });
+});
+
 // Serve frontend build
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist');
 const indexHtmlPath = path.join(clientDistPath, 'index.html');
@@ -173,11 +196,6 @@ app.get('*', (req, res) => {
   res.set('Expires', '0');
   res.sendFile(indexHtmlPath);
 });
-
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch(err => console.error('MongoDB connection error:', err));
 
 // ── Socket.IO ──
 const server = http.createServer(app);
@@ -228,9 +246,32 @@ app.set('io', io);
 
 // Background: auto-cancel stale arena lobbies (15min idle).
 const { startArenaCleanupLoop } = require('./utils/arenaEngine');
-startArenaCleanupLoop(io, { intervalMs: 60 * 1000, idleMs: 15 * 60 * 1000 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`UniTest server running on port ${PORT}`);
+
+async function startServer() {
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI must be set');
+  }
+
+  const startedAt = Date.now();
+  await mongoose.connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || 8000),
+    connectTimeoutMS: Number(process.env.MONGO_CONNECT_TIMEOUT_MS || 10000),
+    socketTimeoutMS: Number(process.env.MONGO_SOCKET_TIMEOUT_MS || 45000),
+    maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE || 20),
+    minPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE || 1),
+  });
+
+  console.log(`MongoDB connected successfully in ${Date.now() - startedAt}ms`);
+  startArenaCleanupLoop(io, { intervalMs: 60 * 1000, idleMs: 15 * 60 * 1000 });
+
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`UniTest server running on port ${PORT}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error('Server startup failed:', err);
+  process.exit(1);
 });
