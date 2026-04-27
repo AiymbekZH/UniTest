@@ -63,5 +63,6 @@ resultSchema.index({ user: 1, status: 1 });
 resultSchema.index({ test: 1, user: 1, status: 1 });
 resultSchema.index({ test: 1, sessionId: 1 });
 resultSchema.index({ user: 1, isPractice: 1, createdAt: -1 });
+resultSchema.index({ user: 1, status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Result', resultSchema);

@@ -1,6 +1,35 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// ── Auth user cache ──
+// Dashboard fires 7+ parallel requests — all calling User.findById(same_id).
+// Cache user objects for 30 seconds to eliminate duplicate DB hits.
+const _userCache = new Map();
+const USER_CACHE_TTL = 30_000; // 30 seconds
+
+function _getCachedUser(userId) {
+  const entry = _userCache.get(userId);
+  if (entry && (Date.now() - entry.ts) < USER_CACHE_TTL) return entry.user;
+  return null;
+}
+
+function _setCachedUser(userId, user) {
+  _userCache.set(userId, { user, ts: Date.now() });
+  // Prevent unbounded growth
+  if (_userCache.size > 500) {
+    const oldest = _userCache.keys().next().value;
+    _userCache.delete(oldest);
+  }
+}
+
+async function findUserCached(userId) {
+  const cached = _getCachedUser(userId);
+  if (cached) return cached;
+  const user = await User.findById(userId).select('-password').lean();
+  if (user) _setCachedUser(userId, user);
+  return user;
+}
+
 function extractToken(req) {
   const bearer = req.header('Authorization')?.replace('Bearer ', '');
   if (bearer) return bearer;
@@ -16,7 +45,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Авторизация требуется' });
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password').lean();
+    const user = await findUserCached(decoded.userId);
     if (!user) {
       return res.status(401).json({ message: 'Пользователь не найден' });
     }
@@ -35,7 +64,7 @@ const optionalAuth = async (req, res, next) => {
     const token = extractToken(req);
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.userId).select('-password');
+      const user = await findUserCached(decoded.userId);
       req.user = user;
     }
   } catch (error) {
@@ -50,7 +79,7 @@ const adminAuth = async (req, res, next) => {
     const token = extractToken(req);
     if (!token) return res.status(401).json({ message: 'Авторизация требуется' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await findUserCached(decoded.userId);
     if (!user) return res.status(401).json({ message: 'Пользователь не найден' });
     if (user.role !== 'admin') return res.status(403).json({ message: 'Требуются права администратора' });
     req.user = user;

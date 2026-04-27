@@ -14,6 +14,29 @@ const {
 
 const router = express.Router();
 
+// Cache public tests for challenge selection (refreshes every 10 min)
+let _challengeTestsCache = null;
+let _challengeTestsCacheAt = 0;
+const CHALLENGE_CACHE_MS = 10 * 60 * 1000;
+
+async function _getCachedChallengeTests() {
+  const now = Date.now();
+  if (_challengeTestsCache && (now - _challengeTestsCacheAt) < CHALLENGE_CACHE_MS) {
+    return _challengeTestsCache;
+  }
+  _challengeTestsCache = await Test.find({
+    isDeleted: false,
+    'settings.isPublic': true
+  })
+    .populate('creator', 'firstName lastName avatar')
+    .sort({ rating: -1, attemptCount: -1, createdAt: -1 })
+    .select('title shareLink totalPoints rating questions creator settings')
+    .limit(200)
+    .lean();
+  _challengeTestsCacheAt = now;
+  return _challengeTestsCache;
+}
+
 router.get('/active', auth, async (req, res) => {
   try {
     const now = new Date();
@@ -23,14 +46,9 @@ router.get('/active', auth, async (req, res) => {
       weeklyResetAt: getNextWeeklyResetAt(now).toISOString()
     };
 
-    const tests = await Test.find({
-      isDeleted: { $ne: true },
-      'settings.isPublic': true
-    })
-      .populate('creator', 'firstName lastName avatar')
-      .sort({ rating: -1, attemptCount: -1, createdAt: -1 })
-      .select('title shareLink coverImage totalPoints rating questions creator settings')
-      .lean();
+    // Use cached public tests to avoid full collection scan on every load.
+    // The gamification cache also uses this same pattern.
+    const tests = await _getCachedChallengeTests();
 
     if (tests.length === 0) {
       return res.json({ ...baseMeta, dailyChallenge: null, weeklySprint: null });

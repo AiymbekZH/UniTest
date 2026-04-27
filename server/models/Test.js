@@ -141,6 +141,5 @@ testSchema.pre('save', function(next) {
 testSchema.index({ title: 'text', description: 'text', tags: 'text' });
 testSchema.index({ creator: 1 });
 testSchema.index({ isDeleted: 1, 'settings.isPublic': 1, rating: -1, attemptCount: -1, createdAt: -1 });
-testSchema.index({ shareLink: 1 });
 
 module.exports = mongoose.model('Test', testSchema);
