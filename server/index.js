@@ -13,8 +13,6 @@ const rateLimit = require('express-rate-limit');
 const { ensureCsrfCookie, csrfProtection } = require('./middleware/csrf');
 require('dotenv').config();
 
-mongoose.set('bufferCommands', false);
-
 const User = require('./models/User');
 const authRoutes = require('./routes/auth');
 const testRoutes = require('./routes/tests');
