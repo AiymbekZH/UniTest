@@ -98,10 +98,20 @@ class DeepLinkService {
       return AppRoute.userProfileTo(allSegments[1]);
     }
 
+    if (allSegments[0] == 'test-profile' && allSegments.length > 1) {
+      // unitest://test-profile/<shareLink>  /  https://unitest.page/test-profile/<shareLink>
+      return AppRoute.testDetailTo(allSegments[1]);
+    }
+
     return null;
   }
 
-  static const _knownHostPrefix = {'reset', 'reset-password', 'u'};
+  static const _knownHostPrefix = {
+    'reset',
+    'reset-password',
+    'u',
+    'test-profile',
+  };
 }
 
 final deepLinkServiceProvider = Provider<DeepLinkService>((ref) {

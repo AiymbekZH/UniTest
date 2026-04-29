@@ -16,6 +16,7 @@ import '../../features/profile/user_profile_page.dart';
 import '../../features/main_shell.dart';
 import '../../features/messages/messages_page.dart';
 import '../../features/arena/arena_hub_page.dart';
+import '../../features/tests/test_detail_page.dart';
 import '../../features/tests/tests_browse_page.dart';
 
 /// Routes used across the app. String constants — type-safe routing libs
@@ -49,6 +50,12 @@ abstract class AppRoute {
   /// Path: `/u/<idOrUsername>`.
   static const userProfilePattern = '/u/:idOrUsername';
   static String userProfileTo(String idOrUsername) => '/u/$idOrUsername';
+
+  /// Test detail page (cover, meta, leaderboard, ratings, start CTA).
+  /// Pushed on top of the shell so the bottom nav stays visible.
+  /// Pattern mirrors web: `/test-profile/<shareLink>`.
+  static const testDetailPattern = '/test-profile/:shareLink';
+  static String testDetailTo(String shareLink) => '/test-profile/$shareLink';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -132,6 +139,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (_, state) => UserProfilePage(
           idOrUsername: state.pathParameters['idOrUsername'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: AppRoute.testDetailPattern,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (_, state) => TestDetailPage(
+          shareLink: state.pathParameters['shareLink'] ?? '',
         ),
       ),
 

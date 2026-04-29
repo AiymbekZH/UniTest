@@ -51,6 +51,9 @@
                 <data android:scheme="https"
                       android:host="unitest.page"
                       android:pathPrefix="/u/"/>
+                <data android:scheme="https"
+                      android:host="unitest.page"
+                      android:pathPrefix="/test-profile/"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

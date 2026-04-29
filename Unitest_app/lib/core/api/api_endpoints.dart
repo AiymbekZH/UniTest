@@ -41,14 +41,25 @@ class ApiEndpoints {
   // ── Tests ────────────────────────────────────────────────────────────
   static const String tests                = '/tests';
   static const String testsMy              = '/tests/my';
+  static const String testsCovers          = '/tests/covers';
   static String testByShareLink(String shareLink) => '/tests/share/$shareLink';
   static String testById(String id)            => '/tests/$id';
+  static String testTickets(String id)           => '/tests/$id/tickets';
+  static String testTicketsClaim(String id)      => '/tests/$id/tickets/claim';
+  static String testRate(String id)              => '/tests/$id/rate';
+  static String testRateDifficulty(String id)    => '/tests/$id/rate-difficulty';
+  static String testMyRating(String id)          => '/tests/$id/my-rating';
+  static String testMyDifficultyRating(String id) => '/tests/$id/my-difficulty-rating';
 
   // ── Results ─────────────────────────────────────────────────────────
   static const String results              = '/results';
+  static const String resultsViolation     = '/results/violation';
   static String resultById(String id)      => '/results/$id';
   static String resultsByTest(String testId) => '/results/test/$testId';
   static const String resultsMy            = '/results/my';
+  static String resultsLeaderboard(String testId)   => '/results/leaderboard/$testId';
+  static String resultsMyAttempts(String testId)    => '/results/my-attempts/$testId';
+  static String resultsMyAttemptsList(String testId) => '/results/my-attempts-list/$testId';
 
   // ── Profile ─────────────────────────────────────────────────────────
   static const String profile              = '/profile';
@@ -101,6 +112,7 @@ class ApiEndpoints {
   static const String challenges           = '/challenges';
   static const String challengeDaily       = '/challenges/daily';
   static const String challengeWeekly      = '/challenges/weekly';
+  static const String challengesActive     = '/challenges/active';
 
   // ── Arena ──────────────────────────────────────────────────────────
   static const String arena                = '/arena';
