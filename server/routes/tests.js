@@ -413,21 +413,35 @@ router.get('/share/:shareLink', optionalAuth, async (req, res) => {
       return res.status(404).json({ message: 'Тест не найден' });
     }
 
-    // Deadline enforcement
-    const now = new Date();
-    if (test.settings.startDate && now < new Date(test.settings.startDate)) {
-      return res.status(403).json({
-        message: 'Тест ещё не открыт',
-        code: 'NOT_STARTED',
-        startDate: test.settings.startDate
-      });
-    }
-    if (test.settings.endDate && now > new Date(test.settings.endDate)) {
-      return res.status(403).json({
-        message: 'Тест уже закрыт',
-        code: 'ENDED',
-        endDate: test.settings.endDate
-      });
+    // Deadline enforcement.
+    //
+    // The creator (and any admin) needs to be able to preview their own
+    // pre-scheduled test before its public start date. Otherwise users
+    // who set a future startDate get locked out of their own work and
+    // see a confusing "test not found" toast on the dashboard. The check
+    // still fires for everyone else.
+    const creatorId = test.creator?._id?.toString() || test.creator?.toString();
+    const viewerId = req.user?._id?.toString();
+    const isCreator = viewerId && creatorId && viewerId === creatorId;
+    const isAdmin = req.user?.role === 'admin';
+    const enforceDeadline = !(isCreator || isAdmin);
+
+    if (enforceDeadline) {
+      const now = new Date();
+      if (test.settings.startDate && now < new Date(test.settings.startDate)) {
+        return res.status(403).json({
+          message: 'Тест ещё не открыт',
+          code: 'NOT_STARTED',
+          startDate: test.settings.startDate
+        });
+      }
+      if (test.settings.endDate && now > new Date(test.settings.endDate)) {
+        return res.status(403).json({
+          message: 'Тест уже закрыт',
+          code: 'ENDED',
+          endDate: test.settings.endDate
+        });
+      }
     }
 
     // Don't send correct answers to test takers

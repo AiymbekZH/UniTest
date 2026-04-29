@@ -179,6 +179,65 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     _toast('ID скопирован');
   }
 
+  /// Slide-up sheet that hosts the secondary profile actions
+  /// (change password / logout / refresh). The primary "Edit profile"
+  /// action stays inline on the hero banner because it's by far the
+  /// most-used button — burying it would cost a click on every visit.
+  Future<void> _openActionsSheet() async {
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_rounded),
+                title: const Text('Редактировать профиль'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push(AppRoute.profileEdit);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.lock_outline_rounded),
+                title: const Text('Сменить пароль'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push(AppRoute.profileChangePassword);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.refresh_rounded),
+                title: const Text('Обновить данные'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ref.read(myProfileProvider.notifier).refresh();
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.logout_rounded,
+                    color: AppColors.danger500),
+                title: const Text(
+                  'Выйти',
+                  style: TextStyle(color: AppColors.danger500),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _logout();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncProfile = ref.watch(myProfileProvider);
@@ -188,10 +247,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         title: const Text('Профиль'),
         actions: [
           IconButton(
-            tooltip: 'Обновить',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () =>
-                ref.read(myProfileProvider.notifier).refresh(),
+            tooltip: 'Действия',
+            icon: const Icon(Icons.more_vert_rounded),
+            onPressed: _openActionsSheet,
           ),
         ],
       ),
@@ -211,9 +269,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             onPickBanner: _pickAndUploadBanner,
             onRemoveBanner: _removeBanner,
             onEdit: () => context.push(AppRoute.profileEdit),
-            onChangePassword: () =>
-                context.push(AppRoute.profileChangePassword),
-            onLogout: _logout,
             onCopyId: _copyId,
           ),
         ),
@@ -231,8 +286,6 @@ class _ProfileBody extends StatelessWidget {
     required this.onPickBanner,
     required this.onRemoveBanner,
     required this.onEdit,
-    required this.onChangePassword,
-    required this.onLogout,
     required this.onCopyId,
   });
 
@@ -243,8 +296,6 @@ class _ProfileBody extends StatelessWidget {
   final VoidCallback onPickBanner;
   final VoidCallback onRemoveBanner;
   final VoidCallback onEdit;
-  final VoidCallback onChangePassword;
-  final VoidCallback onLogout;
   final void Function(String) onCopyId;
 
   @override
@@ -264,6 +315,16 @@ class _ProfileBody extends StatelessWidget {
               onRemoveBanner: profile.user.coverImage.isNotEmpty
                   ? onRemoveBanner
                   : null,
+              actions: SizedBox(
+                width: double.infinity,
+                child: ChunkyButton(
+                  label: 'Редактировать профиль',
+                  icon: Icons.edit_rounded,
+                  variant: ChunkyVariant.ghost,
+                  fullWidth: true,
+                  onPressed: onEdit,
+                ),
+              ),
               footer: _heroFooter(),
             ),
             if (uploadingAvatar || uploadingBanner)
@@ -283,12 +344,6 @@ class _ProfileBody extends StatelessWidget {
                 ),
               ),
           ],
-        ),
-        const SizedBox(height: 16),
-        _ActionRow(
-          onEdit: onEdit,
-          onChangePassword: onChangePassword,
-          onLogout: onLogout,
         ),
         const SizedBox(height: 20),
         const _SectionTitle(
@@ -372,45 +427,6 @@ class _ProfileBody extends StatelessWidget {
             value: '${profile.creatorStats.publicTestsCount}',
             compact: true,
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionRow extends StatelessWidget {
-  const _ActionRow({
-    required this.onEdit,
-    required this.onChangePassword,
-    required this.onLogout,
-  });
-
-  final VoidCallback onEdit;
-  final VoidCallback onChangePassword;
-  final VoidCallback onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        ChunkyButton(
-          label: 'Редактировать',
-          icon: Icons.edit_rounded,
-          onPressed: onEdit,
-        ),
-        ChunkyButton(
-          label: 'Сменить пароль',
-          icon: Icons.lock_outline_rounded,
-          onPressed: onChangePassword,
-          variant: ChunkyVariant.ghost,
-        ),
-        ChunkyButton(
-          label: 'Выйти',
-          icon: Icons.logout_rounded,
-          onPressed: onLogout,
-          variant: ChunkyVariant.danger,
         ),
       ],
     );

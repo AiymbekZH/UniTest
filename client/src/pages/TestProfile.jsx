@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, Users, Star, Trophy, Play, ArrowLeft,
   Shield, Tag,
-  BarChart3, Flag, Copy, QrCode
+  BarChart3, Flag, Copy, QrCode,
+  CalendarClock, AlertTriangle
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +25,11 @@ export default function TestProfile() {
 
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Holds {code, startDate?, endDate?} when the server returns 403
+  // because the test is outside its publication window. We show a
+  // friendly "test opens at X" / "test ended at X" card instead of a
+  // toast → redirect, which is what made the test feel "broken".
+  const [deadlineError, setDeadlineError] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null);
   const [attemptInfo, setAttemptInfo] = useState({ attempts: 0, maxAttempts: 0 });
   const [myRating, setMyRating] = useState(0);
@@ -69,8 +75,16 @@ export default function TestProfile() {
         } catch (_) {}
       }
     } catch (err) {
-      toast.error(t('testNotFound'));
-      navigate('/dashboard');
+      // Distinguish "doesn't exist" from "exists but outside its open
+      // window". The server returns 403 + code (NOT_STARTED / ENDED)
+      // for the latter — that's a normal scheduled test, not an error,
+      // so we render an in-place card instead of bouncing back.
+      if (err.response?.status === 403 && err.response?.data?.code) {
+        setDeadlineError(err.response.data);
+      } else {
+        toast.error(t('testNotFound'));
+        navigate('/dashboard');
+      }
     } finally {
       setLoading(false);
     }
@@ -138,6 +152,51 @@ export default function TestProfile() {
         <Navbar />
         <div className="flex items-center justify-center py-20">
           <div className="w-10 h-10 border-3 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  // Test exists but isn't open yet (or has ended). Render a friendly
+  // explanation instead of redirecting to the dashboard.
+  if (!test && deadlineError) {
+    const isNotStarted = deadlineError.code === 'NOT_STARTED';
+    const dateStr = isNotStarted
+      ? new Date(deadlineError.startDate).toLocaleString()
+      : new Date(deadlineError.endDate).toLocaleString();
+    return (
+      <div className="min-h-screen bg-surface">
+        <Navbar />
+        <div className="flex items-center justify-center px-4 py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-md w-full glass-card p-8 text-center"
+          >
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg
+              ${isNotStarted ? 'bg-amber-500 shadow-amber-500/30' : 'bg-red-500 shadow-red-500/30'}`}>
+              {isNotStarted
+                ? <CalendarClock className="w-8 h-8 text-white" />
+                : <AlertTriangle className="w-8 h-8 text-white" />}
+            </div>
+            <h2 className="text-xl font-bold text-dark mb-2">
+              {isNotStarted
+                ? (t('testNotAvailableYet') || 'Тест ещё не открыт')
+                : (t('testFinished') || 'Тест уже закрыт')}
+            </h2>
+            <p className="text-gray-500 text-sm mb-6">
+              {isNotStarted
+                ? (t('testOpensAt', { date: dateStr }) || `Откроется: ${dateStr}`)
+                : (t('testWasAvailableUntil', { date: dateStr }) || `Был доступен до: ${dateStr}`)
+              }
+            </p>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="chunky-btn-primary w-full py-3 text-sm"
+            >
+              {t('back') || 'Назад'}
+            </button>
+          </motion.div>
         </div>
       </div>
     );
