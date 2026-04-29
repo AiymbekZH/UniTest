@@ -108,6 +108,30 @@ export const AuthProvider = ({ children }) => {
     upsertSavedSession(token, nextUser);
   }, [applyActiveSession, upsertSavedSession]);
 
+  // PERF: avatar/coverImage больше не приходят из /api/auth/me (они тяжёлые ~600KB).
+  // Догружаем их фоном после быстрого /me, мерджим в user state.
+  const loadProfileImagesAsync = useCallback(() => {
+    api.get('/auth/me/profile-image')
+      .then(res => {
+        const data = res?.data || {};
+        setUser(prev => {
+          if (!prev) return prev;
+          // Если аватар уже есть и это URL (не data:base64) — не перезаписываем.
+          const merged = {
+            ...prev,
+            avatar: data.avatar || prev.avatar || '',
+            coverImage: data.coverImage || prev.coverImage || '',
+            coverPreset: data.coverPreset || prev.coverPreset || 'aurora'
+          };
+          try {
+            localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      })
+      .catch(() => {});
+  }, []);
+
   const switchAccount = useCallback(async (sessionId) => {
     const session = readSavedSessions().find(item => item.id === sessionId);
     if (!session) {
@@ -157,6 +181,8 @@ export const AuthProvider = ({ children }) => {
         .then(res => {
           syncCurrentSession(res.data.user);
           connectSocket();
+          // Lazy-load avatar/cover after main user data — не блокирует UI.
+          loadProfileImagesAsync();
         })
         .catch((error) => {
           if (isAuthFailure(error)) {
@@ -170,13 +196,14 @@ export const AuthProvider = ({ children }) => {
       api.get('/auth/me')
         .then(res => {
           applyCookieOnlySession(res.data.user);
+          loadProfileImagesAsync();
         })
         .catch(() => {
           setSavedSessions(readSavedSessions());
         })
         .finally(() => setLoading(false));
     }
-  }, [applyCookieOnlySession, clearActiveSession, syncCurrentSession]);
+  }, [applyCookieOnlySession, clearActiveSession, syncCurrentSession, loadProfileImagesAsync]);
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });

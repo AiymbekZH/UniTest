@@ -25,7 +25,12 @@ function _setCachedUser(userId, user) {
 async function findUserCached(userId) {
   const cached = _getCachedUser(userId);
   if (cached) return cached;
-  const user = await User.findById(userId).select('-password').lean();
+  // PERF (КРИТИЧНО): НЕ загружать `avatar` и `coverImage` (base64 ~600KB каждое).
+  // /api/auth/me делается на каждой странице → раньше было 1.2 MB на каждый запрос!
+  // Аватар и обложка профиля грузятся отдельно через /api/auth/me/profile-image.
+  const user = await User.findById(userId)
+    .select('-password -avatar -coverImage')
+    .lean();
   if (user) _setCachedUser(userId, user);
   return user;
 }

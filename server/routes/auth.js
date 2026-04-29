@@ -177,6 +177,26 @@ router.get('/me', auth, async (req, res) => {
   res.json({ user: req.user });
 });
 
+// PERF: Lazy-load own avatar/cover (base64 ~600KB each, excluded from /me by default).
+// Frontend Auth context calls this AFTER /me to populate avatar without blocking.
+router.get('/me/profile-image', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('avatar coverImage coverPreset')
+      .lean();
+    if (!user) return res.status(404).json({ avatar: '', coverImage: '', coverPreset: 'aurora' });
+    // Cache 60 seconds — avatar rarely changes mid-session.
+    res.set('Cache-Control', 'private, max-age=60');
+    res.json({
+      avatar: user.avatar || '',
+      coverImage: user.coverImage || '',
+      coverPreset: user.coverPreset || 'aurora'
+    });
+  } catch (error) {
+    res.status(500).json({ avatar: '', coverImage: '', coverPreset: 'aurora' });
+  }
+});
+
 // Forgot password
 router.post('/forgot-password', async (req, res) => {
   try {
