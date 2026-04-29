@@ -104,12 +104,26 @@ module.exports = function attachArenaSocket(io) {
 
         const result = await handleArenaAnswer(roomId, actor, payload, io);
         await bumpArenaActivity(roomId);
+        // Forward the full graded result so the client can trigger animations
+        // for trap-hit, speed-profile bonus, sudden death, etc. Server-only
+        // fields (correct option ids) are NOT included.
+        const g = result.graded || {};
         socket.emit('arena:answerAck', {
           roomId,
           questionIndex: result.questionIndex,
-          isCorrect: result.graded.isCorrect,
-          pointsAwarded: result.graded.pointsAwarded,
-          streak: result.graded.nextStreak
+          isCorrect: g.isCorrect,
+          pointsAwarded: g.pointsAwarded,
+          streak: g.nextStreak,
+          graded: {
+            isCorrect: g.isCorrect,
+            pointsAwarded: g.pointsAwarded,
+            multiplier: g.multiplier,
+            doublePointsApplied: g.doublePointsApplied,
+            shieldApplied: g.shieldApplied,
+            speedProfileApplied: g.speedProfileApplied || null,
+            trapTriggered: !!g.trapTriggered,
+            underdogApplied: !!g.underdogApplied
+          }
         });
       } catch (error) {
         socket.emit('arena:error', { message: error.message || 'Ошибка отправки ответа' });

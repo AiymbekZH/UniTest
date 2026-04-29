@@ -46,6 +46,10 @@ export default function ArenaGameplayOverlay({
   const [mirrorResult, setMirrorResult] = useState(null);
   // Steal toast: when actor steals from leader.
   const [stealToast, setStealToast] = useState(null);
+  // Hint banner emitted by the server at 50% of the timer.
+  const [hintBanner, setHintBanner] = useState(null);
+  // Trap-trigger animation state set when this player just stepped on a trap.
+  const [trapHit, setTrapHit] = useState(false);
 
   const roomId = room?._id;
   const powerUps = participant?.powerUps || {
@@ -115,16 +119,42 @@ export default function ArenaGameplayOverlay({
       haptic.warning();
     };
 
+    // Hint banner: server emits at 50% of question timer when revealHint is set.
+    const handleHint = (payload) => {
+      if (String(payload?.roomId) !== String(roomId)) return;
+      if (typeof payload.questionIndex === 'number' && payload.questionIndex !== room?.currentQuestionIndex) return;
+      setHintBanner({ at: payload.at || Date.now(), text: payload.text || '' });
+      arenaSounds.tick?.();
+      haptic.tap?.();
+      // Auto-dismiss after 8s.
+      setTimeout(() => setHintBanner(null), 8000);
+    };
+
+    // Trap trigger: server includes `trapTriggered` on the answer ack to the actor.
+    const handleAnswerAck = (payload) => {
+      if (!payload || String(payload.roomId) !== String(roomId)) return;
+      if (payload?.graded?.trapTriggered) {
+        setTrapHit(true);
+        haptic.warning?.();
+        arenaSounds.wrong?.();
+        setTimeout(() => setTrapHit(false), 1800);
+      }
+    };
+
     socket.on('arena:reaction', handleReaction);
     socket.on('arena:powerUpApplied', handlePowerUpApplied);
     socket.on('arena:steal', handleSteal);
+    socket.on('arena:hint', handleHint);
+    socket.on('arena:answerAck', handleAnswerAck);
 
     return () => {
       socket.off('arena:reaction', handleReaction);
       socket.off('arena:powerUpApplied', handlePowerUpApplied);
       socket.off('arena:steal', handleSteal);
+      socket.off('arena:hint', handleHint);
+      socket.off('arena:answerAck', handleAnswerAck);
     };
-  }, [roomId]);
+  }, [roomId, room?.currentQuestionIndex]);
 
   useEffect(() => {
     const status = room?.status;
@@ -282,6 +312,73 @@ export default function ArenaGameplayOverlay({
                 ⚔ Кража! −{stealToast.amount} у {stealToast.displayName}
               </p>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hint banner — auto-shown at 50% of timer when revealHint is set */}
+      <AnimatePresence>
+        {hintBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+            className="pointer-events-auto fixed left-1/2 top-20 z-50 w-[min(94vw,520px)] -translate-x-1/2"
+          >
+            <div
+              className="flex items-start gap-2 rounded-2xl border-2 border-cyan-600 bg-cyan-50 p-3 text-cyan-900 dark:border-cyan-400 dark:bg-cyan-900/50 dark:text-cyan-50"
+              style={{ boxShadow: '0 5px 0 #155e75' }}
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-cyan-500 text-white">
+                <Sparkles size={15} strokeWidth={2.6} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-200">
+                  Подсказка от автора
+                </p>
+                <p className="mt-0.5 text-sm font-bold leading-snug">{hintBanner.text}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHintBanner(null)}
+                className="rounded-md p-1 text-cyan-700 transition hover:bg-cyan-100 dark:text-cyan-200 dark:hover:bg-cyan-800/40"
+                aria-label="Закрыть подсказку"
+              >
+                <span aria-hidden>×</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Trap-hit shake overlay — flashes a red tint when the player picks the trap option */}
+      <AnimatePresence>
+        {trapHit && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0.7, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.6 }}
+            className="pointer-events-none fixed inset-0 z-[34]"
+            style={{ background: 'radial-gradient(circle at center, rgba(239,68,68,0.35) 0%, rgba(239,68,68,0) 70%)' }}
+          >
+            <motion.div
+              initial={{ scale: 0.4, opacity: 0, y: 20 }}
+              animate={{ scale: [0.4, 1.3, 1.0], opacity: [0, 1, 0], y: [20, -30, -90] }}
+              transition={{ duration: 1.4 }}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-7xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.7)] sm:text-8xl"
+            >
+              ⦿
+            </motion.div>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 1, 0] }}
+              transition={{ duration: 1.4, delay: 0.2 }}
+              className="absolute left-1/2 top-[60%] -translate-x-1/2 rounded-full border-2 border-red-700 bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-red-700 dark:border-red-300 dark:bg-slate-900 dark:text-red-200"
+            >
+              Ловушка! Серия сброшена
+            </motion.p>
           </motion.div>
         )}
       </AnimatePresence>

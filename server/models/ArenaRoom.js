@@ -22,7 +22,20 @@ const arenaQuestionSchema = new mongoose.Schema({
     correctOptionIds: { type: [String], default: [] },
     acceptedAnswers: { type: [String], default: [] },
     correctPairs: { type: Map, of: String, default: {} }
-  }
+  },
+  // ─── Arena spice (Phase 2 / Inline-create) ─────────────────────────────
+  // speedProfile: 'blitz' | 'normal' | 'marathon' | 'custom' — bumps point multipliers.
+  speedProfile: { type: String, default: 'normal' },
+  // One option id flagged as a streak-killer (selecting it == 0 streak + −20% next q).
+  trapOptionId: { type: String, default: '' },
+  // Boss question — no power-ups can be activated (server-side reject).
+  blockPowerUps: { type: Boolean, default: false },
+  // Optional hint shown to all players at 50% of the timer.
+  revealHint: { type: String, default: '' },
+  // Per-player option shuffling flag (anti-cheat / Kahoot-style).
+  shuffleOptions: { type: Boolean, default: true },
+  // Optional explanation shown at answer-reveal phase.
+  explanation: { type: String, default: '' }
 }, { _id: false });
 
 const arenaRoomSchema = new mongoose.Schema({

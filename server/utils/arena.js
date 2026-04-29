@@ -78,20 +78,33 @@ function generateJoinCode() {
 function buildArenaQuestionSnapshot(question, settings = {}) {
   if (!ARENA_ALLOWED_TYPES.includes(question.type)) return null;
 
+  // Per-question timer wins over the room default. BankQuestion may carry `timerSec`.
+  const perQuestionTimer = Number(question.timerSec) || null;
+  const effectiveTimer = perQuestionTimer
+    ? clampNumber(perQuestionTimer, getArenaQuestionDuration(question.type), 5, 300)
+    : clampNumber(settings.answerTimeSec, getArenaQuestionDuration(question.type), 5, 120);
+
   const base = {
     questionId: question.id,
     type: question.type,
     questionText: question.questionText,
     passage: question.passage || '',
     points: Math.max(1, Number(question.points) || 1),
-    timeLimitSec: clampNumber(settings.answerTimeSec, getArenaQuestionDuration(question.type), 5, 120),
+    timeLimitSec: effectiveTimer,
     options: [],
     matchingRightSide: [],
     grading: {
       correctOptionIds: [],
       acceptedAnswers: [],
       correctPairs: {}
-    }
+    },
+    // Arena spice fields (Phase 2). Default to safe values when missing on legacy Tests.
+    speedProfile:   question.speedProfile || 'normal',
+    trapOptionId:   question.trapOptionId || '',
+    blockPowerUps:  !!question.blockPowerUps,
+    revealHint:     (question.revealHint || '').toString().slice(0, 200),
+    shuffleOptions: question.shuffleOptions !== false,
+    explanation:    (question.explanation || '').toString().slice(0, 500)
   };
 
   if (question.type === 'matching') {
@@ -161,12 +174,19 @@ function buildArenaSnapshotFromBank(entries, settings = {}) {
           matchPair: o.matchPair || ''
         })),
         correctAnswer: bq.correctAnswer || '',
-        translations: bq.translations || {}
+        translations: bq.translations || {},
+        // Forward arena spice fields stored on the BankQuestion. Per-entry override
+        // (entry.timerOverride) wins, otherwise BankQuestion.timerSec (if any).
+        timerSec:       entry.timerOverride || bq.timerSec || null,
+        speedProfile:   bq.speedProfile || 'normal',
+        trapOptionId:   bq.trapOptionId || '',
+        blockPowerUps:  !!bq.blockPowerUps,
+        revealHint:     bq.revealHint || '',
+        shuffleOptions: bq.shuffleOptions !== false,
+        explanation:    bq.explanation || ''
       };
-      const perQuestionSettings = entry.timerOverride
-        ? { ...normalizedSettings, answerTimeSec: entry.timerOverride }
-        : normalizedSettings;
-      return buildArenaQuestionSnapshot(questionLike, perQuestionSettings);
+      // No need to override answerTimeSec here — buildArenaQuestionSnapshot does it via timerSec.
+      return buildArenaQuestionSnapshot(questionLike, normalizedSettings);
     })
     .filter(Boolean);
 }
@@ -212,7 +232,15 @@ function sanitizeArenaQuestion(question, questionIndex = 0, totalQuestions = 0, 
     matchingRightSide: question.matchingRightSide || [],
     answerSummary,
     questionNumber: questionIndex + 1,
-    totalQuestions
+    totalQuestions,
+    // Arena spice surfaced to the client. trapOptionId is intentionally NOT
+    // exposed during the live phase — only at answer reveal (options.includeAnswer).
+    speedProfile:   question.speedProfile || 'normal',
+    blockPowerUps:  !!question.blockPowerUps,
+    shuffleOptions: question.shuffleOptions !== false,
+    revealHint:     question.revealHint || '',
+    explanation:    options.includeAnswer ? (question.explanation || '') : '',
+    trapOptionId:   options.includeAnswer ? (question.trapOptionId || '') : ''
   };
 }
 
@@ -241,6 +269,12 @@ function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTim
     isCorrect = expectedEntries.length > 0 && expectedEntries.every(([left, right]) => actualMap[left] === right);
   }
 
+  // Arena spice: trap option detection. Triggered only when the player picked
+  // exactly the marked option AND it's the wrong answer — destroys streak +
+  // applies a small per-question penalty.
+  const trapId = question.trapOptionId || '';
+  const trapTriggered = !isCorrect && trapId && selectedOptions.includes(trapId);
+
   const totalTimeMs = Math.max(1000, (question.timeLimitSec || 20) * 1000);
   const clampedResponseTimeMs = Math.max(0, Math.min(responseTimeMs, totalTimeMs));
   const remainingRatio = Math.max(0, (totalTimeMs - clampedResponseTimeMs) / totalTimeMs);
@@ -249,7 +283,14 @@ function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTim
   const doubleMultiplier = modifiers.doublePoints && isCorrect ? 2 : 1;
   // Sudden Death: armed on previous question — ×2 if correct, −100 if wrong.
   const suddenDeathMultiplier = modifiers.suddenDeath && isCorrect ? 2 : 1;
-  const multiplier = streakMultiplier * doubleMultiplier * suddenDeathMultiplier;
+  // Speed profile: blitz halves rewards (high speed but low payout); marathon boosts ×1.5.
+  const speedProfileMultiplier = (() => {
+    if (!isCorrect) return 1;
+    if (question.speedProfile === 'blitz') return 0.5;
+    if (question.speedProfile === 'marathon') return 1.5;
+    return 1;
+  })();
+  const multiplier = streakMultiplier * doubleMultiplier * suddenDeathMultiplier * speedProfileMultiplier;
   const basePoints = isCorrect ? (question.points || 1) * 100 : 0;
   const speedBonus = isCorrect ? Math.round((question.points || 1) * 50 * remainingRatio) : 0;
   let pointsAwarded = isCorrect ? Math.round((basePoints + speedBonus) * multiplier) : 0;
@@ -257,8 +298,15 @@ function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTim
   if (!isCorrect && modifiers.suddenDeath) {
     pointsAwarded = -100;
   }
-  // Shield: keep streak alive when answered wrong.
-  const resolvedNextStreak = !isCorrect && modifiers.shield ? currentStreak : nextStreak;
+  // Trap penalty: trap takes precedence over Shield (you stepped on the obvious bait).
+  // Trap deducts 30 points and zeroes streak even if Shield is active.
+  if (trapTriggered) {
+    pointsAwarded = Math.min(pointsAwarded, -30);
+  }
+  // Shield: keep streak alive when answered wrong (but not when it was a trap).
+  const resolvedNextStreak = trapTriggered
+    ? 0
+    : (!isCorrect && modifiers.shield ? currentStreak : nextStreak);
 
   return {
     isCorrect,
@@ -269,7 +317,9 @@ function gradeArenaAnswer(question, payload = {}, currentStreak = 0, responseTim
     nextStreak: resolvedNextStreak,
     multiplier,
     doublePointsApplied: Boolean(modifiers.doublePoints && isCorrect),
-    shieldApplied: Boolean(!isCorrect && modifiers.shield),
+    shieldApplied: Boolean(!isCorrect && modifiers.shield && !trapTriggered),
+    speedProfileApplied: question.speedProfile && question.speedProfile !== 'normal' ? question.speedProfile : null,
+    trapTriggered: Boolean(trapTriggered),
     basePoints,
     speedBonus,
     pointsAwarded

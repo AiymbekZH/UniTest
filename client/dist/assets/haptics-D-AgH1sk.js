@@ -1,0 +1,1 @@
+const a=()=>typeof navigator<"u"&&typeof navigator.vibrate=="function",i={tap:()=>{a()&&navigator.vibrate(10)},press:()=>{a()&&navigator.vibrate(18)},success:()=>{a()&&navigator.vibrate([20,40,20])},warning:()=>{a()&&navigator.vibrate([30,40,30,40,30])},reveal:()=>{a()&&navigator.vibrate(25)},fail:()=>{a()&&navigator.vibrate([80,60,80])}};export{i as h};

@@ -297,6 +297,24 @@ async function startCurrentArenaQuestion(roomId, io) {
     'finalizeCurrentArenaQuestion'
   ), durationSec * 1000 + 100);
 
+  // Arena spice: if the question carries a `revealHint`, broadcast it at 50%
+  // of the timer. We don't persist this on the room — it's a fire-and-forget
+  // in-memory event for visual effect only.
+  if (currentQuestion.revealHint && io) {
+    setArenaTimer(roomId, 'hint', safeTimer(async () => {
+      // Re-check that the room is still on the same question before emitting.
+      const fresh = await ArenaRoom.findById(roomId);
+      if (!fresh || fresh.status !== ARENA_STATUS.LIVE) return;
+      if (fresh.currentQuestionIndex !== room.currentQuestionIndex) return;
+      io.to(`arena:${roomId}`).emit('arena:hint', {
+        roomId: String(roomId),
+        questionIndex: fresh.currentQuestionIndex,
+        text: currentQuestion.revealHint,
+        at: Date.now()
+      });
+    }, 'arenaHintReveal'), Math.floor(durationSec * 500));
+  }
+
   return room;
 }
 
@@ -655,6 +673,13 @@ async function applyArenaPowerUp(roomId, actor, type, io = null) {
   if (!isPowerUpAllowedForQuestion(type, currentQuestion)) {
     const error = new Error('Этот бустер не доступен для текущего вопроса');
     error.status = 400;
+    throw error;
+  }
+
+  // Arena spice: boss-question lock — no power-ups allowed at all.
+  if (currentQuestion.blockPowerUps) {
+    const error = new Error('Босс-вопрос: бустеры заблокированы');
+    error.status = 423; // Locked — surfaces nicely on the client.
     throw error;
   }
 

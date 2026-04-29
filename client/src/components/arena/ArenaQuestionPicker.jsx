@@ -11,10 +11,12 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
   Search, X, GripVertical, Plus, Trash2, Tag, Hash, Database, ListChecks,
-  Check, ToggleLeft, FileText, Link2, Type, Clock, Trophy, Filter, Inbox, RotateCcw
+  Check, ToggleLeft, FileText, Link2, Type, Clock, Trophy, Filter, Inbox, RotateCcw,
+  Sparkles, Edit3
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import InlineQuestionEditor from './InlineQuestionEditor';
 
 // Type metadata mirrors the QuestionBank palette so users see consistent colors.
 const TYPE_META = {
@@ -99,7 +101,7 @@ function BankCard({ q, onAdd }) {
 }
 
 // Snapshot row — sortable + per-question override fields (timer, points).
-function SnapshotCard({ entry, index, defaultTimer, onRemove, onChange }) {
+function SnapshotCard({ entry, index, defaultTimer, onRemove, onChange, onEdit }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entry.id });
   const meta = TYPE_META[entry.q.type] || TYPE_META['single-choice'];
   const Icon = meta.icon;
@@ -143,14 +145,26 @@ function SnapshotCard({ entry, index, defaultTimer, onRemove, onChange }) {
           />
         </div>
 
-        <button
-          type="button"
-          onClick={() => onRemove(entry.id)}
-          className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30"
-          title="Удалить из арены"
-        >
-          <Trash2 size={13} />
-        </button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={() => onEdit(entry.q)}
+              className="rounded-lg p-1 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30"
+              title="Редактировать в банке"
+            >
+              <Edit3 size={13} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onRemove(entry.id)}
+            className="rounded-lg p-1 text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30"
+            title="Удалить из арены"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
 
       {/* Per-question override row */}
@@ -192,6 +206,32 @@ function SnapshotCard({ entry, index, defaultTimer, onRemove, onChange }) {
         </label>
 
         <TypeBadge type={entry.q.type} />
+
+        {/* Arena spice indicators — visible at a glance so the host knows what's special */}
+        {entry.q.blockPowerUps && (
+          <span className="inline-flex items-center gap-0.5 rounded-full border border-red-300 bg-red-50 px-1.5 py-0 text-[9px] font-black text-red-700 dark:border-red-700 dark:bg-red-900/40 dark:text-red-200" title="Босс-вопрос: без бустеров">
+            ☠ Босс
+          </span>
+        )}
+        {entry.q.trapOptionId && (
+          <span className="inline-flex items-center gap-0.5 rounded-full border border-rose-300 bg-rose-50 px-1.5 py-0 text-[9px] font-black text-rose-700 dark:border-rose-700 dark:bg-rose-900/40 dark:text-rose-200" title="Содержит вариант-ловушку">
+            ⦿ Ловушка
+          </span>
+        )}
+        {entry.q.revealHint && (
+          <span className="inline-flex items-center gap-0.5 rounded-full border border-cyan-300 bg-cyan-50 px-1.5 py-0 text-[9px] font-black text-cyan-700 dark:border-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-200" title={`Подсказка: ${entry.q.revealHint}`}>
+            ¡ Подсказка
+          </span>
+        )}
+        {entry.q.speedProfile && entry.q.speedProfile !== 'normal' && (
+          <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0 text-[9px] font-black uppercase ${
+            entry.q.speedProfile === 'blitz'
+              ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-900/40 dark:text-red-200'
+              : 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+          }`} title="Профиль темпа">
+            {entry.q.speedProfile === 'blitz' ? '⚡ Блиц' : '🏆 Марафон'}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -241,6 +281,8 @@ export default function ArenaQuestionPicker({
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [activeDrag, setActiveDrag] = useState(null); // for DragOverlay
   const [isOverDrop, setIsOverDrop] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorInitial, setEditorInitial] = useState(null); // when editing existing bank question
 
   const searchDebounceRef = useRef(null);
   const sensors = useSensors(
@@ -384,6 +426,15 @@ export default function ArenaQuestionPicker({
             <span className="rounded-full bg-slate-100 px-1.5 py-0 text-[10px] font-black tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               {bankItems.length}{bankHasMore ? '+' : ''}
             </span>
+            <button
+              type="button"
+              onClick={() => { setEditorInitial(null); setEditorOpen(true); }}
+              className="ml-auto inline-flex items-center gap-1 rounded-lg border-2 border-slate-900 bg-amber-300 px-2 py-1 text-[11px] font-black text-slate-900 transition hover:bg-amber-400 active:translate-y-[1px] dark:border-white"
+              title="Создать новый вопрос (попадёт в банк)"
+              style={{ boxShadow: '0 2px 0 var(--shadow-chunky, #1f1a14)' }}
+            >
+              <Sparkles size={11} strokeWidth={3} /> Создать
+            </button>
           </header>
 
           <div className="mb-2 flex gap-2">
@@ -477,6 +528,7 @@ export default function ArenaQuestionPicker({
                   defaultTimer={defaultTimer}
                   onRemove={removeFromSnapshot}
                   onChange={updateSnapshotEntry}
+                  onEdit={(q) => { setEditorInitial(q); setEditorOpen(true); }}
                 />
               ))}
             </SnapshotDropZone>
@@ -504,6 +556,30 @@ export default function ArenaQuestionPicker({
           </div>
         ) : null}
       </DragOverlay>
+
+      {/* Inline Question Editor — creates a new BankQuestion and adds it to the snapshot */}
+      <InlineQuestionEditor
+        open={editorOpen}
+        initial={editorInitial}
+        onClose={() => { setEditorOpen(false); setEditorInitial(null); }}
+        onSaved={(saved) => {
+          if (!saved) return;
+          // 1. Refresh bank list so the new question appears
+          setBankItems(prev => [saved, ...prev.filter(b => b._id !== saved._id)]);
+          // 2. If we were editing an existing snapshot row, update its `q` reference; otherwise add new
+          if (editorInitial?._id) {
+            setSnapshot(prev => prev.map(s => s.bankId === saved._id ? { ...s, q: saved } : s));
+          } else {
+            setSnapshot(prev => [...prev, {
+              id: newSnapId(),
+              bankId: saved._id,
+              q: saved,
+              timerOverride: null,
+              pointsOverride: null
+            }]);
+          }
+        }}
+      />
     </DndContext>
   );
 }

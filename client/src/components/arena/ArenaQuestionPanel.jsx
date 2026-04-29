@@ -156,11 +156,47 @@ export default function ArenaQuestionPanel({
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div
-              className="inline-flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-primary-500 px-3 py-1 font-mono text-xs font-black tracking-[0.2em] text-white dark:border-white"
-              style={{ boxShadow: '0 3px 0 #9a3412' }}
-            >
-              {question.questionNumber}/{question.totalQuestions}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <div
+                className="inline-flex items-center gap-1.5 rounded-full border-2 border-slate-900 bg-primary-500 px-3 py-1 font-mono text-xs font-black tracking-[0.2em] text-white dark:border-white"
+                style={{ boxShadow: '0 3px 0 #9a3412' }}
+              >
+                {question.questionNumber}/{question.totalQuestions}
+              </div>
+              {/* Arena spice badges — visible to everyone during the live phase. */}
+              {question.blockPowerUps && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border-2 border-red-700 bg-red-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-red-800 dark:border-red-300 dark:bg-red-900/40 dark:text-red-100"
+                  title="Босс-вопрос: бустеры заблокированы"
+                  style={{ boxShadow: '0 2px 0 #7f1d1d' }}
+                >
+                  ☠ Босс · без бустеров
+                </span>
+              )}
+              {question.speedProfile === 'blitz' && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border-2 border-red-500 bg-red-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-red-700 dark:border-red-400 dark:bg-red-900/40 dark:text-red-100"
+                  title="Блиц: ×0.5 очков, но быстрее"
+                >
+                  ⚡ Блиц
+                </span>
+              )}
+              {question.speedProfile === 'marathon' && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border-2 border-emerald-500 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-400 dark:bg-emerald-900/40 dark:text-emerald-100"
+                  title="Марафон: ×1.5 очков"
+                >
+                  🏆 Марафон ×1.5
+                </span>
+              )}
+              {question.revealHint && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border-2 border-cyan-500 bg-cyan-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-700 dark:border-cyan-400 dark:bg-cyan-900/40 dark:text-cyan-100"
+                  title="Подсказка появится на середине таймера"
+                >
+                  ¡ Подсказка скоро
+                </span>
+              )}
             </div>
             <h2
               className={`${isHostView ? 'mt-5 text-3xl md:text-5xl lg:text-6xl' : 'mt-4 text-2xl sm:text-3xl'} prose prose-headings:!my-0 max-w-none font-black leading-[1.05] tracking-tight dark:prose-invert prose-p:!my-0 prose-strong:font-black`}
