@@ -161,13 +161,26 @@ app.use('/api/arena', arenaRoutes);
 const dmRoutes = require('./routes/dm');
 app.use('/api/dm', dmRoutes);
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
-  res.json({
-    ok: mongoose.connection.readyState === 1,
-    mongo: states[mongoose.connection.readyState] || 'unknown',
-    uptime: Math.round(process.uptime())
-  });
+  const stateName = states[mongoose.connection.readyState] || 'unknown';
+  const base = {
+    mongo: stateName,
+    uptime: Math.round(process.uptime()),
+    nodeVersion: process.version
+  };
+  // readyState alone lies during stale-socket scenarios (Atlas Free tier sleep).
+  // Doing a real ping confirms the connection is actually alive.
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ ok: false, ...base });
+  }
+  try {
+    const startedAt = Date.now();
+    await mongoose.connection.db.admin().ping();
+    return res.json({ ok: true, ...base, pingMs: Date.now() - startedAt });
+  } catch (err) {
+    return res.status(503).json({ ok: false, ...base, error: err.message });
+  }
 });
 
 // Serve frontend build
@@ -247,27 +260,83 @@ const { startArenaCleanupLoop } = require('./utils/arenaEngine');
 
 const PORT = process.env.PORT || 5000;
 
+// ─── MongoDB connection observability ──────────────────────────────────────
+// Without these listeners a dropped connection is invisible — routes just hang
+// until Mongoose's internal buffer overflows 30s later. With them we see exactly
+// when the cluster (Atlas) goes to sleep / wakes up / drops the socket.
+mongoose.connection.on('connected',    () => console.log('[mongo] connected'));
+mongoose.connection.on('disconnected', () => console.warn('[mongo] disconnected — driver will auto-reconnect'));
+mongoose.connection.on('reconnected',  () => console.log('[mongo] reconnected'));
+mongoose.connection.on('error',        (err) => console.error('[mongo] error:', err.message));
+// Replica set / serverless heartbeat events — quiet by default but logged on failure.
+mongoose.connection.on('serverHeartbeatFailed', (event) => {
+  console.warn(`[mongo] heartbeat failed: ${event?.failure?.message || 'unknown'}`);
+});
+
+async function connectWithRetry(uri, attempts = 3) {
+  // Exponential backoff: 1s → 3s → 9s. Atlas Free tier cold-wakes can take 10-15s,
+  // and DigitalOcean App Platform sometimes deploys before networking is ready.
+  const opts = {
+    serverSelectionTimeoutMS: Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || 8000),
+    connectTimeoutMS:         Number(process.env.MONGO_CONNECT_TIMEOUT_MS || 10000),
+    socketTimeoutMS:          Number(process.env.MONGO_SOCKET_TIMEOUT_MS || 45000),
+    maxPoolSize:              Number(process.env.MONGO_MAX_POOL_SIZE || 20),
+    minPoolSize:              Number(process.env.MONGO_MIN_POOL_SIZE || 1),
+    // Fail-fast: if the driver isn't connected, throw immediately instead of
+    // buffering operations for 30s. Pairs with the retry below.
+    bufferCommands: false
+  };
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const startedAt = Date.now();
+    try {
+      await mongoose.connect(uri, opts);
+      console.log(`[mongo] initial connect succeeded in ${Date.now() - startedAt}ms (attempt ${attempt}/${attempts})`);
+      return;
+    } catch (err) {
+      const isLast = attempt === attempts;
+      console.error(`[mongo] connect attempt ${attempt}/${attempts} failed after ${Date.now() - startedAt}ms: ${err.message}`);
+      if (isLast) throw err;
+      const delayMs = Math.min(9000, 1000 * Math.pow(3, attempt - 1));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 async function startServer() {
   if (!process.env.MONGODB_URI) {
     throw new Error('MONGODB_URI must be set');
   }
 
-  const startedAt = Date.now();
-  await mongoose.connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || 8000),
-    connectTimeoutMS: Number(process.env.MONGO_CONNECT_TIMEOUT_MS || 10000),
-    socketTimeoutMS: Number(process.env.MONGO_SOCKET_TIMEOUT_MS || 45000),
-    maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE || 20),
-    minPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE || 1),
-  });
+  await connectWithRetry(process.env.MONGODB_URI, Number(process.env.MONGO_CONNECT_ATTEMPTS || 3));
 
-  console.log(`MongoDB connected successfully in ${Date.now() - startedAt}ms`);
   startArenaCleanupLoop(io, { intervalMs: 60 * 1000, idleMs: 15 * 60 * 1000 });
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`UniTest server running on port ${PORT}`);
   });
 }
+
+// ─── Graceful shutdown ─────────────────────────────────────────────────────
+// Without this, DigitalOcean App Platform sends SIGTERM and we have ~10s
+// before SIGKILL. Closing Mongo cleanly avoids 'connection in use' errors
+// on the next deploy and lets in-flight queries finish.
+let shuttingDown = false;
+async function gracefulShutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[shutdown] received ${signal}, closing server…`);
+  server.close(() => console.log('[shutdown] http server closed'));
+  try {
+    await mongoose.connection.close(false);
+    console.log('[shutdown] mongo connection closed');
+  } catch (err) {
+    console.error('[shutdown] mongo close error:', err.message);
+  }
+  // Give socket.io a moment to flush, then exit.
+  setTimeout(() => process.exit(0), 1000).unref();
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
 
 startServer().catch((err) => {
   console.error('Server startup failed:', err);
