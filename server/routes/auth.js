@@ -35,6 +35,9 @@ function clearAuthCookie(res) {
 }
 
 function buildAuthPayload(user) {
+  // PERF: НЕ включать `avatar` и `coverImage` (~600KB base64 каждое).
+  // На медленной связи логин висит >15 секунд из-за этого payload-а.
+  // AuthContext лениво подгружает их через /api/auth/me/profile-image.
   return {
     id: user._id,
     _id: user._id,
@@ -44,11 +47,8 @@ function buildAuthPayload(user) {
     email: user.email,
     role: user.role,
     uniqueId: user.uniqueId,
-    fullName: user.fullName,
-    avatar: user.avatar,
     headline: user.headline || '',
     bio: user.bio || '',
-    coverImage: user.coverImage || '',
     coverPreset: user.coverPreset || 'aurora',
     language: user.language,
     aiAccess: !!user.aiAccess,
@@ -140,17 +140,25 @@ router.post('/login', async (req, res) => {
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      user.loginAttempts = (user.loginAttempts || 0) + 1;
-      if (user.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
-        user.lockUntil = new Date(Date.now() + LOGIN_LOCK_MS);
+      // PERF: use atomic updateOne instead of user.save() — `save()` rewrites
+      // the ENTIRE User document (including ~600KB base64 avatar) on every
+      // login attempt, which on M0 Atlas free tier can take 5-15+ seconds.
+      const nextAttempts = (user.loginAttempts || 0) + 1;
+      const update = { loginAttempts: nextAttempts };
+      if (nextAttempts >= MAX_LOGIN_ATTEMPTS) {
+        update.lockUntil = new Date(Date.now() + LOGIN_LOCK_MS);
       }
-      await user.save();
+      await User.updateOne({ _id: user._id }, update);
       return res.status(400).json({ message: 'Неверный email или пароль' });
     }
 
-    user.loginAttempts = 0;
-    user.lockUntil = null;
-    await user.save();
+    // Reset attempt counter atomically (avoids re-writing the full document).
+    if ((user.loginAttempts || 0) > 0 || user.lockUntil) {
+      await User.updateOne(
+        { _id: user._id },
+        { loginAttempts: 0, lockUntil: null }
+      );
+    }
 
     await ensureOwnerAdmin(user);
 

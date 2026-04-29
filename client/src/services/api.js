@@ -3,7 +3,9 @@ import axios from 'axios';
 const api = axios.create({
   baseURL: '/api',
   withCredentials: true,
-  timeout: 15000,
+  // 30s timeout — на медленной мобильной связи M0 Atlas + DO иногда отвечает за 10-20с.
+  // Раньше было 15с и login падал с (canceled) до того как сервер успевал ответить.
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' }
 });
 
