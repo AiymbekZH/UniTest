@@ -41,8 +41,8 @@ dependencies:
   # flutter_quill: ^10.8.5
   flutter_widget_from_html: ^0.15.2
 
-  # Localization helper
-  intl: ^0.19.0
+  # Localization helper (pinned by flutter_localizations SDK)
+  intl: ^0.20.2
 
   # Misc
   package_info_plus: ^8.0.2
@@ -50,10 +50,21 @@ dependencies:
   webview_flutter: ^4.10.0     # Used by Phase 6 admin wrapper
   cupertino_icons: ^1.0.8
 
+  # Deep links (custom `unitest://` scheme + universal links).
+  # Used at app launch + while running to capture password-reset URLs
+  # and `@username` shares.
+  app_links: ^6.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  # Generates native splash screens for Android (12+ + legacy) and iOS
+  # storyboard from a single PNG. Removes the white "Flutter" flash.
+  flutter_native_splash: ^2.4.1
+  # Generates app launcher icons for Android (mipmap-*) and iOS
+  # (AppIcon.appiconset) from a single PNG. No more default Flutter icon.
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
@@ -64,13 +75,43 @@ flutter:
   # When adding custom fonts (e.g. Inter), declare them here:
   # fonts:
   #   - family: Inter
-  #     fonts:
-  #       - asset: assets/fonts/Inter-Regular.ttf
-  #       - asset: assets/fonts/Inter-SemiBold.ttf
-  #         weight: 600
-  #       - asset: assets/fonts/Inter-Bold.ttf
-  #         weight: 700
-  #       - asset: assets/fonts/Inter-ExtraBold.ttf
-  #         weight: 800
-  #       - asset: assets/fonts/Inter-Black.ttf
-  #         weight: 900
+
+# ─── Native splash screen ──────────────────────────────────────────
+# Generated via:  dart run flutter_native_splash:create
+# Uses the SQUARE padded version (`logo_splash.png`) so Android 12+'s
+# circular icon mask doesn't squash our 1.5:1 logo. The padding inside
+# the PNG also makes the visual size on splash smaller (logo occupies
+# ~66 % of the icon canvas instead of being scaled to fill it).
+flutter_native_splash:
+  color: "#FFFFFF"
+  color_dark: "#0F172A"
+  image: assets/images/logo_splash.png
+  image_dark: assets/images/logo_splash.png
+  android_12:
+    image: assets/images/logo_splash.png
+    icon_background_color: "#FFFFFF"
+    image_dark: assets/images/logo_splash.png
+    icon_background_color_dark: "#0F172A"
+  android: true
+  ios: true
+  web: false
+  fullscreen: false
+
+# ─── Launcher icon ──────────────────────────────────────────────────
+# Generated via:  dart run flutter_launcher_icons
+# Same padded square source so the logo sits nicely inside the round /
+# squircle launcher mask on both Android and iOS.
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/images/logo_icon.png"
+  min_sdk_android: 23
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/logo_icon.png"
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false

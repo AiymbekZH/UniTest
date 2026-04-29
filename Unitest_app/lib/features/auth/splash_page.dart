@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_state.dart';
-import '../../core/theme/app_colors.dart';
 
 /// Shown while `AuthController.bootstrap()` is in flight. Looks like the
 /// app icon on a tinted backdrop so it doubles as the launch screen
@@ -33,32 +32,13 @@ class _SplashPageState extends ConsumerState<SplashPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                color: AppColors.primary500,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: const [
-                  BoxShadow(
-                    color: AppColors.chunkyShadowPrimary,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Text(
-                  'U',
-                  style: TextStyle(
-                    fontSize: 56,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -2,
-                  ),
-                ),
-              ),
+            Image.asset(
+              'assets/images/logo.png',
+              width: 140,
+              height: 140,
+              fit: BoxFit.contain,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             Text(
               'UniTest',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(

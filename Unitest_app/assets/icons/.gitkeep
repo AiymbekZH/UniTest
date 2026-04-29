@@ -1,0 +1,4 @@
+# Placeholder so Git tracks this directory and Flutter does not complain
+# about the assets/icons/ entry being missing on first build. Add custom
+# Lottie / SVG icon files here and reference them via `Image.asset` /
+# `lottie.asset` / `flutter_svg`.

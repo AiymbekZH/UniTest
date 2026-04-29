@@ -6,9 +6,13 @@ import '../auth/auth_state.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
 import '../../features/auth/forgot_password_page.dart';
+import '../../features/auth/reset_password_page.dart';
 import '../../features/auth/splash_page.dart';
 import '../../features/dashboard/dashboard_page.dart';
+import '../../features/profile/change_password_page.dart';
+import '../../features/profile/edit_profile_page.dart';
 import '../../features/profile/profile_page.dart';
+import '../../features/profile/user_profile_page.dart';
 import '../../features/main_shell.dart';
 import '../../features/messages/messages_page.dart';
 import '../../features/arena/arena_hub_page.dart';
@@ -18,17 +22,33 @@ import '../../features/tests/tests_browse_page.dart';
 /// like `go_router_builder` were considered but add code-gen overhead for
 /// little win on a single-developer project.
 abstract class AppRoute {
+  // ── Public auth flow ─────────────────────────────────────────────────
   static const splash         = '/';
   static const login          = '/login';
   static const register       = '/register';
   static const forgotPassword = '/forgot-password';
 
-  // Tabbed shell
+  /// Reset password is a *path-parameter* route so the deep link
+  /// `unitest://reset/<token>` and the web URL
+  /// `https://unitest.page/reset-password/<token>` share the same shape.
+  static const resetPasswordPattern = '/reset-password/:token';
+  static String resetPasswordTo(String token) => '/reset-password/$token';
+
+  // ── Tabbed shell ────────────────────────────────────────────────────
   static const dashboard      = '/dashboard';
   static const tests          = '/tests';
   static const arena          = '/arena';
   static const messages       = '/messages';
   static const profile        = '/profile';
+
+  // ── Profile sub-pages (pushed on top of the shell) ───────────────────
+  static const profileEdit           = '/profile/edit';
+  static const profileChangePassword = '/profile/change-password';
+
+  /// Public profile of any user, by Mongo `_id` or `@username`.
+  /// Path: `/u/<idOrUsername>`.
+  static const userProfilePattern = '/u/:idOrUsername';
+  static String userProfileTo(String idOrUsername) => '/u/$idOrUsername';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -50,14 +70,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final isOnAuthPage = loc == AppRoute.login ||
           loc == AppRoute.register ||
           loc == AppRoute.forgotPassword;
+      // Reset password is reachable while signed-out (deep link from
+      // an email) AND while signed-in (oversight protection — we don't
+      // boot you out of the form just because the email opened later).
+      final isOnResetPassword = loc.startsWith('/reset-password/');
       final isOnSplash = loc == AppRoute.splash;
 
       switch (auth) {
         case AuthBootstrapping():
-          // Stay on splash until we know.
-          return isOnSplash ? null : AppRoute.splash;
+          // Stay on splash until we know — except for reset password
+          // deep links, which work without a session.
+          if (isOnSplash || isOnResetPassword) return null;
+          return AppRoute.splash;
         case AuthSignedOut():
-          if (isOnAuthPage) return null;
+          if (isOnAuthPage || isOnResetPassword) return null;
           return AppRoute.login;
         case AuthSignedIn():
           if (isOnAuthPage || isOnSplash) return AppRoute.dashboard;
@@ -80,6 +106,33 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoute.forgotPassword,
         builder: (_, __) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: AppRoute.resetPasswordPattern,
+        builder: (_, state) => ResetPasswordPage(
+          token: state.pathParameters['token'] ?? '',
+        ),
+      ),
+
+      // Edit / change-password / public-user routes are pushed on top of
+      // the root navigator so they slide over the bottom-nav shell. Same
+      // pattern as native iOS / Material You "details" screens.
+      GoRoute(
+        path: AppRoute.profileEdit,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (_, __) => const EditProfilePage(),
+      ),
+      GoRoute(
+        path: AppRoute.profileChangePassword,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (_, __) => const ChangePasswordPage(),
+      ),
+      GoRoute(
+        path: AppRoute.userProfilePattern,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (_, state) => UserProfilePage(
+          idOrUsername: state.pathParameters['idOrUsername'] ?? '',
+        ),
       ),
 
       // Tabbed shell containing the 5 main destinations.

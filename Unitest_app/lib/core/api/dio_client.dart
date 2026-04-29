@@ -1,4 +1,8 @@
+import 'dart:developer' as developer;
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/token_storage.dart';
@@ -33,8 +37,13 @@ class DioClient {
         ) {
     dio.interceptors.add(_AuthInterceptor(_tokenStorage));
     dio.interceptors.add(_ErrorTranslatingInterceptor());
-    // Re-enable for local debugging:
-    // dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+    // Verbose logging in debug builds only — wiped from release builds
+    // by the dart compiler since `kDebugMode` is a const. Logs go through
+    // `dart:developer.log` so they show up nicely in `flutter run` and
+    // in DevTools' Network tab.
+    if (kDebugMode) {
+      dio.interceptors.add(_PrettyLogInterceptor());
+    }
   }
 
   final Dio dio;
@@ -155,6 +164,95 @@ class _ErrorTranslatingInterceptor extends Interceptor {
       return data['reason'] as String;
     }
     return null;
+  }
+}
+
+/// Concise, human-readable HTTP logger that's only attached in debug
+/// mode. Output format:
+///
+///     → POST /api/auth/login
+///       body: {"email":"…","password":"…"}
+///     ← 200 OK   /api/auth/login   312 ms
+///       body: {"token":"eyJ…","user":{…}}
+///
+/// Tokens and passwords are redacted so screenshots of the console
+/// never leak secrets. Body output is truncated at 1 KB so giant
+/// responses (test lists with 100 questions) don't drown the console.
+class _PrettyLogInterceptor extends Interceptor {
+  static const int _bodyLimit = 1024;
+  static const _redactedFields = {'password', 'token'};
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    options.extra['_startedAt'] = DateTime.now();
+    final method = options.method.toUpperCase();
+    final url = '${options.baseUrl}${options.path}';
+    _log('→ $method $url');
+    final body = options.data;
+    if (body != null) _log('  body: ${_redactBody(body)}');
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
+    final ms = _elapsed(response.requestOptions);
+    final method = response.requestOptions.method.toUpperCase();
+    final url = response.requestOptions.uri.path;
+    _log('← ${response.statusCode} $method $url   ${ms}ms');
+    final body = response.data;
+    if (body != null) _log('  body: ${_redactBody(body)}');
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final ms = _elapsed(err.requestOptions);
+    final method = err.requestOptions.method.toUpperCase();
+    final url = err.requestOptions.uri.toString();
+    final status = err.response?.statusCode;
+    _log('⚠ ${status ?? err.type.name} $method $url   ${ms}ms');
+    if (err.response?.data != null) {
+      _log('  error body: ${_redactBody(err.response?.data)}');
+    } else if (err.message != null) {
+      _log('  error: ${err.message}');
+    }
+    if (err.error is SocketException) {
+      _log('  (network down? wrong host? device offline?)');
+    }
+    handler.next(err);
+  }
+
+  int _elapsed(RequestOptions options) {
+    final started = options.extra['_startedAt'];
+    if (started is DateTime) {
+      return DateTime.now().difference(started).inMilliseconds;
+    }
+    return 0;
+  }
+
+  /// Redacts sensitive fields and trims long bodies. Accepts maps,
+  /// strings, or arbitrary objects.
+  String _redactBody(Object? body) {
+    Object? data = body;
+    if (data is Map) {
+      final clone = <String, dynamic>{};
+      data.forEach((k, v) {
+        final key = k.toString();
+        if (_redactedFields.contains(key.toLowerCase())) {
+          clone[key] = '***';
+        } else {
+          clone[key] = v;
+        }
+      });
+      data = clone;
+    }
+    final str = data.toString();
+    if (str.length <= _bodyLimit) return str;
+    return '${str.substring(0, _bodyLimit)}… (${str.length - _bodyLimit} more bytes)';
+  }
+
+  void _log(String msg) {
+    developer.log(msg, name: 'http');
   }
 }
 

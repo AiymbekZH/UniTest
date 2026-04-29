@@ -3,15 +3,31 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
+import 'core/router/deep_link_service.dart';
 import 'core/theme/app_theme.dart';
 
 /// Top-level widget. Owns the `MaterialApp.router`, themes, and
 /// localization delegates. State and routing are pulled from Riverpod.
-class UniTestApp extends ConsumerWidget {
+class UniTestApp extends ConsumerStatefulWidget {
   const UniTestApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UniTestApp> createState() => _UniTestAppState();
+}
+
+class _UniTestAppState extends ConsumerState<UniTestApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Start listening for `unitest://` deep links AFTER the first frame
+    // so the router is fully built and ready to receive `go()` calls.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(deepLinkServiceProvider).init();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(goRouterProvider);
 
     return MaterialApp.router(

@@ -52,9 +52,19 @@ class ApiEndpoints {
 
   // ── Profile ─────────────────────────────────────────────────────────
   static const String profile              = '/profile';
+  static const String profileMe            = '/profile/me';
+  static const String profileMeWarnings    = '/profile/me/warnings';
+  static const String profileMeComments    = '/profile/me/comments';
+  static const String profileMeStats       = '/profile/me/stats';
   static const String profileAvatar        = '/profile/avatar';
   static const String profileBanner        = '/profile/banner';
-  static String profileUser(String idOrUsername) => '/profile/$idOrUsername';
+  static const String profilePassword      = '/profile/password';
+  static const String profileCheckUsername = '/profile/check-username';
+  static String profileById(String id) => '/profile/$id';
+  static String profileByUsername(String username) => '/profile/by-username/$username';
+  static String profileFollow(String id) => '/profile/$id/follow';
+  static String profileFollowers(String id) => '/profile/$id/followers';
+  static String profileFollowing(String id) => '/profile/$id/following';
 
   // ── Comments ────────────────────────────────────────────────────────
   static String commentsByTest(String testId) => '/comments/test/$testId';
