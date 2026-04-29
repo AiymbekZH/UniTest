@@ -87,6 +87,31 @@ function getCorrectText(question) {
     .join(', ');
 }
 
+// Mulberry32 PRNG seeded by a string. Used for deterministic per-player option shuffling
+// so option order is stable across re-renders for the SAME player but differs between players.
+function seededShuffle(arr, seed) {
+  if (!seed || !Array.isArray(arr) || arr.length <= 1) return arr;
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  let s = (h >>> 0) || 1;
+  const rng = () => {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 export default function ArenaQuestionPanel({
   question,
   timeLeftMs = 0,
@@ -95,11 +120,27 @@ export default function ArenaQuestionPanel({
   onSubmit,
   ack = null,
   showAnswer = false,
-  answerStats = null
+  answerStats = null,
+  // Stable identifier for the viewing participant — used as the shuffle seed so
+  // each player sees options in their own order. Pass null on the host view.
+  participantSeed = null
 }) {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [textAnswer, setTextAnswer] = useState('');
   const [matchingPairs, setMatchingPairs] = useState({});
+
+  // Per-player option shuffling: only when the question opted in via the
+  // arena spice flag and the viewer is a player (not the host). Host always
+  // sees the canonical order so reveal animations stay consistent.
+  const displayOptions = useMemo(() => {
+    if (!question?.options) return [];
+    const enabled = question.shuffleOptions !== false; // default ON if undefined
+    const isHost = mode === 'host';
+    const seed = enabled && !isHost && participantSeed
+      ? `${participantSeed}::${question.questionId}`
+      : null;
+    return seed ? seededShuffle(question.options, seed) : question.options;
+  }, [question?.options, question?.questionId, question?.shuffleOptions, mode, participantSeed]);
 
   useEffect(() => {
     setSelectedOptions([]);
@@ -227,7 +268,7 @@ export default function ArenaQuestionPanel({
 
       {(question.type === 'single-choice' || question.type === 'multiple-choice' || question.type === 'true-false') && (
         <div className={`${isHostView ? 'grid flex-1 grid-cols-2' : 'grid flex-1 grid-cols-1 sm:grid-cols-2'} gap-3 sm:gap-4`}>
-          {(question.options || []).map((option, index) => {
+          {displayOptions.map((option, index) => {
             const style = TILE_STYLES[index % TILE_STYLES.length];
             const Icon = style.icon;
             const active = selectedOptions.includes(option.id);
@@ -318,7 +359,7 @@ export default function ArenaQuestionPanel({
           className="flex flex-1 flex-col gap-3 rounded-[2rem] border-2 border-slate-900 bg-white p-4 dark:border-white dark:bg-slate-900"
           style={{ boxShadow: '0 6px 0 var(--shadow-chunky, #1f1a14)' }}
         >
-          {(question.options || []).map(option => (
+          {displayOptions.map(option => (
             <div key={option.id} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)]">
               <div className="rounded-[1.35rem] border-2 border-slate-300 bg-slate-50 px-4 py-4 text-base font-black text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
                 {option.text}

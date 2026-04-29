@@ -485,6 +485,7 @@ export default function ArenaCodePage() {
               ack={ack}
               showAnswer={showAnswer}
               answerStats={room.answerStats}
+              participantSeed={getParticipantId(currentParticipant)}
             />
           )}
 
