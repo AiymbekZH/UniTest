@@ -28,7 +28,9 @@ async function _getCachedChallengeTests() {
     isDeleted: false,
     'settings.isPublic': true
   })
-    .populate('creator', 'firstName lastName avatar')
+    // PERF: НЕ populate `avatar` (base64 ~600KB) — кешируем 200 тестов в памяти,
+    // с avatar = 120MB кеша + до 1.2MB на каждый ответ /challenges/active.
+    .populate('creator', 'firstName lastName')
     .sort({ rating: -1, attemptCount: -1, createdAt: -1 })
     .select('title shareLink totalPoints rating questions creator settings')
     .limit(200)

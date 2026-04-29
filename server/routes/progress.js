@@ -26,7 +26,9 @@ router.get('/me', auth, async (req, res) => {
       user: req.user._id,
       status: 'completed'
     })
-      .populate('test', 'title shareLink coverImage settings.isPublic')
+      // PERF: НЕ populate `coverImage` (base64 ~500KB на тест) — 6 результатов было до 3MB.
+      // UI покажет плейсхолдер вместо обложки. Для полных обложек есть /api/tests/covers.
+      .populate('test', 'title shareLink settings.isPublic')
       .sort({ createdAt: -1 })
       .limit(6)
       .lean();
