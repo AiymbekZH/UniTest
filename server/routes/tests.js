@@ -221,11 +221,39 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
   }
 });
 
+// PERF: Memory cache for /api/tests. Key = userId + query string.
+// TTL 20s. На переходах внутри SPA дашборд берёт ответ из browser cache (15с),
+// а если несколько юзеров запрашивают одно — попадание в memory cache 20с.
+const _testsListCache = new Map();
+const TESTS_CACHE_TTL = 20_000;
+function _getTestsListCache(key) {
+  const e = _testsListCache.get(key);
+  if (e && (Date.now() - e.ts) < TESTS_CACHE_TTL) return e.data;
+  return null;
+}
+function _setTestsListCache(key, data) {
+  _testsListCache.set(key, { data, ts: Date.now() });
+  if (_testsListCache.size > 200) {
+    const oldest = _testsListCache.keys().next().value;
+    _testsListCache.delete(oldest);
+  }
+}
+
 // Get all tests (with search & filter)
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const { search, tag, sort, page = 1, limit = 12 } = req.query;
     const query = {};
+
+    // PERF: Browser cache для SPA-навигации между страницами.
+    // private = только этот пользователь, max-age=15 = 15 секунд свежесть.
+    // При повторном открытии каталога/дашборда — мгновенно из кеша браузера.
+    res.set('Cache-Control', 'private, max-age=15');
+
+    // PERF: Server memory cache.
+    const cacheKey = `${req.user?._id || 'guest'}:${search || ''}:${tag || ''}:${sort || ''}:${page}:${limit}`;
+    const cached = _getTestsListCache(cacheKey);
+    if (cached) return res.json(cached);
 
     // Filter out deleted tests
     query.isDeleted = false;
@@ -296,12 +324,14 @@ router.get('/', optionalAuth, async (req, res) => {
       Test.countDocuments(query)
     ]);
 
-    res.json({
+    const responseData = {
       tests,
       total,
       page: parseInt(page),
       totalPages: Math.ceil(total / parseInt(limit))
-    });
+    };
+    _setTestsListCache(cacheKey, responseData);
+    res.json(responseData);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка получения тестов' });
   }

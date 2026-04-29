@@ -99,8 +99,20 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// PERF: leaderboard одинаковый для всех — кешируем 60с в памяти.
+let _leaderboardCache = null;
+let _leaderboardCacheAt = 0;
+const LEADERBOARD_CACHE_TTL = 60_000;
+
 router.get('/leaderboard', auth, async (req, res) => {
   try {
+    // Browser cache 30с — мгновенно при повторном открытии.
+    res.set('Cache-Control', 'private, max-age=30');
+
+    if (_leaderboardCache && (Date.now() - _leaderboardCacheAt) < LEADERBOARD_CACHE_TTL) {
+      return res.json(_leaderboardCache);
+    }
+
     const leaderboard = await UserProgress.find({})
       // PERF: не populate `avatar` — base64 поля по ~600KB на user. UI покажет initials.
       .populate('user', 'firstName lastName uniqueId')
@@ -108,7 +120,7 @@ router.get('/leaderboard', auth, async (req, res) => {
       .limit(10)
       .lean();
 
-    res.json({
+    const response = {
       leaderboard: leaderboard.map((entry, index) => ({
         rank: index + 1,
         user: entry.user,
@@ -116,7 +128,10 @@ router.get('/leaderboard', auth, async (req, res) => {
         level: entry.level,
         currentStreakDays: entry.currentStreakDays
       }))
-    });
+    };
+    _leaderboardCache = response;
+    _leaderboardCacheAt = Date.now();
+    res.json(response);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка загрузки таблицы прогресса' });
   }
