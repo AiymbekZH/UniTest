@@ -396,6 +396,20 @@
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black tracking-wide;
   }
 
+  /* Lightweight press effect for inline buttons (tabs, card actions, sort
+     filters) — feels like a real button click without the chunky 6px drop.
+     Use on any `<button>` that should "press in" instead of just changing
+     color on hover.
+       <button class="btn-press ...">…</button>
+     Pairs nicely with explicit `box-shadow: 0 2px 0 <color>` if you want
+     the shadow to disappear on press too (matches chunky-btn family). */
+  .btn-press {
+    @apply transition-transform duration-75 ease-out will-change-transform;
+  }
+  .btn-press:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
   .chunky-tile {
     @apply relative rounded-3xl p-5 text-left text-white transition-transform duration-100 ease-out will-change-transform select-none;
   }

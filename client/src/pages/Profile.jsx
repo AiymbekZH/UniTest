@@ -75,7 +75,12 @@ export default function Profile() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const currentUserId = user?._id || user?.id || '';
-  const profileUser = profileData?.user || user;
+  // AuthContext (`user`) is the source of truth for the OWN profile so that any
+  // updateUser() call (avatar/banner upload, save) immediately re-renders the
+  // hero banner. profileData.user can be stale because /profile/avatar returns
+  // a partial payload (buildOwnUserPayload) which we'd otherwise overwrite the
+  // full record with.
+  const profileUser = user || profileData?.user;
   const progress = profileData?.progressSummary;
   const creatorStats = profileData?.creatorStats;
   const followCounts = profileData?.followCounts || { followersCount: 0, followingCount: 0 };
@@ -202,7 +207,10 @@ export default function Profile() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       updateUser(res.data.user);
-      setProfileData((prev) => prev ? { ...prev, user: res.data.user } : prev);
+      // Deep-merge so progressSummary / followCounts / creatorStats survive,
+      // and any field missing from the partial /profile/avatar payload
+      // falls back to the previous value rather than going undefined.
+      setProfileData((prev) => prev ? { ...prev, user: { ...prev.user, ...res.data.user } } : prev);
       toast.success(copy.avatarUpdated);
     } catch (error) {
       toast.error(error.response?.data?.message || copy.saveError);
@@ -227,7 +235,7 @@ export default function Profile() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       updateUser(res.data.user);
-      setProfileData((prev) => prev ? { ...prev, user: res.data.user } : prev);
+      setProfileData((prev) => prev ? { ...prev, user: { ...prev.user, ...res.data.user } } : prev);
       toast.success(copy.bannerUpdated);
     } catch (error) {
       toast.error(error.response?.data?.message || copy.saveError);
@@ -240,7 +248,7 @@ export default function Profile() {
     try {
       const res = await api.delete('/profile/banner');
       updateUser(res.data.user);
-      setProfileData((prev) => prev ? { ...prev, user: res.data.user } : prev);
+      setProfileData((prev) => prev ? { ...prev, user: { ...prev.user, ...res.data.user } } : prev);
       toast.success(copy.bannerRemoved);
     } catch (error) {
       toast.error(error.response?.data?.message || copy.saveError);

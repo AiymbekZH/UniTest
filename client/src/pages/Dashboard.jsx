@@ -793,7 +793,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => navigate(`/test/${dailyChallenge.test.shareLink}`)}
-                className="mt-3.5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gray-50 py-2 text-xs font-medium text-dark transition hover:bg-gray-100 dark:bg-slate-700 dark:hover:bg-slate-600"
+                className="btn-press mt-3.5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gray-50 py-2 text-xs font-medium text-dark transition hover:bg-gray-100 dark:bg-slate-700 dark:hover:bg-slate-600"
               >
                 <Play size={12} />
                 {copy.startChallenge}
@@ -916,7 +916,7 @@ export default function Dashboard() {
               key={test._id}
               type="button"
               onClick={() => navigate(`/test-profile/${test.shareLink}`)}
-              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+              className={`btn-press flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
                 weeklyCompletedSet.has(test._id)
                   ? 'border-emerald-100 bg-emerald-50/60 dark:border-emerald-800/40 dark:bg-emerald-900/10'
                   : 'border-gray-100 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-700/50'
@@ -1110,7 +1110,7 @@ export default function Dashboard() {
                 setSort(option.key);
                 setPage(1);
               }}
-              className={`rounded-lg px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition ${
+              className={`btn-press rounded-lg px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition ${
                 sort === option.key
                   ? 'bg-white text-dark shadow-sm dark:bg-slate-700 dark:text-white'
                   : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
@@ -1174,7 +1174,7 @@ export default function Dashboard() {
                         event.stopPropagation();
                         setMenuOpen(menuOpen === test._id ? null : test._id);
                       }}
-                      className="rounded-lg bg-white/90 p-1.5 shadow-sm backdrop-blur transition hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700"
+                      className="btn-press rounded-lg bg-white/90 p-1.5 shadow-sm backdrop-blur transition hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700"
                     >
                       <MoreVertical size={14} className="text-gray-400" />
                     </button>
@@ -1279,7 +1279,7 @@ export default function Dashboard() {
                             event.stopPropagation();
                             if (test.creator?._id) navigate(`/profile/${test.creator._id}`);
                           }}
-                          className="flex h-5 w-5 items-center justify-center overflow-hidden rounded bg-primary-50 text-[9px] font-semibold text-primary-600 transition hover:scale-105 dark:bg-primary-900/30 dark:text-primary-300"
+                          className="btn-press flex h-5 w-5 items-center justify-center overflow-hidden rounded bg-primary-50 text-[9px] font-semibold text-primary-600 transition hover:scale-105 dark:bg-primary-900/30 dark:text-primary-300"
                         >
                           {test.creator?.avatar ? (
                             <img src={test.creator.avatar} alt="" className="h-full w-full rounded object-cover" />
@@ -1306,7 +1306,7 @@ export default function Dashboard() {
                             event.stopPropagation();
                             navigate(`/leaderboard/${test._id}`);
                           }}
-                          className="text-gray-300 transition hover:text-primary-500"
+                          className="btn-press text-gray-300 transition hover:text-primary-500"
                           title="Рейтинг"
                         >
                           <Trophy size={11} />
