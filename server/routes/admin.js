@@ -180,7 +180,7 @@ router.get('/tests', adminAuth, async (req, res) => {
     }
     const total = await Test.countDocuments(filter);
     const tests = await Test.find(filter)
-      .populate('creator', 'firstName lastName email')
+      .populate('creator', 'firstName lastName email username uniqueId')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
@@ -203,7 +203,7 @@ router.get('/stats', adminAuth, async (req, res) => {
     ]);
     const recentUsers = await User.find().select('-password').sort({ createdAt: -1 }).limit(5);
     const recentTests = await Test.find({ isDeleted: { $ne: true } })
-      .populate('creator', 'firstName lastName')
+      .populate('creator', 'firstName lastName username uniqueId')
       .sort({ createdAt: -1 }).limit(5);
 
     res.json({ userCount, testCount, resultCount, bannedCount, aiAccessCount, recentUsers, recentTests });
@@ -277,7 +277,7 @@ router.delete('/results/user/:userId/test/:testId', adminAuth, async (req, res) 
 router.get('/leaderboard/:testId', adminAuth, async (req, res) => {
   try {
     const results = await Result.find({ test: req.params.testId, status: 'completed' })
-      .populate('user', 'firstName lastName email')
+      .populate('user', 'firstName lastName email username uniqueId')
       .sort({ percentage: -1, timeSpent: 1 })
       .select('user guestName percentage score totalPoints timeSpent completedAt');
 
@@ -309,7 +309,7 @@ router.delete('/tests/:testId/questions/:questionId', adminAuth, async (req, res
 router.get('/tests/:id/details', adminAuth, async (req, res) => {
   try {
     const test = await Test.findById(req.params.id)
-      .populate('creator', 'firstName lastName email');
+      .populate('creator', 'firstName lastName email username uniqueId');
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
     res.json(test);
   } catch (error) {

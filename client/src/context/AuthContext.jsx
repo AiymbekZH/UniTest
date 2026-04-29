@@ -239,6 +239,12 @@ export const AuthProvider = ({ children }) => {
     }
     clearActiveSession();
     setSavedSessions(readSavedSessions());
+    // Force a full reload to '/' so:
+    //  1) any cached /api/tests etc. responses (cached locally with Cache-Control:
+    //     private, max-age=15) are re-validated under the new (cookieless) request,
+    //  2) any in-memory React Query / list state is wiped — no chance of seeing
+    //     a private test belonging to the previous account.
+    window.location.assign('/');
   };
 
   const updateUser = useCallback((updatedUser) => {

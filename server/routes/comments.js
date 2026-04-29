@@ -16,7 +16,7 @@ router.get('/:testId', optionalAuth, async (req, res) => {
     }
 
     const comments = await Comment.find({ test: req.params.testId, isDeleted: false })
-      .populate('user', 'firstName lastName avatar')
+      .populate('user', 'firstName lastName avatar username uniqueId')
       .sort({ createdAt: -1 })
       .limit(100);
 
@@ -45,7 +45,7 @@ router.post('/:testId', auth, async (req, res) => {
       replyTo: replyTo || null
     });
     await comment.save();
-    await comment.populate('user', 'firstName lastName avatar');
+    await comment.populate('user', 'firstName lastName avatar username uniqueId');
 
     // Send notification to the replied comment's author
     if (replyTo) {
@@ -93,7 +93,7 @@ router.put('/:id', auth, async (req, res) => {
     comment.text = text.trim();
     comment.isEdited = true;
     await comment.save();
-    await comment.populate('user', 'firstName lastName avatar');
+    await comment.populate('user', 'firstName lastName avatar username uniqueId');
 
     res.json({ comment });
   } catch (error) {

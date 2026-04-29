@@ -60,8 +60,8 @@ function canGrantPermissions(group, actorId, permissions = {}) {
 }
 
 async function populateGroup(group) {
-  await group.populate('creator', 'firstName lastName avatar');
-  await group.populate('members.user', 'firstName lastName email avatar uniqueId');
+  await group.populate('creator', 'firstName lastName avatar username uniqueId');
+  await group.populate('members.user', 'firstName lastName email avatar username uniqueId');
   await group.populate('assignedTests.test', 'title shareLink totalPoints attemptCount averageScore');
   return group;
 }
@@ -94,8 +94,8 @@ router.get('/my', auth, async (req, res) => {
       isDeleted: false,
       'members.user': req.user._id
     })
-      .populate('creator', 'firstName lastName avatar')
-      .populate('members.user', 'firstName lastName email avatar uniqueId')
+      .populate('creator', 'firstName lastName avatar username uniqueId')
+      .populate('members.user', 'firstName lastName email avatar username uniqueId')
       .populate('assignedTests.test', 'title shareLink totalPoints')
       .sort({ updatedAt: -1 });
 
@@ -156,10 +156,10 @@ router.get('/unread-summary', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
-      .populate('creator', 'firstName lastName avatar')
-      .populate('members.user', 'firstName lastName email avatar uniqueId')
+      .populate('creator', 'firstName lastName avatar username uniqueId')
+      .populate('members.user', 'firstName lastName email avatar username uniqueId')
       .populate('assignedTests.test', 'title shareLink totalPoints attemptCount averageScore')
-      .populate('announcement.updatedBy', 'firstName lastName avatar');
+      .populate('announcement.updatedBy', 'firstName lastName avatar username uniqueId');
 
     if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
 
@@ -329,8 +329,8 @@ router.delete('/:id/members/:userId', auth, async (req, res) => {
 router.get('/:id/bans', auth, async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
-      .populate('bannedMembers.user', 'firstName lastName email avatar uniqueId')
-      .populate('bannedMembers.bannedBy', 'firstName lastName avatar uniqueId');
+      .populate('bannedMembers.user', 'firstName lastName email avatar username uniqueId')
+      .populate('bannedMembers.bannedBy', 'firstName lastName avatar username uniqueId');
 
     if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
     group.bannedMembers = group.bannedMembers || [];
@@ -449,8 +449,8 @@ router.delete('/:id/bans/:userId', auth, async (req, res) => {
       } catch (_) {}
     }
 
-    await group.populate('bannedMembers.user', 'firstName lastName email avatar uniqueId');
-    await group.populate('bannedMembers.bannedBy', 'firstName lastName avatar uniqueId');
+    await group.populate('bannedMembers.user', 'firstName lastName email avatar username uniqueId');
+    await group.populate('bannedMembers.bannedBy', 'firstName lastName avatar username uniqueId');
     res.json(group.bannedMembers);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка' });
@@ -767,7 +767,7 @@ router.patch('/:id/announcement', auth, async (req, res) => {
     await group.save();
 
     const populated = await Group.findById(req.params.id)
-      .populate('announcement.updatedBy', 'firstName lastName avatar')
+      .populate('announcement.updatedBy', 'firstName lastName avatar username uniqueId')
       .lean();
     res.json({ ok: true, announcement: populated.announcement });
   } catch (e) {
@@ -809,7 +809,7 @@ router.get('/:id/stats', auth, async (req, res) => {
         user: { $in: memberIds },
         status: 'completed',
       })
-        .populate('user', 'firstName lastName avatar')
+        .populate('user', 'firstName lastName avatar username uniqueId')
         .populate('test', 'title')
         .lean();
 

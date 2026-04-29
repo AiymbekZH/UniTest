@@ -381,8 +381,8 @@ router.post('/rooms/from-arena-test', auth, async (req, res) => {
 router.get('/code/:joinCode', optionalAuth, async (req, res) => {
   try {
     const room = await ArenaRoom.findOne({ joinCode: String(req.params.joinCode || '').toUpperCase() })
-      .populate('hostUser', 'firstName lastName avatar')
-      .populate('invitedUser', 'firstName lastName avatar')
+      .populate('hostUser', 'firstName lastName avatar username uniqueId')
+      .populate('invitedUser', 'firstName lastName avatar username uniqueId')
       .populate('test', 'title shareLink')
       .populate('group', 'name');
 
@@ -485,7 +485,7 @@ router.post('/rooms/:id/join', optionalAuth, async (req, res) => {
     const room = await ArenaRoom.findById(req.params.id)
       .populate('group', 'members bannedMembers')
       .populate('conversation', 'participants')
-      .populate('hostUser', 'firstName lastName avatar uniqueId')
+      .populate('hostUser', 'firstName lastName avatar username uniqueId')
       .populate('test', 'title shareLink');
 
     if (!room) return res.status(404).json({ message: 'Комната не найдена' });
@@ -494,7 +494,7 @@ router.post('/rooms/:id/join', optionalAuth, async (req, res) => {
     let guestToken = null;
 
     if (req.user) {
-      participant = await ArenaParticipant.findOne({ room: room._id, user: req.user._id }).populate('user', 'firstName lastName avatar uniqueId');
+      participant = await ArenaParticipant.findOne({ room: room._id, user: req.user._id }).populate('user', 'firstName lastName avatar username uniqueId');
     } else if (req.body.guestToken) {
       let payload;
       try {
@@ -546,7 +546,7 @@ router.post('/rooms/:id/join', optionalAuth, async (req, res) => {
           user: req.user._id,
           role: room.hostUser?._id?.toString() === req.user._id.toString() ? 'host' : 'player'
         });
-        await participant.populate('user', 'firstName lastName avatar uniqueId');
+        await participant.populate('user', 'firstName lastName avatar username uniqueId');
       } else {
         const guestName = String(req.body.guestName || '').trim().slice(0, 40);
         if (!guestName) return res.status(400).json({ message: 'Введите ник для входа' });
@@ -595,8 +595,8 @@ router.post('/rooms/:id/join', optionalAuth, async (req, res) => {
 router.post('/rooms/:id/accept-duel', auth, async (req, res) => {
   try {
     const room = await ArenaRoom.findById(req.params.id)
-      .populate('hostUser', 'firstName lastName avatar uniqueId')
-      .populate('invitedUser', 'firstName lastName avatar uniqueId')
+      .populate('hostUser', 'firstName lastName avatar username uniqueId')
+      .populate('invitedUser', 'firstName lastName avatar username uniqueId')
       .populate('test', 'title shareLink');
 
     if (!room || room.sourceType !== 'dm_duel') {
@@ -610,14 +610,14 @@ router.post('/rooms/:id/accept-duel', auth, async (req, res) => {
       return res.status(400).json({ message: 'Дуэль уже отклонена' });
     }
 
-    let participant = await ArenaParticipant.findOne({ room: room._id, user: req.user._id }).populate('user', 'firstName lastName avatar uniqueId');
+    let participant = await ArenaParticipant.findOne({ room: room._id, user: req.user._id }).populate('user', 'firstName lastName avatar username uniqueId');
     if (!participant) {
       participant = await ArenaParticipant.create({
         room: room._id,
         user: req.user._id,
         role: 'player'
       });
-      await participant.populate('user', 'firstName lastName avatar uniqueId');
+      await participant.populate('user', 'firstName lastName avatar username uniqueId');
     }
 
     room.status = ARENA_STATUS.LOBBY;

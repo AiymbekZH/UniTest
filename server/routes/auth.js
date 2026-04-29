@@ -194,7 +194,9 @@ router.get('/me/profile-image', auth, async (req, res) => {
       .lean();
     if (!user) return res.status(404).json({ avatar: '', coverImage: '', coverPreset: 'aurora' });
     // Cache 60 seconds — avatar rarely changes mid-session.
+    // Vary: Cookie — segments cache by auth state so logout/account-switch can't leak.
     res.set('Cache-Control', 'private, max-age=60');
+    res.set('Vary', 'Cookie, Authorization');
     res.json({
       avatar: user.avatar || '',
       coverImage: user.coverImage || '',

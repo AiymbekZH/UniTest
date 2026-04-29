@@ -107,7 +107,9 @@ const LEADERBOARD_CACHE_TTL = 60_000;
 router.get('/leaderboard', auth, async (req, res) => {
   try {
     // Browser cache 30с — мгновенно при повторном открытии.
+    // Vary: Cookie — чтобы после logout/смены аккаунта не отдавалась чужая версия.
     res.set('Cache-Control', 'private, max-age=30');
+    res.set('Vary', 'Cookie, Authorization');
 
     if (_leaderboardCache && (Date.now() - _leaderboardCacheAt) < LEADERBOARD_CACHE_TTL) {
       return res.json(_leaderboardCache);

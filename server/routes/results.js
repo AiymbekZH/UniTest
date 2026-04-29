@@ -413,7 +413,7 @@ router.get('/test/:testId', auth, async (req, res) => {
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
 
     const results = await Result.find(buildOfficialResultMatch(req.params.testId))
-      .populate('user', 'firstName lastName email role avatar')
+      .populate('user', 'firstName lastName email role avatar username uniqueId')
       .sort({ percentage: -1 });
 
     res.json(results);
@@ -485,7 +485,7 @@ router.get('/leaderboard/:testId', async (req, res) => {
     if (!test) return res.status(404).json({ message: 'Тест не найден' });
 
     const results = await Result.find(buildOfficialResultMatch(req.params.testId))
-      .populate('user', 'firstName lastName avatar')
+      .populate('user', 'firstName lastName avatar username uniqueId')
       .sort({ percentage: -1, timeSpent: 1 })
       .select('user guestName percentage score totalPoints timeSpent completedAt')
       .limit(100);
@@ -644,7 +644,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const result = await Result.findById(req.params.id)
       .populate('test')
-      .populate('user', 'firstName lastName email');
+      .populate('user', 'firstName lastName email username uniqueId avatar');
     if (!result) return res.status(404).json({ message: 'Результат не найден' });
     res.json(result);
   } catch (error) {

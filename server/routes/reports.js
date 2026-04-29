@@ -44,8 +44,8 @@ router.get('/', auth, async (req, res) => {
     if (status) filter.status = status;
 
     const reports = await Report.find(filter)
-      .populate('reporter', 'firstName lastName email avatar')
-      .populate('reviewedBy', 'firstName lastName')
+      .populate('reporter', 'firstName lastName email avatar username uniqueId')
+      .populate('reviewedBy', 'firstName lastName username uniqueId')
       .sort({ createdAt: -1 })
       .limit(100);
 

@@ -190,7 +190,7 @@ router.post('/', auth, async (req, res) => {
     if (test.settings?.isPublic) {
       await notifyFollowersAboutNewPublicTest(test);
     }
-    await test.populate('creator', 'firstName lastName email role avatar');
+    await test.populate('creator', 'firstName lastName email role avatar username uniqueId');
     res.status(201).json(test);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка создания теста' });
@@ -247,8 +247,11 @@ router.get('/', optionalAuth, async (req, res) => {
 
     // PERF: Browser cache для SPA-навигации между страницами.
     // private = только этот пользователь, max-age=15 = 15 секунд свежесть.
-    // При повторном открытии каталога/дашборда — мгновенно из кеша браузера.
+    // Vary: Cookie — КРИТИЧНО: разные cookie = разные cache entries.
+    // Без этого после logout браузер отдавал бы залогиненную версию (с приватными
+    // тестами) гостю, потому что URL тот же.
     res.set('Cache-Control', 'private, max-age=15');
+    res.set('Vary', 'Cookie, Authorization');
 
     // PERF: Server memory cache.
     const cacheKey = `${req.user?._id || 'guest'}:${search || ''}:${tag || ''}:${sort || ''}:${page}:${limit}`;
@@ -316,7 +319,8 @@ router.get('/', optionalAuth, async (req, res) => {
         // PERF (КРИТИЧНО): НЕ populate `avatar` — это base64 картинка ~600KB,
         // которая на 12 тестов = ~7MB на запрос → /api/tests отдавался за 17 секунд!
         // Аватары авторов на дашборде не отображаются. Только в одиночных endpoints (`/share/:link`, `/:id`).
-        .populate('creator', 'firstName lastName email role')
+        // НО обязательно нужны username/uniqueId — UsernameBadge показывает @user без них.
+        .populate('creator', 'firstName lastName email role username uniqueId')
         .sort(sortOption)
         .skip(skip)
         .limit(parseInt(limit))
@@ -377,7 +381,7 @@ router.get('/my', auth, async (req, res) => {
     };
     const tests = await Test.find({ creator: req.user._id }, projection)
       // PERF: same as / endpoint — не populate тяжёлый base64 avatar.
-      .populate('creator', 'firstName lastName email role')
+      .populate('creator', 'firstName lastName email role username uniqueId')
       .sort({ createdAt: -1 })
       .lean();
     res.json(tests);
@@ -390,7 +394,7 @@ router.get('/my', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     const test = await Test.findById(req.params.id)
-      .populate('creator', 'firstName lastName email role avatar');
+      .populate('creator', 'firstName lastName email role avatar username uniqueId');
     if (!test) {
       return res.status(404).json({ message: 'Тест не найден' });
     }
@@ -404,7 +408,7 @@ router.get('/:id', auth, async (req, res) => {
 router.get('/share/:shareLink', optionalAuth, async (req, res) => {
   try {
     const test = await Test.findOne({ shareLink: req.params.shareLink })
-      .populate('creator', 'firstName lastName email role avatar');
+      .populate('creator', 'firstName lastName email role avatar username uniqueId');
     if (!test) {
       return res.status(404).json({ message: 'Тест не найден' });
     }
@@ -567,7 +571,7 @@ router.put('/:id', auth, async (req, res) => {
     if (becamePublicFirstTime) {
       await notifyFollowersAboutNewPublicTest(test);
     }
-    await test.populate('creator', 'firstName lastName email role avatar');
+    await test.populate('creator', 'firstName lastName email role avatar username uniqueId');
     res.json(test);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка обновления теста' });
@@ -629,7 +633,7 @@ router.post('/:id/duplicate', auth, async (req, res) => {
       difficultyRatings: []
     });
     await copy.save();
-    await copy.populate('creator', 'firstName lastName email role avatar');
+    await copy.populate('creator', 'firstName lastName email role avatar username uniqueId');
     res.status(201).json(copy);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка дублирования теста' });
@@ -838,7 +842,7 @@ router.get('/:id/tickets', optionalAuth, async (req, res) => {
     const variantCount = test.settings.variants.count;
     const isPublic = test.settings?.isPublic === true;
     const claims = await TicketClaim.find({ test: req.params.id })
-      .populate('user', 'firstName lastName')
+      .populate('user', 'firstName lastName username uniqueId')
       .lean();
 
     // Build variant status array
