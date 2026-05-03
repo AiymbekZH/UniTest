@@ -7,6 +7,7 @@ export default function MessageList({
   messages, currentUserId, onReply, onDelete, onPin,
   getDeleteOptions, canPin, onLoadMore, hasMore, loading,
   getMemberRoleColor, otherUserId, onReact, highlightMessageId,
+  onRetry,
 }) {
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
@@ -76,6 +77,7 @@ export default function MessageList({
             onPreviewMedia={setMediaViewer}
             isReadByOther={isReadByOther}
             onReact={onReact}
+            onRetry={onRetry}
             isHighlighted={highlightMessageId === msg._id}
           />
         );

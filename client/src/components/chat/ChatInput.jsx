@@ -11,15 +11,21 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
     const trimmed = text.trim();
     if (!trimmed && attachments.length === 0) return;
 
+    let result;
     if (attachments.length > 0) {
       const att = attachments[0];
       const type = att.mimetype.startsWith('image/') ? 'image'
         : att.mimetype.startsWith('video/') ? 'video'
         : att.mimetype.startsWith('audio/') ? 'audio' : 'file';
-      onSend({ text: trimmed, type, attachments, replyTo: replyTo?._id });
+      result = onSend({ text: trimmed, type, attachments, replyTo: replyTo?._id });
     } else {
-      onSend({ text: trimmed, type: 'text', replyTo: replyTo?._id });
+      result = onSend({ text: trimmed, type: 'text', replyTo: replyTo?._id });
     }
+
+    // Parent now returns false on hard pre-flight failures (no socket, no
+    // selected chat). Old code cleared the textarea unconditionally and lost
+    // user input on every transient hiccup — don't repeat that.
+    if (result === false) return;
 
     setText('');
     setAttachments([]);
@@ -55,12 +61,17 @@ export default function ChatInput({ onSend, replyTo, onCancelReply, disabled }) 
   };
 
   const handleVoice = (voiceData) => {
-    onSend({
+    const result = onSend({
       text: '',
       type: 'audio',
       attachments: [voiceData],
       replyTo: replyTo?._id,
     });
+    // VoiceRecorder already swapped back to the idle mic icon by the time
+    // this fires, so we only need to clear the reply context. If the parent
+    // rejected the send (no socket etc.) leave it on screen so the user
+    // sees something.
+    if (result === false) return;
     onCancelReply?.();
   };
 

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { connectSocket, disconnectSocket } from '../services/socket';
+import { connectSocket, disconnectSocket, refreshSocketAuth } from '../services/socket';
 
 const AuthContext = createContext(null);
 
@@ -48,9 +48,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const applyActiveSession = useCallback((token, nextUser) => {
+    const previousToken = localStorage.getItem(ACTIVE_TOKEN_KEY);
     localStorage.setItem(ACTIVE_TOKEN_KEY, token);
     localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(nextUser));
     setUser(nextUser);
+    // If the credential rotated (account switch, fresh login on top of an
+    // existing session) tear down the chat socket so it reconnects with the
+    // new token — otherwise it keeps talking to the server as the previous
+    // user, which is exactly what made messages "vanish" silently before.
+    if (previousToken && previousToken !== token) {
+      refreshSocketAuth();
+    }
   }, []);
 
   const clearActiveSession = useCallback(() => {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import AudioPlayer from './AudioPlayer';
-import { Check, CheckCheck, Download, FileText, Pin, Reply, Smile, Trash2 } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, Download, FileText, Pin, Reply, RotateCw, Smile, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -42,7 +42,13 @@ export default function MessageBubble({
   isReadByOther,
   onReact,
   isHighlighted,
+  onRetry,
 }) {
+  // Optimistic state coming from the parent. `sending` / `failed` are
+  // ephemeral — the server replaces them with the real persisted message
+  // (status === undefined) once the ack callback fires.
+  const sendStatus = message.status; // 'sending' | 'failed' | undefined
+  const isPending = sendStatus === 'sending' || sendStatus === 'failed';
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [showReactPicker, setShowReactPicker] = useState(false);
   const [inviteState, setInviteState] = useState(message.meta?.duelStatus || '');
@@ -333,11 +339,27 @@ export default function MessageBubble({
             <span className={`text-[10px] ${isOwn ? 'text-orange-100' : 'text-gray-400'}`}>
               {timeStr(message.createdAt)}
             </span>
-            {isOwn && (
-              isReadByOther
+            {isOwn && (() => {
+              if (sendStatus === 'sending') {
+                return <Clock size={12} className="text-orange-100/70 animate-pulse" strokeWidth={2.4} />;
+              }
+              if (sendStatus === 'failed') {
+                return (
+                  <button
+                    type="button"
+                    onClick={() => onRetry?.(message)}
+                    className="inline-flex items-center gap-1 rounded-md bg-red-100/90 px-1.5 py-[2px] text-[10px] font-bold text-red-700 transition hover:bg-red-200 dark:bg-red-500/30 dark:text-red-50 dark:hover:bg-red-500/40"
+                    title="Не удалось отправить — повторить"
+                  >
+                    <AlertCircle size={11} strokeWidth={2.6} />
+                    <RotateCw size={10} strokeWidth={2.6} />
+                  </button>
+                );
+              }
+              return isReadByOther
                 ? <CheckCheck size={12} className="text-orange-100" strokeWidth={2.6} />
-                : <Check size={12} className="text-orange-100/80" strokeWidth={2.4} />
-            )}
+                : <Check size={12} className="text-orange-100/80" strokeWidth={2.4} />;
+            })()}
           </div>
         </div>
 
@@ -367,7 +389,10 @@ export default function MessageBubble({
           </div>
         )}
 
-        <div className={`relative mt-1 flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${isOwn ? 'justify-end' : ''}`}>
+        {/* Quick-actions row — hidden for optimistic/failed bubbles since the
+            server doesn't know about them yet, so react/reply/pin/delete
+            would all 404. Re-shown once the ack swap completes. */}
+        <div className={`relative mt-1 flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${isOwn ? 'justify-end' : ''} ${isPending ? 'pointer-events-none opacity-0' : ''}`}>
           {onReact && (
             <div className="relative">
               <button

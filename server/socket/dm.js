@@ -1,6 +1,27 @@
 const DMMessage = require('../models/DMMessage');
 const DirectMessage = require('../models/DirectMessage');
 
+// 7 MB ≈ 5 MB raw after base64 (4/3 expansion). Single source of truth so
+// the cap matches the user-facing copy and isn't re-derived in 3 places.
+const MAX_ATTACHMENT_BYTES = 7 * 1024 * 1024;
+
+// Try to call the optional ack callback an emit can carry. Wrapped in a
+// try/catch because clients on flaky networks can disconnect mid-RPC and
+// throwing here would crash the whole `dm:message` handler.
+function safeAck(ack, payload) {
+  if (typeof ack !== 'function') return;
+  try { ack(payload); } catch (_) { /* socket already closed */ }
+}
+
+// Helper: emit a typed dm:error AND ack the same payload, so clients that
+// use either path (legacy event vs new ack callback) see the failure. The
+// silent `return` paths in the old code are exactly what made messages
+// vanish without a trace — never repeat that.
+function failDm(socket, ack, code, message) {
+  socket.emit('dm:error', { code, message });
+  safeAck(ack, { ok: false, code, message });
+}
+
 async function resolveLastVisibleMessageId(conversationId) {
   const latest = await DMMessage.findOne({
     conversation: conversationId,
@@ -20,29 +41,48 @@ module.exports = function (io) {
     socket.join(`user:${socket.user._id}`);
 
     // ── SEND DM ──
-    socket.on('dm:message', async (data) => {
+    // Accepts an optional 2nd arg (ack callback) so the client knows the
+    // message was actually persisted. Without an ack the client used to
+    // optimistically clear the input and pray for an echo — when the echo
+    // never arrived (validation, stale conv, banned user, expired token)
+    // the message silently disappeared. That is the bug we're closing.
+    socket.on('dm:message', async (data, ack) => {
       try {
-        const { conversationId, text, type = 'text', replyTo, attachments } = data;
-        if (!conversationId) return;
+        const { conversationId, text, type = 'text', replyTo, attachments, clientId } =
+          data || {};
+
+        if (!conversationId) {
+          return failDm(socket, ack, 'NO_CONVERSATION_ID', 'Не указан диалог');
+        }
 
         const conversation = await DirectMessage.findById(conversationId);
-        if (!conversation) return;
+        if (!conversation) {
+          return failDm(socket, ack, 'CONVERSATION_NOT_FOUND', 'Диалог не найден');
+        }
 
         // Verify sender is a participant
         const isParticipant = conversation.participants.some(
           p => p.toString() === socket.user._id.toString()
         );
-        if (!isParticipant) return;
+        if (!isParticipant) {
+          return failDm(socket, ack, 'NOT_PARTICIPANT', 'Вы не участник этого диалога');
+        }
 
         // Validate
-        if (type === 'text' && (!text || !text.trim())) return;
-        if (['image', 'video', 'file', 'audio'].includes(type) && (!attachments || attachments.length === 0)) return;
+        if (type === 'text' && (!text || !text.trim())) {
+          return failDm(socket, ack, 'EMPTY_TEXT', 'Сообщение не может быть пустым');
+        }
+        if (['image', 'video', 'file', 'audio'].includes(type) &&
+            (!attachments || attachments.length === 0)) {
+          return failDm(socket, ack, 'NO_ATTACHMENTS', 'Нет вложений для отправки');
+        }
 
         // Size check
         if (attachments?.length > 0) {
           for (const att of attachments) {
-            if (att.data && att.data.length > 7 * 1024 * 1024) {
-              return socket.emit('dm:error', { message: 'Файл слишком большой (макс. 5MB)' });
+            if (att.data && att.data.length > MAX_ATTACHMENT_BYTES) {
+              return failDm(socket, ack, 'ATTACHMENT_TOO_LARGE',
+                'Файл слишком большой (макс. ~5 MB исходных)');
             }
           }
         }
@@ -72,15 +112,24 @@ module.exports = function (io) {
         conversation.lastActivity = new Date();
         await conversation.save();
 
+        // Build the broadcast payload once. `clientId` lets the sender's
+        // own client correlate this echo back to its optimistic placeholder
+        // and replace it instead of duplicating.
+        const payload = {
+          ...message.toJSON(),
+          conversationId,
+          clientId: clientId || null,
+        };
+
         // Emit to both participants
         for (const pid of conversation.participants) {
-          io.to(`user:${pid}`).emit('dm:message', {
-            ...message.toJSON(),
-            conversationId,
-          });
+          io.to(`user:${pid}`).emit('dm:message', payload);
         }
+
+        safeAck(ack, { ok: true, message: payload });
       } catch (e) {
         console.error('dm:message error:', e.message);
+        failDm(socket, ack, 'SERVER_ERROR', 'Ошибка сервера. Попробуйте ещё раз.');
       }
     });
 
@@ -117,15 +166,30 @@ module.exports = function (io) {
     socket.on('dm:deleteMessage', async ({ conversationId, messageId, mode = 'everyone' }) => {
       try {
         const conversation = await DirectMessage.findById(conversationId);
-        if (!conversation) return;
+        if (!conversation) {
+          return socket.emit('dm:error', {
+            code: 'CONVERSATION_NOT_FOUND',
+            message: 'Диалог не найден',
+          });
+        }
 
         const isParticipant = conversation.participants.some(
           p => p.toString() === socket.user._id.toString()
         );
-        if (!isParticipant) return;
+        if (!isParticipant) {
+          return socket.emit('dm:error', {
+            code: 'NOT_PARTICIPANT',
+            message: 'Вы не участник этого диалога',
+          });
+        }
 
         const message = await DMMessage.findById(messageId);
-        if (!message || message.conversation.toString() !== conversationId) return;
+        if (!message || message.conversation.toString() !== conversationId) {
+          return socket.emit('dm:error', {
+            code: 'MESSAGE_NOT_FOUND',
+            message: 'Сообщение не найдено',
+          });
+        }
 
         if (mode === 'self') {
           if (!message.deletedFor.some(id => id.toString() === socket.user._id.toString())) {
@@ -142,7 +206,10 @@ module.exports = function (io) {
         }
 
         if (message.sender.toString() !== socket.user._id.toString()) {
-          return socket.emit('dm:error', { message: 'Можно удалить у всех только своё сообщение' });
+          return socket.emit('dm:error', {
+            code: 'NOT_AUTHOR',
+            message: 'Можно удалить у всех только своё сообщение',
+          });
         }
 
         message.isDeleted = true;

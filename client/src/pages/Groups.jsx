@@ -164,12 +164,28 @@ export default function Groups() {
       }
 
       const handleMsg = (msg) => {
-        if (msg.group === selectedGroup._id || msg.group?._id === selectedGroup._id) {
-          setMessages(prev => [...prev, msg]);
-          const senderId = msg.sender?._id || msg.sender;
-          if (activeTabRef.current === 'chat' && msg.type !== 'system' && senderId !== currentUserId) {
-            markGroupRead(selectedGroup._id);
+        if (msg.group !== selectedGroup._id && msg.group?._id !== selectedGroup._id) return;
+        const senderId = msg.sender?._id || msg.sender;
+        const echoClientId = msg.clientId || null;
+
+        setMessages(prev => {
+          // Own-echo swap by clientId keeps optimistic placeholders from
+          // duplicating once the server persists them. Same anti-dup fix
+          // as the DM page.
+          if (echoClientId && senderId === currentUserId) {
+            const idx = prev.findIndex(m => m.clientId === echoClientId);
+            if (idx >= 0) {
+              const next = prev.slice();
+              next[idx] = msg;
+              return next;
+            }
           }
+          if (msg._id && prev.some(m => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+
+        if (activeTabRef.current === 'chat' && msg.type !== 'system' && senderId !== currentUserId) {
+          markGroupRead(selectedGroup._id);
         }
       };
       const handleDeleted = ({ messageId, mode }) => {
@@ -229,7 +245,10 @@ export default function Groups() {
       const handleStopTyping = ({ userId }) => {
         setTypingUsers(prev => prev.filter(u => u.userId !== userId));
       };
-      const handleError = ({ message }) => {
+      const handleError = ({ code, message }) => {
+        // EMPTY_TEXT is a UX hint — don't toast it. Everything else is worth
+        // surfacing so the user isn't confused why nothing happened.
+        if (code === 'EMPTY_TEXT') return;
         if (message) toast.error(message);
       };
 
@@ -280,11 +299,77 @@ export default function Groups() {
     await loadMessages(selectedGroup._id, false);
   }, [selectedGroup, chatLoading, messages]);
 
+  // Optimistic send with ack — mirrors Messages.jsx. See the bigger comment
+  // block there for the rationale (silent server returns were eating user
+  // input, we now always show the bubble and a retry affordance on fail).
   const sendMessage = (data) => {
     const s = socketRef.current || getSocket();
-    if (!s || !selectedGroup) return;
-    s.emit('group:message', { groupId: selectedGroup._id, ...data });
+    if (!s || !selectedGroup) {
+      toast.error(s ? 'Группа не выбрана' : 'Нет соединения. Перезагрузите страницу.');
+      return false;
+    }
+
+    const clientId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic = {
+      _id: clientId,
+      clientId,
+      group: selectedGroup._id,
+      sender: {
+        _id: currentUserId,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        avatar: user?.avatar,
+        uniqueId: user?.uniqueId,
+      },
+      type: data.type || 'text',
+      text: data.text || '',
+      attachments: data.attachments || [],
+      replyTo: data.replyTo
+        ? (messages.find(m => m._id === data.replyTo) || { _id: data.replyTo })
+        : null,
+      createdAt: new Date().toISOString(),
+      reactions: [],
+      isDeleted: false,
+      isPinned: false,
+      status: 'sending',
+      _retryPayload: data,
+    };
+
+    setMessages(prev => [...prev, optimistic]);
+
+    const payload = {
+      groupId: selectedGroup._id,
+      ...data,
+      replyTo: data.replyTo || null,
+      clientId,
+    };
+
+    s.timeout(8000).emit('group:message', payload, (err, ack) => {
+      if (err) {
+        setMessages(prev => prev.map(m =>
+          m.clientId === clientId ? { ...m, status: 'failed' } : m
+        ));
+        return;
+      }
+      if (ack && ack.ok === false) {
+        setMessages(prev => prev.map(m =>
+          m.clientId === clientId ? { ...m, status: 'failed' } : m
+        ));
+        if (ack.message && ack.code !== 'EMPTY_TEXT') toast.error(ack.message);
+        return;
+      }
+      // success — group:message broadcast will swap the bubble via clientId
+    });
+
     s.emit('group:stopTyping', { groupId: selectedGroup._id });
+    return true;
+  };
+
+  const retryMessage = (failedMsg) => {
+    if (!failedMsg?._retryPayload) return;
+    const data = failedMsg._retryPayload;
+    setMessages(prev => prev.filter(m => m.clientId !== failedMsg.clientId));
+    sendMessage(data);
   };
 
   const deleteMessage = (msg, mode) => {
@@ -954,6 +1039,7 @@ export default function Groups() {
                     onReply={setReplyTo}
                     onDelete={deleteMessage}
                     onPin={pinMessage}
+                    onRetry={retryMessage}
                     getDeleteOptions={(message, isOwn) => ({
                       self: true,
                       everyone: isOwn || hasPermission(selectedGroup, 'deleteMessages'),

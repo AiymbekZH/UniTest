@@ -56,6 +56,7 @@ export default function Messages() {
       const handleMsg = (msg) => {
         const senderId = msg.sender?._id || msg.sender;
         const isOpenConversation = selectedConversationIdRef.current === msg.conversationId;
+        const echoClientId = msg.clientId || null;
 
         // Update conversations list
         setConversations(prev => {
@@ -79,7 +80,24 @@ export default function Messages() {
 
         // Add to messages if this conversation is open
         if (isOpenConversation) {
-          setMessages(prev => [...prev, msg]);
+          setMessages(prev => {
+            // Echo of an own optimistic bubble — swap by clientId so the
+            // "sending" placeholder becomes the persisted server copy without
+            // duplicating. Without this branch the user would see two copies
+            // of every message they send.
+            if (echoClientId && senderId === currentUserId) {
+              const idx = prev.findIndex(m => m.clientId === echoClientId);
+              if (idx >= 0) {
+                const next = prev.slice();
+                next[idx] = msg;
+                return next;
+              }
+            }
+            // Avoid double-append if the same _id is already present (can
+            // happen on re-mount after reconnect).
+            if (msg._id && prev.some(m => m._id === msg._id)) return prev;
+            return [...prev, msg];
+          });
           if (senderId !== currentUserId) {
             markConversationRead(msg.conversationId);
           }
@@ -113,7 +131,10 @@ export default function Messages() {
         fetchConversations();
       };
 
-      const handleError = ({ message }) => {
+      const handleError = ({ code, message }) => {
+        // EMPTY_TEXT is a UX hint; don't toast it. The other codes mean
+        // something on the wire is broken, surface them.
+        if (code === 'EMPTY_TEXT') return;
         if (message) toast.error(message);
       };
 
@@ -309,11 +330,88 @@ export default function Messages() {
     await loadMessages(selectedConv._id, false);
   }, [selectedConv, chatLoading, messages]);
 
+  // Optimistic send: insert a placeholder bubble immediately so the user
+  // sees their message land, then wait on the server ACK. The placeholder
+  // either gets swapped for the persisted server copy (success) or marked
+  // as failed with a retry button (network drop / validation reject).
   const sendMessage = (data) => {
     const s = socketRef.current || getSocket();
-    if (!s || !selectedConv) return;
-    s.emit('dm:message', { conversationId: selectedConv._id, ...data });
+    if (!s || !selectedConv) {
+      toast.error(s ? 'Диалог не выбран' : 'Нет соединения. Перезагрузите страницу.');
+      return false;
+    }
+
+    const clientId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic = {
+      _id: clientId,
+      clientId,
+      conversation: selectedConv._id,
+      conversationId: selectedConv._id,
+      sender: {
+        _id: currentUserId,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        avatar: user?.avatar,
+        uniqueId: user?.uniqueId,
+      },
+      type: data.type || 'text',
+      text: data.text || '',
+      attachments: data.attachments || [],
+      replyTo: data.replyTo
+        ? (messages.find(m => m._id === data.replyTo) || { _id: data.replyTo })
+        : null,
+      createdAt: new Date().toISOString(),
+      readBy: [currentUserId],
+      reactions: [],
+      isDeleted: false,
+      status: 'sending',
+      // Keep the original send args so we can replay on retry without
+      // round-tripping the bubble through edit forms.
+      _retryPayload: data,
+    };
+
+    setMessages(prev => [...prev, optimistic]);
+
+    const payload = {
+      conversationId: selectedConv._id,
+      ...data,
+      replyTo: data.replyTo || null,
+      clientId,
+    };
+
+    // 8s is generous for image uploads on slow mobile data, while still short
+    // enough that the user gets a clear failure indicator instead of an
+    // "is this still loading?" mystery.
+    s.timeout(8000).emit('dm:message', payload, (err, ack) => {
+      if (err) {
+        // Timeout or socket error before the server replied at all.
+        setMessages(prev => prev.map(m =>
+          m.clientId === clientId ? { ...m, status: 'failed' } : m
+        ));
+        return;
+      }
+      if (ack && ack.ok === false) {
+        setMessages(prev => prev.map(m =>
+          m.clientId === clientId ? { ...m, status: 'failed' } : m
+        ));
+        if (ack.message && ack.code !== 'EMPTY_TEXT') toast.error(ack.message);
+        return;
+      }
+      // ack.ok === true — the dm:message broadcast handler will swap the
+      // bubble in via clientId match, so we don't need to do it here.
+    });
+
     s.emit('dm:stopTyping', { conversationId: selectedConv._id });
+    return true;
+  };
+
+  const retryMessage = (failedMsg) => {
+    if (!failedMsg?._retryPayload) return;
+    const data = failedMsg._retryPayload;
+    // Drop the failed bubble first; sendMessage will re-add a fresh
+    // optimistic one with a new clientId.
+    setMessages(prev => prev.filter(m => m.clientId !== failedMsg.clientId));
+    sendMessage(data);
   };
 
   const deleteMessage = (message, mode) => {
@@ -831,6 +929,7 @@ export default function Messages() {
                   onDelete={deleteMessage}
                   onReact={handleReact}
                   onPin={() => {}}
+                  onRetry={retryMessage}
                   getDeleteOptions={(message, isOwn) => ({ self: true, everyone: isOwn })}
                   canPin={false}
                   onLoadMore={loadMore}

@@ -1,6 +1,22 @@
 const Message = require('../models/Message');
 const Group = require('../models/Group');
 
+// Match the DM cap so error copy stays consistent across both surfaces.
+const MAX_ATTACHMENT_BYTES = 7 * 1024 * 1024;
+
+function safeAck(ack, payload) {
+  if (typeof ack !== 'function') return;
+  try { ack(payload); } catch (_) { /* socket already closed */ }
+}
+
+// Mirrors failDm in socket/dm.js — every group:message reject path needs
+// to surface a typed error so the client doesn't silently lose the user's
+// text. Same anti-pattern fix.
+function failGroup(socket, ack, code, message) {
+  socket.emit('group:error', { code, message });
+  safeAck(ack, { ok: false, code, message });
+}
+
 async function markGroupAsRead(groupId, userId) {
   const group = await Group.findById(groupId);
   if (!group || group.isDeleted) return null;
@@ -33,32 +49,52 @@ module.exports = function (io) {
     });
 
     // ── SEND MESSAGE ──
-    socket.on('group:message', async (data) => {
+    // Same ack-callback contract as dm:message — the client emits with a
+    // 2nd arg and waits for { ok, message } back. Without this the silent
+    // returns below would eat the user's text on any validation miss.
+    socket.on('group:message', async (data, ack) => {
       try {
-        const { groupId, text, type = 'text', replyTo, attachments } = data;
-        if (!groupId) return;
+        const { groupId, text, type = 'text', replyTo, attachments, clientId } =
+          data || {};
+
+        if (!groupId) {
+          return failGroup(socket, ack, 'NO_GROUP_ID', 'Не указана группа');
+        }
 
         const group = await Group.findById(groupId);
-        if (!group || group.isDeleted) return;
+        if (!group || group.isDeleted) {
+          return failGroup(socket, ack, 'GROUP_NOT_FOUND', 'Группа не найдена');
+        }
 
         // Check membership
-        const isMember = group.members.some(m => m.user.toString() === socket.user._id.toString());
-        if (!isMember) return;
+        const isMember = group.members.some(
+          m => m.user.toString() === socket.user._id.toString()
+        );
+        if (!isMember) {
+          return failGroup(socket, ack, 'NOT_MEMBER', 'Вы не участник группы');
+        }
 
         // Check sendMessages permission
         if (!group.hasPermission(socket.user._id, 'sendMessages')) {
-          return socket.emit('group:error', { message: 'Нет разрешения отправлять сообщения' });
+          return failGroup(socket, ack, 'NO_PERMISSION_SEND',
+            'Нет разрешения отправлять сообщения');
         }
 
         // Validate
-        if (type === 'text' && (!text || !text.trim())) return;
-        if (['image', 'video', 'file', 'audio'].includes(type) && (!attachments || attachments.length === 0)) return;
+        if (type === 'text' && (!text || !text.trim())) {
+          return failGroup(socket, ack, 'EMPTY_TEXT', 'Сообщение не может быть пустым');
+        }
+        if (['image', 'video', 'file', 'audio'].includes(type) &&
+            (!attachments || attachments.length === 0)) {
+          return failGroup(socket, ack, 'NO_ATTACHMENTS', 'Нет вложений для отправки');
+        }
 
         // Size check on attachments
         if (attachments?.length > 0) {
           for (const att of attachments) {
-            if (att.data && att.data.length > 7 * 1024 * 1024) { // ~5MB base64
-              return socket.emit('group:error', { message: 'Файл слишком большой (макс. 5MB)' });
+            if (att.data && att.data.length > MAX_ATTACHMENT_BYTES) {
+              return failGroup(socket, ack, 'ATTACHMENT_TOO_LARGE',
+                'Файл слишком большой (макс. ~5 MB исходных)');
             }
           }
         }
@@ -82,7 +118,14 @@ module.exports = function (io) {
           });
         }
 
-        io.to(`group:${groupId}`).emit('group:message', message);
+        // clientId is echoed back so the sender can swap their optimistic
+        // bubble for the persisted server copy without duplicating.
+        const payload = {
+          ...message.toJSON(),
+          clientId: clientId || null,
+        };
+
+        io.to(`group:${groupId}`).emit('group:message', payload);
 
         if (type !== 'system') {
           for (const member of group.members) {
@@ -94,8 +137,11 @@ module.exports = function (io) {
             });
           }
         }
+
+        safeAck(ack, { ok: true, message: payload });
       } catch (e) {
         console.error('group:message error:', e.message);
+        failGroup(socket, ack, 'SERVER_ERROR', 'Ошибка сервера. Попробуйте ещё раз.');
       }
     });
 
