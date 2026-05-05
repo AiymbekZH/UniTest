@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Forward as ForwardIcon, Loader2, MessageSquare, Search, Send, Users, X } from 'lucide-react';
+import { Bookmark, Check, Forward as ForwardIcon, Loader2, MessageSquare, Search, Send, Users, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../services/api';
 
@@ -55,6 +55,20 @@ export default function ForwardModal({ open, message, onClose, currentUserId }) 
         if (cancelled) return;
 
         const dms = (dmRes.data || []).map(c => {
+          // Phase 4 Saved Messages: self-DM shows up as Избранное
+          // with a bookmark tile so users can forward into their own
+          // notes chat. Sorted first further down.
+          if (c.isSelf) {
+            return {
+              key: `dm:${c._id}`,
+              kind: 'dm',
+              id: c._id,
+              title: 'Избранное',
+              avatar: null,
+              subtitle: 'Заметки для себя',
+              isSaved: true,
+            };
+          }
           const other = (c.participants || []).find(p => String(p?._id) !== String(currentUserId));
           return {
             key: `dm:${c._id}`,
@@ -76,8 +90,11 @@ export default function ForwardModal({ open, message, onClose, currentUserId }) 
           isGroup: true,
         }));
 
-        // DMs first (more frequent forward target), then groups.
-        setChats([...dms, ...groups]);
+        // Saved first, then remaining DMs (more frequent forward
+        // target), then groups. Stable sort within each bucket.
+        const saved = dms.filter(d => d.isSaved);
+        const plainDms = dms.filter(d => !d.isSaved);
+        setChats([...saved, ...plainDms, ...groups]);
       } catch (err) {
         if (!cancelled) toast.error('Не удалось загрузить чаты');
       } finally {
@@ -231,14 +248,20 @@ export default function ForwardModal({ open, message, onClose, currentUserId }) 
                             : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'
                         }`}
                       >
-                        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden border-2 border-slate-300 bg-slate-50 text-xs font-black text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 ${
+                        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden border-2 text-xs font-black ${
                           c.isGroup ? 'rounded-xl' : 'rounded-2xl'
+                        } ${
+                          c.isSaved
+                            ? 'border-slate-900 bg-amber-400 text-slate-900 dark:border-white'
+                            : 'border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
                         }`}>
-                          {c.avatar
-                            ? <img src={c.avatar} alt="" className="h-full w-full object-cover" />
-                            : c.isGroup
-                              ? <Users size={13} strokeWidth={2.4} />
-                              : (c.title.slice(0, 1) || '?').toUpperCase()}
+                          {c.isSaved
+                            ? <Bookmark size={13} strokeWidth={2.6} fill="currentColor" />
+                            : c.avatar
+                              ? <img src={c.avatar} alt="" className="h-full w-full object-cover" />
+                              : c.isGroup
+                                ? <Users size={13} strokeWidth={2.4} />
+                                : (c.title.slice(0, 1) || '?').toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{c.title}</p>

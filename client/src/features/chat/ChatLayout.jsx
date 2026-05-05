@@ -418,6 +418,25 @@ export default function ChatLayout() {
 
   const dmHeader = useMemo(() => {
     if (kind !== 'dm') return null;
+    // Phase 4 Saved Messages: the self-DM has a single participant
+    // (the viewer) and carries isSelf=true. We short-circuit to a
+    // dedicated header shape so the downstream "otherUser" inference
+    // path doesn't land on a null user and show '...' / '?' forever.
+    const conv = activeChat?.conversation;
+    if (conv?.isSelf || (conv?.participants?.length === 1 && String(conv.participants[0]?._id || conv.participants[0]) === String(currentUserId))) {
+      return {
+        title: 'Избранное',
+        subtitle: 'Заметки и файлы для себя',
+        avatar: '',
+        fallback: '★',
+        online: false,
+        otherUserId: null,
+        // Special flag the header view uses to swap the circle for a
+        // bookmark icon + amber tile without another prop threading.
+        isSaved: true,
+      };
+    }
+
     const u = otherUserDm || inferredOtherFromMessages;
     const presence = u?._id ? presenceMap[String(u._id)] : null;
     return {
@@ -428,7 +447,7 @@ export default function ChatLayout() {
       online: !!presence?.online,
       otherUserId: u?._id || null,
     };
-  }, [kind, otherUserDm, inferredOtherFromMessages, presenceMap]);
+  }, [kind, otherUserDm, inferredOtherFromMessages, presenceMap, activeChat, currentUserId]);
 
   const groupHeader = useMemo(() => {
     if (kind !== 'group') return null;
@@ -514,6 +533,7 @@ export default function ChatLayout() {
               isGroup={kind === 'group'}
               groupId={header?.groupId}
               otherUserId={header?.otherUserId}
+              isSaved={header?.isSaved}
               onBack={() => navigate('/chat')}
               onOpenSearch={() => setSearchOpen(true)}
               onOpenInfo={() => setInfoOpen(true)}

@@ -1,4 +1,4 @@
-import { BellOff, Pin, Users } from 'lucide-react';
+import { BellOff, Bookmark, Pin, Users } from 'lucide-react';
 
 /**
  * Single row in the chat sidebar. Uniform across DM and group — the
@@ -33,6 +33,11 @@ export default function ChatListItem({
     isMuted,
     unreadCount,
     lastActivity,
+    // Phase 4 Saved Messages: when set to 'saved', the avatar slot
+    // renders a bookmark icon with amber tint instead of an initials
+    // fallback. Used for the single-participant self-DM that anchors
+    // the chat list.
+    iconType,
   } = chat;
 
   return (
@@ -47,14 +52,20 @@ export default function ChatListItem({
       style={active ? { boxShadow: '0 2px 0 #0f172a' } : undefined}
     >
       <div className="relative flex-shrink-0">
-        <div className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 bg-white text-sm font-black text-slate-700 dark:border-white dark:bg-slate-700 dark:text-white ${
+        <div className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border-2 border-slate-900 text-sm font-black dark:border-white ${
           isGroup ? 'rounded-xl' : ''
+        } ${
+          iconType === 'saved'
+            ? 'bg-amber-400 text-slate-900'
+            : 'bg-white text-slate-700 dark:bg-slate-700 dark:text-white'
         }`}>
-          {avatar
-            ? <img src={avatar} alt="" className="h-full w-full object-cover" />
-            : isGroup
-              ? <Users size={18} strokeWidth={2.4} />
-              : (fallback || '?').toUpperCase()}
+          {iconType === 'saved'
+            ? <Bookmark size={18} strokeWidth={2.6} fill="currentColor" />
+            : avatar
+              ? <img src={avatar} alt="" className="h-full w-full object-cover" />
+              : isGroup
+                ? <Users size={18} strokeWidth={2.4} />
+                : (fallback || '?').toUpperCase()}
         </div>
         {!isGroup && online && (
           <span

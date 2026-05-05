@@ -46,8 +46,12 @@ export default function ChatListSidebar({
     async function load() {
       setLoading(true);
       try {
+        // Phase 4 Saved Messages: ensure the self-DM exists before
+        // the list query so it always shows up in the result. The
+        // endpoint is idempotent (get-or-create) — zero server work
+        // on subsequent mounts.
         const [convRes, groupRes] = await Promise.all([
-          api.get('/dm/conversations'),
+          api.get('/dm/saved').then(() => api.get('/dm/conversations')),
           api.get('/groups/my'),
         ]);
         if (cancelled) return;
@@ -69,6 +73,33 @@ export default function ChatListSidebar({
     const dmItems = (conversations || [])
       .filter(c => !c.isArchived)
       .map(c => {
+        // Saved Messages: single-participant self-DM. Render with
+        // bookmark icon and a 'pinned-forever' treatment so it stays
+        // at the top of the list regardless of last activity.
+        if (c.isSelf) {
+          return {
+            key: `dm-${c._id}`,
+            kind: 'dm',
+            chatId: c._id,
+            iconType: 'saved',
+            title: 'Избранное',
+            subtitle: c.lastMessage?.text
+              || (c.lastMessage?.attachments?.length ? '📎 Вложение' : 'Заметки и файлы для себя'),
+            avatar: '',
+            fallback: '★',
+            online: false,
+            isGroup: false,
+            // Force isPinned true for sort anchoring. The explicit
+            // pinnedBy state on the doc is ignored for self-DMs since
+            // 'unpin' doesn't make sense here.
+            isPinned: true,
+            isMuted: false,
+            unreadCount: 0, // Own messages never count as unread.
+            lastActivity: c.lastActivity,
+            raw: c,
+          };
+        }
+
         const other = getOtherUser(c, currentUserId);
         const presence = presenceMap?.[String(other?._id)] || {};
         return {
@@ -116,8 +147,13 @@ export default function ChatListSidebar({
     else if (filter === 'group') merged = merged.filter(i => i.kind === 'group');
     else if (filter === 'unread') merged = merged.filter(i => i.unreadCount > 0);
 
-    // Sort: pinned first, then lastActivity desc.
+    // Sort: Saved Messages always at the very top, then pinned, then
+    // lastActivity desc. Two tiers of priority so the self-DM never
+    // falls below a busier pinned DM.
     merged.sort((a, b) => {
+      const aSaved = a.iconType === 'saved' ? 1 : 0;
+      const bSaved = b.iconType === 'saved' ? 1 : 0;
+      if (aSaved !== bSaved) return bSaved - aSaved;
       if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
       return new Date(b.lastActivity || 0) - new Date(a.lastActivity || 0);
     });

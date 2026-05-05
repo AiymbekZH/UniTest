@@ -1,4 +1,4 @@
-import { ArrowLeft, MoreVertical, Search, Users } from 'lucide-react';
+import { ArrowLeft, Bookmark, MoreVertical, Search, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -21,6 +21,10 @@ export default function ChatRoomHeader({
   isGroup,
   groupId,
   otherUserId,
+  // Phase 4 Saved Messages flag. When true, the avatar slot renders
+  // a bookmark icon on an amber tile and the title doesn't navigate
+  // anywhere on click (there's no profile to view for self).
+  isSaved,
   onBack,
   onOpenSearch,
   onOpenInfo,
@@ -28,6 +32,7 @@ export default function ChatRoomHeader({
   const navigate = useNavigate();
 
   const handleTitleClick = () => {
+    if (isSaved) return; // Self — no profile navigation.
     if (kind === 'dm' && otherUserId) {
       navigate(`/profile/${otherUserId}`);
     } else if (kind === 'group' && groupId) {
@@ -54,14 +59,20 @@ export default function ChatRoomHeader({
         className="flex min-w-0 flex-1 items-center gap-3 text-left transition hover:opacity-80"
       >
         <div className="relative flex-shrink-0">
-          <div className={`flex h-10 w-10 items-center justify-center overflow-hidden border-2 border-slate-900 bg-white text-sm font-black text-slate-700 dark:border-white dark:bg-slate-700 dark:text-white ${
+          <div className={`flex h-10 w-10 items-center justify-center overflow-hidden border-2 border-slate-900 text-sm font-black dark:border-white ${
             isGroup ? 'rounded-xl' : 'rounded-2xl'
+          } ${
+            isSaved
+              ? 'bg-amber-400 text-slate-900'
+              : 'bg-white text-slate-700 dark:bg-slate-700 dark:text-white'
           }`}>
-            {avatar
-              ? <img src={avatar} alt="" className="h-full w-full object-cover" />
-              : isGroup
-                ? <Users size={16} strokeWidth={2.4} />
-                : (fallback || '?').toUpperCase()}
+            {isSaved
+              ? <Bookmark size={16} strokeWidth={2.6} fill="currentColor" />
+              : avatar
+                ? <img src={avatar} alt="" className="h-full w-full object-cover" />
+                : isGroup
+                  ? <Users size={16} strokeWidth={2.4} />
+                  : (fallback || '?').toUpperCase()}
           </div>
           {!isGroup && online && (
             <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-800" />

@@ -174,6 +174,43 @@ router.patch('/conversations/:id/pin', auth, (req, res) => toggleConversationFla
 router.patch('/conversations/:id/mute', auth, (req, res) => toggleConversationFlag(req, res, 'mutedBy'));
 router.patch('/conversations/:id/archive', auth, (req, res) => toggleConversationFlag(req, res, 'archivedBy'));
 
+// ── Saved Messages (Phase 4) ──
+//
+// "Избранное" is a single-participant virtual conversation owned by
+// the current user. We expose it through a dedicated GET-or-create
+// endpoint instead of overloading POST /conversations because the
+// existing endpoint refuses participantId === self.
+//
+// Why a real DirectMessage doc instead of a transient virtual id?
+//   The downstream code (messages, search, media gallery) all works
+//   on conversation ids via standard membership checks. Reusing the
+//   doc model means zero new code paths — a saved message persists
+//   exactly like a normal DM, the only difference is the participants
+//   array has one element (the owner). isSelf=true is a hint for
+//   the client list UI; servers don't gate on it.
+router.get('/saved', auth, async (req, res) => {
+  try {
+    let conversation = await DirectMessage.findOne({
+      isSelf: true,
+      participants: { $size: 1, $all: [req.user._id] },
+    }).populate('participants', 'firstName lastName email avatar uniqueId');
+
+    if (!conversation) {
+      conversation = new DirectMessage({
+        participants: [req.user._id],
+        isSelf: true,
+      });
+      await conversation.save();
+      await conversation.populate('participants', 'firstName lastName email avatar uniqueId');
+    }
+
+    res.json(conversation);
+  } catch (err) {
+    console.error('[dm] saved error:', err.message);
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 // ── Create or find conversation ──
 router.post('/conversations', auth, async (req, res) => {
   try {
