@@ -21,6 +21,10 @@ import { useTypingBroadcaster } from './hooks/useTypingBroadcaster';
 import ForwardModal from './components/ForwardModal';
 import GlobalSearchModal from './components/GlobalSearchModal';
 import InfoDrawer from './info/InfoDrawer';
+// Phase 4c: chat wallpaper picker. Mounted here (not inside InfoDrawer)
+// so the picker can open from anywhere — the drawer is just one of
+// its trigger points.
+import WallpaperPicker from './wallpaper/WallpaperPicker';
 
 /**
  * Top-level shell for the new mobile-first chat experience. Mounted at:
@@ -61,6 +65,7 @@ export default function ChatLayout() {
   const [forwardTarget, setForwardTarget] = useState(null); // message being forwarded
   const [infoOpen, setInfoOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [wallpaperOpen, setWallpaperOpen] = useState(false);
 
   // Highlighted message id, set when navigating from GlobalSearch.
   // Cleared once consumed (we don't want it to re-fire on every rerender).
@@ -577,11 +582,25 @@ export default function ChatLayout() {
         chatTitle={header?.title}
         isGroup={kind === 'group'}
         memberCount={kind === 'group' ? activeChat?.group?.members?.length : null}
+        onOpenWallpaper={() => {
+          // Close the drawer first so the picker isn't stacked on top
+          // of the backdrop-blurred drawer (looks muddy). Small timeout
+          // lets the drawer's exit animation finish before the picker
+          // slides in — 1 frame would be enough but 120 ms is the
+          // configured spring duration.
+          setInfoOpen(false);
+          setTimeout(() => setWallpaperOpen(true), 120);
+        }}
       />
 
       <GlobalSearchModal
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
+      />
+
+      <WallpaperPicker
+        open={wallpaperOpen}
+        onClose={() => setWallpaperOpen(false)}
       />
     </div>
   );

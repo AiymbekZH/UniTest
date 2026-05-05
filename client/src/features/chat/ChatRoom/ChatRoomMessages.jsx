@@ -6,6 +6,11 @@ import DateSeparator from '../components/DateSeparator';
 // stays alive for /messages-era pages (none currently — they redirect)
 // but the new chat shell uses this enhanced one.
 import MediaViewer from '../viewer/MediaViewer';
+// Phase 4c: chat wallpaper painted below the message bubbles. The hook
+// reads the user's pick from localStorage + subscribes to cross-tab
+// changes so every open tab updates together.
+import { useWallpaper } from '../wallpaper/useWallpaper';
+import { useTheme } from '../../../context/ThemeContext';
 
 /**
  * Scrollable message list for the new chat shell. Mirrors the legacy
@@ -138,12 +143,54 @@ export default function ChatRoomMessages({
     return Math.max(0, i);
   }, [mediaViewer, mediaList]);
 
+  // ── Wallpaper layer state ──
+  // The chosen wallpaper (if any) paints UNDER the messages via an
+  // absolutely-positioned div inside the scroll container. We use a
+  // separate layer rather than a background on the scroll div itself
+  // so the overlay veil (which regulates contrast with bubbles) can
+  // sit between wallpaper and bubbles without affecting scroll.
+  const { wallpaper } = useWallpaper();
+  const { dark } = useTheme();
+  const overlayAlpha = wallpaper
+    ? (dark ? wallpaper.overlayDark ?? 0 : wallpaper.overlayLight ?? 0)
+    : 0;
+  const overlayColor = dark ? '0, 0, 0' : '255, 255, 255';
+
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
+      {/* Wallpaper + contrast veil.
+          Mounted inside the flex column (not the scroll container) so
+          it fills the whole chat area including the empty space below
+          short conversations. pointer-events-none lets clicks pass
+          through to the scroll layer on top. */}
+      {wallpaper && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-0"
+            style={{
+              backgroundImage: `url(${wallpaper.file})`,
+              backgroundSize:
+                wallpaper.mode === 'cover' ? 'cover' :
+                wallpaper.mode === 'contain' ? 'contain' : '320px',
+              backgroundRepeat: wallpaper.mode === 'tile' ? 'repeat' : 'no-repeat',
+              backgroundPosition: 'center',
+            }}
+          />
+          {overlayAlpha > 0 && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-0"
+              style={{ background: `rgba(${overlayColor}, ${overlayAlpha})` }}
+            />
+          )}
+        </>
+      )}
+
       <div
         ref={containerRef}
         onScroll={onScroll}
-        className="flex-1 overflow-y-auto px-3 py-3 sm:px-4"
+        className="relative z-10 flex-1 overflow-y-auto px-3 py-3 sm:px-4"
       >
         {/* Top sentinel for infinite-scroll back */}
         {hasMore && (

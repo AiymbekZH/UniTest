@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { File as FileIcon, Image as ImageIcon, Loader2, Music, Users, Video, X } from 'lucide-react';
+import { File as FileIcon, Image as ImageIcon, Loader2, Music, Palette, Users, Video, X } from 'lucide-react';
 import api from '../../../services/api';
 
 /**
@@ -24,7 +24,7 @@ import api from '../../../services/api';
  */
 const PAGE_SIZE = 30;
 
-export default function InfoDrawer({ open, onClose, kind, chatId, chatTitle, isGroup, memberCount }) {
+export default function InfoDrawer({ open, onClose, kind, chatId, chatTitle, isGroup, memberCount, onOpenWallpaper }) {
   const [tab, setTab] = useState('media'); // 'media' | 'files'
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -127,6 +127,21 @@ export default function InfoDrawer({ open, onClose, kind, chatId, chatTitle, isG
                 <X size={16} />
               </button>
             </div>
+
+            {/* ── Quick actions (above tabs) ── */}
+            {onOpenWallpaper && (
+              <div className="flex-shrink-0 border-b-2 border-slate-200 px-4 py-3 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={onOpenWallpaper}
+                  className="flex w-full items-center gap-2 rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 transition active:translate-y-[1px] hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-500"
+                  style={{ boxShadow: '0 2px 0 #0f172a' }}
+                >
+                  <Palette size={13} strokeWidth={2.4} />
+                  Изменить фон
+                </button>
+              </div>
+            )}
 
             {/* ── Tabs ── */}
             <div className="flex flex-shrink-0 border-b-2 border-slate-200 dark:border-slate-700">
