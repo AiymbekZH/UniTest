@@ -172,11 +172,9 @@ export default function App() {
       <Route path="/question-bank" element={<PrivateRoute><QuestionBank /></PrivateRoute>} />
       <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       <Route path="/groups" element={<PrivateRoute><Groups /></PrivateRoute>} />
-      {/* /messages was the Phase-0 chat page. It's now a permanent redirect
-          to the new /chat shell so the user doesn't have to opt in manually.
-          The old page file (pages/Messages.jsx) stays on disk as dead code
-          until Phase 5 deletes it; it's never instantiated because this
-          redirect fires before the lazy import resolves. */}
+      {/* /messages was the Phase-0 chat page. The file was removed in
+          Phase 5; this redirect handles any old links or bookmarks
+          still pointing at it. */}
       <Route path="/messages" element={<Navigate to="/chat" replace />} />
       {/* New unified chat (Phase 2). Three URL forms drive the layout: */}
       <Route path="/chat" element={<PrivateRoute><Chat /></PrivateRoute>} />
