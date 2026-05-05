@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
  * Props:
  *   kind, title, subtitle, avatar, fallback, online, isGroup,
  *   onBack       — pops to list (mobile only)
+ *   onOpenSearch — opens the cross-chat search modal (Phase 4)
  *   onOpenInfo   — opens the right-side info drawer (Phase 4)
  */
 export default function ChatRoomHeader({
@@ -21,6 +22,7 @@ export default function ChatRoomHeader({
   groupId,
   otherUserId,
   onBack,
+  onOpenSearch,
   onOpenInfo,
 }) {
   const navigate = useNavigate();
@@ -73,13 +75,16 @@ export default function ChatRoomHeader({
         </div>
       </button>
 
-      {/* Phase 4: search inside chat */}
+      {/* Cross-chat search (Phase 4). Opens the global Cmd+K palette
+          which can find messages in any DM or group the user belongs
+          to — including this one. The shortcut hint is shown on
+          desktop only because it's not actionable on mobile keyboards. */}
       <button
         type="button"
+        onClick={onOpenSearch}
         className="hidden h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 sm:flex"
-        aria-label="Поиск в чате"
-        title="Поиск (скоро)"
-        disabled
+        aria-label="Поиск"
+        title="Поиск (Ctrl+K)"
       >
         <Search size={15} strokeWidth={2.4} />
       </button>

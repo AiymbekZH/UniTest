@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { connectSocket, getSocket } from '../../services/socket';
 import api from '../../services/api';
@@ -16,6 +16,12 @@ import { useChatSocket } from './hooks/useChatSocket';
 import { useOptimisticMessages } from './hooks/useOptimisticMessages';
 import { useTypingBroadcaster } from './hooks/useTypingBroadcaster';
 
+// Phase 4 modals + drawers. All three are lazy-imported inline because
+// the bulk of users won't open them on a typical chat session.
+import ForwardModal from './components/ForwardModal';
+import GlobalSearchModal from './components/GlobalSearchModal';
+import InfoDrawer from './info/InfoDrawer';
+
 /**
  * Top-level shell for the new mobile-first chat experience. Mounted at:
  *   /chat                     → sidebar only (mobile: just list)
@@ -31,6 +37,7 @@ import { useTypingBroadcaster } from './hooks/useTypingBroadcaster';
  */
 export default function ChatLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { kind: routeKind, chatId: routeChatId } = useParams();
 
   const { user } = useAuth();
@@ -49,6 +56,24 @@ export default function ChatLayout() {
   const [presenceMap, setPresenceMap] = useState({});
   const typingTimers = useRef({});
   const oldestIdRef = useRef(null); // for cursor pagination
+
+  // ── Phase 4 modal/drawer state ──
+  const [forwardTarget, setForwardTarget] = useState(null); // message being forwarded
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Highlighted message id, set when navigating from GlobalSearch.
+  // Cleared once consumed (we don't want it to re-fire on every rerender).
+  const [highlightMessageId, setHighlightMessageId] = useState(null);
+  useEffect(() => {
+    const incoming = location.state?.highlightMessageId;
+    if (incoming) {
+      setHighlightMessageId(incoming);
+      // Clear from history state so a refresh doesn't re-flash the bubble.
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   const isOpen = Boolean(activeChat);
   const kind = activeChat?.kind || null;
@@ -270,9 +295,11 @@ export default function ChatLayout() {
     }
   }, [setMessages]);
 
-  const handleForward = useCallback(() => {
-    // Phase 4 will add a target-picker modal. For now, surface a hint.
-    toast('Пересылка появится в следующем обновлении', { icon: '🚧' });
+  // Phase 4: open the multi-target picker modal. The actual API call
+  // happens inside ForwardModal; we just hand it the source message.
+  const handleForward = useCallback((message) => {
+    if (!message?._id) return;
+    setForwardTarget(message);
   }, []);
 
   const handleCopy = useCallback((message) => {
@@ -282,6 +309,61 @@ export default function ChatLayout() {
       () => toast.error('Не удалось скопировать')
     );
   }, []);
+
+  // ── Phase 4: keyboard shortcuts ──
+  // Cmd/Ctrl+K opens global search anywhere in the chat shell.
+  // Plain ArrowUp inside the empty-input state of an open chat enters
+  // edit mode for the user's last text message in this chat — the
+  // Telegram/iMessage convention. We gate the trigger on:
+  //   1. There IS an open chat.
+  //   2. We're NOT already editing or replying.
+  //   3. Focus is NOT in any input/textarea/contenteditable element
+  //      (so the user typing into the composer can still navigate by
+  //      caret without triggering edit mode).
+  // The composer reads `editingMessage` and prefills + focuses the
+  // textarea automatically (see ChatRoomComposer's existing useEffect).
+  useEffect(() => {
+    function isTextEntryFocused() {
+      const el = document.activeElement;
+      if (!el || el === document.body) return false;
+      const tag = el.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if (el.isContentEditable) return true;
+      return false;
+    }
+
+    function onKey(e) {
+      // Cmd/Ctrl+K — global search.
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setSearchOpen(s => !s);
+        return;
+      }
+
+      // Plain ArrowUp → edit last own message. Don't fire if the user
+      // is typing into a field; in that case ArrowUp is normal caret
+      // movement.
+      if (e.key === 'ArrowUp' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        if (!isOpen) return;
+        if (editingMessage || replyTo) return;
+        if (isTextEntryFocused()) return;
+
+        // Find the most recent own text message that's editable.
+        const last = [...messages].reverse().find(m =>
+          !m.isDeleted &&
+          m.type === 'text' &&
+          String(m.sender?._id || m.sender) === String(currentUserId)
+        );
+        if (last) {
+          e.preventDefault();
+          setEditingMessage(last);
+        }
+      }
+    }
+
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, editingMessage, replyTo, messages, currentUserId]);
 
   // ── Sidebar selection callbacks ──
   const onSelectDm = useCallback((conv) => {
@@ -423,6 +505,8 @@ export default function ChatLayout() {
               groupId={header?.groupId}
               otherUserId={header?.otherUserId}
               onBack={() => navigate('/chat')}
+              onOpenSearch={() => setSearchOpen(true)}
+              onOpenInfo={() => setInfoOpen(true)}
             />
             <ChatRoomMessages
               messages={messages}
@@ -442,6 +526,7 @@ export default function ChatLayout() {
               canPin={canPin}
               canDeleteEveryone={canDeleteEveryone}
               getMemberRoleColor={getMemberRoleColor}
+              highlightMessageId={highlightMessageId}
             />
             {typingUsers.length > 0 && (
               <div className="flex flex-shrink-0 items-center gap-2 border-t border-slate-200 px-4 py-1.5 text-[11px] font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -473,6 +558,31 @@ export default function ChatLayout() {
           <ChatRoomEmpty />
         )}
       </section>
+
+      {/* Phase 4 overlays — mounted at the layout level so they survive
+          chat switches and the open state is independent of the active
+          chat (e.g. global search works even with no chat open). */}
+      <ForwardModal
+        open={Boolean(forwardTarget)}
+        message={forwardTarget}
+        onClose={() => setForwardTarget(null)}
+        currentUserId={currentUserId}
+      />
+
+      <InfoDrawer
+        open={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        kind={kind}
+        chatId={chatId}
+        chatTitle={header?.title}
+        isGroup={kind === 'group'}
+        memberCount={kind === 'group' ? activeChat?.group?.members?.length : null}
+      />
+
+      <GlobalSearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+      />
     </div>
   );
 }
