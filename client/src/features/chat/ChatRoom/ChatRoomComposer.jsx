@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, FileText, Image as ImageIcon, Paperclip, Send, X } from 'lucide-react';
+import { Check, FileText, Image as ImageIcon, Paperclip, Send, Sticker as StickerIcon, X } from 'lucide-react';
 import VoiceRecorder from '../../../components/chat/VoiceRecorder';
+import StickerPicker from '../../stickers/StickerPicker';
 
 /**
  * Composer for the new chat shell. Wraps:
@@ -41,6 +42,9 @@ export default function ChatRoomComposer({
   // on narrow mobile the row overflows the viewport, which then scrolls
   // the entire page sideways and makes messages above look "shifted".
   const [voicePhase, setVoicePhase] = useState('idle');
+  // Whether the sticker picker bottom-sheet is open. Held in composer
+  // state (not a parent prop) because no other component needs to know.
+  const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
   const fileRef = useRef(null);
   const textRef = useRef(null);
   const voiceActive = voicePhase === 'recording' || voicePhase === 'preview';
@@ -141,6 +145,28 @@ export default function ChatRoomComposer({
     onCancelReply?.();
   };
 
+  // Sticker pick: send as a one-attachment 'sticker' message. The bubble's
+  // sticker-rendering branch unwraps `attachments[0].data` directly, so
+  // the schema lines up with everything else; only the discriminator
+  // (`type`) differs from a regular image upload.
+  const onStickerPick = (sticker) => {
+    if (!sticker?.image) return;
+    setStickerPickerOpen(false);
+    const result = onSend?.({
+      text: '',
+      type: 'sticker',
+      attachments: [{
+        data: sticker.image,
+        mimetype: sticker.mimetype || 'image/webp',
+        filename: `sticker_${sticker._id}.${(sticker.mimetype || 'image/webp').split('/')[1] || 'webp'}`,
+        size: 0,
+      }],
+      replyTo: replyTo?._id,
+    });
+    if (result === false) return;
+    onCancelReply?.();
+  };
+
   const canSubmit = !disabled && (text.trim() || attachments.length > 0 || editingMessage);
   const isEdit = Boolean(editingMessage);
 
@@ -223,15 +249,35 @@ export default function ChatRoomComposer({
         {!voiceActive && (
           <>
             {!isEdit && (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={disabled}
-                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-                aria-label="Прикрепить"
-              >
-                <Paperclip size={18} strokeWidth={2.4} />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={disabled}
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                  aria-label="Прикрепить"
+                >
+                  <Paperclip size={18} strokeWidth={2.4} />
+                </button>
+                {/* Sticker shortcut. Hidden while there's draft text/file
+                    so the input area stays clean during normal typing. */}
+                {!text.trim() && attachments.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStickerPickerOpen(v => !v)}
+                    disabled={disabled}
+                    className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition disabled:opacity-50 ${
+                      stickerPickerOpen
+                        ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-200'
+                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200'
+                    }`}
+                    aria-label="Стикеры"
+                    title="Стикеры"
+                  >
+                    <StickerIcon size={18} strokeWidth={2.4} />
+                  </button>
+                )}
+              </>
             )}
             <input
               ref={fileRef}
@@ -282,6 +328,15 @@ export default function ChatRoomComposer({
           </button>
         )}
       </div>
+
+      {/* Sticker picker — modal-style overlay rendered alongside the
+          composer. Lives at this level (not in ChatLayout) so the close
+          button + backdrop click can directly clear the open state. */}
+      <StickerPicker
+        open={stickerPickerOpen}
+        onClose={() => setStickerPickerOpen(false)}
+        onPick={onStickerPick}
+      />
     </div>
   );
 }

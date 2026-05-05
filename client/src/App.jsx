@@ -24,6 +24,9 @@ const Groups = lazy(() => import('./pages/Groups'));
 // Phase 2: new mobile-first chat shell mounted at /chat. Replaces the
 // old /messages flow (which now 301-redirects here via the Routes below).
 const Chat = lazy(() => import('./pages/Chat'));
+// Phase 3: sticker pack management (+ AI generation). Lives at /stickers
+// and is reachable from the in-chat sticker picker's settings button.
+const MyStickersPage = lazy(() => import('./pages/MyStickersPage'));
 const ArenaCodePage = lazy(() => import('./pages/ArenaCodePage'));
 const ArenaHostPage = lazy(() => import('./pages/ArenaHostPage'));
 const ArenaResultsPage = lazy(() => import('./pages/ArenaResultsPage'));
@@ -83,6 +86,8 @@ export default function App() {
       {/* New unified chat (Phase 2). Three URL forms drive the layout: */}
       <Route path="/chat" element={<PrivateRoute><Chat /></PrivateRoute>} />
       <Route path="/chat/:kind/:chatId" element={<PrivateRoute><Chat /></PrivateRoute>} />
+      {/* Phase 3: sticker pack management. */}
+      <Route path="/stickers" element={<PrivateRoute><MyStickersPage /></PrivateRoute>} />
       <Route path="/arena/host/:roomId" element={<PrivateRoute><ArenaHostPage /></PrivateRoute>} />
       <Route path="/arena/quick-start" element={<PrivateRoute><ArenaQuickStart /></PrivateRoute>} />
       <Route path="/arena/templates" element={<PrivateRoute><MyArenaTests /></PrivateRoute>} />
