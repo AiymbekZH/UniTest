@@ -179,19 +179,38 @@ export default function ChatRoomComposer({
     }
     if (!trimmed && attachments.length === 0) return;
 
-    let result;
-    if (attachments.length > 0) {
-      const att = attachments[0];
-      result = onSend({
-        text: trimmed,
+    if (attachments.length === 0) {
+      // Plain text path — unchanged.
+      const result = onSend({ text: trimmed, type: 'text', replyTo: replyTo?._id });
+      if (result === false) return;
+      setText('');
+      onCancelReply?.();
+      return;
+    }
+
+    // Album / single-attachment path. We send ONE message per
+    // attachment because socket.io's maxHttpBufferSize (5 MB) caps
+    // total packet size and 10 photos can blow past that. Sending
+    // serially keeps each below the limit and lets the optimistic
+    // store interleave the bubbles in the order they were issued.
+    //
+    // Caption rules:
+    //   - The text caption (if any) goes ONLY on the first
+    //     attachment, matching Telegram's album convention. Repeat
+    //     captions on every bubble would be noise.
+    //   - replyTo is duplicated on every message so any of the
+    //     batch shows the reply context if scrolled to.
+    let hadFailure = false;
+    attachments.forEach((att, idx) => {
+      const result = onSend({
+        text: idx === 0 ? trimmed : '',
         type: classifyAttachment(att),
-        attachments,
+        attachments: [att],
         replyTo: replyTo?._id,
       });
-    } else {
-      result = onSend({ text: trimmed, type: 'text', replyTo: replyTo?._id });
-    }
-    if (result === false) return;
+      if (result === false) hadFailure = true;
+    });
+    if (hadFailure) return;
 
     setText('');
     setAttachments([]);
@@ -233,27 +252,93 @@ export default function ChatRoomComposer({
     }
   };
 
-  const onFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 7 * 1024 * 1024) {
-      // Server cap is ~5MB raw / ~7MB base64; keep client cap aligned.
-      alert('Файл слишком большой. Лимит ~5 МБ.');
-      e.target.value = '';
-      return;
-    }
+  // ── File / album helpers (Phase 4b-C) ──
+  // The composer used to accept a single attachment. We now accept up
+  // to MAX_ALBUM_FILES at once so users can pick or drop a batch. The
+  // SEND path iterates and emits one message per attachment because
+  // bumping the socket.io maxHttpBufferSize (5 MB) to fit a 25 MB
+  // album in one packet is more disruption than its worth.
+  const MAX_FILE_BYTES = 7 * 1024 * 1024;
+  const MAX_ALBUM_FILES = 10;
+
+  const readFileToAttachment = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      setAttachments([{
-        data: reader.result, // data: URL — bubble strips the prefix when needed
-        mimetype: file.type,
-        filename: file.name,
-        size: file.size,
-        preview: file.type.startsWith('image/') || file.type.startsWith('video/') ? reader.result : null,
-      }]);
-    };
+    reader.onload = () => resolve({
+      data: reader.result,
+      mimetype: file.type,
+      filename: file.name,
+      size: file.size,
+      preview: file.type.startsWith('image/') || file.type.startsWith('video/') ? reader.result : null,
+    });
+    reader.onerror = reject;
     reader.readAsDataURL(file);
+  });
+
+  // Append (or replace) attachments from a FileList / array of File.
+  // We dedupe + cap + size-check before showing them in the preview.
+  const ingestFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+
+    // Single-file case is just a special case of multi for code paths;
+    // the album UX (multiple thumbnails, grid preview) only kicks in
+    // when >1.
+    const accepted = [];
+    for (const f of files) {
+      if (f.size > MAX_FILE_BYTES) {
+        alert(`Файл «${f.name}» слишком большой (лимит ~5 МБ).`);
+        continue;
+      }
+      accepted.push(f);
+      if (accepted.length + attachments.length >= MAX_ALBUM_FILES) break;
+    }
+    if (accepted.length === 0) return;
+
+    try {
+      const additions = await Promise.all(accepted.map(readFileToAttachment));
+      setAttachments(prev => [...prev, ...additions].slice(0, MAX_ALBUM_FILES));
+    } catch (err) {
+      alert('Не удалось прочитать файлы.');
+    }
+  };
+
+  const onFile = (e) => {
+    ingestFiles(e.target.files);
     e.target.value = '';
+  };
+
+  // Drag & drop on the composer surface. We keep it simple — any drop
+  // anywhere on the row triggers ingest. The dragOver visual feedback
+  // is handled via state below.
+  const [isDragging, setIsDragging] = useState(false);
+  const onDragEnter = (e) => {
+    if (disabled) return;
+    if (e.dataTransfer?.types?.includes('Files')) {
+      e.preventDefault();
+      setIsDragging(true);
+    }
+  };
+  const onDragOver = (e) => {
+    if (disabled) return;
+    if (e.dataTransfer?.types?.includes('Files')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  };
+  const onDragLeave = (e) => {
+    // Only flip back when leaving the composer subtree (currentTarget).
+    if (e.currentTarget === e.target) setIsDragging(false);
+  };
+  const onDrop = (e) => {
+    if (disabled) return;
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer?.files;
+    if (files?.length) ingestFiles(files);
+  };
+
+  const removeAttachment = (idx) => {
+    setAttachments(prev => prev.filter((_, i) => i !== idx));
   };
 
   const onVoice = (voiceData) => {
@@ -293,7 +378,25 @@ export default function ChatRoomComposer({
   const isEdit = Boolean(editingMessage);
 
   return (
-    <div className="flex-shrink-0 border-t-2 border-slate-200 bg-white px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800 sm:px-4 sm:py-3">
+    <div
+      className={`relative flex-shrink-0 border-t-2 bg-white px-3 py-2.5 transition dark:bg-slate-800 sm:px-4 sm:py-3 ${
+        isDragging
+          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+          : 'border-slate-200 dark:border-slate-700'
+      }`}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      {/* Drag-overlay: shows up over the composer when files are
+          being dragged in. pointer-events-none so it doesn't block
+          the underlying drop handlers. */}
+      {isDragging && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-primary-500 bg-primary-50/90 text-xs font-black text-primary-700 dark:bg-primary-900/40 dark:text-primary-200">
+          Отпустите файлы для отправки
+        </div>
+      )}
       {/* Reply banner */}
       {replyTo && !isEdit && (
         <div className="mb-2 flex items-center gap-2 rounded-xl border-2 border-primary-400 bg-primary-50/50 px-3 py-2 text-xs dark:border-primary-500 dark:bg-primary-900/15">
@@ -334,31 +437,72 @@ export default function ChatRoomComposer({
         </div>
       )}
 
-      {/* Attachment preview */}
+      {/* Attachment preview — single chip when 1 file, scrollable
+          thumbnail strip when >1 (album mode). Each thumb has its own
+          remove button so users can prune the batch. */}
       {attachments.length > 0 && !isEdit && (
-        <div className="mb-2 flex items-center gap-2 rounded-xl bg-slate-100 px-2 py-2 dark:bg-slate-700/60">
-          {attachments[0].preview ? (
-            <img src={attachments[0].preview} alt="" className="h-12 w-12 rounded-lg object-cover" />
-          ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-600">
-              <FileText size={20} className="text-slate-500" />
+        attachments.length === 1 ? (
+          <div className="mb-2 flex items-center gap-2 rounded-xl bg-slate-100 px-2 py-2 dark:bg-slate-700/60">
+            {attachments[0].preview ? (
+              <img src={attachments[0].preview} alt="" className="h-12 w-12 rounded-lg object-cover" />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-600">
+                <FileText size={20} className="text-slate-500" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-slate-700 dark:text-slate-200">
+                {attachments[0].filename}
+              </p>
+              <p className="text-[10px] text-slate-500">{(attachments[0].size / 1024).toFixed(1)} KB</p>
             </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-slate-700 dark:text-slate-200">
-              {attachments[0].filename}
-            </p>
-            <p className="text-[10px] text-slate-500">{(attachments[0].size / 1024).toFixed(1)} KB</p>
+            <button
+              type="button"
+              onClick={() => setAttachments([])}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-200 dark:hover:bg-slate-600"
+              aria-label="Убрать"
+            >
+              <X size={14} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setAttachments([])}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-200 dark:hover:bg-slate-600"
-            aria-label="Убрать"
-          >
-            <X size={14} />
-          </button>
-        </div>
+        ) : (
+          <div className="mb-2 rounded-xl bg-slate-100 p-2 dark:bg-slate-700/60">
+            <div className="mb-1 flex items-center justify-between">
+              <p className="text-[11px] font-black text-slate-600 dark:text-slate-300">
+                Альбом · {attachments.length} файлов
+              </p>
+              <button
+                type="button"
+                onClick={() => setAttachments([])}
+                className="text-[10px] font-bold text-slate-500 hover:text-red-500 transition"
+              >
+                Очистить
+              </button>
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto">
+              {attachments.map((att, idx) => (
+                <div key={idx} className="relative flex-shrink-0">
+                  {att.preview ? (
+                    <img src={att.preview} alt="" className="h-16 w-16 rounded-lg object-cover" />
+                  ) : (
+                    <div className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-lg bg-slate-200 px-1 dark:bg-slate-600">
+                      <FileText size={16} className="text-slate-500" />
+                      <span className="truncate text-[8px] font-bold text-slate-500">{att.filename}</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(idx)}
+                    className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-slate-900 text-white shadow dark:border-slate-700"
+                    aria-label="Убрать"
+                  >
+                    <X size={9} strokeWidth={3} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
       )}
 
       {/* Action row.
@@ -405,6 +549,7 @@ export default function ChatRoomComposer({
               ref={fileRef}
               type="file"
               className="hidden"
+              multiple
               accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.txt,.zip"
               onChange={onFile}
             />
@@ -474,6 +619,7 @@ export default function ChatRoomComposer({
         onClose={() => setStickerPickerOpen(false)}
         onPick={onStickerPick}
       />
+      {/* Closing tag of the outer composer wrapper. */}
     </div>
   );
 }
