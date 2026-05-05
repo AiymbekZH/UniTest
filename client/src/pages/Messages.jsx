@@ -536,10 +536,22 @@ export default function Messages() {
                 </button>
                 <h1 className="text-base font-black tracking-tight text-slate-900 dark:text-white">Сообщения</h1>
                 {conversations.length > 0 && (
-                  <span className="ml-auto inline-flex h-6 min-w-[24px] items-center justify-center rounded-full border-2 border-slate-900 bg-primary-50 px-1.5 text-[10px] font-black text-primary-700 dark:border-white dark:bg-primary-900/20 dark:text-primary-200">
+                  <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full border-2 border-slate-900 bg-primary-50 px-1.5 text-[10px] font-black text-primary-700 dark:border-white dark:bg-primary-900/20 dark:text-primary-200">
                     {conversations.length}
                   </span>
                 )}
+                {/* Phase 2: opt-in entry to the new chat shell. Same data, new UI.
+                    Once Phase 5 ships, the legacy /messages route is deleted
+                    and this button disappears with it. */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/chat')}
+                  className="ml-auto inline-flex items-center gap-1 rounded-full border-2 border-amber-400 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-700 transition active:translate-y-[1px] dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-200"
+                  title="Попробовать новую версию"
+                >
+                  <Sparkles size={10} strokeWidth={2.6} />
+                  <span>Новый</span>
+                </button>
               </div>
               {/* Chunky search */}
               <div className="relative">

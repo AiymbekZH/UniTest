@@ -1,0 +1,184 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronDown, Loader2 } from 'lucide-react';
+import MessageBubble from '../components/MessageBubble';
+import DateSeparator from '../components/DateSeparator';
+import MediaViewerModal from '../../../components/chat/MediaViewerModal';
+
+/**
+ * Scrollable message list for the new chat shell. Mirrors the legacy
+ * MessageList behavior:
+ *   - auto-scroll to bottom on new messages, but only if the user was
+ *     already near the bottom (so we don't yank them out of history).
+ *   - sticky scroll-to-bottom FAB when scrolled up far.
+ *   - infinite-scroll backwards via onLoadMore when the top sentinel
+ *     hits the viewport.
+ *
+ * No virtualization. Our chats rarely exceed a few hundred messages
+ * and react-virtuoso would add 30KB gzipped. We can revisit if perf
+ * becomes a problem.
+ */
+function isSameDay(a, b) {
+  const da = new Date(a);
+  const db = new Date(b);
+  return da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate();
+}
+
+export default function ChatRoomMessages({
+  messages,
+  currentUserId,
+  otherUserId,
+  loading,
+  hasMore,
+  onLoadMore,
+  onReply,
+  onDelete,
+  onReact,
+  onPin,
+  onEdit,
+  onForward,
+  onCopy,
+  onRetry,
+  highlightMessageId,
+  canPin,
+  canDeleteEveryone,
+  getMemberRoleColor,
+}) {
+  const containerRef = useRef(null);
+  const bottomRef = useRef(null);
+  const topSentinelRef = useRef(null);
+  const prevLenRef = useRef(0);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [mediaViewer, setMediaViewer] = useState(null);
+
+  // ── Auto-scroll on new bottom messages ──
+  useEffect(() => {
+    if (autoScroll && messages.length > prevLenRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+    prevLenRef.current = messages.length;
+  }, [messages.length, autoScroll]);
+
+  // ── Track scroll position to enable / disable autoScroll ──
+  const onScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setAutoScroll(distFromBottom < 120);
+  }, []);
+
+  // ── Top sentinel: load more when in view ──
+  useEffect(() => {
+    if (!hasMore || !onLoadMore) return;
+    const sentinel = topSentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !loading) {
+        // Preserve current scroll position when prepending older messages
+        // so the user doesn't visually "jump" up. Pattern: capture
+        // scrollHeight before, restore offset after.
+        const el = containerRef.current;
+        const before = el?.scrollHeight || 0;
+        Promise.resolve(onLoadMore()).then(() => {
+          requestAnimationFrame(() => {
+            if (!el) return;
+            const after = el.scrollHeight;
+            el.scrollTop += after - before;
+          });
+        });
+      }
+    }, { rootMargin: '100px 0px 0px 0px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, onLoadMore, loading]);
+
+  // Highlighted message scroll-into-view (jump-to-message UX).
+  useEffect(() => {
+    if (!highlightMessageId) return;
+    const el = containerRef.current?.querySelector(`[data-msg-id="${highlightMessageId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightMessageId, messages.length]);
+
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div
+        ref={containerRef}
+        onScroll={onScroll}
+        className="flex-1 overflow-y-auto px-3 py-3 sm:px-4"
+      >
+        {/* Top sentinel for infinite-scroll back */}
+        {hasMore && (
+          <div ref={topSentinelRef} className="flex justify-center py-2">
+            {loading
+              ? <Loader2 size={16} className="animate-spin text-slate-400" />
+              : <span className="text-[10px] font-bold text-slate-400">↑ Прокрутите вверх</span>}
+          </div>
+        )}
+
+        {!hasMore && messages.length === 0 && !loading && (
+          <p className="py-8 text-center text-xs font-medium text-slate-400">
+            Здесь пока тихо. Напишите первое сообщение!
+          </p>
+        )}
+
+        {messages.map((msg, idx) => {
+          const senderId = msg.sender?._id || msg.sender;
+          const isOwn = String(senderId) === String(currentUserId);
+          const prev = idx > 0 ? messages[idx - 1] : null;
+          const showDate = !prev || !isSameDay(prev.createdAt, msg.createdAt);
+
+          // Read receipt: only meaningful in DM. Other party = otherUserId.
+          const isReadByOther = isOwn && otherUserId
+            ? Array.isArray(msg.readBy) && msg.readBy.some(u => String(u?._id || u) === String(otherUserId))
+            : false;
+
+          return (
+            <div key={msg._id}>
+              {showDate && <DateSeparator date={msg.createdAt} />}
+              <MessageBubble
+                message={msg}
+                isOwn={isOwn}
+                isReadByOther={isReadByOther}
+                isHighlighted={highlightMessageId === msg._id}
+                roleColor={getMemberRoleColor?.(senderId)}
+                canPin={canPin}
+                canEdit={isOwn}
+                canDeleteEveryone={canDeleteEveryone}
+                onReply={onReply}
+                onReact={onReact}
+                onPin={onPin}
+                onDelete={onDelete}
+                onEdit={onEdit}
+                onForward={onForward}
+                onCopy={onCopy}
+                onPreviewMedia={setMediaViewer}
+                onRetry={onRetry}
+              />
+            </div>
+          );
+        })}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Scroll-to-bottom FAB */}
+      {!autoScroll && (
+        <button
+          type="button"
+          onClick={() => {
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+            setAutoScroll(true);
+          }}
+          className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-900 bg-white text-slate-700 transition active:translate-y-[2px] dark:border-white dark:bg-slate-800 dark:text-slate-200"
+          style={{ boxShadow: '0 3px 0 #0f172a' }}
+          aria-label="К новым сообщениям"
+        >
+          <ChevronDown size={18} strokeWidth={2.6} />
+        </button>
+      )}
+
+      <MediaViewerModal media={mediaViewer} onClose={() => setMediaViewer(null)} />
+    </div>
+  );
+}

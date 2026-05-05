@@ -22,6 +22,9 @@ const UserProfile = lazy(() => import('./pages/UserProfile'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Groups = lazy(() => import('./pages/Groups'));
 const Messages = lazy(() => import('./pages/Messages'));
+// Phase 2: new mobile-first chat shell. Lives at /chat alongside the
+// legacy /messages and /groups routes — Phase 5 will retire those.
+const Chat = lazy(() => import('./pages/Chat'));
 const ArenaCodePage = lazy(() => import('./pages/ArenaCodePage'));
 const ArenaHostPage = lazy(() => import('./pages/ArenaHostPage'));
 const ArenaResultsPage = lazy(() => import('./pages/ArenaResultsPage'));
@@ -73,6 +76,9 @@ export default function App() {
       <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       <Route path="/groups" element={<PrivateRoute><Groups /></PrivateRoute>} />
       <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
+      {/* New unified chat (Phase 2). Three URL forms drive the layout: */}
+      <Route path="/chat" element={<PrivateRoute><Chat /></PrivateRoute>} />
+      <Route path="/chat/:kind/:chatId" element={<PrivateRoute><Chat /></PrivateRoute>} />
       <Route path="/arena/host/:roomId" element={<PrivateRoute><ArenaHostPage /></PrivateRoute>} />
       <Route path="/arena/quick-start" element={<PrivateRoute><ArenaQuickStart /></PrivateRoute>} />
       <Route path="/arena/templates" element={<PrivateRoute><MyArenaTests /></PrivateRoute>} />
