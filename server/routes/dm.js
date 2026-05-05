@@ -304,6 +304,43 @@ router.get('/conversations/:id/media', auth, async (req, res) => {
   }
 });
 
+// ── Single attachment (lazy thumbnails) ──
+//
+// Companion to /:id/media — see the matching endpoint in groups.js
+// for the design rationale. Returns the raw base64 data + mimetype
+// for one DM message's first attachment so the InfoDrawer media
+// gallery can render true thumbnails on demand without bulk-loading.
+router.get('/conversations/:id/media/:messageId/attachment', auth, async (req, res) => {
+  try {
+    const conversation = await DirectMessage.findById(req.params.id);
+    if (!conversation) return res.status(404).json({ message: 'Диалог не найден' });
+    const isParticipant = conversation.participants.some(
+      p => p.toString() === req.user._id.toString()
+    );
+    if (!isParticipant) return res.status(403).json({ message: 'Нет доступа' });
+
+    const message = await DMMessage
+      .findOne({ _id: req.params.messageId, conversation: req.params.id, isDeleted: false })
+      .select('attachments')
+      .lean();
+    if (!message) return res.status(404).json({ message: 'Сообщение не найдено' });
+
+    const att = message.attachments?.[0];
+    if (!att?.data) return res.status(404).json({ message: 'Нет вложения' });
+
+    res.set('Cache-Control', 'private, max-age=2592000, immutable');
+    res.json({
+      data: att.data,
+      mimetype: att.mimetype,
+      filename: att.filename,
+      size: att.size,
+    });
+  } catch (err) {
+    console.error('[dm] attachment fetch error:', err.message);
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 // ── Search messages within a conversation ──
 router.get('/conversations/:id/search', auth, async (req, res) => {
   try {

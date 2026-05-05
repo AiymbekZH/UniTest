@@ -776,6 +776,58 @@ router.get('/:id/media', auth, async (req, res) => {
   }
 });
 
+// ── Single attachment (lazy thumbnails) ──
+//
+// The /:id/media list endpoint above intentionally strips
+// attachments.data so a 30-item gallery payload stays small. The
+// InfoDrawer's media tab needs the actual image bytes to render
+// thumbnails though, so this endpoint fetches one message's first
+// attachment on demand (typically driven by an IntersectionObserver
+// on the client so only on-screen tiles trigger a fetch).
+//
+// Why per-message and not bulk?
+//   Bulk would re-introduce the size problem this whole split
+//   solves. Per-message keeps the client in control of what to
+//   load and lets the browser cache via standard HTTP — the URL
+//   is stable so a second drawer-open is free.
+//
+// Why not return the raw bytes / Buffer?
+//   We already store base64 in Mongo; encoding round-trips would
+//   add latency for no win. The client already knows how to
+//   prepend the data: prefix from a separate mimetype field.
+router.get('/:id/media/:messageId/attachment', auth, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
+    const isMember = group.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ message: 'Нет доступа' });
+
+    const message = await Message
+      .findOne({ _id: req.params.messageId, group: req.params.id, isDeleted: false })
+      .select('attachments')
+      .lean();
+    if (!message) return res.status(404).json({ message: 'Сообщение не найдено' });
+
+    const att = message.attachments?.[0];
+    if (!att?.data) return res.status(404).json({ message: 'Нет вложения' });
+
+    // Long-lived cache: chat attachments are immutable once posted.
+    // 30 days is enough for a single drawer browse session and any
+    // realistic re-opens; the URL contains the messageId so a
+    // hypothetical re-upload would invalidate by getting a new id.
+    res.set('Cache-Control', 'private, max-age=2592000, immutable');
+    res.json({
+      data: att.data,
+      mimetype: att.mimetype,
+      filename: att.filename,
+      size: att.size,
+    });
+  } catch (err) {
+    console.error('[groups] attachment fetch error:', err.message);
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 // ═══════════════════════════
 // ══  TESTS (unchanged)   ══
 // ═══════════════════════════

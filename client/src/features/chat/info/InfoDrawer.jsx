@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { File as FileIcon, Image as ImageIcon, Loader2, Music, Palette, Search, Users, Video, X } from 'lucide-react';
+import { File as FileIcon, Image as ImageIcon, Loader2, Music, Palette, Play, Search, Users, Video, X } from 'lucide-react';
 import api from '../../../services/api';
+
+// Process-scoped cache of fetched media-thumbnail blobs keyed by
+// messageId. Lives outside the component so it survives drawer
+// open/close cycles within a single SPA session — re-opening the
+// drawer for the same chat doesn't re-fetch the same thumbnails.
+//
+// We keep object URLs (created via URL.createObjectURL) here, NOT
+// the original base64 strings. Object URLs are cheaper for the
+// browser to render in <img> repeatedly. Lifecycle is process-long;
+// we accept the small leak in exchange for simplicity.
+const thumbnailCache = new Map();
 
 /**
  * Right-side info drawer for an open chat.
@@ -185,7 +196,7 @@ export default function InfoDrawer({ open, onClose, kind, chatId, chatTitle, isG
               {tab === 'media' && items.length > 0 && (
                 <div className="grid grid-cols-3 gap-1.5 [&>*]:min-w-0">
                   {items.map(m => (
-                    <MediaThumb key={m._id} message={m} />
+                    <MediaThumb key={m._id} message={m} kind={kind} chatId={chatId} />
                   ))}
                 </div>
               )}
@@ -235,30 +246,135 @@ function TabButton({ active, onClick, children }) {
   );
 }
 
-function MediaThumb({ message }) {
+/**
+ * Media gallery tile.
+ *
+ * The /media list endpoint deliberately strips attachments.data so
+ * the payload stays small. To render real thumbnails we lazy-fetch
+ * the full attachment for each message via /media/:messageId/attachment
+ * once the tile scrolls into view (IntersectionObserver), then cache
+ * the resulting blob URL in a module-scoped Map for the rest of the
+ * SPA session.
+ *
+ * Why object URLs over data: URLs?
+ *   Repeated <img src="data:..."> renders re-decode base64 each
+ *   render in some browsers. Object URLs hand the browser a real
+ *   resource it can decode once and pin in its image cache.
+ *
+ * Why the IntersectionObserver instead of fetching on mount?
+ *   A 60-item gallery would fire 60 parallel requests on drawer
+ *   open. Lazy-load yields 6-9 immediately (just what's visible)
+ *   and the rest as the user scrolls.
+ */
+function MediaThumb({ message, kind, chatId }) {
   const att = message.attachments?.[0];
   const isVideo = message.type === 'video';
   const filename = att?.filename || '';
-  // The /media endpoint returns NO base64 `data` — we only get filename
-  // + mimetype + size. There's no thumbnail field on the legacy schema
-  // either. So for now the tile shows a placeholder icon + filename.
-  // Phase 3 reserved a `thumbnail` field on ChatMessage; once Phase 5
-  // migration runs we can render real thumbnails here.
+  const ref = useRef(null);
+  const [src, setSrc] = useState(() => thumbnailCache.get(String(message._id)) || null);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (src || error) return;
+    const node = ref.current;
+    if (!node) return;
+    if (!chatId || !kind || !message?._id) return;
+
+    // Don't bother for non-image/video — files / audio show an icon.
+    if (!isVideo && message.type !== 'image') return;
+
+    let cancelled = false;
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.some(e => e.isIntersecting);
+      if (!visible) return;
+      observer.disconnect();
+      if (cancelled) return;
+
+      // Recheck cache (another tile of the same message could have
+      // resolved while we were waiting for visibility — rare but
+      // possible if duplicates exist).
+      const cached = thumbnailCache.get(String(message._id));
+      if (cached) { setSrc(cached); return; }
+
+      setLoading(true);
+      const url = kind === 'group'
+        ? `/groups/${chatId}/media/${message._id}/attachment`
+        : `/dm/conversations/${chatId}/media/${message._id}/attachment`;
+      api.get(url)
+        .then(res => {
+          if (cancelled) return;
+          const data = res.data?.data;
+          const mimetype = res.data?.mimetype || att?.mimetype || 'image/jpeg';
+          if (!data) throw new Error('no data');
+          // Build a Blob → object URL. The base64 may already be
+          // prefixed with `data:` (older messages do this); strip
+          // the prefix in that case.
+          const raw = data.startsWith('data:') ? data.split(',', 2)[1] || '' : data;
+          // atob → Uint8Array → Blob.
+          const bin = atob(raw);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const blob = new Blob([bytes], { type: mimetype });
+          const objUrl = URL.createObjectURL(blob);
+          thumbnailCache.set(String(message._id), objUrl);
+          setSrc(objUrl);
+        })
+        .catch(() => { if (!cancelled) setError(true); })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    }, { rootMargin: '120px' /* prefetch tiles just below the fold */ });
+
+    observer.observe(node);
+    return () => { cancelled = true; observer.disconnect(); };
+  }, [src, error, kind, chatId, message?._id, message?.type, isVideo, att?.mimetype]);
+
   return (
     <div
-      className="aspect-square overflow-hidden rounded-lg border-2 border-slate-200 bg-slate-50 p-1.5 text-slate-400 transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800"
+      ref={ref}
+      className="relative aspect-square overflow-hidden rounded-lg border-2 border-slate-200 bg-slate-50 transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800"
       title={filename}
     >
-      <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-center">
-        {isVideo
-          ? <Video size={18} strokeWidth={2.2} />
-          : <ImageIcon size={18} strokeWidth={2.2} />}
-        {filename && (
-          <span className="line-clamp-2 break-all text-[8px] font-bold leading-tight">
-            {filename}
-          </span>
-        )}
-      </div>
+      {src && !error ? (
+        <>
+          {isVideo ? (
+            // Videos render via <video> with metadata only — first frame
+            // shows in most browsers without playing. Cheap thumbnail.
+            <video
+              src={src}
+              className="h-full w-full object-cover"
+              preload="metadata"
+              muted
+              playsInline
+            />
+          ) : (
+            <img
+              src={src}
+              alt={filename}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              draggable={false}
+            />
+          )}
+          {isVideo && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-900">
+                <Play size={14} strokeWidth={2.6} fill="currentColor" />
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-1.5 text-center text-slate-400">
+          {loading
+            ? <Loader2 size={16} className="animate-spin" strokeWidth={2.2} />
+            : isVideo
+              ? <Video size={18} strokeWidth={2.2} />
+              : <ImageIcon size={18} strokeWidth={2.2} />}
+          {error && (
+            <span className="text-[9px] font-bold text-slate-500">Не удалось</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
