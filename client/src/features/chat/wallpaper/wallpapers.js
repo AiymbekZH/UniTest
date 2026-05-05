@@ -55,19 +55,6 @@ export const WALLPAPERS = [
     overlayLight: 0.85,
     overlayDark: 0.05,
   },
-  {
-    id: 'orange-brand',
-    name: 'Бренд (логотип)',
-    tone: 'light',
-    file: '/wallpapers/orange-brand.png',
-    mode: 'tile',
-    // Fully orange tile — heavy dimming on both themes so that own
-    // bubbles (also orange) don't disappear into it. Users who pick
-    // this probably want it as a statement; we respect that but
-    // keep bubbles legible.
-    overlayLight: 0.35,
-    overlayDark: 0.55,
-  },
 ];
 
 export const WALLPAPER_BY_ID = WALLPAPERS.reduce((acc, wp) => {
