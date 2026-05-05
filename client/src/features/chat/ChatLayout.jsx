@@ -392,6 +392,10 @@ export default function ChatLayout() {
   }, [kind, activeChat]);
 
   // ── Render ──
+  // overflow-hidden here blocks both scroll axes; min-w-0 on the chat
+  // section is the critical bit — without it, any child with intrinsic
+  // width larger than the column (e.g. a wide voice-recorder UI) would
+  // push the section past the viewport and scroll the page sideways.
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-surface">
       <ChatListSidebar
@@ -405,7 +409,7 @@ export default function ChatLayout() {
         hidden={isOpen}
       />
 
-      <section className={`flex-1 flex-col bg-white dark:bg-slate-800 ${isOpen ? 'flex' : 'hidden sm:flex'}`}>
+      <section className={`min-w-0 flex-1 flex-col overflow-hidden bg-white dark:bg-slate-800 ${isOpen ? 'flex' : 'hidden sm:flex'}`}>
         {isOpen ? (
           <>
             <ChatRoomHeader

@@ -31,10 +31,23 @@ function fmt(s) {
 
 // Three-state component: idle (mic button), recording (timer + stop/cancel),
 // preview (playback + send/discard/re-record). The old version posted the
-// blob the moment the user clicked Stop \u2014 there was no way back. Now the
+// blob the moment the user clicked Stop — there was no way back. Now the
 // blob lives in component state until Send is explicitly clicked.
-export default function VoiceRecorder({ onRecorded, onCancel }) {
+//
+// `onPhaseChange` is optional and lets a parent composer react to the
+// three states — e.g. to hide its textarea / send button so the voice
+// UI gets the whole row. Without this, a flex row with textarea+recorder
+// could exceed the mobile viewport width and cause horizontal overflow.
+export default function VoiceRecorder({ onRecorded, onCancel, onPhaseChange }) {
   const [phase, setPhase] = useState('idle'); // 'idle' | 'recording' | 'preview'
+
+  // Notify parent on every phase transition. Using useEffect so we don't
+  // call the callback during render, which would crash React if the
+  // parent synchronously updates its own state in response.
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
+
   const [duration, setDuration] = useState(0); // recording timer (sec)
   const [recordedBlob, setRecordedBlob] = useState(null);
   const [recordedMime, setRecordedMime] = useState('');

@@ -71,7 +71,7 @@ export default memo(function Navbar() {
     { to: '/my-tests', label: t('myTests'), icon: FileText },
     { to: '/my-results', label: t('results'), icon: BarChart3 },
     { to: '/groups', label: t('groups'), icon: Users },
-    { to: '/messages', label: t('messages') || 'Сообщения', icon: MessageSquare },
+    { to: '/chat', label: t('messages') || 'Сообщения', icon: MessageSquare },
     { to: '/question-bank', label: t('questionBank'), icon: Database },
   ];
 
@@ -79,7 +79,10 @@ export default memo(function Navbar() {
 
   const langLabels = { en: 'EN', ru: 'RU', kz: 'KZ', es: 'ES' };
   const hasUnreadForPath = (path) => (
-    (path === '/messages' && hasUnreadMessages) ||
+    // Both /chat (new shell) and legacy /messages should show the unread
+    // dot on the Messages tab — the latter just redirects but the check
+    // happens before the redirect fires on the first render.
+    ((path === '/chat' || path === '/messages') && hasUnreadMessages) ||
     (path === '/groups' && hasUnreadGroups)
   );
 
@@ -592,7 +595,7 @@ export default memo(function Navbar() {
               { to: '/dashboard', label: t('home'), Icon: LayoutDashboard },
               { to: '/my-tests', label: t('myTests'), Icon: FileText },
               { to: '/arena', label: 'Арена', Icon: Swords, accent: 'orange' },
-              { to: '/messages', label: t('messages') || 'Чат', Icon: MessageSquare, dot: hasUnreadMessages },
+              { to: '/chat', label: t('messages') || 'Чат', Icon: MessageSquare, dot: hasUnreadMessages },
               { to: user?.username ? `/u/${user.username}` : '/profile', label: t('profile') || 'Профиль', Icon: User }
             ].map(({ to, label, Icon, accent, dot }) => {
               const active = location.pathname === to || (to === '/arena' && location.pathname.startsWith('/arena'));

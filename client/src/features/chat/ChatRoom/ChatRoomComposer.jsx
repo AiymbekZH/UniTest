@@ -35,8 +35,15 @@ export default function ChatRoomComposer({
 }) {
   const [text, setText] = useState('');
   const [attachments, setAttachments] = useState([]);
+  // VoiceRecorder's current phase. When it's anything other than 'idle'
+  // the composer gives the voice UI the whole row — otherwise textarea +
+  // paperclip + send + recorder all compete for the same flex line and
+  // on narrow mobile the row overflows the viewport, which then scrolls
+  // the entire page sideways and makes messages above look "shifted".
+  const [voicePhase, setVoicePhase] = useState('idle');
   const fileRef = useRef(null);
   const textRef = useRef(null);
+  const voiceActive = voicePhase === 'recording' || voicePhase === 'preview';
 
   // When entering edit mode, prefill text with the message being edited.
   useEffect(() => {
@@ -206,55 +213,74 @@ export default function ChatRoomComposer({
         </div>
       )}
 
-      {/* Action row */}
-      <div className="flex items-end gap-2">
-        {!isEdit && (
+      {/* Action row.
+          min-w-0 on the flex parent AND on children guarantees that
+          intrinsic widths don't push the row past the viewport — the
+          textarea correctly shrinks and VoiceRecorder's recording UI
+          can claim full-width without dragging everything off-screen. */}
+      <div className="flex min-w-0 items-end gap-2">
+        {/* File picker + textarea + send: hidden while voice is active */}
+        {!voiceActive && (
+          <>
+            {!isEdit && (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={disabled}
+                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                aria-label="Прикрепить"
+              >
+                <Paperclip size={18} strokeWidth={2.4} />
+              </button>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              className="hidden"
+              accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.txt,.zip"
+              onChange={onFile}
+            />
+
+            <textarea
+              ref={textRef}
+              rows={1}
+              value={text}
+              onChange={(e) => { setText(e.target.value); onTypingPing?.(); }}
+              onKeyDown={onKey}
+              placeholder={isEdit ? 'Изменить сообщение...' : placeholder}
+              disabled={disabled}
+              className="min-h-[40px] min-w-0 flex-1 resize-none rounded-2xl border-2 border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            />
+          </>
+        )}
+
+        {/* Voice recorder. Mounted whenever the draft is empty and the
+            composer isn't in edit mode so the button is always reachable;
+            once the user starts recording, `voicePhase` becomes
+            'recording' / 'preview' and we give this component the whole
+            row by hiding siblings above. */}
+        {!isEdit && !text.trim() && attachments.length === 0 && !disabled && (
+          <VoiceRecorder
+            onRecorded={onVoice}
+            onCancel={() => {}}
+            onPhaseChange={setVoicePhase}
+          />
+        )}
+
+        {!voiceActive && (
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={disabled}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-            aria-label="Прикрепить"
+            onClick={submit}
+            disabled={!canSubmit}
+            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 transition active:translate-y-[2px] dark:border-white ${
+              canSubmit ? 'bg-primary-500 text-white' : 'bg-slate-200 text-slate-400 dark:bg-slate-700'
+            }`}
+            style={canSubmit ? { boxShadow: '0 3px 0 #9a3412' } : undefined}
+            aria-label={isEdit ? 'Сохранить' : 'Отправить'}
           >
-            <Paperclip size={18} strokeWidth={2.4} />
+            {isEdit ? <Check size={16} strokeWidth={2.8} /> : <Send size={15} strokeWidth={2.6} />}
           </button>
         )}
-        <input
-          ref={fileRef}
-          type="file"
-          className="hidden"
-          accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.txt,.zip"
-          onChange={onFile}
-        />
-
-        <textarea
-          ref={textRef}
-          rows={1}
-          value={text}
-          onChange={(e) => { setText(e.target.value); onTypingPing?.(); }}
-          onKeyDown={onKey}
-          placeholder={isEdit ? 'Изменить сообщение...' : placeholder}
-          disabled={disabled}
-          className="min-h-[40px] flex-1 resize-none rounded-2xl border-2 border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-        />
-
-        {/* Voice recorder visible only when no draft text/attachment/edit */}
-        {!isEdit && !text.trim() && attachments.length === 0 && !disabled && (
-          <VoiceRecorder onRecorded={onVoice} onCancel={() => {}} />
-        )}
-
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!canSubmit}
-          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border-2 border-slate-900 transition active:translate-y-[2px] dark:border-white ${
-            canSubmit ? 'bg-primary-500 text-white' : 'bg-slate-200 text-slate-400 dark:bg-slate-700'
-          }`}
-          style={canSubmit ? { boxShadow: '0 3px 0 #9a3412' } : undefined}
-          aria-label={isEdit ? 'Сохранить' : 'Отправить'}
-        >
-          {isEdit ? <Check size={16} strokeWidth={2.8} /> : <Send size={15} strokeWidth={2.6} />}
-        </button>
       </div>
     </div>
   );

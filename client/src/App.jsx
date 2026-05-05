@@ -21,9 +21,8 @@ const Profile = lazy(() => import('./pages/Profile'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Groups = lazy(() => import('./pages/Groups'));
-const Messages = lazy(() => import('./pages/Messages'));
-// Phase 2: new mobile-first chat shell. Lives at /chat alongside the
-// legacy /messages and /groups routes — Phase 5 will retire those.
+// Phase 2: new mobile-first chat shell mounted at /chat. Replaces the
+// old /messages flow (which now 301-redirects here via the Routes below).
 const Chat = lazy(() => import('./pages/Chat'));
 const ArenaCodePage = lazy(() => import('./pages/ArenaCodePage'));
 const ArenaHostPage = lazy(() => import('./pages/ArenaHostPage'));
@@ -75,7 +74,12 @@ export default function App() {
       <Route path="/question-bank" element={<PrivateRoute><QuestionBank /></PrivateRoute>} />
       <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       <Route path="/groups" element={<PrivateRoute><Groups /></PrivateRoute>} />
-      <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
+      {/* /messages was the Phase-0 chat page. It's now a permanent redirect
+          to the new /chat shell so the user doesn't have to opt in manually.
+          The old page file (pages/Messages.jsx) stays on disk as dead code
+          until Phase 5 deletes it; it's never instantiated because this
+          redirect fires before the lazy import resolves. */}
+      <Route path="/messages" element={<Navigate to="/chat" replace />} />
       {/* New unified chat (Phase 2). Three URL forms drive the layout: */}
       <Route path="/chat" element={<PrivateRoute><Chat /></PrivateRoute>} />
       <Route path="/chat/:kind/:chatId" element={<PrivateRoute><Chat /></PrivateRoute>} />
