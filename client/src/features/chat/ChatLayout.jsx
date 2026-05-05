@@ -25,6 +25,10 @@ import InfoDrawer from './info/InfoDrawer';
 // so the picker can open from anywhere — the drawer is just one of
 // its trigger points.
 import WallpaperPicker from './wallpaper/WallpaperPicker';
+// Phase 4b-B: per-chat search panel. Slides over the message area
+// so the user can scan / jump within the active chat without leaving
+// it (Cmd+K still triggers the cross-chat global modal).
+import InChatSearch from './search/InChatSearch';
 
 /**
  * Top-level shell for the new mobile-first chat experience. Mounted at:
@@ -66,6 +70,7 @@ export default function ChatLayout() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [wallpaperOpen, setWallpaperOpen] = useState(false);
+  const [inChatSearchOpen, setInChatSearchOpen] = useState(false);
 
   // Highlighted message id, set when navigating from GlobalSearch.
   // Cleared once consumed (we don't want it to re-fire on every rerender).
@@ -513,26 +518,41 @@ export default function ChatLayout() {
               onOpenSearch={() => setSearchOpen(true)}
               onOpenInfo={() => setInfoOpen(true)}
             />
-            <ChatRoomMessages
-              messages={messages}
-              currentUserId={currentUserId}
-              otherUserId={dmHeader?.otherUserId}
-              loading={chatLoading}
-              hasMore={hasMore}
-              onLoadMore={loadMore}
-              onReply={setReplyTo}
-              onDelete={handleDelete}
-              onReact={handleReact}
-              onPin={handlePin}
-              onEdit={(m) => { setReplyTo(null); setEditingMessage(m); }}
-              onForward={handleForward}
-              onCopy={handleCopy}
-              onRetry={retryMessage}
-              canPin={canPin}
-              canDeleteEveryone={canDeleteEveryone}
-              getMemberRoleColor={getMemberRoleColor}
-              highlightMessageId={highlightMessageId}
-            />
+            {/* Wrapper makes the in-chat search panel position correctly
+                over the message list. ChatRoomMessages itself already
+                contains a relative div, but the InChatSearch panel needs
+                to overlay the WHOLE messages area (including the FAB
+                space). flex + min-h-0 keeps the messages list from
+                growing past the available height. */}
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <ChatRoomMessages
+                messages={messages}
+                currentUserId={currentUserId}
+                otherUserId={dmHeader?.otherUserId}
+                loading={chatLoading}
+                hasMore={hasMore}
+                onLoadMore={loadMore}
+                onReply={setReplyTo}
+                onDelete={handleDelete}
+                onReact={handleReact}
+                onPin={handlePin}
+                onEdit={(m) => { setReplyTo(null); setEditingMessage(m); }}
+                onForward={handleForward}
+                onCopy={handleCopy}
+                onRetry={retryMessage}
+                canPin={canPin}
+                canDeleteEveryone={canDeleteEveryone}
+                getMemberRoleColor={getMemberRoleColor}
+                highlightMessageId={highlightMessageId}
+              />
+              <InChatSearch
+                open={inChatSearchOpen}
+                kind={kind}
+                chatId={chatId}
+                onClose={() => setInChatSearchOpen(false)}
+                onJump={(id) => setHighlightMessageId(id)}
+              />
+            </div>
             {typingUsers.length > 0 && (
               <div className="flex flex-shrink-0 items-center gap-2 border-t border-slate-200 px-4 py-1.5 text-[11px] font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 <span className="inline-flex gap-0.5">
@@ -591,6 +611,14 @@ export default function ChatLayout() {
           setInfoOpen(false);
           setTimeout(() => setWallpaperOpen(true), 120);
         }}
+        onOpenSearchInChat={chatId ? () => {
+          // Same drawer-close-then-open pattern as wallpaper. The
+          // in-chat search is not a true modal but it is positioned
+          // above the chat surface, and leaving the drawer open
+          // would obscure the result-click highlight target.
+          setInfoOpen(false);
+          setTimeout(() => setInChatSearchOpen(true), 120);
+        } : null}
       />
 
       <GlobalSearchModal

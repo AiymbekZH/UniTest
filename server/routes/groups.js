@@ -666,6 +666,46 @@ router.get('/:id/messages', auth, async (req, res) => {
   }
 });
 
+// ── Search messages within a group ──
+//
+// Mirrors GET /api/dm/conversations/:id/search so the client uses one
+// shape regardless of chat kind. Returns up to 50 most-recent matches
+// of `text` (case-insensitive). Pagination intentionally not added —
+// 50 results is more than enough for the in-chat finder UX, and a
+// "load more" path would multiply latency for marginal value.
+//
+// Why a regex instead of the $text index on `text`?
+//   The $text index requires whole-word matches (with stemming) and
+//   ignores 1-2 letter words. Users expect substring matches when
+//   searching their own short chat history (e.g. "кур" should match
+//   "курс"). Regex with the user's escaped string handles this.
+router.get('/:id/messages/search', auth, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
+    const isMember = group.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ message: 'Нет доступа' });
+
+    const q = (req.query.q || '').trim();
+    if (q.length < 2) return res.json([]);
+
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const messages = await Message.find({
+      group: req.params.id,
+      isDeleted: false,
+      deletedFor: { $ne: req.user._id },
+      text: { $regex: escaped, $options: 'i' },
+    })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .populate('sender', 'firstName lastName avatar uniqueId');
+
+    res.json(messages);
+  } catch (e) {
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 // ── Get pinned messages ──
 router.get('/:id/messages/pinned', auth, async (req, res) => {
   try {
