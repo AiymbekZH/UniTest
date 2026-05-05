@@ -152,9 +152,17 @@ module.exports = function (io) {
         if (type !== 'system') {
           // Set of mentioned user ids for O(1) lookup during fanout.
           const mentionSet = new Set(mentionedUserIds.map(String));
+          // Pre-compute display strings for the toast that the client
+          // shows when `mentioned` is true. We send these only on the
+          // mention path so the per-recipient payload stays compact
+          // for the (much more common) non-mention case.
+          const senderFirstName = socket.user.firstName || '';
+          const senderLastName = socket.user.lastName || '';
+          const groupName = group.name || '';
           for (const member of group.members) {
             const memberUserId = (member.user?._id || member.user).toString();
             if (memberUserId === socket.user._id.toString()) continue;
+            const isMentioned = mentionSet.has(memberUserId);
             io.to(`user:${memberUserId}`).emit('group:inbox', {
               groupId,
               messageId: message._id,
@@ -162,7 +170,16 @@ module.exports = function (io) {
               // Surface the mention bit so the inbox/notification UI
               // can flag this message as personally addressed without
               // having to re-parse the text on the client.
-              mentioned: mentionSet.has(memberUserId),
+              mentioned: isMentioned,
+              ...(isMentioned ? {
+                senderFirstName,
+                senderLastName,
+                groupName,
+                // Short text snippet for the toast body. Capped client-
+                // side too but cap here so we don't pump the whole
+                // message body across the wire when it's irrelevant.
+                textSnippet: (text || '').slice(0, 80),
+              } : {}),
             });
           }
         }

@@ -1,4 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { AtSign } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { connectSocket, getSocket } from '../services/socket';
 import { useAuth } from './AuthContext';
@@ -9,10 +12,15 @@ const SOUND_URL = '/message-sounds/sound_17216.mp3';
 export function ChatInboxProvider({ children }) {
   const { user, isAuthenticated } = useAuth();
   const currentUserId = user?._id || user?.id;
+  const navigate = useNavigate();
   const [activeChat, setActiveChat] = useState({ kind: null, id: null });
   const [unreadConversationIds, setUnreadConversationIds] = useState([]);
   const [unreadGroupIds, setUnreadGroupIds] = useState([]);
   const audioRef = useRef(null);
+  // Tracks message ids we've already toasted for so a stale
+  // re-broadcast (rare, but possible if the user reconnects mid-emit)
+  // doesn't trigger a duplicate notification.
+  const mentionedSeenRef = useRef(new Set());
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -72,8 +80,60 @@ export function ChatInboxProvider({ children }) {
       playSound();
     };
 
-    const handleGroupInbox = ({ groupId, senderId }) => {
+    const handleGroupInbox = (payload) => {
+      const { groupId, senderId, mentioned, messageId } = payload || {};
       if (!groupId || senderId === currentUserId) return;
+
+      // ── Mention notification (Phase 4) ──
+      // We toast even if the chat is currently active — a personal
+      // mention is worth a glance (sender's choice was deliberate)
+      // even when the user is already in the room. The unread badge
+      // skip below still applies for non-mention regular fanout.
+      if (mentioned && messageId && !mentionedSeenRef.current.has(messageId)) {
+        mentionedSeenRef.current.add(messageId);
+        // Bound the dedupe set so it doesn't grow forever in long
+        // sessions. 200 ids is comfortably more than any realistic
+        // window of bursty mentions.
+        if (mentionedSeenRef.current.size > 200) {
+          const arr = Array.from(mentionedSeenRef.current);
+          mentionedSeenRef.current = new Set(arr.slice(-100));
+        }
+        const senderName = [
+          payload.senderFirstName,
+          payload.senderLastName,
+        ].filter(Boolean).join(' ').trim() || 'Кто-то';
+        const groupName = payload.groupName || 'группе';
+        const snippet = (payload.textSnippet || '').trim();
+        toast.custom((t) => (
+          <button
+            type="button"
+            onClick={() => {
+              toast.dismiss(t.id);
+              navigate(`/chat/group/${groupId}`);
+            }}
+            className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border-2 border-amber-500 bg-white px-4 py-3 text-left shadow-[0_4px_0_#d97706] transition active:translate-y-[2px] dark:bg-slate-800 ${
+              t.visible ? 'animate-in fade-in slide-in-from-top-2' : 'opacity-0'
+            }`}
+          >
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
+              <AtSign size={16} strokeWidth={2.6} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-black text-slate-900 dark:text-white">
+                {senderName} упомянул вас
+              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                {groupName}
+              </p>
+              {snippet && (
+                <p className="mt-1 line-clamp-2 text-[11px] text-slate-600 dark:text-slate-300">
+                  {snippet}
+                </p>
+              )}
+            </div>
+          </button>
+        ), { duration: 5000 });
+      }
 
       if (activeChat.kind === 'group' && activeChat.id === groupId) {
         return;
