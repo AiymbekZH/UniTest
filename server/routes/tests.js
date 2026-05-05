@@ -843,6 +843,65 @@ router.get('/:id/my-difficulty-rating', auth, async (req, res) => {
   }
 });
 
+// ── Related tests (TestProfile rebuild) ──
+//
+// Returns up to `limit` tests related to the given one. Priority:
+//   1. Matching tags (intersection via $in), sorted by rating DESC,
+//      attemptCount DESC. Caps at `limit`.
+//   2. If fewer than `limit` items found, top up with tests by the
+//      same creator (public only).
+//
+// Source test is always excluded. Only public, non-deleted tests are
+// returned so the Related rail doesn't leak private material.
+router.get('/:id/related', optionalAuth, async (req, res) => {
+  try {
+    const limit = Math.min(8, Math.max(1, parseInt(req.query.limit) || 4));
+    const source = await Test.findById(req.params.id).select('tags creator');
+    if (!source) return res.status(404).json({ message: 'Тест не найден' });
+
+    const base = {
+      _id: { $ne: source._id },
+      isDeleted: { $ne: true },
+      'settings.isPublic': true,
+    };
+
+    // Tag-based matches first — intersection via $in on the source's
+    // own tags. Tagless tests produce an empty byTag list which is
+    // fine; creator fallback fills in below.
+    let byTag = [];
+    if (Array.isArray(source.tags) && source.tags.length > 0) {
+      byTag = await Test.find({ ...base, tags: { $in: source.tags } })
+        .sort({ rating: -1, attemptCount: -1 })
+        .limit(limit)
+        .select('title shareLink coverImage rating ratingCount attemptCount tags')
+        .lean();
+    }
+
+    const need = limit - byTag.length;
+    let byCreator = [];
+    if (need > 0 && source.creator) {
+      byCreator = await Test.find({
+        ...base,
+        creator: source.creator,
+        _id: { $nin: [source._id, ...byTag.map(t => t._id)] },
+      })
+        .sort({ rating: -1, attemptCount: -1 })
+        .limit(need)
+        .select('title shareLink coverImage rating ratingCount attemptCount')
+        .lean();
+    }
+
+    const items = [
+      ...byTag.map(t => ({ ...t, source: 'tag' })),
+      ...byCreator.map(t => ({ ...t, source: 'creator' })),
+    ];
+    res.json({ items });
+  } catch (err) {
+    console.error('[tests] related error:', err.message);
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 // =================== TICKET / VARIANT SYSTEM ===================
 
 // Get ticket status for a test (which variants are available)

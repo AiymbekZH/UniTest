@@ -528,6 +528,108 @@ router.get('/leaderboard/:testId', async (req, res) => {
   }
 });
 
+// ── Score distribution histogram (TestProfile rebuild) ──
+//
+// Returns a 5-bucket histogram of result percentages plus summary
+// stats (average, median, total). If the viewer has completed this
+// test (non-practice), we also return their percentile rank so the
+// TestProfile page can show "вы в топ N%" badge.
+//
+// Buckets are fixed ranges 0-19 / 20-39 / 40-59 / 60-79 / 80-100 —
+// simpler to read on a bar chart than dynamic-width buckets.
+//
+// Median is computed in-memory from a capped fetch (max 2000 rows) to
+// avoid MongoDB's lack of a native median aggregator. 2000 is far more
+// than any realistic per-test result count.
+router.get('/distribution/:testId', optionalAuth, async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.testId).select('_id');
+    if (!test) return res.status(404).json({ message: 'Тест не найден' });
+
+    const match = buildOfficialResultMatch(req.params.testId);
+
+    const [bucketResults, total, avgAgg] = await Promise.all([
+      Result.aggregate([
+        { $match: match },
+        {
+          $bucket: {
+            groupBy: '$percentage',
+            // Boundaries are [start, end) pairs: 0-20, 20-40, 40-60, 60-80, 80-101.
+            // Using 101 for the top to make 100% land in the last bucket.
+            boundaries: [0, 20, 40, 60, 80, 101],
+            default: 'other',
+            output: { count: { $sum: 1 } }
+          }
+        }
+      ]),
+      Result.countDocuments(match),
+      Result.aggregate([
+        { $match: match },
+        { $group: { _id: null, avg: { $avg: '$percentage' } } }
+      ])
+    ]);
+
+    // Build 5 buckets with labels so empty slots still render a bar.
+    const BUCKET_RANGES = [
+      { range: '0-19',   min: 0,  max: 19 },
+      { range: '20-39',  min: 20, max: 39 },
+      { range: '40-59',  min: 40, max: 59 },
+      { range: '60-79',  min: 60, max: 79 },
+      { range: '80-100', min: 80, max: 100 }
+    ];
+    const byMin = new Map(bucketResults.map(b => [b._id, b.count]));
+    const buckets = BUCKET_RANGES.map(({ range, min }) => ({
+      range,
+      count: byMin.get(min) || 0
+    }));
+
+    // Median via sorted fetch — capped.
+    let median = 0;
+    if (total > 0) {
+      const all = await Result.find(match)
+        .select('percentage')
+        .sort({ percentage: 1 })
+        .limit(2000)
+        .lean();
+      if (all.length) {
+        const mid = Math.floor(all.length / 2);
+        median = all.length % 2
+          ? all[mid].percentage
+          : Math.round((all[mid - 1].percentage + all[mid].percentage) / 2);
+      }
+    }
+
+    // Viewer's best attempt + percentile rank.
+    let myBucket = null;
+    let myPercentile = null;
+    if (req.user && total > 0) {
+      const myBest = await Result.find({ ...match, user: req.user._id })
+        .sort({ percentage: -1 })
+        .limit(1)
+        .select('percentage')
+        .lean();
+      if (myBest.length) {
+        const myPct = myBest[0].percentage;
+        const below = await Result.countDocuments({ ...match, percentage: { $lt: myPct } });
+        myPercentile = total > 0 ? Math.round((below / total) * 100) : 0;
+        myBucket = BUCKET_RANGES.findIndex(b => myPct >= b.min && myPct <= b.max);
+      }
+    }
+
+    res.json({
+      buckets,
+      total,
+      average: Math.round(avgAgg[0]?.avg || 0),
+      median,
+      myBucket,
+      myPercentile
+    });
+  } catch (err) {
+    console.error('[results] distribution error:', err.message);
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 // Get user's recent attempt LIST for a test (last 5 with scores + dates)
 router.get('/my-attempts-list/:testId', optionalAuth, async (req, res) => {
   try {
