@@ -9,6 +9,11 @@ import AudioPlayer from '../../../components/chat/AudioPlayer';
 // message text. Plain text passes through unchanged when no mentions
 // were extracted server-side.
 import MentionText from '../mentions/MentionText';
+// Phase 4 album rendering: when ChatRoomMessages identifies a streak
+// of consecutive image/video messages from the same sender, it
+// renders only the leader bubble and passes `albumTiles` so the
+// attachment block becomes a grid instead of stacked images.
+import AlbumGrid from '../album/AlbumGrid';
 
 /**
  * Phase 2 unified bubble. Lives in features/chat/ next to the new shell.
@@ -60,6 +65,13 @@ export default function MessageBubble({
   canDeleteEveryone,
   // Phase 4b-A: needed to highlight @mentions of the viewer.
   currentUserId,
+  // Phase 4 album rendering. When non-null, the bubble's attachment
+  // block is replaced by an AlbumGrid showing every tile from the
+  // streak (including ones whose underlying messages are NOT this
+  // bubble). Each tile carries its own messageId so the carousel
+  // can navigate correctly. The leader's own attachments are
+  // already part of `albumTiles` — don't double-render.
+  albumTiles,
   // callbacks
   onReply,
   onReact,
@@ -201,8 +213,23 @@ export default function MessageBubble({
             />
           )}
 
+          {/* ── Album grid (Phase 4) ── */}
+          {/* When this bubble is the leader of an image/video streak,
+              we render the WHOLE streak's attachments in a single grid
+              instead of stacking the leader's own attachments. The
+              other streak messages are skipped at the parent level. */}
+          {Array.isArray(albumTiles) && albumTiles.length > 1 && message.type !== 'sticker' && (
+            <AlbumGrid
+              tiles={albumTiles}
+              onPreviewMedia={onPreviewMedia}
+              isOwn={isOwn}
+            />
+          )}
+
           {/* ── Other attachments (image/video/audio/file) ── */}
-          {message.type !== 'sticker' && message.attachments?.map((att, idx) => {
+          {/* Skip the legacy stacked render when an album grid is
+              already showing the attachments. */}
+          {!Array.isArray(albumTiles) && message.type !== 'sticker' && message.attachments?.map((att, idx) => {
             const src = attachmentSrc(att);
             const isImg = att.mimetype?.startsWith('image/');
             const isVid = att.mimetype?.startsWith('video/');

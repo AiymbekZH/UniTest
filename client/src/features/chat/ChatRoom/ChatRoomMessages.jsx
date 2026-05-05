@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import MessageBubble from '../components/MessageBubble';
 import DateSeparator from '../components/DateSeparator';
+// Phase 4 album rendering: groups consecutive image/video messages
+// from the same sender into a single render unit so the bubble layer
+// can render them as a Telegram-style grid.
+import { groupAlbumMessages } from '../album/groupAlbumMessages';
 // Phase 3b: pinch-zoom + carousel viewer. The legacy MediaViewerModal
 // stays alive for /messages-era pages (none currently — they redirect)
 // but the new chat shell uses this enhanced one.
@@ -117,6 +121,14 @@ export default function ChatRoomMessages({
   // O(messages * attachments) but cheap (few hundred items, sync).
   // Re-computed only when `messages` changes — not on every viewer
   // open — and indexOf below stays sub-millisecond at our scale.
+  // Render unit list memo — one entry per visible bubble. Albums
+  // collapse multiple messages into a single unit; non-album items
+  // pass through unchanged. Recomputes only when messages change.
+  const renderUnits = useMemo(
+    () => groupAlbumMessages(messages || []),
+    [messages]
+  );
+
   const mediaList = useMemo(() => {
     if (!Array.isArray(messages)) return [];
     const out = [];
@@ -207,30 +219,51 @@ export default function ChatRoomMessages({
           </p>
         )}
 
-        {messages.map((msg, idx) => {
-          const senderId = msg.sender?._id || msg.sender;
+        {/* Album-grouping pass. Builds a list of render units where
+            consecutive image/video messages from the same sender
+            become a single unit; everything else stays as-is. */}
+        {renderUnits.map((unit, idx) => {
+          const leader = unit.kind === 'album' ? unit.leader : unit.message;
+          const senderId = leader.sender?._id || leader.sender;
           const isOwn = String(senderId) === String(currentUserId);
-          const prev = idx > 0 ? messages[idx - 1] : null;
-          const showDate = !prev || !isSameDay(prev.createdAt, msg.createdAt);
 
-          // Read receipt: only meaningful in DM. Other party = otherUserId.
+          // Date separator placement uses the leader's createdAt; all
+          // tiles in an album share the same minute by definition.
+          const prevUnit = idx > 0 ? renderUnits[idx - 1] : null;
+          const prevLeader = prevUnit
+            ? (prevUnit.kind === 'album' ? prevUnit.leader : prevUnit.message)
+            : null;
+          const showDate = !prevLeader || !isSameDay(prevLeader.createdAt, leader.createdAt);
+
           const isReadByOther = isOwn && otherUserId
-            ? Array.isArray(msg.readBy) && msg.readBy.some(u => String(u?._id || u) === String(otherUserId))
+            ? Array.isArray(leader.readBy) && leader.readBy.some(u => String(u?._id || u) === String(otherUserId))
             : false;
 
+          // Build flat tile list for AlbumGrid when this is an album
+          // unit. Each tile keeps its own messageId so the carousel
+          // and (future) per-tile actions stay correct.
+          const albumTiles = unit.kind === 'album'
+            ? unit.messages.flatMap(m =>
+                (m.attachments || [])
+                  .filter(att => att?.mimetype?.startsWith('image/') || att?.mimetype?.startsWith('video/'))
+                  .map(att => ({ attachment: att, messageId: m._id }))
+              )
+            : null;
+
           return (
-            <div key={msg._id}>
-              {showDate && <DateSeparator date={msg.createdAt} />}
+            <div key={leader._id} data-album={unit.kind === 'album' ? unit.messages.length : undefined}>
+              {showDate && <DateSeparator date={leader.createdAt} />}
               <MessageBubble
-                message={msg}
+                message={leader}
                 isOwn={isOwn}
                 isReadByOther={isReadByOther}
-                isHighlighted={highlightMessageId === msg._id}
+                isHighlighted={highlightMessageId === leader._id}
                 roleColor={getMemberRoleColor?.(senderId)}
                 canPin={canPin}
                 canEdit={isOwn}
                 canDeleteEveryone={canDeleteEveryone}
                 currentUserId={currentUserId}
+                albumTiles={albumTiles}
                 onReply={onReply}
                 onReact={onReact}
                 onPin={onPin}
