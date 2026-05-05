@@ -161,6 +161,15 @@ app.use('/api/arena', arenaRoutes);
 const dmRoutes = require('./routes/dm');
 app.use('/api/dm', dmRoutes);
 
+// Phase 1: cross-chat operations + sticker packs.
+// Both routers depend on the same `auth` middleware as everything else;
+// no extra rate-limit needed beyond the global apiLimiter above (sticker
+// AI generation has its own per-user daily cap inside the route).
+const messagesRoutes = require('./routes/messages');
+const stickersRoutes = require('./routes/stickers');
+app.use('/api/messages', messagesRoutes);
+app.use('/api/stickers', stickersRoutes);
+
 app.get('/api/health', async (req, res) => {
   const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
   const stateName = states[mongoose.connection.readyState] || 'unknown';

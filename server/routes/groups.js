@@ -685,6 +685,57 @@ router.get('/:id/messages/pinned', auth, async (req, res) => {
   }
 });
 
+// ── Media gallery for a group ──
+// GET /api/groups/:id/media?type=image|video|audio|file&before=<msgId>&limit=30
+//
+// Mirrors /api/dm/conversations/:id/media — same shape, same `data`-stripping
+// optimization. Used by the new group info-drawer "Media" tab.
+router.get('/:id/media', auth, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group || group.isDeleted) return res.status(404).json({ message: 'Группа не найдена' });
+    const isMember = group.members.some(m => m.user.toString() === req.user._id.toString());
+    if (!isMember) return res.status(403).json({ message: 'Вы не участник' });
+
+    const { type, before } = req.query;
+    const limit = Math.min(60, Math.max(10, parseInt(req.query.limit) || 30));
+
+    let typeFilter;
+    if (type === 'image') typeFilter = { type: 'image' };
+    else if (type === 'video') typeFilter = { type: 'video' };
+    else if (type === 'audio') typeFilter = { type: 'audio' };
+    else if (type === 'file') typeFilter = { type: 'file' };
+    else typeFilter = { type: { $in: ['image', 'video', 'audio', 'file'] } };
+
+    const query = {
+      group: req.params.id,
+      isDeleted: false,
+      deletedFor: { $ne: req.user._id },
+      ...typeFilter,
+    };
+    const mongoose = require('mongoose');
+    if (before && mongoose.isValidObjectId(before)) {
+      query._id = { $lt: before };
+    }
+
+    const messages = await Message.find(query)
+      .sort({ _id: -1 })
+      .limit(limit)
+      // PERF: see the matching DM endpoint for why we strip `attachments.data`.
+      .select('type text attachments.filename attachments.mimetype attachments.size sender createdAt')
+      .populate('sender', 'firstName lastName avatar uniqueId')
+      .lean();
+
+    res.json({
+      items: messages,
+      hasMore: messages.length === limit,
+    });
+  } catch (err) {
+    console.error('[groups] media error:', err.message);
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 // ═══════════════════════════
 // ══  TESTS (unchanged)   ══
 // ═══════════════════════════

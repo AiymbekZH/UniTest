@@ -242,6 +242,68 @@ router.get('/conversations/:id/messages', auth, async (req, res) => {
   }
 });
 
+// ── Media gallery for a conversation ──
+// GET /api/dm/conversations/:id/media?type=image|video|file&before=<msgId>&limit=30
+//
+// Used by the new chat info-drawer "Media" tab. Filters by attachment-bearing
+// types only — text messages are skipped server-side so we don't ship empty
+// results to the client.
+//
+// We deliberately return only the metadata fields needed by the gallery
+// (filename, mimetype, size) and skip the heavyweight base64 `data` to keep
+// the list payload small. The viewer fetches the full message via the
+// existing /messages endpoint when the user actually opens an item.
+router.get('/conversations/:id/media', auth, async (req, res) => {
+  try {
+    const conversation = await DirectMessage.findById(req.params.id);
+    if (!conversation) return res.status(404).json({ message: 'Диалог не найден' });
+
+    const isParticipant = conversation.participants.some(
+      p => p.toString() === req.user._id.toString()
+    );
+    if (!isParticipant) return res.status(403).json({ message: 'Нет доступа' });
+
+    const { type, before } = req.query;
+    const limit = Math.min(60, Math.max(10, parseInt(req.query.limit) || 30));
+
+    // Map UI tabs → message type filter. 'file' covers the long tail of
+    // documents/zips/anything that's not media or audio.
+    let typeFilter;
+    if (type === 'image') typeFilter = { type: 'image' };
+    else if (type === 'video') typeFilter = { type: 'video' };
+    else if (type === 'audio') typeFilter = { type: 'audio' };
+    else if (type === 'file') typeFilter = { type: 'file' };
+    else typeFilter = { type: { $in: ['image', 'video', 'audio', 'file'] } };
+
+    const query = {
+      conversation: req.params.id,
+      isDeleted: false,
+      deletedFor: { $ne: req.user._id },
+      ...typeFilter,
+    };
+    if (before && require('mongoose').isValidObjectId(before)) {
+      query._id = { $lt: before };
+    }
+
+    const messages = await DMMessage.find(query)
+      .sort({ _id: -1 })
+      .limit(limit)
+      // PERF: skip the base64 `data` field — it's the bulk of the doc and
+      // we only need filenames/sizes to render the grid.
+      .select('type text attachments.filename attachments.mimetype attachments.size sender createdAt')
+      .populate('sender', 'firstName lastName avatar uniqueId')
+      .lean();
+
+    res.json({
+      items: messages,
+      hasMore: messages.length === limit,
+    });
+  } catch (err) {
+    console.error('[dm] media error:', err.message);
+    res.status(500).json({ message: 'Ошибка' });
+  }
+});
+
 // ── Search messages within a conversation ──
 router.get('/conversations/:id/search', auth, async (req, res) => {
   try {
