@@ -217,7 +217,12 @@ export default function MessageBubble({
                   </button>
                 )}
                 {isAud && (
-                  <AudioPlayer data={att.data} mimetype={att.mimetype} filename={att.filename} />
+                  <AudioPlayer
+                    data={att.data}
+                    mimetype={att.mimetype}
+                    filename={att.filename}
+                    tone={isOwn ? 'own' : 'other'}
+                  />
                 )}
                 {(isPdf || (!isImg && !isVid && !isAud)) && (
                   <a

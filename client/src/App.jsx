@@ -1,7 +1,102 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { useTheme } from './context/ThemeContext';
 import toast, { Toaster, ToastBar } from 'react-hot-toast';
+
+/**
+ * Theme-aware Toaster wrapper.
+ *
+ * The plain <Toaster> previously hard-coded a dark slate background
+ * (`#0f172a`), which looked correct on dark theme and obviously wrong
+ * (a black popover floating over a beige page) on light theme. This
+ * wrapper picks the palette from the active theme via useTheme and
+ * recomposes the toastOptions on each render so a theme toggle
+ * propagates to in-flight toasts on the next render cycle.
+ *
+ * Why a tiny component and not a useMemo'd object inside App?
+ * <Toaster> reads style/options at mount time AND for new toasts; a
+ * fresh element via wrapping ensures the props update cleanly when
+ * the theme flips. The toast-bar dismiss button colors also follow.
+ */
+function ThemedToaster() {
+  const { dark } = useTheme();
+
+  // Palette pairs. Light is intentionally subtle: a white card with
+  // slate text on a soft border. Dark mirrors the previous look.
+  const palette = dark
+    ? {
+        background: '#0f172a',
+        color: '#f8fafc',
+        border: '1px solid rgba(148, 163, 184, 0.2)',
+        shadow: '0 24px 60px -32px rgba(15, 23, 42, 0.8)',
+        dismissBg: 'rgba(255, 255, 255, 0.08)',
+        dismissBgHover: 'rgba(255, 255, 255, 0.14)',
+        dismissColor: '#cbd5e1',
+        dismissColorHover: '#ffffff',
+      }
+    : {
+        background: '#ffffff',
+        color: '#0f172a',
+        border: '1px solid rgba(15, 23, 42, 0.10)',
+        shadow: '0 12px 36px -16px rgba(15, 23, 42, 0.18)',
+        dismissBg: 'rgba(15, 23, 42, 0.06)',
+        dismissBgHover: 'rgba(15, 23, 42, 0.12)',
+        dismissColor: '#64748b',
+        dismissColorHover: '#0f172a',
+      };
+
+  return (
+    <Toaster
+      position="top-right"
+      gutter={10}
+      toastOptions={{
+        duration: 2600,
+        style: {
+          background: palette.background,
+          color: palette.color,
+          border: palette.border,
+          borderRadius: '16px',
+          padding: '14px 16px',
+          boxShadow: palette.shadow,
+        },
+        success: { duration: 2200 },
+        error: { duration: 3000 },
+      }}
+    >
+      {(toastItem) => (
+        <ToastBar toast={toastItem}>
+          {({ icon, message }) => (
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex-shrink-0">{icon}</div>
+              <div className="min-w-0 flex-1 text-sm leading-5">{message}</div>
+              <button
+                type="button"
+                onClick={() => toast.dismiss(toastItem.id)}
+                className="ml-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs transition"
+                style={{
+                  background: palette.dismissBg,
+                  color: palette.dismissColor,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = palette.dismissBgHover;
+                  e.currentTarget.style.color = palette.dismissColorHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = palette.dismissBg;
+                  e.currentTarget.style.color = palette.dismissColor;
+                }}
+                aria-label="Dismiss notification"
+              >
+                x
+              </button>
+            </div>
+          )}
+        </ToastBar>
+      )}
+    </Toaster>
+  );
+}
 
 // Lazy-loaded pages (code splitting)
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -99,46 +194,7 @@ export default function App() {
       <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
 
-      <Toaster
-        position="top-right"
-        gutter={10}
-        toastOptions={{
-          duration: 2600,
-          style: {
-            background: '#0f172a',
-            color: '#f8fafc',
-            border: '1px solid rgba(148, 163, 184, 0.2)',
-            borderRadius: '16px',
-            padding: '14px 16px',
-            boxShadow: '0 24px 60px -32px rgba(15, 23, 42, 0.8)'
-          },
-          success: {
-            duration: 2200
-          },
-          error: {
-            duration: 3000
-          }
-        }}
-      >
-        {(toastItem) => (
-          <ToastBar toast={toastItem}>
-            {({ icon, message }) => (
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex-shrink-0">{icon}</div>
-                <div className="min-w-0 flex-1 text-sm leading-5">{message}</div>
-                <button
-                  type="button"
-                  onClick={() => toast.dismiss(toastItem.id)}
-                  className="ml-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/8 text-xs text-slate-300 transition hover:bg-white/14 hover:text-white"
-                  aria-label="Dismiss notification"
-                >
-                  x
-                </button>
-              </div>
-            )}
-          </ToastBar>
-        )}
-      </Toaster>
+      <ThemedToaster />
     </Suspense>
   );
 }

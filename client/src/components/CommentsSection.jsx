@@ -218,15 +218,15 @@ export default function CommentsSection({ testId }) {
           onClick={() => handleVote(comment._id, 'up')}
           className={`p-1 rounded-full transition ${
             myVote === 'up'
-              ? 'text-primary-600 bg-primary-50 dark:bg-primary-900/20'
-              : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-600'
+              ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/25'
+              : 'text-gray-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/15 hover:text-emerald-600'
           }`}
           disabled={!isAuthenticated}
         >
           <ChevronUp size={18} strokeWidth={2.5} />
         </button>
         <span className={`text-[13px] font-semibold min-w-[16px] text-center tabular-nums ${
-          score > 0 ? 'text-primary-600' : score < 0 ? 'text-red-500' : 'text-gray-400'
+          score > 0 ? 'text-emerald-600' : score < 0 ? 'text-red-500' : 'text-gray-400'
         }`}>
           {score !== 0 ? score : ''}
         </span>

@@ -297,7 +297,12 @@ export default function MessageBubble({
                 )}
 
                 {isAudio && (
-                  <AudioPlayer data={attachment.data} mimetype={attachment.mimetype} filename={attachment.filename} />
+                  <AudioPlayer
+                    data={attachment.data}
+                    mimetype={attachment.mimetype}
+                    filename={attachment.filename}
+                    tone={isOwn ? 'own' : 'other'}
+                  />
                 )}
 
                 {isPdf && (

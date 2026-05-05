@@ -31,7 +31,20 @@ export default function MediaViewer({ media, list, index = 0, onClose }) {
   // (otherwise zooming in on slide A and swiping to B carries the zoom).
   const transformRef = useRef(null);
 
-  const carousel = Array.isArray(list) && list.length > 1;
+  // ── Open-state contract ──
+  // The viewer is OPEN iff the parent passed a non-null `media`. The
+  // `list` prop is auxiliary — it only controls whether we render
+  // arrows + the carousel counter. Previously we computed
+  //   `current = carousel ? list[activeIndex] : media`
+  // which had a subtle bug: when the parent set `media={null}` (i.e.
+  // user clicked X), but `list.length > 1`, `current` resolved to a
+  // valid item and the viewer NEVER closed. This bit users hardest
+  // right after a forward — that scenario reliably has 2+ images in
+  // the chat so `list.length > 1` was true. Now we gate the entire
+  // render on `media` and use it as the source of truth for which
+  // slide is showing initially; carousel nav still uses `list`.
+  const isOpen = Boolean(media);
+  const carousel = isOpen && Array.isArray(list) && list.length > 1;
   const current = carousel ? list[activeIndex] : media;
 
   useEffect(() => {
@@ -40,7 +53,7 @@ export default function MediaViewer({ media, list, index = 0, onClose }) {
 
   // Keyboard: Esc closes, ← → cycle.
   useEffect(() => {
-    if (!current) return;
+    if (!isOpen) return;
     const onKey = (e) => {
       if (e.key === 'Escape') onClose?.();
       else if (e.key === 'ArrowLeft' && carousel) prev();
@@ -48,18 +61,18 @@ export default function MediaViewer({ media, list, index = 0, onClose }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [current, carousel, activeIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, carousel, activeIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Disable body scroll while the modal is open. Without this iOS Safari
   // happily scrolls the document under the modal during pinch gestures.
   useEffect(() => {
-    if (!current) return;
+    if (!isOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
-  }, [current]);
+  }, [isOpen]);
 
-  if (!current) return null;
+  if (!isOpen || !current) return null;
 
   const att = current.attachment;
   const src = att?.data?.startsWith('data:') ? att.data : `data:${att?.mimetype};base64,${att?.data}`;
