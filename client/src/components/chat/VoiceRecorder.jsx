@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Mic, Pause, Play, RotateCw, Square, Trash2, X } from 'lucide-react';
+// Phase 3b: tiny custom waveform renderer (no wavesurfer.js dependency).
+// Lives in features/chat/components/ since it's chat-domain specific —
+// this legacy VoiceRecorder consumes it for parity with the new shell.
+import WaveformCanvas from '../../features/chat/components/WaveformCanvas';
 
 const MAX_DURATION = 120; // 2 minutes
 
@@ -248,14 +252,15 @@ export default function VoiceRecorder({ onRecorded, onCancel, onPhaseChange }) {
         </button>
 
         <div className="min-w-0 flex-1">
-          <div className="h-1 overflow-hidden rounded-full bg-primary-200/60 dark:bg-primary-700/40">
-            <div
-              className="h-full rounded-full bg-primary-500 transition-all"
-              style={{
-                width: `${playbackDur > 0 ? Math.min(100, (playbackPos / playbackDur) * 100) : 0}%`,
-              }}
-            />
-          </div>
+          {/* Replaced the flat progress bar with a 60-bar waveform.
+              Decoded from the recorded blob via AudioContext on first
+              render of the preview state. The same `progress` value
+              now drives the orange "played" overlay across the bars. */}
+          <WaveformCanvas
+            blob={recordedBlob}
+            progress={playbackDur > 0 ? playbackPos / playbackDur : 0}
+            height={28}
+          />
           <div className="mt-1 flex justify-between text-[10px] font-medium text-primary-700 dark:text-primary-200">
             <span>{fmt(playbackPos)}</span>
             <span>{fmt(playbackDur || duration)}</span>

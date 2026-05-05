@@ -1,38 +1,64 @@
 import { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
+import WaveformCanvas from '../../features/chat/components/WaveformCanvas';
 
 export default function AudioPlayer({ data, mimetype, filename }) {
   const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
+  // Position is the played fraction (0..1) so it can drive both the
+  // waveform overlay and the seek-on-click handler in one place.
+  const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
+  // Decoded blob is held alongside the <audio> src so WaveformCanvas
+  // can decode it via AudioContext. Fetched once per data prop change.
+  const [blob, setBlob] = useState(null);
   const audioRef = useRef(null);
 
   useEffect(() => {
-    const src = data.startsWith('data:') ? data : `data:${mimetype || 'audio/webm'};base64,${data}`;
+    const mt = mimetype || 'audio/webm';
+    const src = data.startsWith('data:') ? data : `data:${mt};base64,${data}`;
     const audio = new Audio(src);
     audioRef.current = audio;
 
-    audio.addEventListener('loadedmetadata', () => setDuration(audio.duration));
+    audio.addEventListener('loadedmetadata', () => setDuration(audio.duration || 0));
     audio.addEventListener('timeupdate', () => {
-      if (audio.duration) setProgress((audio.currentTime / audio.duration) * 100);
+      if (audio.duration) setPosition(audio.currentTime / audio.duration);
     });
-    audio.addEventListener('ended', () => { setPlaying(false); setProgress(0); });
+    audio.addEventListener('ended', () => { setPlaying(false); setPosition(0); });
 
-    return () => { audio.pause(); audio.src = ''; };
+    // Pull the bytes into a Blob too, so the waveform can decode them.
+    // We avoid the network round-trip for data:URLs by decoding inline.
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await fetch(src);
+        const b = await resp.blob();
+        if (!cancelled) setBlob(b);
+      } catch (_) {
+        if (!cancelled) setBlob(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      audio.pause();
+      audio.src = '';
+    };
   }, [data, mimetype]);
 
   const toggle = () => {
     if (!audioRef.current) return;
-    if (playing) { audioRef.current.pause(); }
-    else { audioRef.current.play(); }
+    if (playing) audioRef.current.pause();
+    else audioRef.current.play().catch(() => {});
     setPlaying(!playing);
   };
 
-  const seek = (e) => {
+  // Click anywhere on the waveform to seek.
+  const seekFromClick = (e) => {
     if (!audioRef.current || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     audioRef.current.currentTime = pct * duration;
+    setPosition(pct);
   };
 
   const fmt = (s) => {
@@ -41,15 +67,21 @@ export default function AudioPlayer({ data, mimetype, filename }) {
   };
 
   return (
-    <div className="flex items-center gap-2.5 min-w-[180px] max-w-[260px]">
-      <button onClick={toggle} className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center flex-shrink-0 hover:bg-blue-600 transition">
+    <div className="flex min-w-[180px] max-w-[280px] items-center gap-2.5">
+      <button
+        onClick={toggle}
+        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-white transition hover:bg-blue-600"
+        aria-label={playing ? 'Пауза' : 'Воспроизвести'}
+      >
         {playing ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
       </button>
-      <div className="flex-1 min-w-0">
-        <div className="h-1.5 bg-gray-200 dark:bg-slate-600 rounded-full cursor-pointer overflow-hidden" onClick={seek}>
-          <div className="h-full bg-blue-500 rounded-full transition-all duration-100" style={{ width: `${progress}%` }} />
+      <div className="min-w-0 flex-1">
+        <div onClick={seekFromClick} className="cursor-pointer">
+          <WaveformCanvas blob={blob} progress={position} height={26} />
         </div>
-        <span className="text-[10px] text-gray-400 mt-0.5 block">{fmt(audioRef.current?.currentTime || 0)} / {fmt(duration)}</span>
+        <span className="mt-0.5 block text-[10px] text-gray-400">
+          {fmt((audioRef.current?.currentTime) || 0)} / {fmt(duration)}
+        </span>
       </div>
     </div>
   );

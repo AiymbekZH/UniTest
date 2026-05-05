@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useStickers } from '../features/stickers/useStickers';
 import AIStickerModal from '../features/stickers/AIStickerModal';
+import BackgroundRemovalModal from '../features/stickers/BackgroundRemovalModal';
 import { processStickerImage } from '../features/stickers/imageResize';
 
 /**
@@ -35,6 +36,10 @@ export default function MyStickersPage() {
   const [activePackId, setActivePackId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showAi, setShowAi] = useState(false);
+  // Phase 3b: background removal flow lives in its own modal because
+  // the model load + processing UX is too noisy to inline next to the
+  // upload button.
+  const [showBgRm, setShowBgRm] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
 
@@ -80,6 +85,22 @@ export default function MyStickersPage() {
       return false;
     }
     const ok = await addSticker(activePack._id, { image, mimetype, source: 'ai' });
+    return Boolean(ok);
+  };
+
+  // Phase 3b: same shape as handleAiSave but with `source: 'background_removed'`
+  // so we can later filter by sticker creation method.
+  const handleBgRmSave = async ({ image, mimetype }) => {
+    if (!activePack || !isOwnerOfActive) {
+      toast.error('Сначала выберите свой пак');
+      return false;
+    }
+    const ok = await addSticker(activePack._id, {
+      image,
+      mimetype,
+      source: 'background_removed',
+    });
+    if (ok) toast.success('Стикер добавлен');
     return Boolean(ok);
   };
 
@@ -181,6 +202,7 @@ export default function MyStickersPage() {
                 uploading={uploading}
                 onUpload={() => fileRef.current?.click()}
                 onAiOpen={() => setShowAi(true)}
+                onBgRmOpen={() => setShowBgRm(true)}
                 onDeleteSticker={(sid) => removeSticker(activePack._id, sid)}
                 onDeletePack={handleDeletePack}
                 onTogglePublic={handleTogglePublic}
@@ -222,6 +244,12 @@ export default function MyStickersPage() {
         onGenerate={aiGenerate}
         onSave={handleAiSave}
       />
+
+      <BackgroundRemovalModal
+        open={showBgRm}
+        onClose={() => setShowBgRm(false)}
+        onSave={handleBgRmSave}
+      />
     </div>
   );
 }
@@ -257,7 +285,8 @@ function EmptyState({ onCreate }) {
 
 function PackDetails({
   pack, isOwner, uploading,
-  onUpload, onAiOpen, onDeleteSticker, onDeletePack, onTogglePublic,
+  onUpload, onAiOpen, onBgRmOpen,
+  onDeleteSticker, onDeletePack, onTogglePublic,
 }) {
   return (
     <div className="space-y-4">
@@ -340,10 +369,10 @@ function PackDetails({
           />
           <AddButton
             label="Убрать фон"
-            sub="Скоро"
+            sub="ИИ в браузере"
             icon={ImagePlus}
-            disabled
-            tone="slate"
+            onClick={onBgRmOpen}
+            tone="emerald"
           />
           <AddButton
             label="Редактор"
@@ -408,6 +437,7 @@ function AddButton({ label, sub, icon: Icon, onClick, disabled, loading, tone = 
   const tones = {
     primary: 'border-slate-900 bg-primary-50 text-primary-600 dark:border-white dark:bg-primary-900/20 dark:text-primary-200',
     amber: 'border-slate-900 bg-amber-50 text-amber-600 dark:border-white dark:bg-amber-900/30 dark:text-amber-200',
+    emerald: 'border-slate-900 bg-emerald-50 text-emerald-600 dark:border-white dark:bg-emerald-900/30 dark:text-emerald-200',
     slate: 'border-slate-300 bg-slate-50 text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-500',
   };
   return (

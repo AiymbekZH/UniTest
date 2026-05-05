@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import MessageBubble from '../components/MessageBubble';
 import DateSeparator from '../components/DateSeparator';
-import MediaViewerModal from '../../../components/chat/MediaViewerModal';
+// Phase 3b: pinch-zoom + carousel viewer. The legacy MediaViewerModal
+// stays alive for /messages-era pages (none currently — they redirect)
+// but the new chat shell uses this enhanced one.
+import MediaViewer from '../viewer/MediaViewer';
 
 /**
  * Scrollable message list for the new chat shell. Mirrors the legacy
@@ -50,6 +53,10 @@ export default function ChatRoomMessages({
   const topSentinelRef = useRef(null);
   const prevLenRef = useRef(0);
   const [autoScroll, setAutoScroll] = useState(true);
+  // Open viewer state. We hold ONLY the clicked media descriptor here;
+  // the carousel `list` is computed below from the current `messages`
+  // array via memo so the viewer can swipe between every image/video
+  // visible in the chat without an extra fetch.
   const [mediaViewer, setMediaViewer] = useState(null);
 
   // ── Auto-scroll on new bottom messages ──
@@ -99,6 +106,37 @@ export default function ChatRoomMessages({
     const el = containerRef.current?.querySelector(`[data-msg-id="${highlightMessageId}"]`);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [highlightMessageId, messages.length]);
+
+  // ── Carousel list + active index for the viewer. ──
+  // Built lazily from the current `messages` so opening the viewer is
+  // O(messages * attachments) but cheap (few hundred items, sync).
+  // Re-computed only when `messages` changes — not on every viewer
+  // open — and indexOf below stays sub-millisecond at our scale.
+  const mediaList = useMemo(() => {
+    if (!Array.isArray(messages)) return [];
+    const out = [];
+    for (const m of messages) {
+      if (m.type === 'sticker' || m.isDeleted) continue;
+      for (const att of m.attachments || []) {
+        if (!att?.mimetype) continue;
+        if (att.mimetype.startsWith('image/')) {
+          out.push({ kind: 'image', attachment: att, messageId: m._id });
+        } else if (att.mimetype.startsWith('video/')) {
+          out.push({ kind: 'video', attachment: att, messageId: m._id });
+        }
+      }
+    }
+    return out;
+  }, [messages]);
+
+  const mediaIndex = useMemo(() => {
+    if (!mediaViewer) return 0;
+    const i = mediaList.findIndex(m =>
+      m.attachment === mediaViewer.attachment ||
+      m.attachment?.filename === mediaViewer.attachment?.filename
+    );
+    return Math.max(0, i);
+  }, [mediaViewer, mediaList]);
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -178,7 +216,15 @@ export default function ChatRoomMessages({
         </button>
       )}
 
-      <MediaViewerModal media={mediaViewer} onClose={() => setMediaViewer(null)} />
+      {/* Build a flat list of every image/video attachment in the chat
+          so the viewer can swipe between them. Stickers are excluded
+          since they're tiny and zooming them isn't useful. */}
+      <MediaViewer
+        media={mediaViewer}
+        list={mediaList}
+        index={mediaIndex}
+        onClose={() => setMediaViewer(null)}
+      />
     </div>
   );
 }
