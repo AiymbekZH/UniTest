@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft, Check, Globe, ImagePlus, Loader2, Lock, Plus,
-  Sparkles, Sticker as StickerIcon, Trash2, Upload, X,
+  Sticker as StickerIcon, Trash2, Upload, X,
 } from 'lucide-react';
 import { useStickers } from '../features/stickers/useStickers';
-import AIStickerModal from '../features/stickers/AIStickerModal';
 import BackgroundRemovalModal from '../features/stickers/BackgroundRemovalModal';
 import { processStickerImage } from '../features/stickers/imageResize';
 
@@ -20,9 +19,13 @@ import { processStickerImage } from '../features/stickers/imageResize';
  * Add buttons:
  *   - Upload file (PNG/JPG/WebP up to ~5MB pre-resize, auto-compressed
  *     client-side to fit the server's 512 KB cap).
- *   - Background removal (Phase 3b — currently shows a "Coming soon" toast).
- *   - Mini-editor (Phase 3b — same).
- *   - AI generation (Phase 1 backend exists, modal lives here).
+ *   - Background removal (Phase 3b: in-browser via @imgly model).
+ *   - Mini-editor (Phase 3c — placeholder, opens later).
+ *
+ * AI generation was prototyped against Pollinations.ai and removed in
+ * 2026-05 because the output quality wasn't worth shipping. The
+ * placeholder tile is intentionally gone (not just disabled) so the
+ * button row tells the truth about what's available.
  */
 export default function MyStickersPage() {
   const navigate = useNavigate();
@@ -30,12 +33,10 @@ export default function MyStickersPage() {
     myPacks, loading,
     createPack, updatePack, deletePack,
     addSticker, removeSticker,
-    aiGenerate,
   } = useStickers();
 
   const [activePackId, setActivePackId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [showAi, setShowAi] = useState(false);
   // Phase 3b: background removal flow lives in its own modal because
   // the model load + processing UX is too noisy to inline next to the
   // upload button.
@@ -79,17 +80,9 @@ export default function MyStickersPage() {
     }
   };
 
-  const handleAiSave = async ({ image, mimetype }) => {
-    if (!activePack || !isOwnerOfActive) {
-      toast.error('Сначала выберите свой пак');
-      return false;
-    }
-    const ok = await addSticker(activePack._id, { image, mimetype, source: 'ai' });
-    return Boolean(ok);
-  };
-
-  // Phase 3b: same shape as handleAiSave but with `source: 'background_removed'`
-  // so we can later filter by sticker creation method.
+  // Save handler for the BG-removed flow. Tagged with
+  // `source: 'background_removed'` so analytics can filter by sticker
+  // creation method later.
   const handleBgRmSave = async ({ image, mimetype }) => {
     if (!activePack || !isOwnerOfActive) {
       toast.error('Сначала выберите свой пак');
@@ -201,7 +194,6 @@ export default function MyStickersPage() {
                 isOwner={isOwnerOfActive}
                 uploading={uploading}
                 onUpload={() => fileRef.current?.click()}
-                onAiOpen={() => setShowAi(true)}
                 onBgRmOpen={() => setShowBgRm(true)}
                 onDeleteSticker={(sid) => removeSticker(activePack._id, sid)}
                 onDeletePack={handleDeletePack}
@@ -236,13 +228,6 @@ export default function MyStickersPage() {
             setShowCreate(false);
           }
         }}
-      />
-
-      <AIStickerModal
-        open={showAi}
-        onClose={() => setShowAi(false)}
-        onGenerate={aiGenerate}
-        onSave={handleAiSave}
       />
 
       <BackgroundRemovalModal
@@ -285,7 +270,7 @@ function EmptyState({ onCreate }) {
 
 function PackDetails({
   pack, isOwner, uploading,
-  onUpload, onAiOpen, onBgRmOpen,
+  onUpload, onBgRmOpen,
   onDeleteSticker, onDeletePack, onTogglePublic,
 }) {
   return (
@@ -349,9 +334,14 @@ function PackDetails({
         )}
       </div>
 
-      {/* Add buttons row — owner only */}
+      {/* Add buttons row — owner only.
+          Three tiles: Upload, Background-removed upload, and a Mini-editor
+          placeholder for Phase 3c. The grid uses 3 columns at ≥sm so the
+          tiles share width evenly; on mobile (2 cols) the third tile wraps
+          to a second row, which is fine because they're equally important
+          and the row stays compact. */}
       {isOwner && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 [&>*]:min-w-0 sm:grid-cols-3">
           <AddButton
             label="Загрузить"
             sub="PNG/WebP/JPG"
@@ -359,13 +349,6 @@ function PackDetails({
             onClick={onUpload}
             loading={uploading}
             tone="primary"
-          />
-          <AddButton
-            label="AI стикер"
-            sub="Опишите идею"
-            icon={Sparkles}
-            onClick={onAiOpen}
-            tone="amber"
           />
           <AddButton
             label="Убрать фон"
@@ -417,14 +400,9 @@ function PackDetails({
                   <X size={10} strokeWidth={3} />
                 </button>
               )}
-              {s.source === 'ai' && (
-                <span
-                  className="pointer-events-none absolute bottom-1 left-1 inline-flex items-center gap-0.5 rounded-md border border-amber-400 bg-amber-50 px-1 text-[8px] font-black uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
-                  title="Сгенерировано ИИ"
-                >
-                  <Sparkles size={7} strokeWidth={2.8} /> AI
-                </span>
-              )}
+              {/* Legacy AI source pill removed in 2026-05 with the AI
+                  generation feature. Existing docs with `source: 'ai'`
+                  simply render without a badge. */}
             </div>
           ))}
         </div>
@@ -436,7 +414,6 @@ function PackDetails({
 function AddButton({ label, sub, icon: Icon, onClick, disabled, loading, tone = 'primary' }) {
   const tones = {
     primary: 'border-slate-900 bg-primary-50 text-primary-600 dark:border-white dark:bg-primary-900/20 dark:text-primary-200',
-    amber: 'border-slate-900 bg-amber-50 text-amber-600 dark:border-white dark:bg-amber-900/30 dark:text-amber-200',
     emerald: 'border-slate-900 bg-emerald-50 text-emerald-600 dark:border-white dark:bg-emerald-900/30 dark:text-emerald-200',
     slate: 'border-slate-300 bg-slate-50 text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-500',
   };

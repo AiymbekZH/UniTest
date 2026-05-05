@@ -1,5 +1,5 @@
 /**
- * Stickers — packs CRUD, discover, install, AI generate.
+ * Stickers — packs CRUD, discover, install.
  *
  * All endpoints under `/api/stickers`. Auth required everywhere except
  * the public discover feed.
@@ -12,12 +12,13 @@
  *   PACKS_PER_USER         : 20
  *   STICKERS_PER_PACK      : 100
  *   MAX_STICKER_BYTES (raw): 512 KB pre-base64  (~700 KB encoded)
- *   AI_GENERATIONS_PER_DAY : 10
  *
- * AI generation is proxied through Pollinations.ai which is keyless and
- * returns the rendered PNG as the response body. We download server-side
- * (so the client doesn't see the third-party domain in its CSP) and hand
- * back base64.
+ * Stickers can come from two sources today: a manual upload (any image
+ * the user picks) or a background-removed upload (the same flow but
+ * the client ran the @imgly model first, which adds a `source` tag).
+ * AI generation was prototyped against Pollinations.ai during Phase 1
+ * but the output quality wasn't good enough to ship — the route +
+ * client modal were removed in 2026-05.
  */
 const express = require('express');
 const mongoose = require('mongoose');
@@ -31,25 +32,6 @@ const router = express.Router();
 const PACKS_PER_USER = StickerPack.PACK_LIMIT_PER_USER || 20;
 const STICKERS_PER_PACK = Sticker.PER_PACK_LIMIT || 100;
 const MAX_STICKER_BYTES = Sticker.MAX_IMAGE_BYTES || 512 * 1024; // raw bytes pre-base64
-const AI_GENERATIONS_PER_DAY = 10;
-
-// ── Tiny in-memory daily counter for AI generation ──
-// Keyed by `${userId}:${YYYY-MM-DD}`. Resets implicitly when the day rolls
-// over because we never query yesterday's keys. Cleared on process restart
-// (acceptable — restart is rare and the cap is generous).
-const _aiCounter = new Map();
-function _today() { return new Date().toISOString().slice(0, 10); }
-function _aiKey(userId) { return `${userId}:${_today()}`; }
-function _aiHits(userId) { return _aiCounter.get(_aiKey(userId)) || 0; }
-function _aiBump(userId) {
-  const k = _aiKey(userId);
-  _aiCounter.set(k, (_aiCounter.get(k) || 0) + 1);
-  // Bound the map so a busy server doesn't leak.
-  if (_aiCounter.size > 5000) {
-    const oldest = _aiCounter.keys().next().value;
-    _aiCounter.delete(oldest);
-  }
-}
 
 // ── Helpers ──
 
@@ -435,103 +417,5 @@ router.put('/packs/:id/stickers/order', auth, async (req, res) => {
     res.status(500).json({ message: 'Ошибка изменения порядка' });
   }
 });
-
-// ─────────────────────────────────────────────────────────────────────
-// AI GENERATE — proxy to Pollinations.ai
-// POST /api/stickers/ai-generate   { prompt, count?=4 }
-// → { images: [{ image: base64, prompt }] }
-//
-// We don't write to a pack here — the client gets the variants, picks one
-// (or several), and POSTs each chosen one to /packs/:id/stickers with
-// source='ai'. This keeps the AI rate-limit decoupled from pack write
-// permissions and lets the user discard rejects without paying the
-// generation cost again.
-// ─────────────────────────────────────────────────────────────────────
-router.post('/ai-generate', auth, async (req, res) => {
-  try {
-    const { prompt, count = 4 } = req.body || {};
-    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
-      return res.status(400).json({ message: 'Опишите стикер' });
-    }
-    const cleanPrompt = prompt.trim().slice(0, 200);
-
-    const userId = String(req.user._id);
-    if (_aiHits(userId) >= AI_GENERATIONS_PER_DAY) {
-      return res.status(429).json({
-        message: `Дневной лимит ИИ-генераций исчерпан (${AI_GENERATIONS_PER_DAY}). Возвращайтесь завтра.`,
-      });
-    }
-
-    const variants = Math.max(1, Math.min(4, parseInt(count) || 4));
-
-    // Pollinations supports a `seed` query param so re-rolling gives
-    // different results. We call N times in parallel; failures of
-    // individual variants don't kill the whole request.
-    // The "sticker" suffix nudges the model toward tight subjects on
-    // transparent / clean backgrounds.
-    const stickerPrompt = `${cleanPrompt}, sticker, transparent background, clean white outline, centered, vibrant colors`;
-    const baseUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(stickerPrompt)}?width=512&height=512&nologo=true`;
-
-    const startedAt = Date.now();
-    const fetches = Array.from({ length: variants }).map((_, i) => {
-      const seed = Math.floor(Math.random() * 1e9);
-      const url = `${baseUrl}&seed=${seed}`;
-      return fetchAsBase64(url, 30_000).catch((err) => {
-        console.warn(`[stickers] ai variant ${i} failed:`, err.message);
-        return null;
-      });
-    });
-
-    const results = await Promise.all(fetches);
-    const images = results.filter(Boolean).map((b64) => ({
-      image: `data:image/png;base64,${b64}`,
-      mimetype: 'image/png',
-      prompt: cleanPrompt,
-      source: 'ai',
-    }));
-
-    if (images.length === 0) {
-      return res.status(502).json({ message: 'Сервис ИИ недоступен. Попробуйте ещё раз.' });
-    }
-
-    _aiBump(userId);
-
-    res.json({
-      images,
-      generated: images.length,
-      requested: variants,
-      remaining: Math.max(0, AI_GENERATIONS_PER_DAY - _aiHits(userId)),
-      elapsedMs: Date.now() - startedAt,
-    });
-  } catch (err) {
-    console.error('[stickers] ai-generate error:', err.message);
-    res.status(500).json({ message: 'Ошибка генерации' });
-  }
-});
-
-// ── Internal: fetch URL → base64 with timeout ──
-// Node 18+ has global `fetch`. We download the bytes and base64-encode
-// in-process so the client never sees the third-party URL. AbortController
-// + timeout covers Pollinations cold-start hangs.
-async function fetchAsBase64(url, timeoutMs = 30_000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const resp = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'UniTest-Stickers/1.0' },
-    });
-    if (!resp.ok) throw new Error(`upstream ${resp.status}`);
-    const buf = Buffer.from(await resp.arrayBuffer());
-    if (buf.length > 1.5 * 1024 * 1024) {
-      // Pollinations sometimes returns oversize SVG fallbacks. Reject
-      // to keep storage sane.
-      throw new Error('upstream oversized');
-    }
-    return buf.toString('base64');
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 module.exports = router;

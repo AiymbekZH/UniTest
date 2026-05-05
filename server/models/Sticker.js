@@ -25,9 +25,10 @@ const stickerSchema = new mongoose.Schema({
   emoji: { type: String, default: '', maxlength: 8 },
   position: { type: Number, default: 0 },
 
-  // Tracks how this sticker entered the pack. Useful for analytics + future
-  // moderation (e.g. flag sketchy AI-generated content separately from
-  // user-uploaded ones).
+  // Tracks how this sticker entered the pack. Useful for analytics +
+  // future moderation. `'ai'` is kept in the enum only to not invalidate
+  // any docs created during the short-lived Pollinations.ai integration
+  // (Phase 1 → removed in 2026-05); no new code path produces it.
   source: {
     type: String,
     enum: ['upload', 'background_removed', 'editor', 'ai'],

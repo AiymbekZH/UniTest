@@ -157,18 +157,6 @@ export function useStickers({ autoLoad = true } = {}) {
     }
   }, []);
 
-  // ── AI ──
-  const aiGenerate = useCallback(async ({ prompt, count = 4 }) => {
-    try {
-      const res = await api.post('/stickers/ai-generate', { prompt, count });
-      return res.data; // { images: [{ image, mimetype, prompt, source }], remaining, ... }
-    } catch (err) {
-      const msg = err?.response?.data?.message || 'Ошибка генерации';
-      toast.error(msg);
-      return null;
-    }
-  }, []);
-
   return {
     myPacks,
     loading,
@@ -182,6 +170,5 @@ export function useStickers({ autoLoad = true } = {}) {
     discover,
     installPack,
     uninstallPack,
-    aiGenerate,
   };
 }
