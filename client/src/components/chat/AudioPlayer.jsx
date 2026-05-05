@@ -30,16 +30,59 @@ export default function AudioPlayer({ data, mimetype, filename, tone = 'other' }
   // can decode it via AudioContext. Fetched once per data prop change.
   const [blob, setBlob] = useState(null);
   const audioRef = useRef(null);
+  // Tracks whether we issued the seek-to-infinity workaround below
+  // so the durationchange handler knows to reset currentTime back to
+  // 0 exactly once. Without this we'd scrub the user to 0 every time
+  // the browser legitimately updates duration (e.g. some streams).
+  const seekedToInfinityRef = useRef(false);
 
   useEffect(() => {
     const mt = mimetype || 'audio/webm';
     const src = data.startsWith('data:') ? data : `data:${mt};base64,${data}`;
     const audio = new Audio(src);
     audioRef.current = audio;
+    seekedToInfinityRef.current = false;
 
-    audio.addEventListener('loadedmetadata', () => setDuration(audio.duration || 0));
+    // ── MediaRecorder webm duration workaround ──
+    // Chrome/Firefox ship MediaRecorder chunks without a Duration
+    // box in the EBML metadata. `audio.duration` is Infinity until
+    // the browser has seeked past the end of the file at least
+    // once — then it populates from the playback cursor. The
+    // classic fix: programmatically seek to a huge number, let the
+    // browser clamp to the real end and fire `durationchange` with
+    // the actual value, then reset currentTime to 0. Doing this on
+    // loadedmetadata is cheap (the seek is a no-op scroll at the
+    // demuxer level) and invisible to the user.
+    audio.addEventListener('loadedmetadata', () => {
+      if (!isFinite(audio.duration) || audio.duration === 0) {
+        seekedToInfinityRef.current = true;
+        try { audio.currentTime = 1e101; } catch (_) { /* noop */ }
+      } else {
+        setDuration(audio.duration);
+      }
+    });
+
+    audio.addEventListener('durationchange', () => {
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+        if (seekedToInfinityRef.current) {
+          seekedToInfinityRef.current = false;
+          // Reset the cursor we bumped during the workaround. Guard
+          // with try/catch because some browsers throw if the seek
+          // target hasn't finished resolving yet.
+          try { audio.currentTime = 0; } catch (_) { /* noop */ }
+        }
+      }
+    });
+
     audio.addEventListener('timeupdate', () => {
-      if (audio.duration) setPosition(audio.currentTime / audio.duration);
+      // Ignore spurious timeupdates fired DURING the infinity-seek
+      // workaround — otherwise we'd briefly render position=1 before
+      // durationchange resets us to 0.
+      if (seekedToInfinityRef.current) return;
+      if (audio.duration && isFinite(audio.duration)) {
+        setPosition(audio.currentTime / audio.duration);
+      }
     });
     audio.addEventListener('ended', () => { setPlaying(false); setPosition(0); });
 
