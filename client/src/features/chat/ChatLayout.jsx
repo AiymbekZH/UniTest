@@ -577,6 +577,11 @@ export default function ChatLayout() {
               onCancelEdit={() => setEditingMessage(null)}
               disabled={!canSend}
               placeholder={canSend ? 'Сообщение...' : 'Нет права отправки в этой группе'}
+              // Phase 4b-A: pass group members for the @mention autocomplete.
+              // DM chats pass an empty array (default), which silently
+              // disables the dropdown. The members list comes from the
+              // hydrated activeChat.group payload populated server-side.
+              members={kind === 'group' ? (activeChat?.group?.members || []) : []}
             />
           </>
         ) : (

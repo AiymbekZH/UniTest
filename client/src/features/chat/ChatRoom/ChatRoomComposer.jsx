@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, FileText, Image as ImageIcon, Paperclip, Send, Sticker as StickerIcon, X } from 'lucide-react';
 import VoiceRecorder from '../../../components/chat/VoiceRecorder';
 import StickerPicker from '../../stickers/StickerPicker';
+// Phase 4b-A: @mention autocomplete. Only relevant when the chat is
+// a group (members prop populated); the dropdown is silently skipped
+// otherwise so DMs stay simple.
+import MentionAutocomplete, { filterMembers } from '../mentions/MentionAutocomplete';
 
 /**
  * Composer for the new chat shell. Wraps:
@@ -33,9 +37,17 @@ export default function ChatRoomComposer({
   onCancelEdit,
   disabled,
   placeholder = 'Сообщение...',
+  // Group members for @mention autocomplete. Pass an empty array (or
+  // undefined) to disable the feature — e.g. for DM chats.
+  members = [],
 }) {
   const [text, setText] = useState('');
   const [attachments, setAttachments] = useState([]);
+  // ── Mention autocomplete state (Phase 4b-A) ──
+  // `mentionRange` holds the [start, end) caret indices spanning the
+  // active `@token` being typed. null when not in mention mode.
+  const [mentionRange, setMentionRange] = useState(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
   // VoiceRecorder's current phase. When it's anything other than 'idle'
   // the composer gives the voice UI the whole row — otherwise textarea +
   // paperclip + send + recorder all compete for the same flex line and
@@ -70,6 +82,91 @@ export default function ChatRoomComposer({
   };
   useEffect(autosize, [text]);
 
+  // ── Mention detection on text/caret change ──
+  // The composer doesn't track caret position via state (it relies on
+  // the native textarea cursor). Whenever the user types, we read the
+  // current selectionStart and look LEFT until we either hit an `@`
+  // (mention starts) or whitespace / start-of-input (no mention
+  // here). This avoids needing a fully controlled caret API and works
+  // identically with paste / cut / arrow-key edits.
+  const detectMention = (value, caret) => {
+    if (caret == null || caret < 1) return null;
+    let start = caret - 1;
+    while (start >= 0) {
+      const ch = value[start];
+      if (ch === '@') {
+        // Anchor the mention only if the @ is at the start OR
+        // preceded by whitespace — otherwise we'd trigger on
+        // "[email protected]" mid-typing.
+        const prev = start === 0 ? ' ' : value[start - 1];
+        if (/\s/.test(prev)) {
+          return { start, end: caret };
+        }
+        return null;
+      }
+      // Stop searching backwards on whitespace; the user typed past
+      // the mention region and is no longer in mention mode.
+      if (/\s/.test(ch)) return null;
+      start--;
+    }
+    return null;
+  };
+
+  const onTextChange = (e) => {
+    const value = e.target.value;
+    setText(value);
+    onTypingPing?.();
+    if (members && members.length > 0) {
+      const range = detectMention(value, e.target.selectionStart);
+      setMentionRange(range);
+      // Reset highlight to the first row whenever the query string
+      // changes — stale indices into a smaller filtered list could
+      // overshoot and select "nothing".
+      setMentionIndex(0);
+    }
+  };
+
+  // Refresh mention detection on caret moves that don't go through
+  // onChange (arrow keys, mouse clicks).
+  const onSelect = (e) => {
+    if (!members || members.length === 0) return;
+    const range = detectMention(e.target.value, e.target.selectionStart);
+    setMentionRange(range);
+  };
+
+  // The query string is everything after the @ in the active range.
+  const mentionQuery = useMemo(() => {
+    if (!mentionRange) return '';
+    return text.slice(mentionRange.start + 1, mentionRange.end);
+  }, [text, mentionRange]);
+
+  const mentionMatches = useMemo(
+    () => (mentionRange ? filterMembers(members, mentionQuery) : []),
+    [members, mentionQuery, mentionRange]
+  );
+
+  // Insert `@username ` over the current mention range.
+  const applyMention = (user) => {
+    if (!mentionRange || !user?.username) return;
+    const before = text.slice(0, mentionRange.start);
+    const after = text.slice(mentionRange.end);
+    // Trailing space lets the user keep typing immediately and also
+    // matches the regex word-boundary contract on the server.
+    const insertion = `@${user.username} `;
+    const newText = before + insertion + after;
+    setText(newText);
+    setMentionRange(null);
+    setMentionIndex(0);
+    // Re-focus + place caret right after the inserted token.
+    requestAnimationFrame(() => {
+      const el = textRef.current;
+      if (!el) return;
+      el.focus();
+      const pos = before.length + insertion.length;
+      try { el.setSelectionRange(pos, pos); } catch (_) { /* noop */ }
+    });
+  };
+
   const submit = () => {
     const trimmed = text.trim();
     if (editingMessage) {
@@ -102,6 +199,31 @@ export default function ChatRoomComposer({
   };
 
   const onKey = (e) => {
+    // Mention dropdown takes priority over send/escape when active so
+    // arrow keys / Enter pick a member instead of moving the caret.
+    if (mentionRange && mentionMatches.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex(i => (i + 1) % mentionMatches.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex(i => (i - 1 + mentionMatches.length) % mentionMatches.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        applyMention(mentionMatches[mentionIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMentionRange(null);
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       submit();
@@ -287,16 +409,31 @@ export default function ChatRoomComposer({
               onChange={onFile}
             />
 
-            <textarea
-              ref={textRef}
-              rows={1}
-              value={text}
-              onChange={(e) => { setText(e.target.value); onTypingPing?.(); }}
-              onKeyDown={onKey}
-              placeholder={isEdit ? 'Изменить сообщение...' : placeholder}
-              disabled={disabled}
-              className="min-h-[40px] min-w-0 flex-1 resize-none rounded-2xl border-2 border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            />
+            {/* Textarea + mention dropdown wrapper. The dropdown is
+                position-absolute and the wrapper is position-relative
+                so it floats directly above the input regardless of
+                composer width on mobile. */}
+            <div className="relative min-w-0 flex-1">
+              <textarea
+                ref={textRef}
+                rows={1}
+                value={text}
+                onChange={onTextChange}
+                onSelect={onSelect}
+                onKeyDown={onKey}
+                placeholder={isEdit ? 'Изменить сообщение...' : placeholder}
+                disabled={disabled}
+                className="min-h-[40px] w-full resize-none rounded-2xl border-2 border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primary-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              />
+              <MentionAutocomplete
+                open={Boolean(mentionRange) && mentionMatches.length > 0 && !isEdit}
+                members={members}
+                query={mentionQuery}
+                selectedIndex={mentionIndex}
+                onIndexChange={setMentionIndex}
+                onSelect={applyMention}
+              />
+            </div>
           </>
         )}
 

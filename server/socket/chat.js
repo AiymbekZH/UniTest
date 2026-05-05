@@ -1,5 +1,6 @@
 const Message = require('../models/Message');
 const Group = require('../models/Group');
+const { extractMentions } = require('../utils/mentions');
 
 // Match the DM cap so error copy stays consistent across both surfaces.
 const MAX_ATTACHMENT_BYTES = 7 * 1024 * 1024;
@@ -99,6 +100,21 @@ module.exports = function (io) {
           }
         }
 
+        // ── Mention extraction (Phase 4b-A) ──
+        // We only run this when the message has user-authored text;
+        // attachment-only messages can't carry @mentions and the
+        // population join below is unnecessary. group.members already
+        // holds all the username/name fields we need (the User docs
+        // are auto-populated via the schema).
+        let mentionedUserIds = [];
+        if (text && text.trim()) {
+          // group.members[i].user is an ObjectId by default — we need
+          // the populated User docs to read `username`. The schema's
+          // hooks don't auto-populate, so do it here.
+          await group.populate('members.user', 'username firstName lastName');
+          mentionedUserIds = extractMentions(text, group.members);
+        }
+
         const message = new Message({
           group: groupId,
           sender: socket.user._id,
@@ -106,10 +122,16 @@ module.exports = function (io) {
           text: text?.trim() || '',
           attachments: attachments || [],
           replyTo: replyTo || null,
+          mentions: mentionedUserIds,
         });
 
         await message.save();
         await message.populate('sender', 'firstName lastName avatar uniqueId');
+        // Populate mentions so the client can resolve @username spans
+        // to display-friendly names without an extra round trip.
+        if (mentionedUserIds.length > 0) {
+          await message.populate('mentions', 'firstName lastName username avatar uniqueId');
+        }
         if (message.replyTo) {
           await message.populate({
             path: 'replyTo',
@@ -128,12 +150,19 @@ module.exports = function (io) {
         io.to(`group:${groupId}`).emit('group:message', payload);
 
         if (type !== 'system') {
+          // Set of mentioned user ids for O(1) lookup during fanout.
+          const mentionSet = new Set(mentionedUserIds.map(String));
           for (const member of group.members) {
-            if (member.user.toString() === socket.user._id.toString()) continue;
-            io.to(`user:${member.user}`).emit('group:inbox', {
+            const memberUserId = (member.user?._id || member.user).toString();
+            if (memberUserId === socket.user._id.toString()) continue;
+            io.to(`user:${memberUserId}`).emit('group:inbox', {
               groupId,
               messageId: message._id,
               senderId: socket.user._id.toString(),
+              // Surface the mention bit so the inbox/notification UI
+              // can flag this message as personally addressed without
+              // having to re-parse the text on the client.
+              mentioned: mentionSet.has(memberUserId),
             });
           }
         }

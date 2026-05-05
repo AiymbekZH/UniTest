@@ -5,6 +5,10 @@ import {
   FileText, Forward, MoreVertical, Pin, Reply, RotateCw, Smile, Trash2,
 } from 'lucide-react';
 import AudioPlayer from '../../../components/chat/AudioPlayer';
+// Phase 4b-A: render @mentions as styled clickable spans inside the
+// message text. Plain text passes through unchanged when no mentions
+// were extracted server-side.
+import MentionText from '../mentions/MentionText';
 
 /**
  * Phase 2 unified bubble. Lives in features/chat/ next to the new shell.
@@ -54,6 +58,8 @@ export default function MessageBubble({
   canPin,
   canEdit,
   canDeleteEveryone,
+  // Phase 4b-A: needed to highlight @mentions of the viewer.
+  currentUserId,
   // callbacks
   onReply,
   onReact,
@@ -176,7 +182,13 @@ export default function MessageBubble({
           )}
 
           {message.text && (
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.text}</p>
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+              <MentionText
+                text={message.text}
+                mentions={message.mentions}
+                currentUserId={currentUserId}
+              />
+            </p>
           )}
 
           {/* ── Stickers ── */}

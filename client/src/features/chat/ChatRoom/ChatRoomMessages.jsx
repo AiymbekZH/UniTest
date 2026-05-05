@@ -230,6 +230,7 @@ export default function ChatRoomMessages({
                 canPin={canPin}
                 canEdit={isOwn}
                 canDeleteEveryone={canDeleteEveryone}
+                currentUserId={currentUserId}
                 onReply={onReply}
                 onReact={onReact}
                 onPin={onPin}
