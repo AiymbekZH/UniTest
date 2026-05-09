@@ -1,6 +1,11 @@
 import { io } from 'socket.io-client';
 
 let socket = null;
+// `lastUsedToken` is a cache key used to detect credential drift. We use the
+// localStorage token when present; otherwise we use a constant sentinel for
+// the cookie-only path (Google OAuth) — so a switch from cookie-auth to
+// localStorage-auth (or vice versa) still triggers a reconnect.
+const COOKIE_AUTH_SENTINEL = '__cookie__';
 let lastUsedToken = null;
 
 // Read fresh token on every (re)connect attempt — including socket.io's own
@@ -19,12 +24,17 @@ function readToken() {
 
 export function connectSocket() {
   const token = readToken();
-  if (!token) return null;
+  // No localStorage token does NOT mean "unauthenticated" — Google OAuth
+  // users authenticate via the httpOnly `unitest_token` cookie which JS
+  // can't read. The server's socket middleware falls back to that cookie
+  // (see server/index.js → io.use), so we still try to connect; the
+  // browser will attach the cookie automatically because of withCredentials.
+  const credKey = token || COOKIE_AUTH_SENTINEL;
 
-  // If a socket already exists but its credential drifted from the current
-  // localStorage token (account switch / refresh), tear it down so we can
-  // reconnect with the fresh one.
-  if (socket && lastUsedToken && lastUsedToken !== token) {
+  // If a socket already exists but its credential drifted (account switch,
+  // localStorage→cookie or vice-versa), tear it down so we can reconnect
+  // with the fresh credential.
+  if (socket && lastUsedToken && lastUsedToken !== credKey) {
     try { socket.disconnect(); } catch (_) {}
     socket = null;
   }
@@ -32,12 +42,16 @@ export function connectSocket() {
   if (socket?.connected) return socket;
   if (socket) return socket; // mid-handshake — let it finish
 
-  lastUsedToken = token;
+  lastUsedToken = credKey;
   socket = io(window.location.origin, {
     // Function form is re-evaluated on every (re)connect attempt — this is
     // the only way socket.io exposes "use a fresh token" without nuking the
     // socket and rebuilding it.
     auth: (cb) => cb({ token: readToken() }),
+    // Required so the browser includes our auth cookie on the WebSocket
+    // handshake. Without this, the cookie is dropped and Google OAuth
+    // sessions can't authenticate the socket.
+    withCredentials: true,
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000,
@@ -50,6 +64,15 @@ export function connectSocket() {
 
   socket.on('connect_error', (err) => {
     console.error('[Socket] Auth error:', err.message);
+    // If the server told us the request was unauthenticated (no token in
+    // localStorage AND no usable cookie), there's no point in retrying —
+    // the user is genuinely not logged in. Drop the socket so the next
+    // login can start fresh.
+    if (err?.message === 'AUTH_REQUIRED' || err?.message === 'AUTH_FAILED') {
+      try { socket.disconnect(); } catch (_) {}
+      socket = null;
+      lastUsedToken = null;
+    }
   });
 
   return socket;

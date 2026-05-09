@@ -71,6 +71,13 @@ export const AuthProvider = ({ children }) => {
   const applyCookieOnlySession = useCallback((nextUser) => {
     localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(nextUser));
     setUser(nextUser);
+    // Cookie-only sessions (Google OAuth) still need a chat socket. The
+    // server's socket auth middleware reads the same `unitest_token`
+    // cookie that the HTTP API uses, so this works without exposing the
+    // JWT to JS. Without this call, Google-signed-in users would have a
+    // working /api but no socket → every chat send fired
+    // "Нет соединения. Перезагрузите страницу.".
+    connectSocket();
   }, []);
 
   const upsertSavedSession = useCallback((token, nextUser) => {

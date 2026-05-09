@@ -223,14 +223,46 @@ const io = new Server(server, {
   cors: {
     origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
     methods: ['GET', 'POST'],
+    // credentials:true is required so the browser sends our auth cookie
+    // (`unitest_token`) with the WebSocket handshake — without it, Google
+    // OAuth users (who never see a JWT in JS land, only in an httpOnly
+    // cookie) couldn't establish a socket and every send fired
+    // "Нет соединения. Перезагрузите страницу." in the chat UI.
+    credentials: true,
   },
   maxHttpBufferSize: 5 * 1024 * 1024,
 });
 
-// Socket auth middleware
+// Socket auth middleware.
+//
+// Token discovery order:
+//   1. `handshake.auth.token`   — used by email/register flows that get
+//      the JWT in the response body and stash it in localStorage.
+//   2. `unitest_token` cookie   — used by the Google OAuth flow (the
+//      JWT is httpOnly so the JS client can't put it in `auth.token`).
+//   3. `handshake.auth.arenaGuestToken` — anonymous arena participants.
+//
+// Falling back to the cookie keeps the chat working for Google-signed-in
+// users without exposing the JWT to JS or changing the rest of the auth
+// surface.
+const cookie = require('cookie');
 io.use(async (socket, next) => {
-  const token = socket.handshake.auth?.token;
-  const arenaGuestToken = socket.handshake.auth?.arenaGuestToken;
+  const handshakeAuth = socket.handshake.auth || {};
+  let token = handshakeAuth.token;
+  const arenaGuestToken = handshakeAuth.arenaGuestToken;
+
+  if (!token) {
+    const rawCookie = socket.handshake.headers?.cookie;
+    if (rawCookie) {
+      try {
+        const parsed = cookie.parse(rawCookie);
+        if (parsed?.unitest_token) token = parsed.unitest_token;
+      } catch (_) {
+        // Malformed cookie header — treat as no token.
+      }
+    }
+  }
+
   try {
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
