@@ -1759,54 +1759,78 @@ export default function TakeTest() {
         )}
       </AnimatePresence>
 
-      {/* Compact top bar */}
-      <div className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-gray-100 dark:border-slate-700 safe-area-top">
-        <div className="mx-auto max-w-4xl px-3 py-2 sm:px-4 sm:py-3 lg:max-w-[1120px]">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-xs sm:text-sm font-semibold text-dark truncate max-w-[42%] lg:max-w-[46%]">
-              {test.title}
+      {/* ── Chunky top bar ── */}
+      <div className="sticky top-0 z-50 border-b-2 border-slate-200 bg-white/95 backdrop-blur-xl safe-area-top dark:border-slate-700 dark:bg-slate-900/95">
+        <div className="mx-auto max-w-4xl px-3 py-2.5 sm:px-5 sm:py-3 lg:max-w-[1120px]">
+          <div className="flex items-center justify-between gap-3">
+            {/* Title + variant badge */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <h2 className="truncate text-xs font-black tracking-tight text-dark sm:text-sm">
+                {test.title}
+              </h2>
               {selectedVariant > 0 && (
-                <span className="ml-2 inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-900/40 text-primary-600 dark:text-primary-400 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  <Ticket size={10} />#{selectedVariant}
+                <span
+                  className="flex-shrink-0 inline-flex items-center gap-1 rounded-xl border-2 border-purple-700 bg-purple-50 px-2 py-0.5 text-[10px] font-black text-purple-700 dark:border-purple-300 dark:bg-purple-900/30 dark:text-purple-300"
+                  style={{ boxShadow: '0 2px 0 #581c87' }}
+                >
+                  <Ticket size={10} strokeWidth={2.6} />#{selectedVariant}
                 </span>
               )}
-            </h2>
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            </div>
+
+            {/* Right controls */}
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
               {violations.length > 0 && (
-                <span className="badge-danger flex items-center gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">
-                  <AlertTriangle size={10} /> {violations.length}
+                <span
+                  className="inline-flex items-center gap-1 rounded-xl border-2 border-red-700 bg-red-50 px-2 py-1 text-[10px] font-black text-red-700 dark:border-red-300 dark:bg-red-900/30 dark:text-red-300"
+                  style={{ boxShadow: '0 2px 0 #7f1d1d' }}
+                >
+                  <AlertTriangle size={10} strokeWidth={2.6} /> {violations.length}
                 </span>
               )}
               {timeLeft !== null && (
-                <span className={`flex items-center gap-1 text-xs sm:text-sm font-mono font-bold ${timeLeft < 60 ? 'text-red-600 animate-pulse' : 'text-dark'}`}>
-                  <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
+                <div
+                  className={`inline-flex items-center gap-1.5 rounded-xl border-2 px-2.5 py-1 font-mono text-xs font-black sm:text-sm ${
+                    timeLeft < 60
+                      ? 'border-red-700 bg-red-50 text-red-700 animate-pulse dark:border-red-300 dark:bg-red-900/30 dark:text-red-300'
+                      : 'border-slate-200 bg-gray-50 text-dark dark:border-slate-600 dark:bg-slate-800'
+                  }`}
+                  style={{ boxShadow: timeLeft < 60 ? '0 2px 0 #7f1d1d' : '0 2px 0 #e2e8f0' }}
+                >
+                  <Clock size={12} strokeWidth={2.6} />
                   {formatTime(timeLeft)}
-                </span>
+                </div>
               )}
-              <span className="text-xs text-gray-400 font-medium bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
+              <span
+                className="inline-flex items-center rounded-xl border-2 border-slate-200 bg-gray-50 px-2.5 py-1 text-xs font-black text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                style={{ boxShadow: '0 2px 0 #e2e8f0' }}
+              >
                 {currentQ + 1}/{test.questions.length}
               </span>
               <button
                 onClick={() => handleSubmit()}
                 disabled={submitting}
-                className="hidden lg:inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="hidden lg:inline-flex chunky-btn-success items-center gap-2 py-2 px-4 text-xs"
               >
                 {submitting ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <Send size={14} />
+                    <Send size={14} strokeWidth={2.6} />
                     <span>{t('finishTest')}</span>
                   </>
                 )}
               </button>
             </div>
           </div>
-          {/* Progress bar */}
-          <div className="h-1 sm:h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
+          {/* Progress bar — chunky */}
+          <div className="mt-2.5 h-2 rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden border border-gray-200 dark:border-slate-600">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: 'linear-gradient(90deg, #f97316, #ea580c, #c2410c)' }}
+              style={{
+                background: 'linear-gradient(90deg, #f97316, #ea580c, #c2410c)',
+                boxShadow: '0 0 8px rgba(249, 115, 22, 0.4)'
+              }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3 }}
             />
@@ -1814,59 +1838,45 @@ export default function TakeTest() {
         </div>
       </div>
 
-      {/* Question area - grows to fill available space */}
+       {/* Question area */}
       <div className="mx-auto flex w-full flex-1 justify-center gap-5 px-3 py-3 pb-28 sm:px-4 sm:py-4 sm:pb-32 lg:max-w-[1120px] lg:py-5">
-        {/* Desktop Left Sidebar Navigator */}
-        <aside className="hidden lg:block w-[290px] flex-shrink-0">
-          <div className="sticky top-[88px] flex max-h-[calc(100vh-104px)] flex-col chunky-card p-6">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">{t('navigation') || 'Навигатор'}</h3>
-            <div className="space-y-2 overflow-y-auto pr-2 pb-4">
+        {/* ── Desktop sidebar — compact grid ── */}
+        <aside className="hidden lg:block w-[220px] flex-shrink-0">
+          <div className="sticky top-[100px] flex max-h-[calc(100vh-116px)] flex-col chunky-card p-5">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">{t('navigation') || 'Навигация'}</h3>
+
+            {/* Compact number grid */}
+            <div className="grid grid-cols-5 gap-1.5 overflow-y-auto pb-3">
               {test.questions.map((q, i) => {
                 const answered = !!answers[q.id];
                 const fb = feedback[q.id];
                 const isCurrent = i === currentQ;
-                const previewText = getQuestionPreviewText(q, testLang, t, i);
                 return (
                   <button
                     key={i}
                     onClick={() => setCurrentQ(i)}
-                    className={`w-full rounded-[20px] px-3.5 py-2.5 text-left transition-all relative border ${
+                    className={`relative aspect-square rounded-xl border-2 text-xs font-black transition-all active:translate-y-[2px] ${
                       isCurrent
-                        ? 'bg-primary-600 text-white border-primary-500 shadow-lg shadow-primary-600/25'
+                        ? 'border-slate-900 bg-primary-500 text-white dark:border-white'
                         : fb?.checked
                           ? fb.isCorrect
-                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
-                            : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-900/30 dark:text-emerald-300'
+                            : 'border-red-600 bg-red-50 text-red-700 dark:border-red-400 dark:bg-red-900/30 dark:text-red-300'
                           : answered
-                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800'
-                            : 'bg-gray-50 dark:bg-slate-800/60 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700'
+                            ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-900/20 dark:text-primary-300'
+                            : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-500 dark:hover:border-slate-500'
                     }`}
+                    style={{
+                      boxShadow: isCurrent
+                        ? '0 3px 0 #9a3412'
+                        : fb?.checked
+                          ? fb.isCorrect ? '0 2px 0 #065f46' : '0 2px 0 #7f1d1d'
+                          : '0 2px 0 #e2e8f0'
+                    }}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`h-9 w-9 rounded-[14px] flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                        isCurrent
-                          ? 'bg-white/18 text-white border border-white/20'
-                          : fb?.checked
-                            ? fb.isCorrect
-                              ? 'bg-emerald-500 text-white'
-                              : 'bg-red-500 text-white'
-                            : answered
-                              ? 'bg-primary-500 text-white'
-                              : 'bg-white dark:bg-slate-700 text-gray-500 border border-gray-200 dark:border-slate-600'
-                      }`}>
-                        {i + 1}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className={`text-[9px] uppercase tracking-[0.14em] ${isCurrent ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}`}>
-                          {t('question') || 'Question'} {i + 1}
-                        </p>
-                        <p className={`mt-1 truncate text-xs font-semibold ${isCurrent ? 'text-white' : 'text-dark'}`} title={previewText}>
-                          {previewText}
-                        </p>
-                      </div>
-                    </div>
+                    {i + 1}
                     {fb?.checked && !isCurrent && (
-                      <div className={`absolute right-3 top-3 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${
+                      <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${
                         fb.isCorrect ? 'bg-emerald-500' : 'bg-red-500'
                       }`} />
                     )}
@@ -1874,11 +1884,18 @@ export default function TakeTest() {
                 );
               })}
             </div>
-            {/* Keyboard shortcuts hint */}
-            <div className="flex flex-col gap-2 pt-4 mt-auto border-t border-gray-100 dark:border-slate-700">
-              <span className="text-[10px] text-gray-400 flex items-center justify-between"><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">1-9</kbd> {t('selectOption') || 'select'}</span>
-              <span className="text-[10px] text-gray-400 flex items-center justify-between"><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono font-bold">← →</kbd> {t('navigation') || 'navigate'}</span>
-              <span className="text-[10px] text-gray-400 flex items-center justify-between"><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">Enter</kbd> {t('next') || 'next / submit'}</span>
+
+            {/* Answered count */}
+            <div className="mt-3 rounded-xl border-2 border-slate-200 bg-gray-50 p-3 text-center dark:border-slate-600 dark:bg-slate-800" style={{ boxShadow: '0 2px 0 #e2e8f0' }}>
+              <p className="font-mono text-lg font-black text-dark">{answeredCount}<span className="text-gray-300 dark:text-gray-600">/{test.questions.length}</span></p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">{t('answered') || 'отвечено'}</p>
+            </div>
+
+            {/* Keyboard shortcuts */}
+            <div className="flex flex-col gap-1.5 pt-3 mt-auto border-t-2 border-slate-100 dark:border-slate-700">
+              <span className="text-[10px] text-gray-400 flex items-center justify-between"><kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 rounded-lg text-[9px] font-mono font-black border border-gray-200 dark:border-slate-600">1-9</kbd> {t('selectOption') || 'выбрать'}</span>
+              <span className="text-[10px] text-gray-400 flex items-center justify-between"><kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 rounded-lg text-[9px] font-mono font-black border border-gray-200 dark:border-slate-600">← →</kbd> {t('navigation') || 'навигация'}</span>
+              <span className="text-[10px] text-gray-400 flex items-center justify-between"><kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 rounded-lg text-[9px] font-mono font-black border border-gray-200 dark:border-slate-600">Enter</kbd> {t('next') || 'далее'}</span>
             </div>
           </div>
         </aside>
@@ -1893,24 +1910,38 @@ export default function TakeTest() {
             transition={{ duration: 0.25 }}
             className="chunky-card p-4 sm:p-6 md:p-8"
           >
-            {/* Question header */}
-            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <span className="w-7 h-7 sm:w-8 sm:h-8 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-lg flex items-center justify-center font-bold text-xs sm:text-sm">
+            {/* Question header — chunky */}
+            <div className="flex items-center gap-2 mb-4 sm:mb-5 flex-wrap">
+              <span
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border-2 border-slate-900 bg-primary-500 text-sm font-black text-white dark:border-white"
+                style={{ boxShadow: '0 3px 0 #9a3412' }}
+              >
                 {currentQ + 1}
               </span>
-              <span className="text-[10px] sm:text-xs text-gray-400 font-medium">
+              <span
+                className="inline-flex items-center gap-1 rounded-xl border-2 border-amber-600 bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-700 dark:border-amber-300 dark:bg-amber-900/30 dark:text-amber-300"
+                style={{ boxShadow: '0 2px 0 #92400e' }}
+              >
+                <Star size={10} strokeWidth={2.8} className="fill-amber-500 text-amber-500" />
                 {question.points} {question.points === 1 ? t('point') : t('points')}
               </span>
               {question.type === 'multiple-choice' && (
-                <span className="text-[10px] sm:text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-md font-medium">
+                <span
+                  className="inline-flex items-center rounded-xl border-2 border-purple-600 bg-purple-50 px-2.5 py-1 text-[10px] font-black text-purple-700 dark:border-purple-300 dark:bg-purple-900/30 dark:text-purple-300"
+                  style={{ boxShadow: '0 2px 0 #581c87' }}
+                >
                   {t('multipleChoice')}
                 </span>
               )}
               {currentFeedback?.checked && (
-                <span className={`ml-auto text-[10px] sm:text-xs px-2 py-0.5 rounded-md font-bold ${currentFeedback.isCorrect
-                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
-                    : 'bg-red-100 dark:bg-red-900/30 text-red-600'
-                  }`}>
+                <span
+                  className={`ml-auto inline-flex items-center gap-1 rounded-xl border-2 px-2.5 py-1 text-[10px] font-black ${currentFeedback.isCorrect
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300'
+                      : 'border-red-600 bg-red-50 text-red-700 dark:border-red-300 dark:bg-red-900/30 dark:text-red-300'
+                    }`}
+                  style={{ boxShadow: currentFeedback.isCorrect ? '0 2px 0 #065f46' : '0 2px 0 #7f1d1d' }}
+                >
+                  {currentFeedback.isCorrect ? <Check size={12} strokeWidth={2.8} /> : <X size={12} strokeWidth={2.8} />}
                   {currentFeedback.isCorrect ? t('correct') : t('incorrect')}
                 </span>
               )}
@@ -1982,44 +2013,50 @@ export default function TakeTest() {
               </div>
             )}
 
-            {/* Answer options — Single choice / True-false */}
+            {/* Answer options — Single choice / True-false — chunky */}
             {(question.type === 'single-choice' || question.type === 'true-false') && (
-              <div className="space-y-2 sm:space-y-3">
+              <div className="space-y-2.5 sm:space-y-3">
                 {question.options.map((opt, optIdx) => {
                   const selected = currentAnswer?.selectedOptions?.includes(opt.id);
                   const fbClass = getOptionFeedbackClass(opt.id);
                   const isLocked = currentFeedback?.checked;
+                  const isCorrectOpt = currentFeedback?.correctOptionIds?.includes(opt.id);
+                  const letter = String.fromCharCode(65 + optIdx);
                   return (
                     <motion.button
                       key={opt.id}
                       whileTap={!isLocked ? { scale: 0.98 } : {}}
                       onClick={() => handleAnswer(question.id, 'single', opt.id)}
                       disabled={isLocked}
-                      className={`w-full text-left p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 ${fbClass || (
+                      className={`w-full text-left p-3.5 sm:p-4 rounded-2xl border-2 transition-all duration-150 ${fbClass || (
                           selected
                             ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                            : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700/50'
+                            : 'border-slate-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-primary-50/30 dark:hover:bg-primary-900/10'
                         )
-                        } ${isLocked ? 'cursor-default' : 'active:scale-[0.98]'}`}
+                        } ${isLocked ? 'cursor-default' : 'active:translate-y-[2px]'}`}
+                      style={{
+                        boxShadow: fbClass
+                          ? isCorrectOpt ? '0 3px 0 #065f46' : selected ? '0 3px 0 #7f1d1d' : '0 2px 0 #e2e8f0'
+                          : selected ? '0 3px 0 #9a3412' : '0 3px 0 #e2e8f0'
+                      }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${currentFeedback?.checked
-                            ? currentFeedback.correctOptionIds?.includes(opt.id)
-                              ? 'border-emerald-500 bg-emerald-500'
-                              : selected ? 'border-red-500 bg-red-500' : 'border-gray-300 dark:border-slate-500'
-                            : selected ? 'border-primary-500 bg-primary-500' : 'border-gray-300 dark:border-slate-500'
-                          }`}>
-                          {(selected || currentFeedback?.correctOptionIds?.includes(opt.id)) && (
-                            <div className="w-2 h-2 bg-white rounded-full" />
-                          )}
+                        <div className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center text-sm font-black flex-shrink-0 transition-all ${
+                          currentFeedback?.checked
+                            ? isCorrectOpt
+                              ? 'border-emerald-600 bg-emerald-500 text-white'
+                              : selected ? 'border-red-600 bg-red-500 text-white' : 'border-slate-200 bg-gray-50 text-slate-400 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-500'
+                            : selected ? 'border-primary-600 bg-primary-500 text-white' : 'border-slate-200 bg-gray-50 text-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                        }`}>
+                          {currentFeedback?.checked
+                            ? isCorrectOpt ? <Check size={16} strokeWidth={3} /> : selected ? <X size={16} strokeWidth={3} /> : letter
+                            : letter
+                          }
                         </div>
-                        <span className="font-medium text-sm flex-1">{getOptText(opt, optIdx)}</span>
-                        {currentFeedback?.checked && currentFeedback.correctOptionIds?.includes(opt.id) && (
-                          <Check size={16} className="text-emerald-500 flex-shrink-0" />
-                        )}
-                        {currentFeedback?.checked && selected && !currentFeedback.correctOptionIds?.includes(opt.id) && (
-                          <X size={16} className="text-red-500 flex-shrink-0" />
-                        )}
+                        <span className="font-bold text-sm flex-1 text-dark">{getOptText(opt, optIdx)}</span>
+                        <kbd className={`hidden sm:inline px-1.5 py-0.5 rounded-lg text-[9px] font-mono font-black border ${
+                          selected ? 'border-primary-300 bg-primary-100 text-primary-600 dark:border-primary-600 dark:bg-primary-900/30 dark:text-primary-300' : 'border-gray-200 bg-gray-50 text-gray-400 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-500'
+                        }`}>{optIdx + 1}</kbd>
                       </div>
                     </motion.button>
                   );
@@ -2027,43 +2064,50 @@ export default function TakeTest() {
               </div>
             )}
 
-            {/* Multiple choice */}
+            {/* Multiple choice — chunky */}
             {question.type === 'multiple-choice' && (
-              <div className="space-y-2 sm:space-y-3">
+              <div className="space-y-2.5 sm:space-y-3">
                 {question.options.map((opt, optIdx) => {
                   const selected = currentAnswer?.selectedOptions?.includes(opt.id);
                   const fbClass = getOptionFeedbackClass(opt.id);
                   const isLocked = currentFeedback?.checked;
+                  const isCorrectOpt = currentFeedback?.correctOptionIds?.includes(opt.id);
+                  const letter = String.fromCharCode(65 + optIdx);
                   return (
                     <motion.button
                       key={opt.id}
                       whileTap={!isLocked ? { scale: 0.98 } : {}}
                       onClick={() => handleAnswer(question.id, 'multiple', opt.id)}
                       disabled={isLocked}
-                      className={`w-full text-left p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 ${fbClass || (
+                      className={`w-full text-left p-3.5 sm:p-4 rounded-2xl border-2 transition-all duration-150 ${fbClass || (
                           selected
                             ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                            : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700/50'
+                            : 'border-slate-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-primary-50/30 dark:hover:bg-primary-900/10'
                         )
-                        } ${isLocked ? 'cursor-default' : 'active:scale-[0.98]'}`}
+                        } ${isLocked ? 'cursor-default' : 'active:translate-y-[2px]'}`}
+                      style={{
+                        boxShadow: fbClass
+                          ? isCorrectOpt ? '0 3px 0 #065f46' : selected ? '0 3px 0 #7f1d1d' : '0 2px 0 #e2e8f0'
+                          : selected ? '0 3px 0 #9a3412' : '0 3px 0 #e2e8f0'
+                      }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all flex-shrink-0 ${currentFeedback?.checked
-                            ? currentFeedback.correctOptionIds?.includes(opt.id)
-                              ? 'border-emerald-500 bg-emerald-500'
-                              : selected ? 'border-red-500 bg-red-500' : 'border-gray-300 dark:border-slate-500'
-                            : selected ? 'border-primary-500 bg-primary-500' : 'border-gray-300 dark:border-slate-500'
-                          }`}>
-                          {(selected || (currentFeedback?.checked && currentFeedback.correctOptionIds?.includes(opt.id))) && (
-                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
+                        <div className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center text-sm font-black flex-shrink-0 transition-all ${
+                          currentFeedback?.checked
+                            ? isCorrectOpt
+                              ? 'border-emerald-600 bg-emerald-500 text-white'
+                              : selected ? 'border-red-600 bg-red-500 text-white' : 'border-slate-200 bg-gray-50 text-slate-400 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-500'
+                            : selected ? 'border-primary-600 bg-primary-500 text-white' : 'border-slate-200 bg-gray-50 text-slate-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                        }`}>
+                          {currentFeedback?.checked
+                            ? isCorrectOpt ? <Check size={16} strokeWidth={3} /> : selected ? <X size={16} strokeWidth={3} /> : letter
+                            : selected ? <Check size={14} strokeWidth={3} /> : letter
+                          }
                         </div>
-                        <span className="font-medium text-sm flex-1">{getOptText(opt, optIdx)}</span>
-                        {currentFeedback?.checked && currentFeedback.correctOptionIds?.includes(opt.id) && (
-                          <Check size={16} className="text-emerald-500 flex-shrink-0" />
-                        )}
+                        <span className="font-bold text-sm flex-1 text-dark">{getOptText(opt, optIdx)}</span>
+                        <kbd className={`hidden sm:inline px-1.5 py-0.5 rounded-lg text-[9px] font-mono font-black border ${
+                          selected ? 'border-primary-300 bg-primary-100 text-primary-600 dark:border-primary-600 dark:bg-primary-900/30 dark:text-primary-300' : 'border-gray-200 bg-gray-50 text-gray-400 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-500'
+                        }`}>{optIdx + 1}</kbd>
                       </div>
                     </motion.button>
                   );
@@ -2245,13 +2289,13 @@ export default function TakeTest() {
       </main>
       </div>
 
-      {/* Fixed bottom navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-slate-700 safe-area-bottom lg:hidden">
+      {/* ── Fixed bottom navigation — chunky ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t-2 border-slate-200 bg-white/95 backdrop-blur-xl safe-area-bottom lg:hidden dark:border-slate-700 dark:bg-slate-900/95">
         <div className="max-w-3xl mx-auto">
-          {/* Scrollable question navigator */}
+          {/* Scrollable question pills */}
           <div
             ref={navScrollRef}
-            className="overflow-x-auto scrollbar-hide px-3 sm:px-4 pt-2 pb-1"
+            className="overflow-x-auto scrollbar-hide px-3 sm:px-4 pt-2.5 pb-1"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <div className="flex items-center gap-1.5 w-max mx-auto">
@@ -2263,20 +2307,21 @@ export default function TakeTest() {
                   <button
                     key={i}
                     onClick={() => setCurrentQ(i)}
-                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex-shrink-0 relative ${isCurrent
-                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30 scale-110'
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl border-2 text-[11px] sm:text-xs font-black transition-all flex-shrink-0 relative active:translate-y-[1px] ${isCurrent
+                        ? 'border-slate-900 bg-primary-500 text-white dark:border-white'
                         : fb?.checked
                           ? fb.isCorrect
-                            ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                            : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-900/30 dark:text-emerald-300'
+                            : 'border-red-600 bg-red-50 text-red-700 dark:border-red-400 dark:bg-red-900/30 dark:text-red-300'
                           : answered
-                            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 border border-primary-200 dark:border-primary-800'
-                            : 'bg-gray-100 dark:bg-slate-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-600 border border-transparent'
+                            ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-900/20 dark:text-primary-300'
+                            : 'border-slate-200 bg-white text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-500'
                       }`}
+                    style={{ boxShadow: isCurrent ? '0 2px 0 #9a3412' : '0 1px 0 #e2e8f0' }}
                   >
                     {i + 1}
                     {fb?.checked && !isCurrent && (
-                      <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white dark:border-slate-900 ${fb.isCorrect ? 'bg-emerald-500' : 'bg-red-500'
+                      <div className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-white dark:border-slate-900 ${fb.isCorrect ? 'bg-emerald-500' : 'bg-red-500'
                         }`} />
                     )}
                   </button>
@@ -2285,47 +2330,40 @@ export default function TakeTest() {
             </div>
           </div>
 
-          {/* Keyboard shortcuts hint (desktop only) */}
-          <div className="hidden sm:flex items-center justify-center gap-4 px-4 pt-1 text-[10px] text-gray-400">
-            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">1-9</kbd> {t('selectOption') || 'select'}</span>
-            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">&larr; &rarr;</kbd> {t('navigation') || 'navigate'}</span>
-            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[9px] font-mono">Enter</kbd> {t('next')}</span>
-          </div>
-
           {/* Action buttons */}
-          <div className="flex items-center justify-between px-3 sm:px-4 pb-2 pt-1 gap-2">
+          <div className="flex items-center justify-between px-3 sm:px-4 pb-2.5 pt-1.5 gap-2">
             <button
               onClick={() => setCurrentQ(prev => Math.max(0, prev - 1))}
               disabled={currentQ === 0}
-              className="flex items-center gap-1 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-30 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600 active:scale-95"
+              className="chunky-btn-ghost items-center gap-1 py-2 px-3 sm:px-4 text-sm disabled:opacity-30"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={16} strokeWidth={2.6} />
               <span>{t('prev')}</span>
             </button>
 
-            <div className="text-[10px] sm:text-xs text-gray-400 font-medium text-center">
-              {answeredCount}/{test.questions.length} {t('answered')}
+            <div className="text-[10px] sm:text-xs font-black text-gray-400 text-center">
+              {answeredCount}/{test.questions.length}
             </div>
 
             {currentQ < test.questions.length - 1 ? (
               <button
                 onClick={() => setCurrentQ(prev => prev + 1)}
-                className="flex items-center gap-1 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all bg-primary-600 text-white hover:bg-primary-700 active:scale-95 shadow-sm"
+                className="chunky-btn-primary items-center gap-1 py-2 px-3 sm:px-4 text-sm"
               >
                 <span>{t('next')}</span>
-                <ChevronRight size={16} />
+                <ChevronRight size={16} strokeWidth={2.6} />
               </button>
             ) : (
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSubmit()}
                 disabled={submitting}
-                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20 disabled:opacity-50 transition-all"
+                className="chunky-btn-success items-center gap-1.5 py-2 px-3 sm:px-4 text-sm disabled:opacity-50"
               >
                 {submitting ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <><Send size={14} /> <span>{t('finishTest')}</span></>
+                  <><Send size={14} strokeWidth={2.6} /> <span>{t('finishTest')}</span></>
                 )}
               </motion.button>
             )}
