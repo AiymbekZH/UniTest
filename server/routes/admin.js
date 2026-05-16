@@ -4,6 +4,7 @@ const Test = require('../models/Test');
 const Result = require('../models/Result');
 const Comment = require('../models/Comment');
 const { adminAuth, auth } = require('../middleware/auth');
+const { logAudit } = require('../utils/audit');
 
 const router = express.Router();
 
@@ -53,6 +54,15 @@ router.put('/users/:id/ban', adminAuth, async (req, res) => {
     user.isBanned = true;
     user.banReason = reason || 'Нарушение правил';
     await user.save();
+
+    await logAudit(req, {
+      action: 'ban_user',
+      targetType: 'user',
+      targetId: user._id,
+      targetLabel: `${user.firstName} ${user.lastName} (${user.email})`,
+      details: user.banReason
+    });
+
     res.json({ message: 'Пользователь заблокирован', user });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера' });
@@ -68,6 +78,14 @@ router.put('/users/:id/unban', adminAuth, async (req, res) => {
     user.isBanned = false;
     user.banReason = '';
     await user.save();
+
+    await logAudit(req, {
+      action: 'unban_user',
+      targetType: 'user',
+      targetId: user._id,
+      targetLabel: `${user.firstName} ${user.lastName} (${user.email})`
+    });
+
     res.json({ message: 'Пользователь разблокирован', user });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера' });
@@ -84,6 +102,15 @@ router.post('/users/:id/warn', adminAuth, async (req, res) => {
 
     user.warnings.push({ message, fromAdmin: req.user._id });
     await user.save();
+
+    await logAudit(req, {
+      action: 'warn_user',
+      targetType: 'user',
+      targetId: user._id,
+      targetLabel: `${user.firstName} ${user.lastName}`,
+      details: message
+    });
+
     res.json({ message: 'Предупреждение отправлено', warnings: user.warnings });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера' });
@@ -99,6 +126,15 @@ router.put('/users/:id/role', adminAuth, async (req, res) => {
     }
     const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
     if (!user) return res.status(404).json({ message: 'Пользователь не найден' });
+
+    await logAudit(req, {
+      action: 'change_role',
+      targetType: 'user',
+      targetId: user._id,
+      targetLabel: `${user.firstName} ${user.lastName}`,
+      details: `Роль → ${role}`
+    });
+
     res.json({ message: 'Роль обновлена', user });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера' });
@@ -121,6 +157,14 @@ router.put('/users/:id/ai-access', adminAuth, async (req, res) => {
 
     user.aiAccess = req.body.aiAccess;
     await user.save();
+
+    await logAudit(req, {
+      action: user.aiAccess ? 'grant_ai_access' : 'revoke_ai_access',
+      targetType: 'user',
+      targetId: user._id,
+      targetLabel: `${user.firstName} ${user.lastName}`
+    });
+
     res.json({ message: user.aiAccess ? 'Доступ к AI выдан' : 'Доступ к AI отключен', user });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка сервера' });

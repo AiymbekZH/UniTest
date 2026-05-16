@@ -1,6 +1,7 @@
 const Message = require('../models/Message');
 const Group = require('../models/Group');
 const { extractMentions } = require('../utils/mentions');
+const { sanitizePlainText } = require('../utils/sanitize');
 
 // Match the DM cap so error copy stays consistent across both surfaces.
 const MAX_ATTACHMENT_BYTES = 7 * 1024 * 1024;
@@ -119,7 +120,7 @@ module.exports = function (io) {
           group: groupId,
           sender: socket.user._id,
           type,
-          text: text?.trim() || '',
+          text: sanitizePlainText(text || '').slice(0, 5000),
           attachments: attachments || [],
           replyTo: replyTo || null,
           mentions: mentionedUserIds,

@@ -3,6 +3,7 @@ const Comment = require('../models/Comment');
 const Test = require('../models/Test');
 const Notification = require('../models/Notification');
 const { auth, optionalAuth } = require('../middleware/auth');
+const { sanitizePlainText } = require('../utils/sanitize');
 
 const router = express.Router();
 
@@ -41,7 +42,7 @@ router.post('/:testId', auth, async (req, res) => {
     const comment = new Comment({
       test: req.params.testId,
       user: req.user._id,
-      text: text.trim(),
+      text: sanitizePlainText(text).slice(0, 2000),
       replyTo: replyTo || null
     });
     await comment.save();

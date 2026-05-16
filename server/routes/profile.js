@@ -9,6 +9,7 @@ const Result = require('../models/Result');
 const { auth, optionalAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { ensureUserProgress, getLevelMeta } = require('../utils/progress');
+const { sanitizePlainText } = require('../utils/sanitize');
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ function toObjectId(value) {
 }
 
 function sanitizeText(value = '', maxLength = 0) {
-  const normalized = String(value || '').trim();
+  const normalized = sanitizePlainText(String(value || ''));
   return maxLength > 0 ? normalized.slice(0, maxLength) : normalized;
 }
 

@@ -5,6 +5,8 @@ const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 const { sendPasswordResetEmail } = require('../utils/mailer');
+const { validateRegister, validateLogin } = require('../utils/validate');
+const { sanitizePlainText } = require('../utils/sanitize');
 
 const router = express.Router();
 const OWNER_EMAIL = process.env.ADMIN_EMAIL;
@@ -93,7 +95,7 @@ async function ensureOwnerAdmin(user) {
 }
 
 // Register
-router.post('/register', async (req, res) => {
+router.post('/register', validateRegister, async (req, res) => {
   try {
     const { firstName, lastName, middleName, email, password, role } = req.body;
 
@@ -103,7 +105,14 @@ router.post('/register', async (req, res) => {
     }
 
     const safeRole = SELF_REGISTER_ROLES.has(role) ? role : 'student';
-    const user = new User({ firstName, lastName, middleName, email, password, role: safeRole });
+    const user = new User({
+      firstName: sanitizePlainText(firstName),
+      lastName: sanitizePlainText(lastName),
+      middleName: sanitizePlainText(middleName || ''),
+      email,
+      password,
+      role: safeRole
+    });
     await user.save();
     await ensureOwnerAdmin(user);
 
@@ -120,7 +129,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', validateLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
     const normalizedEmail = String(email || '').toLowerCase().trim();

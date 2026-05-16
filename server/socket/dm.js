@@ -1,5 +1,6 @@
 const DMMessage = require('../models/DMMessage');
 const DirectMessage = require('../models/DirectMessage');
+const { sanitizePlainText } = require('../utils/sanitize');
 
 // 7 MB ≈ 5 MB raw after base64 (4/3 expansion). Single source of truth so
 // the cap matches the user-facing copy and isn't re-derived in 3 places.
@@ -91,7 +92,7 @@ module.exports = function (io) {
           conversation: conversationId,
           sender: socket.user._id,
           type,
-          text: text?.trim() || '',
+          text: sanitizePlainText(text || '').slice(0, 5000),
           attachments: attachments || [],
           replyTo: replyTo || null,
           readBy: [socket.user._id],
