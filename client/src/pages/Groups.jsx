@@ -13,6 +13,7 @@ import { useChatInbox } from '../context/ChatInboxContext';
 import { connectSocket, getSocket } from '../services/socket';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
+import EmptyState from '../components/EmptyState';
 import AnimatedHero from '../components/AnimatedHero';
 import ConfirmDialog from '../components/ConfirmDialog';
 import MessageList from '../components/chat/MessageList';
@@ -1194,7 +1195,7 @@ export default function Groups() {
                     )}
                   </div>
                   {selectedGroup.assignedTests?.length === 0 ? (
-                    <div className="text-center py-16"><BookOpen size={28} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" /><p className="text-sm text-gray-400">Нет тестов</p></div>
+                    <EmptyState caption="Нет тестов" />
                   ) : (
                     <div className="space-y-2">
                       {selectedGroup.assignedTests?.map(at => (

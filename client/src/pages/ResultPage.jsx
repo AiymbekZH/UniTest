@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import CommentsSection from '../components/CommentsSection';
 import Confetti from '../components/ui/Confetti';
+import { LottieIcon } from '../components/LottieIcon';
 
 const PIE_COLORS = ['#10B981', '#EF4444'];
 const TABS = [
@@ -517,6 +518,14 @@ export default function ResultPage() {
                 {result.score} из {result.totalPoints} баллов · {correct} верно из {total}
               </p>
             </div>
+            <LottieIcon
+              name="testSuccess"
+              trigger="autoplay"
+              loop={false}
+              size={72}
+              ariaLabel="Тест отправлен"
+              className="ml-auto flex-shrink-0"
+            />
           </motion.div>
 
           {/* Tabs */}

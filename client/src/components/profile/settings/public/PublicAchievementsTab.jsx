@@ -1,5 +1,6 @@
 import { Sparkles } from 'lucide-react';
 import SectionHeader from '../SectionHeader';
+import { LottieIcon } from '../../../LottieIcon';
 
 export default function PublicAchievementsTab({ copy, formattedBadges }) {
   return (
@@ -32,6 +33,13 @@ export default function PublicAchievementsTab({ copy, formattedBadges }) {
                 key={`${badge.key}-${badge.unlockedAt}`}
                 className="flex items-center gap-3 rounded-2xl border-2 border-amber-300 bg-amber-50 px-3 py-2.5 dark:border-amber-700 dark:bg-amber-900/20"
               >
+                <LottieIcon
+                  name="trophy"
+                  trigger="inView"
+                  loop={false}
+                  size={22}
+                  ariaLabel="Trophy"
+                />
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white">
                   <Sparkles size={14} />
                 </div>

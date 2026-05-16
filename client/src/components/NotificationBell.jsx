@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import AnimatedFlame from './AnimatedFlame';
+import { LottieIcon } from './LottieIcon';
 
 const typeIcons = {
   comment_reply: { icon: MessageCircle, color: 'text-primary-500', bg: 'bg-primary-50 dark:bg-primary-900/30' },
@@ -108,7 +109,13 @@ export default function NotificationBell() {
         className="icon-btn relative"
         title={t('notifications')}
       >
-        <Bell size={16} />
+        <LottieIcon
+          name="bell"
+          trigger="inView"
+          loop={false}
+          size={16}
+          ariaLabel={t('notifications')}
+        />
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
             {unreadCount > 9 ? '9+' : unreadCount}

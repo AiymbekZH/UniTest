@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { LottieIcon } from '../LottieIcon';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
@@ -422,7 +423,9 @@ export default function MessageBubble({
                       onClick={() => { onReact(message, emoji); setShowReactPicker(false); }}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-base transition hover:scale-125 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
-                      {emoji}
+                      {emoji === '🔥'
+                        ? <LottieIcon name="reactionFire" trigger="hover" loop={false} size={24} ariaLabel="Fire reaction" />
+                        : emoji}
                     </button>
                   ))}
                 </div>

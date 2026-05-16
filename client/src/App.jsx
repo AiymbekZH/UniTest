@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
 import toast, { Toaster, ToastBar } from 'react-hot-toast';
+import LoadingIndicator from './components/LoadingIndicator';
 
 /**
  * Theme-aware Toaster wrapper.
@@ -130,9 +131,15 @@ const ArenaQuickStart = lazy(() => import('./pages/ArenaQuickStart'));
 const CreateArenaTest = lazy(() => import('./pages/CreateArenaTest'));
 const MyArenaTests = lazy(() => import('./pages/MyArenaTests'));
 
+// Top-level page loader used as the route Suspense fallback and by
+// `PrivateRoute` while auth state resolves. As of task 8.3 of the
+// `lottie-animated-icons` spec (Requirement 9.3), the spinner is the
+// shared <LoadingIndicator /> (Lottie-based). Other in-page spinners
+// across the app (`Loader2`, `animate-spin` divs in TakeTest, Login,
+// MyStickersPage, etc.) are intentionally preserved.
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-surface">
-    <div className="w-10 h-10 border-3 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+    <LoadingIndicator />
   </div>
 );
 

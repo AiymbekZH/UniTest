@@ -1,0 +1,621 @@
+{
+  "totalGzip": 991683,
+  "files": [
+    {
+      "file": "AdminPanel-CQFVJ6Si.js",
+      "raw": 33191,
+      "gzip": 7779
+    },
+    {
+      "file": "AnimatedFlame-D6WMPR-o.js",
+      "raw": 3190,
+      "gzip": 1421
+    },
+    {
+      "file": "AnimatedHero-CvbdxUsf.js",
+      "raw": 10081,
+      "gzip": 2998
+    },
+    {
+      "file": "ArenaCodePage-BHAsuMWT.js",
+      "raw": 17107,
+      "gzip": 5596
+    },
+    {
+      "file": "ArenaGameplayOverlay-DTL0biWS.js",
+      "raw": 35176,
+      "gzip": 10535
+    },
+    {
+      "file": "ArenaHostPage-CclQcNpn.js",
+      "raw": 36354,
+      "gzip": 9631
+    },
+    {
+      "file": "ArenaHubPage-3LTFXbU6.js",
+      "raw": 19230,
+      "gzip": 6158
+    },
+    {
+      "file": "ArenaQuestionPicker-ypdREPye.js",
+      "raw": 100231,
+      "gzip": 29094
+    },
+    {
+      "file": "ArenaQuickStart-OXV098Xl.js",
+      "raw": 8893,
+      "gzip": 3311
+    },
+    {
+      "file": "ArenaResultsPage-C3cg6ovD.js",
+      "raw": 6336,
+      "gzip": 2547
+    },
+    {
+      "file": "ArenaStandings-BENFM-zo.js",
+      "raw": 6642,
+      "gzip": 2171
+    },
+    {
+      "file": "AuthPage-DAkXrvd5.js",
+      "raw": 20565,
+      "gzip": 5866
+    },
+    {
+      "file": "BrandLogo-C6_RWXs4.js",
+      "raw": 837,
+      "gzip": 507
+    },
+    {
+      "file": "Chat-BmNeZXQ0.js",
+      "raw": 157170,
+      "gzip": 43947
+    },
+    {
+      "file": "ChunkyCard-DWdFe78q.js",
+      "raw": 1506,
+      "gzip": 769
+    },
+    {
+      "file": "CommentsSection-DGZ28iJ3.js",
+      "raw": 13844,
+      "gzip": 4202
+    },
+    {
+      "file": "Confetti-CF99WBIg.js",
+      "raw": 1357,
+      "gzip": 782
+    },
+    {
+      "file": "ConfirmDialog-DMayMkLY.js",
+      "raw": 2913,
+      "gzip": 1393
+    },
+    {
+      "file": "CreateArenaTest-DpGgHYKf.js",
+      "raw": 24454,
+      "gzip": 6971
+    },
+    {
+      "file": "CreateTest-D72aSe9r.js",
+      "raw": 125475,
+      "gzip": 32058
+    },
+    {
+      "file": "Dashboard-nb87Rtlx.js",
+      "raw": 50492,
+      "gzip": 14280
+    },
+    {
+      "file": "ForgotPassword-DsjY0rKY.js",
+      "raw": 4651,
+      "gzip": 1955
+    },
+    {
+      "file": "Groups-CMjtRcbA.js",
+      "raw": 94742,
+      "gzip": 22572
+    },
+    {
+      "file": "Leaderboard-B-Sb5VUV.js",
+      "raw": 8216,
+      "gzip": 3097
+    },
+    {
+      "file": "LineChart-Bp8jQVqB.js",
+      "raw": 379332,
+      "gzip": 103808
+    },
+    {
+      "file": "MyArenaTests-2K5TzI-X.js",
+      "raw": 11108,
+      "gzip": 4034
+    },
+    {
+      "file": "MyResults-D3uHYPA0.js",
+      "raw": 6460,
+      "gzip": 2794
+    },
+    {
+      "file": "MyStickersPage-RG_gF8HP.js",
+      "raw": 24282,
+      "gzip": 6793
+    },
+    {
+      "file": "MyTests-B7K7pSD5.js",
+      "raw": 8352,
+      "gzip": 3242
+    },
+    {
+      "file": "Navbar-DamsIsV1.js",
+      "raw": 27180,
+      "gzip": 7410
+    },
+    {
+      "file": "Pagination-7Ev8P_vw.js",
+      "raw": 2231,
+      "gzip": 981
+    },
+    {
+      "file": "Profile-CqhmTpx3.js",
+      "raw": 35856,
+      "gzip": 8865
+    },
+    {
+      "file": "QuestionBank-SoRDH2sh.js",
+      "raw": 31357,
+      "gzip": 8074
+    },
+    {
+      "file": "ResetPassword-Bh07rs1e.js",
+      "raw": 3720,
+      "gzip": 1502
+    },
+    {
+      "file": "ResultPage-BdgCFWRD.js",
+      "raw": 72399,
+      "gzip": 18747
+    },
+    {
+      "file": "RichTextEditor-3YxsN_ju.js",
+      "raw": 378817,
+      "gzip": 119630
+    },
+    {
+      "file": "SliderCaptcha-BbUVw4TC.js",
+      "raw": 6020,
+      "gzip": 2548
+    },
+    {
+      "file": "StatTile-JEF2OxfS.js",
+      "raw": 33687,
+      "gzip": 9914
+    },
+    {
+      "file": "TakeTest-DQipSYVz.js",
+      "raw": 71081,
+      "gzip": 18323
+    },
+    {
+      "file": "TestCoverArtwork-gTX5-VOd.js",
+      "raw": 5871,
+      "gzip": 2118
+    },
+    {
+      "file": "TestProfile-DIouF7sK.js",
+      "raw": 46672,
+      "gzip": 11835
+    },
+    {
+      "file": "TestResults-COHeHZ3j.js",
+      "raw": 19342,
+      "gzip": 6406
+    },
+    {
+      "file": "UserProfile-BW3t_MUW.js",
+      "raw": 20439,
+      "gzip": 5329
+    },
+    {
+      "file": "VoiceRecorder-CJ6jQNNp.js",
+      "raw": 11797,
+      "gzip": 4537
+    },
+    {
+      "file": "arrow-left-BCyThnCz.js",
+      "raw": 333,
+      "gzip": 264
+    },
+    {
+      "file": "arrow-right-BuYAgJPR.js",
+      "raw": 333,
+      "gzip": 263
+    },
+    {
+      "file": "award-DPQtTU4Y.js",
+      "raw": 443,
+      "gzip": 328
+    },
+    {
+      "file": "ban-DxIepHNL.js",
+      "raw": 338,
+      "gzip": 265
+    },
+    {
+      "file": "book-open-vIJpoAax.js",
+      "raw": 447,
+      "gzip": 307
+    },
+    {
+      "file": "camera-D95Bt8ve.js",
+      "raw": 794,
+      "gzip": 402
+    },
+    {
+      "file": "check-C_HwtIFt.js",
+      "raw": 288,
+      "gzip": 241
+    },
+    {
+      "file": "chevron-down-CP4m5RRH.js",
+      "raw": 296,
+      "gzip": 243
+    },
+    {
+      "file": "chevron-left-DU6GxfrU.js",
+      "raw": 298,
+      "gzip": 246
+    },
+    {
+      "file": "chevron-right-CPIAadZn.js",
+      "raw": 298,
+      "gzip": 244
+    },
+    {
+      "file": "chevron-up-DrP9m521.js",
+      "raw": 296,
+      "gzip": 244
+    },
+    {
+      "file": "circle-check-big-DJRcU2Uw.js",
+      "raw": 356,
+      "gzip": 278
+    },
+    {
+      "file": "circle-x-CbZLnU71.js",
+      "raw": 370,
+      "gzip": 278
+    },
+    {
+      "file": "clock-C5Y6oPIf.js",
+      "raw": 347,
+      "gzip": 270
+    },
+    {
+      "file": "copy-CdKmyIIu.js",
+      "raw": 400,
+      "gzip": 307
+    },
+    {
+      "file": "crown-5tOz8WTM.js",
+      "raw": 531,
+      "gzip": 360
+    },
+    {
+      "file": "download-3aoNVBgp.js",
+      "raw": 431,
+      "gzip": 320
+    },
+    {
+      "file": "dumbbell-BwVfaKGG.js",
+      "raw": 728,
+      "gzip": 396
+    },
+    {
+      "file": "ellipsis-vertical-CY7T0fxB.js",
+      "raw": 398,
+      "gzip": 271
+    },
+    {
+      "file": "eye-CCyppH3c.js",
+      "raw": 420,
+      "gzip": 301
+    },
+    {
+      "file": "eye-off-D-FUH1jL.js",
+      "raw": 598,
+      "gzip": 376
+    },
+    {
+      "file": "file-text-Bz65sex5.js",
+      "raw": 501,
+      "gzip": 317
+    },
+    {
+      "file": "flag-CuWjy8-e.js",
+      "raw": 388,
+      "gzip": 301
+    },
+    {
+      "file": "globe-Bp5UL_jB.js",
+      "raw": 411,
+      "gzip": 293
+    },
+    {
+      "file": "grip-vertical-CYdrHomG.js",
+      "raw": 815,
+      "gzip": 361
+    },
+    {
+      "file": "haptics-D-AgH1sk.js",
+      "raw": 357,
+      "gzip": 180
+    },
+    {
+      "file": "hash-omvdAryZ.js",
+      "raw": 465,
+      "gzip": 296
+    },
+    {
+      "file": "history-BP_xtWnG.js",
+      "raw": 406,
+      "gzip": 296
+    },
+    {
+      "file": "image-plus-DaQflhVG.js",
+      "raw": 531,
+      "gzip": 351
+    },
+    {
+      "file": "index-2E345W8s.js",
+      "raw": 2958,
+      "gzip": 1434
+    },
+    {
+      "file": "index-BOye_dej.js",
+      "raw": 377176,
+      "gzip": 119860
+    },
+    {
+      "file": "index-CX8eD5AF.js",
+      "raw": 82601,
+      "gzip": 22432
+    },
+    {
+      "file": "index-Dh4i1-J3.js",
+      "raw": 6201,
+      "gzip": 2109
+    },
+    {
+      "file": "lightbulb-BuFILEZw.js",
+      "raw": 455,
+      "gzip": 325
+    },
+    {
+      "file": "link-2-DjULMo6o.js",
+      "raw": 410,
+      "gzip": 306
+    },
+    {
+      "file": "list-checks-BtWSt44D.js",
+      "raw": 447,
+      "gzip": 291
+    },
+    {
+      "file": "lock-BHt6zwp6.js",
+      "raw": 375,
+      "gzip": 293
+    },
+    {
+      "file": "log-in-BfXpwIah.js",
+      "raw": 428,
+      "gzip": 318
+    },
+    {
+      "file": "medal-DotoKLQe.js",
+      "raw": 604,
+      "gzip": 384
+    },
+    {
+      "file": "message-square-Byi3UYui.js",
+      "raw": 645,
+      "gzip": 331
+    },
+    {
+      "file": "ort.bundle.min-CmHfnmOO.js",
+      "raw": 399104,
+      "gzip": 109205
+    },
+    {
+      "file": "ort.webgpu.bundle.min-BjDy62bb.js",
+      "raw": 399118,
+      "gzip": 109210
+    },
+    {
+      "file": "palette-yPfjqhPH.js",
+      "raw": 779,
+      "gzip": 444
+    },
+    {
+      "file": "pen-line-DYZLLVn2.js",
+      "raw": 446,
+      "gzip": 325
+    },
+    {
+      "file": "play-wojlqtcr.js",
+      "raw": 303,
+      "gzip": 246
+    },
+    {
+      "file": "plus-DvOYtNNj.js",
+      "raw": 322,
+      "gzip": 252
+    },
+    {
+      "file": "proxy-DiQoquI-.js",
+      "raw": 111590,
+      "gzip": 36686
+    },
+    {
+      "file": "qr-code-C4YlUzD8.js",
+      "raw": 818,
+      "gzip": 413
+    },
+    {
+      "file": "refresh-cw-B9oi7ts-.js",
+      "raw": 489,
+      "gzip": 324
+    },
+    {
+      "file": "repeat-Dr1YgiUi.js",
+      "raw": 441,
+      "gzip": 302
+    },
+    {
+      "file": "rocket-CK65IXI7.js",
+      "raw": 621,
+      "gzip": 411
+    },
+    {
+      "file": "rotate-ccw-BjFKw_gW.js",
+      "raw": 368,
+      "gzip": 284
+    },
+    {
+      "file": "save-BzN8ED2-.js",
+      "raw": 496,
+      "gzip": 326
+    },
+    {
+      "file": "search-BDcO_7pj.js",
+      "raw": 336,
+      "gzip": 267
+    },
+    {
+      "file": "send-bplGvR4t.js",
+      "raw": 459,
+      "gzip": 330
+    },
+    {
+      "file": "settings-MVbKmpd3.js",
+      "raw": 894,
+      "gzip": 445
+    },
+    {
+      "file": "share-2-Dlb4sFHQ.js",
+      "raw": 520,
+      "gzip": 332
+    },
+    {
+      "file": "shield-D7YSx83B.js",
+      "raw": 441,
+      "gzip": 327
+    },
+    {
+      "file": "shield-check-D_iFpLTA.js",
+      "raw": 488,
+      "gzip": 350
+    },
+    {
+      "file": "shuffle-ClTmKQOa.js",
+      "raw": 553,
+      "gzip": 366
+    },
+    {
+      "file": "sparkles-By0NHVcq.js",
+      "raw": 677,
+      "gzip": 402
+    },
+    {
+      "file": "square-Cv2JQs-2.js",
+      "raw": 647,
+      "gzip": 314
+    },
+    {
+      "file": "star-CIvqCrLA.js",
+      "raw": 379,
+      "gzip": 287
+    },
+    {
+      "file": "swords-DlNw8kdn.js",
+      "raw": 719,
+      "gzip": 387
+    },
+    {
+      "file": "tag-BgRXZXLw.js",
+      "raw": 495,
+      "gzip": 347
+    },
+    {
+      "file": "target-BmINKNn6.js",
+      "raw": 390,
+      "gzip": 262
+    },
+    {
+      "file": "ticket-BGxg4cu4.js",
+      "raw": 490,
+      "gzip": 317
+    },
+    {
+      "file": "trash-2-C7a0Ee1G.js",
+      "raw": 526,
+      "gzip": 349
+    },
+    {
+      "file": "trending-up-B9vmDz9B.js",
+      "raw": 373,
+      "gzip": 284
+    },
+    {
+      "file": "triangle-alert-DfX8_ajN.js",
+      "raw": 803,
+      "gzip": 392
+    },
+    {
+      "file": "type-Dl0Aep1i.js",
+      "raw": 738,
+      "gzip": 375
+    },
+    {
+      "file": "upload-BJEFxVCc.js",
+      "raw": 426,
+      "gzip": 318
+    },
+    {
+      "file": "useStickers-CiWGR5Cn.js",
+      "raw": 3854,
+      "gzip": 1457
+    },
+    {
+      "file": "user-plus-DFu5lmUG.js",
+      "raw": 478,
+      "gzip": 331
+    },
+    {
+      "file": "users-Cka1Jql8.js",
+      "raw": 473,
+      "gzip": 324
+    },
+    {
+      "file": "video-BK9JzCQI.js",
+      "raw": 1483,
+      "gzip": 546
+    },
+    {
+      "file": "x-DYbMokSv.js",
+      "raw": 323,
+      "gzip": 251
+    },
+    {
+      "file": "zap-Bi8qrErx.js",
+      "raw": 431,
+      "gzip": 310
+    },
+    {
+      "file": "zoom-in-NEI5GfAy.js",
+      "raw": 839,
+      "gzip": 373
+    }
+  ],
+  "recordedAt": "2026-05-16T23:08:12.518Z"
+}
