@@ -1,9 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import lottieRegistryGuard from './vite-plugins/lottie-registry-guard.js'
 
 export default defineConfig({
-  plugins: [react(), lottieRegistryGuard()],
+  plugins: [react()],
   server: {
     port: 3000,
     proxy: {
