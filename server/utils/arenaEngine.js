@@ -691,7 +691,11 @@ async function applyArenaPowerUp(roomId, actor, type, io = null) {
   if (type === 'fiftyFifty') {
     const correctIds = new Set(currentQuestion.grading?.correctOptionIds || []);
     const wrongOptions = (currentQuestion.options || []).filter(opt => !correctIds.has(opt.id));
-    const shuffled = [...wrongOptions].sort(() => Math.random() - 0.5);
+    const shuffled = [...wrongOptions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = require('crypto').randomInt(0, i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
     removedOptionIds = shuffled.slice(0, Math.min(2, wrongOptions.length)).map(o => o.id);
   }
 

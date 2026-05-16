@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const ARENA_ALLOWED_TYPES = ['single-choice', 'multiple-choice', 'true-false', 'matching', 'fill-blank'];
 
@@ -72,7 +73,7 @@ function getArenaQuestionDuration(type) {
 }
 
 function generateJoinCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  return crypto.randomBytes(4).toString('hex').slice(0, 6).toUpperCase();
 }
 
 function buildArenaQuestionSnapshot(question, settings = {}) {
@@ -120,7 +121,13 @@ function buildArenaQuestionSnapshot(question, settings = {}) {
     });
 
     base.options = leftOptions;
-    base.matchingRightSide = rightOptions.sort(() => Math.random() - 0.5);
+    // Fisher-Yates shuffle with crypto randomness
+    const shuffled = [...rightOptions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = crypto.randomInt(0, i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    base.matchingRightSide = shuffled;
     return base;
   }
 

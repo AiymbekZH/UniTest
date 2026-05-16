@@ -56,8 +56,8 @@ const corsOptions = {
     return callback(new Error('CORS origin is not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  credentials: true
 };
 
 // Middleware
@@ -78,8 +78,8 @@ if (!isProd && allowedOrigins.length === 0) {
 // Apply CORS only to API routes so static assets never fail because of CORS config.
 app.use('/api', cors(corsOptions));
 app.use(cookieParser());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use('/api', ensureCsrfCookie);
 app.use('/api', csrfProtection);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -143,7 +143,8 @@ app.use('/api/auth/activate-admin', authLimiter);
 app.use('/api/auth/forgot-password', forgotPasswordLimiter);
 app.use('/api/auth/reset-password', resetPasswordLimiter);
 app.use('/api/auth', authRoutes);
-app.use('/api/tests', testRoutes);
+// Routes that accept base64 media payloads need a higher body limit
+app.use('/api/tests', express.json({ limit: '25mb' }), testRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/question-bank', questionBankRoutes);
 app.use('/api/arena-tests', arenaTestsRoutes);
@@ -188,11 +189,30 @@ app.get('/api/health', async (req, res) => {
     await mongoose.connection.db.admin().ping();
     return res.json({ ok: true, ...base, pingMs: Date.now() - startedAt });
   } catch (err) {
-    return res.status(503).json({ ok: false, ...base, error: err.message });
+    return res.status(503).json({ ok: false, ...base, error: 'ping_failed' });
   }
 });
 
-// Serve frontend build
+// ── Unified API error handler ──────────────────────────────────────────────
+// Must be AFTER all routes. Catches unhandled errors and returns a safe
+// generic message — never leaking internal details to the client.
+// eslint-disable-next-line no-unused-vars
+app.use('/api', (err, req, res, _next) => {
+  const status = err.status || err.statusCode || 500;
+  console.error(`[api-error] ${req.method} ${req.originalUrl} ${status}:`, err.message);
+  if (status >= 500) console.error(err.stack);
+
+  // Safe messages for known error types
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ message: 'Размер запроса превышает допустимый лимит' });
+  }
+  if (err.message === 'CORS origin is not allowed') {
+    return res.status(403).json({ message: 'Запрос с этого домена запрещён' });
+  }
+  res.status(status).json({
+    message: status >= 500 ? 'Внутренняя ошибка сервера' : (err.message || 'Ошибка запроса')
+  });
+});
 const clientDistPath = path.join(__dirname, '..', 'client', 'dist');
 const indexHtmlPath = path.join(clientDistPath, 'index.html');
 

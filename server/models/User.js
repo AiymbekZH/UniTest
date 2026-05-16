@@ -77,7 +77,7 @@ userSchema.pre('save', async function(next) {
     .slice(0, 12) || 'user';
   const prefix = base.length < 3 ? `${base}user`.slice(0, 4) : base;
   for (let attempt = 0; attempt < 6; attempt += 1) {
-    const suffix = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+    const suffix = String(require('crypto').randomInt(0, 10000)).padStart(4, '0');
     const candidate = `${prefix}_${suffix}`.slice(0, 20);
     // eslint-disable-next-line no-await-in-loop
     const taken = await mongoose.models.User.findOne({ username: candidate }).select('_id').lean();

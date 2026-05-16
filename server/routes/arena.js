@@ -233,8 +233,8 @@ router.post('/rooms', auth, async (req, res) => {
       joinUrl: `/arena/code/${room.joinCode}`
     });
   } catch (error) {
-    const status = error.status || 500;
-    res.status(status).json({ message: error.message || 'Ошибка создания арены' });
+    console.error('[arena] POST /rooms error:', error.message);
+    res.status(error.status || 500).json({ message: 'Ошибка создания арены' });
   }
 });
 
@@ -306,8 +306,8 @@ router.post('/rooms/from-bank', auth, async (req, res) => {
       joinUrl: `/arena/code/${room.joinCode}`
     });
   } catch (error) {
-    const status = error.status || 500;
-    res.status(status).json({ message: error.message || 'Ошибка создания арены' });
+    console.error('[arena] POST /rooms/from-bank error:', error.message);
+    res.status(error.status || 500).json({ message: 'Ошибка создания арены' });
   }
 });
 
@@ -373,8 +373,8 @@ router.post('/rooms/from-arena-test', auth, async (req, res) => {
       joinUrl: `/arena/code/${room.joinCode}`
     });
   } catch (error) {
-    const status = error.status || 500;
-    res.status(status).json({ message: error.message || 'Ошибка создания арены' });
+    console.error('[arena] POST /rooms/from-arena-test error:', error.message);
+    res.status(error.status || 500).json({ message: 'Ошибка создания арены' });
   }
 });
 
@@ -588,7 +588,8 @@ router.post('/rooms/:id/join', optionalAuth, async (req, res) => {
       guestToken
     });
   } catch (error) {
-    res.status(500).json({ message: error.message || 'Ошибка входа в арену' });
+    console.error('[arena] POST /rooms/:id/join error:', error.message);
+    res.status(500).json({ message: 'Ошибка входа в арену' });
   }
 });
 
@@ -733,7 +734,8 @@ router.post('/rooms/:id/pause', auth, async (req, res) => {
     const populated = await populateRoomState(room._id);
     res.json({ room: populated.state });
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message || 'Ошибка постановки на паузу' });
+    console.error('[arena] POST /rooms/:id/pause error:', error.message);
+    res.status(error.status || 500).json({ message: 'Ошибка постановки на паузу' });
   }
 });
 
@@ -754,7 +756,8 @@ router.post('/rooms/:id/resume', auth, async (req, res) => {
     const populated = await populateRoomState(room._id);
     res.json({ room: populated.state });
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message || 'Ошибка снятия паузы' });
+    console.error('[arena] POST /rooms/:id/resume error:', error.message);
+    res.status(error.status || 500).json({ message: 'Ошибка снятия паузы' });
   }
 });
 
@@ -773,7 +776,8 @@ router.post('/rooms/:id/extend-timer', auth, async (req, res) => {
     const populated = await populateRoomState(room._id);
     res.json({ room: populated.state });
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message || 'Ошибка продления таймера' });
+    console.error('[arena] POST /rooms/:id/extend-timer error:', error.message);
+    res.status(error.status || 500).json({ message: 'Ошибка продления таймера' });
   }
 });
 
@@ -791,7 +795,8 @@ router.post('/rooms/:id/kick/:participantId', auth, async (req, res) => {
     const populated = await populateRoomState(room._id);
     res.json({ room: populated.state });
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message || 'Ошибка исключения игрока' });
+    console.error('[arena] POST /rooms/:id/kick error:', error.message);
+    res.status(error.status || 500).json({ message: 'Ошибка исключения игрока' });
   }
 });
 

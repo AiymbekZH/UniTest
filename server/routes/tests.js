@@ -120,7 +120,7 @@ function shuffleArray(items = [], seed = null) {
   const result = [...items];
   let state = Number.isFinite(seed) ? Math.abs(Math.floor(seed)) || 1 : null;
   const getRandom = () => {
-    if (state === null) return Math.random();
+    if (state === null) return require('crypto').randomInt(0, 1000000) / 1000000;
     state = (state * 9301 + 49297) % 233280;
     return state / 233280;
   };
