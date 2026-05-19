@@ -35,6 +35,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import AnimatedHero from '../components/AnimatedHero';
 import TestCoverArtwork from '../components/TestCoverArtwork';
 import AnimatedFlame from '../components/AnimatedFlame';
+import AnimatedCounter from '../components/AnimatedCounter';
 // (AnimatedIcon / BrandLogo removed — using raw Lucide icons for minimalism)
 
 const ACTIVE_SESSION_TTL_MS = 5 * 60 * 1000;
@@ -462,13 +463,24 @@ function SummaryMetric({ icon: Icon, label, value, tone = 'primary', flameStreak
     emerald: 'text-emerald-500',
     blue: 'text-primary-500'
   };
+  const toneShadows = {
+    primary: '0 6px 0 #c7d2fe',
+    amber: '0 6px 0 #fde68a',
+    emerald: '0 6px 0 #a7f3d0',
+    blue: '0 6px 0 #c7d2fe'
+  };
   const animateFlame = typeof flameStreak === 'number';
   const iconColor = toneColors[tone] || toneColors.primary;
+  const numericValue = Number.isFinite(Number(value)) ? Number(value) : null;
 
   return (
-    <div
-      className="rounded-2xl border-2 border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 sm:p-5"
+    <motion.div
+      whileHover={{ y: -3 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+      className="rounded-2xl border-2 border-slate-200 bg-white p-4 transition-shadow dark:border-slate-700 dark:bg-slate-800 sm:p-5"
       style={{ boxShadow: '0 4px 0 #e2e8f0' }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = toneShadows[tone] || '0 6px 0 #cbd5e1'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 4px 0 #e2e8f0'; }}
     >
       {animateFlame ? (
         <span className={`mb-3 inline-block ${iconColor}`}>
@@ -477,9 +489,11 @@ function SummaryMetric({ icon: Icon, label, value, tone = 'primary', flameStreak
       ) : (
         <Icon size={16} className={`mb-3 ${iconColor}`} />
       )}
-      <p className="font-mono text-2xl font-black tracking-tight text-dark">{value}</p>
+      <p className="font-mono text-2xl font-black tracking-tight text-dark">
+        {numericValue !== null ? <AnimatedCounter value={numericValue} duration={1.0} /> : value}
+      </p>
       <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">{label}</p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -730,10 +744,12 @@ export default function Dashboard() {
               <span>{copy.answeredNow.replace('{{count}}', String(continueSession.answeredCount || 0))}</span>
               <span>{new Date(continueSession.updatedAt).toLocaleTimeString()}</span>
             </div>
-            <div className="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-slate-700">
-              <div
-                className="h-full rounded-full bg-primary-500 transition-all"
-                style={{ width: `${continueSession.questionCount ? Math.min(100, Math.round(((continueSession.answeredCount || 0) / continueSession.questionCount) * 100)) : 0}%` }}
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-slate-700">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-primary-500 to-violet-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${continueSession.questionCount ? Math.min(100, Math.round(((continueSession.answeredCount || 0) / continueSession.questionCount) * 100)) : 0}%` }}
+                transition={{ duration: 1.0, ease: 'easeOut' }}
               />
             </div>
             <button
@@ -748,18 +764,33 @@ export default function Dashboard() {
         ) : recentResult ? (
           <>
             <div className="mt-5 flex gap-3">
-              <div className="flex-1 rounded-xl bg-gray-50 p-3 text-center dark:bg-slate-700/50">
-                <p className="text-lg font-bold text-emerald-600">{recentResult.percentage}%</p>
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="flex-1 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-3 text-center dark:from-emerald-900/20 dark:to-emerald-900/10"
+              >
+                <p className="text-lg font-bold text-emerald-600">
+                  <AnimatedCounter value={recentResult.percentage || 0} duration={0.9} />%
+                </p>
                 <p className="text-[10px] text-gray-400">{copy.scoreLabel}</p>
-              </div>
-              <div className="flex-1 rounded-xl bg-gray-50 p-3 text-center dark:bg-slate-700/50">
-                <p className="text-lg font-bold text-dark">{recentResult.answers?.length || 0}</p>
+              </motion.div>
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="flex-1 rounded-xl bg-gray-50 p-3 text-center dark:bg-slate-700/50"
+              >
+                <p className="text-lg font-bold text-dark">
+                  <AnimatedCounter value={recentResult.answers?.length || 0} duration={0.9} />
+                </p>
                 <p className="text-[10px] text-gray-400">{copy.questionsLabel}</p>
-              </div>
-              <div className="flex-1 rounded-xl bg-gray-50 p-3 text-center dark:bg-slate-700/50">
-                <p className="text-lg font-bold text-dark">{recentResult.timeSpent || 0}s</p>
+              </motion.div>
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="flex-1 rounded-xl bg-gray-50 p-3 text-center dark:bg-slate-700/50"
+              >
+                <p className="text-lg font-bold text-dark">
+                  <AnimatedCounter value={recentResult.timeSpent || 0} duration={1.1} />s
+                </p>
                 <p className="text-[10px] text-gray-400">{copy.timeLabel}</p>
-              </div>
+              </motion.div>
             </div>
             <button type="button" onClick={() => navigate(`/result/${recentResult._id}`)} className="chunky-btn-ghost mt-5 inline-flex items-center gap-2 text-xs sm:text-sm">
               {copy.openResult}
@@ -807,20 +838,37 @@ export default function Dashboard() {
         {/* Quick stats */}
         <div className="chunky-card p-3 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">{copy.quickStats}</p>
-          <div className="mt-3 space-y-3">
-            <div className="flex items-center justify-between">
+          <motion.div
+            className="mt-3 space-y-3"
+            initial="hidden"
+            animate="show"
+            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } } }}
+          >
+            <motion.div
+              variants={{ hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0 } }}
+              whileHover={{ x: 2 }}
+              className="flex items-center justify-between rounded-lg px-1 py-0.5 transition-colors hover:bg-primary-50/40 dark:hover:bg-primary-900/10"
+            >
               <div className="flex items-center gap-2 text-sm text-gray-500"><Trophy size={14} className="text-primary-500" /> XP</div>
-              <span className="text-sm font-bold text-dark">{progressData?.progress?.xp || 0}</span>
-            </div>
-            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-dark"><AnimatedCounter value={progressData?.progress?.xp || 0} duration={1.4} /></span>
+            </motion.div>
+            <motion.div
+              variants={{ hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0 } }}
+              whileHover={{ x: 2 }}
+              className="flex items-center justify-between rounded-lg px-1 py-0.5 transition-colors hover:bg-amber-50/60 dark:hover:bg-amber-900/10"
+            >
               <div className="flex items-center gap-2 text-sm text-gray-500"><span className="text-amber-500"><AnimatedFlame streak={progressData?.progress?.currentStreakDays || 0} size={14} /></span> {copy.currentStreak}</div>
-              <span className="text-sm font-bold text-dark">{progressData?.progress?.currentStreakDays || 0}</span>
-            </div>
-            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-dark"><AnimatedCounter value={progressData?.progress?.currentStreakDays || 0} duration={1.0} /></span>
+            </motion.div>
+            <motion.div
+              variants={{ hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0 } }}
+              whileHover={{ x: 2 }}
+              className="flex items-center justify-between rounded-lg px-1 py-0.5 transition-colors hover:bg-primary-50/40 dark:hover:bg-primary-900/10"
+            >
               <div className="flex items-center gap-2 text-sm text-gray-500"><Crown size={14} className="text-primary-500" /> {copy.levelShort}</div>
-              <span className="text-sm font-bold text-dark">{progressData?.progress?.level || 1}</span>
-            </div>
-          </div>
+              <span className="text-sm font-bold text-dark"><AnimatedCounter value={progressData?.progress?.level || 1} duration={0.9} /></span>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </motion.div>
@@ -891,10 +939,12 @@ export default function Dashboard() {
         </h3>
         <p className="mt-1 text-sm text-gray-400">{copy.weeklySprintDesc}</p>
 
-        <div className="mt-5 h-1.5 rounded-full bg-gray-100 dark:bg-slate-700">
-          <div
-            className="h-full rounded-full bg-violet-500 transition-all"
-            style={{ width: `${Math.min(100, Math.round((((weeklySprint?.completedCount || 0)) / (weeklySprint?.goalCount || 3)) * 100))}%` }}
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-slate-700">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(100, Math.round((((weeklySprint?.completedCount || 0)) / (weeklySprint?.goalCount || 3)) * 100))}%` }}
+            transition={{ duration: 1.1, ease: 'easeOut' }}
           />
         </div>
         <div className="mt-2 flex items-center justify-between text-xs">
@@ -958,16 +1008,28 @@ export default function Dashboard() {
             <div className="mt-5 rounded-xl bg-gray-50 p-4 dark:bg-slate-700/50">
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-2xl font-bold tracking-tight text-dark">{copy.levelShort} {progressData?.progress?.level || 1}</p>
-                  <p className="text-xs text-gray-400">{progressData?.progress?.xp || 0} XP</p>
+                  <p className="text-2xl font-bold tracking-tight text-dark">{copy.levelShort} <AnimatedCounter value={progressData?.progress?.level || 1} duration={0.8} /></p>
+                  <p className="text-xs text-gray-400"><AnimatedCounter value={progressData?.progress?.xp || 0} duration={1.2} /> XP</p>
                 </div>
                 <div className="text-right text-xs text-gray-400">
                   <p>{levelMeta?.xpIntoLevel || 0} / {levelMeta?.xpForNextLevel || 100}</p>
                   <p>{levelMeta?.progressPercent || 0}%</p>
                 </div>
               </div>
-              <div className="mt-3 h-1.5 rounded-full bg-white dark:bg-slate-600">
-                <div className="h-full rounded-full bg-primary-500 transition-all" style={{ width: `${levelMeta?.progressPercent || 0}%` }} />
+              <div className="relative mt-3 h-2 overflow-hidden rounded-full bg-white dark:bg-slate-600">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-primary-400 via-primary-500 to-violet-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${levelMeta?.progressPercent || 0}%` }}
+                  transition={{ duration: 1.1, ease: 'easeOut' }}
+                />
+                {/* Shimmer overlay — лёгкая бегущая блика поверх заполненной части */}
+                <motion.div
+                  className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  animate={{ x: ['-100%', '300%'] }}
+                  transition={{ duration: 2.4, ease: 'linear', repeat: Infinity, repeatDelay: 0.6 }}
+                  style={{ mixBlendMode: 'overlay' }}
+                />
               </div>
             </div>
 
@@ -1004,20 +1066,43 @@ export default function Dashboard() {
             {/* 7-day activity */}
             <div className="mt-5">
               <p className="text-xs font-semibold text-dark">{copy.activity7d}</p>
-              <div className="mt-2.5 grid grid-cols-7 gap-1.5 [&>*]:min-w-0">
-                {(progressData?.weeklyActivity || []).map((entry) => (
-                  <div key={entry.dayKey} className="flex flex-col items-center gap-1">
-                    <div className="flex h-12 w-full items-end justify-center">
-                      <div
-                        className="w-full max-w-[20px] rounded-md bg-primary-400/80 dark:bg-primary-500/70"
-                        style={{ height: `${Math.max(4, Math.min(48, entry.count * 10 || 4))}px` }}
-                      />
-                    </div>
-                    <p className="text-[9px] text-gray-400">{entry.dayKey.slice(5)}</p>
-                    <p className="text-[10px] font-semibold text-dark">{entry.count}</p>
-                  </div>
-                ))}
-              </div>
+              <motion.div
+                className="mt-2.5 grid grid-cols-7 gap-1.5 [&>*]:min-w-0"
+                initial="hidden"
+                animate="show"
+                variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
+              >
+                {(progressData?.weeklyActivity || []).map((entry) => {
+                  const barHeight = Math.max(4, Math.min(48, entry.count * 10 || 4));
+                  const isToday = entry.dayKey === new Date().toISOString().slice(0, 10);
+                  return (
+                    <motion.div
+                      key={entry.dayKey}
+                      variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+                      className="group/bar flex flex-col items-center gap-1"
+                      title={`${entry.dayKey}: ${entry.count}`}
+                    >
+                      <div className="flex h-12 w-full items-end justify-center">
+                        <motion.div
+                          className={`w-full max-w-[20px] rounded-md ${
+                            isToday
+                              ? 'bg-gradient-to-t from-primary-500 to-violet-500'
+                              : entry.count > 0
+                                ? 'bg-primary-400/80 dark:bg-primary-500/70'
+                                : 'bg-gray-200 dark:bg-slate-600/60'
+                          } group-hover/bar:saturate-150`}
+                          initial={{ height: 4, opacity: 0.4 }}
+                          animate={{ height: barHeight, opacity: 1 }}
+                          transition={{ duration: 0.6, ease: 'easeOut' }}
+                          whileHover={{ scaleY: 1.15, transformOrigin: 'bottom' }}
+                        />
+                      </div>
+                      <p className={`text-[9px] ${isToday ? 'font-bold text-primary-500' : 'text-gray-400'}`}>{entry.dayKey.slice(5)}</p>
+                      <p className="text-[10px] font-semibold text-dark">{entry.count}</p>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
             </div>
           </>
         )}
@@ -1031,20 +1116,38 @@ export default function Dashboard() {
         </div>
         <h3 className="mt-2 text-sm font-semibold text-dark">{copy.topLearnersDesc}</h3>
 
-        <div className="mt-4 space-y-1.5">
+        <motion.div
+          className="mt-4 space-y-1.5"
+          initial="hidden"
+          animate="show"
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } } }}
+        >
           {progressLeaderboard.length > 0 ? progressLeaderboard.slice(0, 5).map((entry) => (
-            <div key={entry.user?._id || entry.rank} className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition hover:bg-gray-50 dark:hover:bg-slate-700/50">
-              <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
-                entry.rank === 1
-                  ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                  : entry.rank === 2
-                    ? 'bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-gray-300'
-                    : entry.rank === 3
-                      ? 'bg-orange-50 text-orange-500 dark:bg-orange-900/30 dark:text-orange-400'
-                      : 'bg-gray-50 text-gray-400 dark:bg-slate-700/50 dark:text-gray-400'
-              }`}>
+            <motion.div
+              key={entry.user?._id || entry.rank}
+              variants={{ hidden: { opacity: 0, x: -10 }, show: { opacity: 1, x: 0 } }}
+              whileHover={{ x: 3 }}
+              className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-slate-700/50"
+            >
+              <motion.span
+                className={`relative flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
+                  entry.rank === 1
+                    ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                    : entry.rank === 2
+                      ? 'bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-gray-300'
+                      : entry.rank === 3
+                        ? 'bg-orange-50 text-orange-500 dark:bg-orange-900/30 dark:text-orange-400'
+                        : 'bg-gray-50 text-gray-400 dark:bg-slate-700/50 dark:text-gray-400'
+                }`}
+                animate={
+                  entry.rank === 1
+                    ? { boxShadow: ['0 0 0 0 rgba(245, 158, 11, 0)', '0 0 0 6px rgba(245, 158, 11, 0.15)', '0 0 0 0 rgba(245, 158, 11, 0)'] }
+                    : { boxShadow: '0 0 0 0 rgba(0,0,0,0)' }
+                }
+                transition={{ duration: 2.2, repeat: entry.rank === 1 ? Infinity : 0, ease: 'easeInOut' }}
+              >
                 {entry.rank}
-              </span>
+              </motion.span>
               <button
                 type="button"
                 onClick={() => entry.user?._id && navigate(`/profile/${entry.user._id}`)}
@@ -1067,14 +1170,14 @@ export default function Dashboard() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs font-bold text-primary-500">{entry.xp}</p>
+                <p className="text-xs font-bold text-primary-500"><AnimatedCounter value={entry.xp} duration={1.0} /></p>
                 <p className="text-[9px] text-gray-300">XP</p>
               </div>
-            </div>
+            </motion.div>
           )) : (
             <p className="text-sm text-gray-400">{copy.leaderboardEmpty}</p>
           )}
-        </div>
+        </motion.div>
       </div>
     </motion.div>
   ) : null;
@@ -1357,9 +1460,9 @@ export default function Dashboard() {
           stats={
             isAuthenticated
               ? [
-                  { icon: <Crown size={14} />, label: copy.levelShort, value: progressData?.progress?.level || 1 },
-                  { icon: <AnimatedFlame streak={progressData?.progress?.currentStreakDays || 0} size={14} />, label: 'Streak', value: progressData?.progress?.currentStreakDays || 0 },
-                  { icon: <Trophy size={14} />, label: 'XP', value: progressData?.progress?.xp || 0 }
+                  { icon: <Crown size={14} />, label: copy.levelShort, value: <AnimatedCounter value={progressData?.progress?.level || 1} duration={0.9} /> },
+                  { icon: <AnimatedFlame streak={progressData?.progress?.currentStreakDays || 0} size={14} />, label: 'Streak', value: <AnimatedCounter value={progressData?.progress?.currentStreakDays || 0} duration={1.0} /> },
+                  { icon: <Trophy size={14} />, label: 'XP', value: <AnimatedCounter value={progressData?.progress?.xp || 0} duration={1.4} /> }
                 ]
               : undefined
           }
