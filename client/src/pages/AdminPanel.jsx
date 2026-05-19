@@ -296,7 +296,7 @@ export default function AdminPanel() {
 
         {/* Hero */}
         <AnimatedHero
-          preset="mesh"
+          preset="paperSlate"
           height="md"
           eyebrow="Admin Console"
           icon={<Shield size={22} />}

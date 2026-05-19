@@ -1699,7 +1699,7 @@ export default function Groups() {
 
             {/* Hero */}
             <AnimatedHero
-              preset="grid"
+              preset="paperSage"
               height="md"
               eyebrow="Communities"
               icon={<Users size={22} />}

@@ -61,7 +61,7 @@ export default function Leaderboard() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             {/* Hero */}
             <AnimatedHero
-              preset="gold"
+              preset="paperGold"
               height="md"
               eyebrow={t('leaderboard')}
               icon={<Trophy size={22} />}

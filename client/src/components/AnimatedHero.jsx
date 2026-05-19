@@ -29,8 +29,23 @@ const PRESET_BG = {
     // Solid deep slate ink — no gradient, no glow. Fits chunky-card visual language.
     'bg-slate-900',
   paper:
-    // Warm cream paper, matches chunky-card-cream identity.
+    // Warm cream paper, matches chunky-card-cream identity (Dashboard).
     'bg-[#FFF8EE]',
+  paperGold:
+    // Honey paper for Leaderboard / TestResults analytics.
+    'bg-[#FEF7E0]',
+  paperSage:
+    // Soft mint paper for Groups / community surfaces.
+    'bg-[#F0F7EC]',
+  paperRose:
+    // Dusty rose paper, optional alt.
+    'bg-[#FBF1F0]',
+  paperSlate:
+    // Neutral slate paper for AdminPanel / serious surfaces.
+    'bg-[#F1F4F7]',
+  paperSky:
+    // Soft sky paper for resourceful / calm surfaces.
+    'bg-[#EEF6FB]',
   aurora:
     'bg-[linear-gradient(135deg,#fff7ed_0%,#fdba74_32%,#fb923c_58%,#fef3c7_100%)]',
   mesh:
@@ -46,6 +61,11 @@ const PRESET_BG = {
 const TEXT_TONE = {
   chunky: 'text-white',
   paper: 'text-slate-900',
+  paperGold: 'text-slate-900',
+  paperSage: 'text-slate-900',
+  paperRose: 'text-slate-900',
+  paperSlate: 'text-slate-900',
+  paperSky: 'text-slate-900',
   aurora: 'text-slate-900',
   mesh: 'text-white',
   gold: 'text-slate-900',
@@ -56,6 +76,11 @@ const TEXT_TONE = {
 const SUBTITLE_TONE = {
   chunky: 'text-white/75',
   paper: 'text-slate-700/85',
+  paperGold: 'text-slate-700/85',
+  paperSage: 'text-slate-700/85',
+  paperRose: 'text-slate-700/85',
+  paperSlate: 'text-slate-700/85',
+  paperSky: 'text-slate-700/85',
   aurora: 'text-slate-700/80',
   mesh: 'text-white/75',
   gold: 'text-slate-700/80',
@@ -66,6 +91,11 @@ const SUBTITLE_TONE = {
 const EYEBROW_TONE = {
   chunky: 'text-amber-300',
   paper: 'text-amber-700/85',
+  paperGold: 'text-amber-700/90',
+  paperSage: 'text-emerald-700/85',
+  paperRose: 'text-rose-700/85',
+  paperSlate: 'text-primary-700/85',
+  paperSky: 'text-sky-700/85',
   aurora: 'text-primary-700/80',
   mesh: 'text-primary-300',
   gold: 'text-amber-700/80',
@@ -399,13 +429,81 @@ function ChunkyLayer({ still }) {
   );
 }
 
-/* ───────────────── Paper preset (light, cream alt) ───────────────── */
+/* ───────────────── Paper preset family (light, cream alts) ───────────────── */
 
 /**
  * PaperLayer — cream paper variant in chunky language.
  * Same shapes, lighter ink-on-paper feel, dark text.
+ *
+ * Each colour-variant uses the same SVG shapes but a different palette so
+ * pages feel related yet recognisably distinct. The palette is hardcoded in
+ * one place per preset to keep visual identity tight.
  */
-function PaperLayer({ still }) {
+
+const PAPER_PALETTES = {
+  paper: {
+    grain: 'rgba(15,23,42,0.5)',
+    circleBorder: 'rgba(217, 119, 6, 0.55)',  // amber-600
+    circleShadow: 'rgba(146, 64, 14, 0.18)',
+    squareFill: '#fde68a',                     // amber-200
+    squareBorder: '#0f172a',                   // slate-900
+    squareShadow: 'rgba(15, 23, 42, 0.45)',
+    starFill: 'rgba(245, 158, 11, 0.9)',       // amber-500
+    starStroke: 'rgba(15, 23, 42, 0.85)'
+  },
+  paperGold: {
+    grain: 'rgba(15,23,42,0.45)',
+    circleBorder: 'rgba(202, 138, 4, 0.6)',    // yellow-600
+    circleShadow: 'rgba(133, 77, 14, 0.25)',
+    squareFill: '#fcd34d',                     // amber-300
+    squareBorder: '#7c2d12',                   // brown
+    squareShadow: 'rgba(120, 53, 15, 0.45)',
+    starFill: '#facc15',                       // yellow-400
+    starStroke: '#713f12'
+  },
+  paperSage: {
+    grain: 'rgba(15,23,42,0.4)',
+    circleBorder: 'rgba(5, 150, 105, 0.55)',   // emerald-600
+    circleShadow: 'rgba(6, 78, 59, 0.18)',
+    squareFill: '#a7f3d0',                     // emerald-200
+    squareBorder: '#064e3b',                   // emerald-950
+    squareShadow: 'rgba(6, 78, 59, 0.45)',
+    starFill: '#34d399',                       // emerald-400
+    starStroke: '#064e3b'
+  },
+  paperRose: {
+    grain: 'rgba(15,23,42,0.4)',
+    circleBorder: 'rgba(225, 29, 72, 0.5)',    // rose-600
+    circleShadow: 'rgba(159, 18, 57, 0.16)',
+    squareFill: '#fecdd3',                     // rose-200
+    squareBorder: '#881337',                   // rose-950
+    squareShadow: 'rgba(136, 19, 55, 0.4)',
+    starFill: '#fb7185',                       // rose-400
+    starStroke: '#881337'
+  },
+  paperSlate: {
+    grain: 'rgba(15,23,42,0.45)',
+    circleBorder: 'rgba(71, 85, 105, 0.55)',   // slate-600
+    circleShadow: 'rgba(51, 65, 85, 0.18)',
+    squareFill: '#cbd5e1',                     // slate-300
+    squareBorder: '#0f172a',                   // slate-900
+    squareShadow: 'rgba(15, 23, 42, 0.4)',
+    starFill: '#94a3b8',                       // slate-400
+    starStroke: '#0f172a'
+  },
+  paperSky: {
+    grain: 'rgba(15,23,42,0.4)',
+    circleBorder: 'rgba(2, 132, 199, 0.55)',   // sky-600
+    circleShadow: 'rgba(7, 89, 133, 0.18)',
+    squareFill: '#bae6fd',                     // sky-200
+    squareBorder: '#0c4a6e',                   // sky-900
+    squareShadow: 'rgba(7, 89, 133, 0.4)',
+    starFill: '#38bdf8',                       // sky-400
+    starStroke: '#0c4a6e'
+  }
+};
+
+function PaperLayer({ still, palette = PAPER_PALETTES.paper }) {
   const driftA = still ? {} : { x: [0, 5, 0], y: [0, -4, 0] };
   const driftB = still ? {} : { x: [0, -4, 0], y: [0, 6, 0] };
   const driftC = still ? {} : { rotate: [0, 6, 0], y: [0, -3, 0] };
@@ -416,19 +514,26 @@ function PaperLayer({ still }) {
         className="absolute inset-0 opacity-[0.10]"
         style={{
           backgroundImage:
-            'radial-gradient(circle, rgba(15,23,42,0.5) 1px, transparent 1px)',
+            `radial-gradient(circle, ${palette.grain} 1px, transparent 1px)`,
           backgroundSize: '22px 22px'
         }}
       />
       <motion.div
-        className="absolute right-[-2rem] top-[-2rem] h-40 w-40 rounded-full border-[6px] border-amber-500/55"
-        style={{ boxShadow: '0 8px 0 rgba(146, 64, 14, 0.18)' }}
+        className="absolute right-[-2rem] top-[-2rem] h-40 w-40 rounded-full border-[6px]"
+        style={{
+          borderColor: palette.circleBorder,
+          boxShadow: `0 8px 0 ${palette.circleShadow}`
+        }}
         animate={driftA}
         transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
-        className="absolute -left-6 -bottom-6 h-28 w-28 rotate-12 rounded-2xl border-[5px] border-slate-900 bg-amber-200"
-        style={{ boxShadow: '0 8px 0 rgba(15, 23, 42, 0.45)' }}
+        className="absolute -left-6 -bottom-6 h-28 w-28 rotate-12 rounded-2xl border-[5px]"
+        style={{
+          backgroundColor: palette.squareFill,
+          borderColor: palette.squareBorder,
+          boxShadow: `0 8px 0 ${palette.squareShadow}`
+        }}
         animate={driftB}
         transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -440,8 +545,8 @@ function PaperLayer({ still }) {
       >
         <path
           d="M50 4 L60 38 L96 40 L66 60 L78 96 L50 76 L22 96 L34 60 L4 40 L40 38 Z"
-          fill="rgba(245, 158, 11, 0.9)"
-          stroke="rgba(15, 23, 42, 0.85)"
+          fill={palette.starFill}
+          stroke={palette.starStroke}
           strokeWidth="4"
           strokeLinejoin="round"
         />
@@ -450,9 +555,22 @@ function PaperLayer({ still }) {
   );
 }
 
+// Per-preset thin wrappers so we can register them in LAYERS like other presets.
+function PaperLayerDefault(props) { return <PaperLayer {...props} palette={PAPER_PALETTES.paper} />; }
+function PaperLayerGold(props)    { return <PaperLayer {...props} palette={PAPER_PALETTES.paperGold} />; }
+function PaperLayerSage(props)    { return <PaperLayer {...props} palette={PAPER_PALETTES.paperSage} />; }
+function PaperLayerRose(props)    { return <PaperLayer {...props} palette={PAPER_PALETTES.paperRose} />; }
+function PaperLayerSlate(props)   { return <PaperLayer {...props} palette={PAPER_PALETTES.paperSlate} />; }
+function PaperLayerSky(props)     { return <PaperLayer {...props} palette={PAPER_PALETTES.paperSky} />; }
+
 const LAYERS = {
   chunky: ChunkyLayer,
-  paper: PaperLayer,
+  paper: PaperLayerDefault,
+  paperGold: PaperLayerGold,
+  paperSage: PaperLayerSage,
+  paperRose: PaperLayerRose,
+  paperSlate: PaperLayerSlate,
+  paperSky: PaperLayerSky,
   aurora: AuroraLayer,
   mesh: MeshLayer,
   gold: GoldLayer,
@@ -482,16 +600,35 @@ export default function AnimatedHero({
   const subTone = SUBTITLE_TONE[preset] || SUBTITLE_TONE.paper;
   const eyeTone = EYEBROW_TONE[preset] || EYEBROW_TONE.paper;
 
-  const isChunky = preset === 'chunky' || preset === 'paper';
+  const isChunky = preset === 'chunky' || preset.startsWith('paper');
+  // Per-preset accent for icon tile and stat-pill border colour.
+  const PAPER_ACCENT = {
+    paper:      { iconBg: '#fde68a', iconText: '#0f172a', iconBorder: '#0f172a', pillIcon: '#b45309' },
+    paperGold:  { iconBg: '#fcd34d', iconText: '#0f172a', iconBorder: '#7c2d12', pillIcon: '#92400e' },
+    paperSage:  { iconBg: '#a7f3d0', iconText: '#064e3b', iconBorder: '#064e3b', pillIcon: '#047857' },
+    paperRose:  { iconBg: '#fecdd3', iconText: '#881337', iconBorder: '#881337', pillIcon: '#be123c' },
+    paperSlate: { iconBg: '#cbd5e1', iconText: '#0f172a', iconBorder: '#0f172a', pillIcon: '#475569' },
+    paperSky:   { iconBg: '#bae6fd', iconText: '#0c4a6e', iconBorder: '#0c4a6e', pillIcon: '#0369a1' }
+  };
+  const paperAccent = PAPER_ACCENT[preset];
   const containerBorder = isChunky
-    ? 'border-[3px] border-slate-900 dark:border-white'
+    ? paperAccent
+      ? 'border-[3px]'
+      : 'border-[3px] border-slate-900 dark:border-white'
     : 'border border-white/60 dark:border-slate-700/60';
-  const containerShadow = isChunky ? { boxShadow: '0 8px 0 #0f172a' } : undefined;
+  const containerShadow = isChunky
+    ? paperAccent
+      ? { boxShadow: `0 8px 0 ${paperAccent.iconBorder}` }
+      : { boxShadow: '0 8px 0 #0f172a' }
+    : undefined;
+  const containerStyle = paperAccent
+    ? { ...containerShadow, borderColor: paperAccent.iconBorder }
+    : containerShadow;
 
   return (
     <div
       className={`relative overflow-hidden rounded-3xl ${containerBorder} ${bg} ${HEIGHT_CLASSES[height]} ${className}`}
-      style={containerShadow}
+      style={containerStyle}
     >
       <Layer still={reduced} />
 
@@ -516,10 +653,19 @@ export default function AnimatedHero({
                     ? 'border border-white/20 bg-white/10 text-white backdrop-blur-xl'
                     : preset === 'chunky'
                       ? 'border-[3px] border-amber-300 bg-slate-800 text-amber-300'
-                      : preset === 'paper'
-                        ? 'border-[3px] border-slate-900 bg-amber-200 text-slate-900'
+                      : paperAccent
+                        ? 'border-[3px]'
                         : 'border border-white/70 bg-white/90 text-primary-600 shadow-sm'
                 }`}
+                style={
+                  paperAccent
+                    ? {
+                        backgroundColor: paperAccent.iconBg,
+                        borderColor: paperAccent.iconBorder,
+                        color: paperAccent.iconText
+                      }
+                    : undefined
+                }
               >
                 {icon}
               </div>
@@ -556,21 +702,22 @@ export default function AnimatedHero({
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {stats.map((stat, i) => {
               const isDark = preset === 'mesh' || preset === 'neon' || preset === 'chunky';
-              const isPaper = preset === 'paper';
+              const isPaper = !!paperAccent;
               return (
                 <div
                   key={stat.label || i}
                   className={`inline-flex items-center gap-2 rounded-2xl border-[3px] px-3 py-2 sm:px-4 sm:py-2.5 ${
                     isPaper
-                      ? 'border-slate-900 bg-white text-slate-900'
+                      ? 'bg-white text-slate-900'
                       : isDark
                         ? 'border-white bg-slate-800 text-white'
                         : 'border-slate-900 bg-white text-slate-900 dark:border-white dark:bg-slate-900 dark:text-slate-100'
                   }`}
                   style={{
+                    borderColor: isPaper ? paperAccent.iconBorder : undefined,
                     boxShadow:
                       isPaper
-                        ? '0 4px 0 #0f172a'
+                        ? `0 4px 0 ${paperAccent.iconBorder}`
                         : isDark
                           ? '0 4px 0 rgba(252, 211, 77, 0.7)'
                           : '0 3px 0 #0f172a'
@@ -578,9 +725,10 @@ export default function AnimatedHero({
                 >
                   {stat.icon ? (
                     <span
+                      style={isPaper ? { color: paperAccent.pillIcon } : undefined}
                       className={
                         isPaper
-                          ? 'text-amber-600'
+                          ? ''
                           : isDark
                             ? 'text-amber-300'
                             : 'text-primary-500'

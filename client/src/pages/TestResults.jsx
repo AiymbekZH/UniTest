@@ -210,7 +210,7 @@ export default function TestResults() {
 
         {/* Hero */}
         <AnimatedHero
-          preset="gold"
+          preset="paperGold"
           height="md"
           eyebrow="Test Analytics"
           icon={<Trophy size={22} />}
