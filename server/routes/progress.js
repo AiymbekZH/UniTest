@@ -78,7 +78,8 @@ router.get('/me', auth, async (req, res) => {
     res.json({
       progress: {
         xp: progress.xp,
-        level: progress.level,
+        // Recompute from xp under the current curve (stored level may lag).
+        level: getLevelMeta(progress.xp).level,
         currentStreakDays: progress.currentStreakDays,
         longestStreakDays: progress.longestStreakDays,
         lastActivityDate: progress.lastActivityDate,
@@ -127,7 +128,10 @@ router.get('/leaderboard', auth, async (req, res) => {
         rank: index + 1,
         user: entry.user,
         xp: entry.xp,
-        level: entry.level,
+        // Recompute from XP rather than trusting the stored `entry.level`,
+        // because the XP curve may have been adjusted server-side without a
+        // bulk migration. getLevelMeta uses the current curve.
+        level: getLevelMeta(entry.xp).level,
         currentStreakDays: entry.currentStreakDays
       }))
     };
@@ -136,6 +140,105 @@ router.get('/leaderboard', auth, async (req, res) => {
     res.json(response);
   } catch (error) {
     res.status(500).json({ message: 'Ошибка загрузки таблицы прогресса' });
+  }
+});
+
+// ─── Skill Radar — per-tag breakdown ─────────────────────────────────────────
+//
+// Aggregates the player's completed Results grouped by Test.tags. For each
+// tag returns: my average percentage, my run count, plus the platform-wide
+// average percentage on tests that share that tag. Front-end renders a radar
+// chart showing the player vs. the global average.
+//
+// Caveat: tests without tags fall under the "Без темы / Untagged" bucket so
+// users with un-tagged tests still see something on the chart.
+router.get('/me/skills', auth, async (req, res) => {
+  try {
+    const Test = require('../models/Test');
+
+    // 1. Player's results joined with their test's tags.
+    const myAggregation = await Result.aggregate([
+      { $match: { user: req.user._id, status: 'completed' } },
+      {
+        $lookup: {
+          from: 'tests',
+          localField: 'test',
+          foreignField: '_id',
+          as: 'testDoc'
+        }
+      },
+      { $unwind: { path: '$testDoc', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          percentage: 1,
+          tags: {
+            $cond: [
+              { $gt: [{ $size: { $ifNull: ['$testDoc.tags', []] } }, 0] },
+              '$testDoc.tags',
+              ['__untagged__']
+            ]
+          }
+        }
+      },
+      { $unwind: '$tags' },
+      {
+        $group: {
+          _id: '$tags',
+          myAvg: { $avg: '$percentage' },
+          myCount: { $sum: 1 }
+        }
+      }
+    ]);
+
+    if (!myAggregation.length) {
+      return res.json({ skills: [] });
+    }
+
+    // 2. Platform averages for the same tags.
+    const tagList = myAggregation.map((r) => r._id).filter((t) => t !== '__untagged__');
+    let globalLookup = {};
+    if (tagList.length) {
+      const globalAgg = await Result.aggregate([
+        { $match: { status: 'completed' } },
+        {
+          $lookup: {
+            from: 'tests',
+            localField: 'test',
+            foreignField: '_id',
+            as: 'testDoc'
+          }
+        },
+        { $unwind: { path: '$testDoc', preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: '$testDoc.tags', preserveNullAndEmptyArrays: true } },
+        { $match: { 'testDoc.tags': { $in: tagList } } },
+        {
+          $group: {
+            _id: '$testDoc.tags',
+            globalAvg: { $avg: '$percentage' },
+            globalCount: { $sum: 1 }
+          }
+        }
+      ]);
+      globalLookup = Object.fromEntries(
+        globalAgg.map((g) => [g._id, { avg: g.globalAvg, count: g.globalCount }])
+      );
+    }
+
+    const skills = myAggregation
+      .map((entry) => ({
+        tag: entry._id === '__untagged__' ? '' : entry._id,
+        myAvg: Math.round(entry.myAvg || 0),
+        myCount: entry.myCount,
+        globalAvg: Math.round(globalLookup[entry._id]?.avg || 0),
+        globalCount: globalLookup[entry._id]?.count || 0
+      }))
+      // Surface the most-played tags first, cap to 8 axes (radar gets unreadable beyond that).
+      .sort((a, b) => b.myCount - a.myCount)
+      .slice(0, 8);
+
+    res.json({ skills });
+  } catch (_err) {
+    res.status(500).json({ message: 'Ошибка построения карты навыков' });
   }
 });
 

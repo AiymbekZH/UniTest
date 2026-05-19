@@ -38,6 +38,7 @@ import AnimatedFlame from '../components/AnimatedFlame';
 import AnimatedCounter from '../components/AnimatedCounter';
 import MissionControl from '../components/dashboard/MissionControl';
 import GuestHome from '../components/dashboard/GuestHome';
+import SkillRadar from '../components/dashboard/SkillRadar';
 // (AnimatedIcon / BrandLogo removed — using raw Lucide icons for minimalism)
 
 const ACTIVE_SESSION_TTL_MS = 5 * 60 * 1000;
@@ -111,6 +112,16 @@ const dashboardCopy = {
     activity7d: '7-day activity',
     leaderboardEmpty: 'Leaderboard will appear after the first completed runs.',
     leaderboardEntry: 'Level {{level}} · {{streak}} day streak',
+    radarEyebrow: 'Skill map',
+    radarTitle: 'Where you shine and where to grow',
+    radarDesc: 'Average score per topic, compared to the platform average.',
+    radarLegendMe: 'You',
+    radarLegendGlobal: 'Platform avg',
+    radarUntagged: 'No topic',
+    radarRuns: 'runs',
+    radarEmptyTitle: 'Not enough data yet',
+    radarEmptyDesc: 'Complete tests in 3+ topics to see your skill map.',
+    radarError: 'Could not load skill map',
     levelShort: 'Lvl',
     availableToday: 'Available today',
     completedToday: 'Completed today',
@@ -205,6 +216,16 @@ const dashboardCopy = {
     activity7d: 'Активность за 7 дней',
     leaderboardEmpty: 'Лидерборд появится после первых завершённых прохождений.',
     leaderboardEntry: 'Уровень {{level}} · серия {{streak}} дн.',
+    radarEyebrow: 'Карта навыков',
+    radarTitle: 'Где ты силён и над чем поработать',
+    radarDesc: 'Средний результат по темам, в сравнении со средним по платформе.',
+    radarLegendMe: 'Ты',
+    radarLegendGlobal: 'Среднее по платформе',
+    radarUntagged: 'Без темы',
+    radarRuns: 'прохождений',
+    radarEmptyTitle: 'Пока мало данных',
+    radarEmptyDesc: 'Пройди тесты по 3+ темам, чтобы увидеть свою карту навыков.',
+    radarError: 'Не удалось загрузить карту навыков',
     levelShort: 'Ур.',
     availableToday: 'Доступно сегодня',
     completedToday: 'Выполнено сегодня',
@@ -299,6 +320,16 @@ const dashboardCopy = {
     activity7d: '7 күндік белсенділік',
     leaderboardEmpty: 'Алғашқы аяқталған өтулерден кейін лидерборд пайда болады.',
     leaderboardEntry: '{{level}} деңгей · {{streak}} күндік серия',
+    radarEyebrow: 'Дағдылар картасы',
+    radarTitle: 'Қай тақырыпта мықсыз, қайсысын арттыру керек',
+    radarDesc: 'Тақырып бойынша орташа нәтижең платформамен салыстырылады.',
+    radarLegendMe: 'Сен',
+    radarLegendGlobal: 'Платформа орт.',
+    radarUntagged: 'Тақырыпсыз',
+    radarRuns: 'өту',
+    radarEmptyTitle: 'Дерек әлі аз',
+    radarEmptyDesc: '3+ тақырып бойынша тест тапсыр, дағдылар картасы шығады.',
+    radarError: 'Дағдылар картасын жүктеу мүмкін болмады',
     levelShort: 'Деңг.',
     availableToday: 'Бүгін қолжетімді',
     completedToday: 'Бүгін аяқталды',
@@ -393,6 +424,16 @@ const dashboardCopy = {
     activity7d: 'Actividad de 7 días',
     leaderboardEmpty: 'La clasificación aparecerá después de las primeras actividades completadas.',
     leaderboardEntry: 'Nivel {{level}} · racha de {{streak}} días',
+    radarEyebrow: 'Mapa de habilidades',
+    radarTitle: 'En qué brillas y qué mejorar',
+    radarDesc: 'Promedio por tema, comparado con el promedio de la plataforma.',
+    radarLegendMe: 'Tú',
+    radarLegendGlobal: 'Promedio',
+    radarUntagged: 'Sin tema',
+    radarRuns: 'intentos',
+    radarEmptyTitle: 'Aún no hay datos',
+    radarEmptyDesc: 'Completa tests en 3+ temas para ver tu mapa.',
+    radarError: 'No se pudo cargar el mapa de habilidades',
     levelShort: 'Nv.',
     availableToday: 'Disponible hoy',
     completedToday: 'Completado hoy',
@@ -1112,7 +1153,9 @@ export default function Dashboard() {
   ) : null;
 
   const progressCards = isAuthenticated ? (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-3 [&>*]:min-w-0 sm:gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+    <div className="space-y-4 sm:space-y-6">
+      <SkillRadar copy={copy} />
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-3 [&>*]:min-w-0 sm:gap-4 lg:grid-cols-[1.15fr_0.85fr]">
       {/* Progress detail */}
       <div className="chunky-card p-3 sm:p-5 lg:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">{copy.progressTitle}</p>
@@ -1298,6 +1341,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
     </motion.div>
+    </div>
   ) : null;
 
   const renderExplore = () => (

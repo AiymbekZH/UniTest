@@ -1,7 +1,59 @@
 const Notification = require('../models/Notification');
 const UserProgress = require('../models/UserProgress');
 
-const XP_PER_LEVEL = 100;
+// ─── XP curve ────────────────────────────────────────────────────────────────
+//
+// History: the original curve was linear — XP_PER_LEVEL = 100 for every level.
+// That made level 1→2 and level 99→100 cost the same, which felt cheap once
+// players got past the first dozen. Switched to a sub-linear power curve so
+// early levels stay quick and later ones genuinely take work.
+//
+// XP needed to GO FROM level L to L+1:
+//   xpForLevelGap(L) = round(BASE_XP * L ^ EXPONENT)
+//
+// Examples (BASE_XP=60, EXPONENT=1.5):
+//   L=1  →   60 xp     (cheap onboarding)
+//   L=5  →  ~671 xp
+//   L=10 → ~1898 xp
+//   L=25 → ~7500 xp
+//   L=50 → ~21213 xp
+//   L=100 → ~60000 xp
+//
+// Total XP needed to reach level L from zero = sum_{k=1..L-1} xpForLevelGap(k).
+//
+// We expose a legacy XP_PER_LEVEL constant set to BASE_XP so any external
+// reference doesn't crash, but no internal code paths use it anymore.
+const BASE_XP = 60;
+const EXPONENT = 1.5;
+const MAX_LEVEL_LOOKUP = 500; // hard cap — beyond this we just keep extrapolating
+const XP_PER_LEVEL = BASE_XP; // legacy export, no longer used internally
+
+/** XP required to cross from level L to level L+1. */
+function xpForLevelGap(level) {
+  const L = Math.max(1, Math.floor(Number(level) || 1));
+  return Math.round(BASE_XP * Math.pow(L, EXPONENT));
+}
+
+/**
+ * Cumulative XP needed to *reach* `targetLevel` from zero.
+ * Memoized in module scope because it's called per-render on the dashboard.
+ */
+const _cumulativeCache = [0, 0]; // index = level; level 1 starts at 0 xp
+function cumulativeXpForLevel(targetLevel) {
+  const L = Math.max(1, Math.floor(Number(targetLevel) || 1));
+  while (_cumulativeCache.length <= L && _cumulativeCache.length <= MAX_LEVEL_LOOKUP + 1) {
+    const prev = _cumulativeCache[_cumulativeCache.length - 1];
+    const gap = xpForLevelGap(_cumulativeCache.length - 1);
+    _cumulativeCache.push(prev + gap);
+  }
+  if (L >= _cumulativeCache.length) {
+    // Above the cache cap — extrapolate linearly from the last known sum.
+    const last = _cumulativeCache[_cumulativeCache.length - 1];
+    const lastLevel = _cumulativeCache.length - 1;
+    return last + xpForLevelGap(lastLevel) * (L - lastLevel);
+  }
+  return _cumulativeCache[L];
+}
 
 const BADGES = {
   firstCompletion: 'first_completion',
@@ -28,20 +80,32 @@ function getDayDiff(previousDayKey, nextDayKey) {
 }
 
 function getLevelFromXp(xp = 0) {
-  return Math.max(1, Math.floor((Number(xp) || 0) / XP_PER_LEVEL) + 1);
+  const normalizedXp = Math.max(0, Number(xp) || 0);
+  // Find the highest L such that cumulativeXpForLevel(L) <= normalizedXp.
+  // Linear scan is fine — players don't realistically pass MAX_LEVEL_LOOKUP.
+  let level = 1;
+  while (cumulativeXpForLevel(level + 1) <= normalizedXp && level < MAX_LEVEL_LOOKUP) {
+    level += 1;
+  }
+  return Math.max(1, level);
 }
 
 function getLevelMeta(xp = 0) {
   const normalizedXp = Math.max(0, Number(xp) || 0);
   const level = getLevelFromXp(normalizedXp);
-  const levelStartXp = (level - 1) * XP_PER_LEVEL;
-  const nextLevelXp = level * XP_PER_LEVEL;
+  const levelStartXp = cumulativeXpForLevel(level);
+  const xpForNextLevel = xpForLevelGap(level);
+  const nextLevelXp = levelStartXp + xpForNextLevel;
+  const xpIntoLevel = Math.max(0, normalizedXp - levelStartXp);
   return {
     level,
-    xpIntoLevel: normalizedXp - levelStartXp,
-    xpForNextLevel: XP_PER_LEVEL,
+    xpIntoLevel,
+    xpForNextLevel,
     nextLevelXp,
-    progressPercent: Math.max(0, Math.min(100, Math.round(((normalizedXp - levelStartXp) / XP_PER_LEVEL) * 100)))
+    progressPercent: Math.max(
+      0,
+      Math.min(100, Math.round((xpIntoLevel / Math.max(1, xpForNextLevel)) * 100))
+    )
   };
 }
 
