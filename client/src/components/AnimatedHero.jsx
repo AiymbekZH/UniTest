@@ -463,7 +463,7 @@ const LAYERS = {
 /* ───────────────────── Main component ───────────────────── */
 
 export default function AnimatedHero({
-  preset = 'chunky',
+  preset = 'paper',
   height = 'md',
   title,
   subtitle,
@@ -476,11 +476,11 @@ export default function AnimatedHero({
   contentClassName = ''
 }) {
   const reduced = useReducedMotion();
-  const Layer = LAYERS[preset] || LAYERS.chunky;
-  const bg = PRESET_BG[preset] || PRESET_BG.chunky;
-  const textTone = TEXT_TONE[preset] || TEXT_TONE.chunky;
-  const subTone = SUBTITLE_TONE[preset] || SUBTITLE_TONE.chunky;
-  const eyeTone = EYEBROW_TONE[preset] || EYEBROW_TONE.chunky;
+  const Layer = LAYERS[preset] || LAYERS.paper;
+  const bg = PRESET_BG[preset] || PRESET_BG.paper;
+  const textTone = TEXT_TONE[preset] || TEXT_TONE.paper;
+  const subTone = SUBTITLE_TONE[preset] || SUBTITLE_TONE.paper;
+  const eyeTone = EYEBROW_TONE[preset] || EYEBROW_TONE.paper;
 
   const isChunky = preset === 'chunky' || preset === 'paper';
   const containerBorder = isChunky
