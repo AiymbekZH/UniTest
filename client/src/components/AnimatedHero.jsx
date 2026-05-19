@@ -4,7 +4,9 @@ import { motion, useReducedMotion } from 'framer-motion';
  * AnimatedHero — reusable premium hero banner with SVG background animations.
  *
  * Presets:
- *  - aurora  — warm orange/amber blobs on soft mesh (Profile, Dashboard)
+ *  - chunky  — neobrutalism: solid ink (slate-900), chunky decor shapes, no glow (DEFAULT)
+ *  - paper   — cream paper with hand-drawn dots/grid, dark text (light alt for chunky)
+ *  - aurora  — warm orange/amber blobs on soft mesh (legacy, kept for compatibility)
  *  - mesh    — dark gradient mesh with dot grid + animated lines (AdminPanel)
  *  - gold    — radial gold rays + floating stars (Leaderboard, TestResults)
  *  - grid    — light grid 40×40 with floating squares (Groups, TestProfile)
@@ -23,6 +25,12 @@ const HEIGHT_CLASSES = {
 };
 
 const PRESET_BG = {
+  chunky:
+    // Solid deep slate ink — no gradient, no glow. Fits chunky-card visual language.
+    'bg-slate-900',
+  paper:
+    // Warm cream paper, matches chunky-card-cream identity.
+    'bg-[#FFF8EE]',
   aurora:
     'bg-[linear-gradient(135deg,#fff7ed_0%,#fdba74_32%,#fb923c_58%,#fef3c7_100%)]',
   mesh:
@@ -36,6 +44,8 @@ const PRESET_BG = {
 };
 
 const TEXT_TONE = {
+  chunky: 'text-white',
+  paper: 'text-slate-900',
   aurora: 'text-slate-900',
   mesh: 'text-white',
   gold: 'text-slate-900',
@@ -44,6 +54,8 @@ const TEXT_TONE = {
 };
 
 const SUBTITLE_TONE = {
+  chunky: 'text-white/75',
+  paper: 'text-slate-700/85',
   aurora: 'text-slate-700/80',
   mesh: 'text-white/75',
   gold: 'text-slate-700/80',
@@ -52,6 +64,8 @@ const SUBTITLE_TONE = {
 };
 
 const EYEBROW_TONE = {
+  chunky: 'text-amber-300',
+  paper: 'text-amber-700/85',
   aurora: 'text-primary-700/80',
   mesh: 'text-primary-300',
   gold: 'text-amber-700/80',
@@ -302,7 +316,143 @@ function NeonLayer({ still }) {
   );
 }
 
+/* ───────────────── Chunky preset (default, neobrutalism) ───────────────── */
+
+/**
+ * ChunkyLayer — fits the chunky-card visual language:
+ *   - Solid deep slate ink background (handled by PRESET_BG).
+ *   - Static-ish geometric shapes with thick borders and offset shadows.
+ *   - Subtle grain via dotted SVG pattern.
+ *   - Tiny parallax drift (x ± 4-6 px) so it breathes without feeling neon.
+ */
+function ChunkyLayer({ still }) {
+  const driftA = still ? {} : { x: [0, 5, 0], y: [0, -4, 0] };
+  const driftB = still ? {} : { x: [0, -4, 0], y: [0, 6, 0] };
+  const driftC = still ? {} : { rotate: [0, 6, 0], y: [0, -3, 0] };
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Subtle dot grain */}
+      <div
+        className="absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)',
+          backgroundSize: '22px 22px'
+        }}
+      />
+      {/* Diagonal lines, very subtle */}
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(135deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 14px)'
+        }}
+      />
+
+      {/* Chunky decor: outline circle, top-right */}
+      <motion.div
+        className="absolute right-[-2rem] top-[-2rem] h-40 w-40 rounded-full border-[6px] border-amber-300/85"
+        style={{ boxShadow: '0 8px 0 rgba(217, 119, 6, 0.35)' }}
+        animate={driftA}
+        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* Chunky decor: filled square, bottom-left */}
+      <motion.div
+        className="absolute -left-6 -bottom-6 h-28 w-28 rotate-12 rounded-2xl border-[5px] border-white/95 bg-amber-400/85"
+        style={{ boxShadow: '0 8px 0 rgba(15, 23, 42, 0.45)' }}
+        animate={driftB}
+        transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* Chunky decor: small star/rotor, mid */}
+      <motion.svg
+        className="absolute right-[18%] bottom-[12%] h-12 w-12"
+        viewBox="0 0 100 100"
+        animate={driftC}
+        transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <path
+          d="M50 4 L60 38 L96 40 L66 60 L78 96 L50 76 L22 96 L34 60 L4 40 L40 38 Z"
+          fill="rgba(252, 211, 77, 0.9)"
+          stroke="rgba(15, 23, 42, 0.85)"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+      </motion.svg>
+
+      {/* Chunky decor: dotted line, top-left */}
+      <svg
+        className="absolute left-6 top-10 h-16 w-32 opacity-70"
+        viewBox="0 0 200 80"
+      >
+        <path
+          d="M0 60 Q 50 0, 100 50 T 200 30"
+          fill="none"
+          stroke="rgba(252, 211, 77, 0.65)"
+          strokeWidth="3"
+          strokeDasharray="4 8"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/* ───────────────── Paper preset (light, cream alt) ───────────────── */
+
+/**
+ * PaperLayer — cream paper variant in chunky language.
+ * Same shapes, lighter ink-on-paper feel, dark text.
+ */
+function PaperLayer({ still }) {
+  const driftA = still ? {} : { x: [0, 5, 0], y: [0, -4, 0] };
+  const driftB = still ? {} : { x: [0, -4, 0], y: [0, 6, 0] };
+  const driftC = still ? {} : { rotate: [0, 6, 0], y: [0, -3, 0] };
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Paper grain */}
+      <div
+        className="absolute inset-0 opacity-[0.10]"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle, rgba(15,23,42,0.5) 1px, transparent 1px)',
+          backgroundSize: '22px 22px'
+        }}
+      />
+      <motion.div
+        className="absolute right-[-2rem] top-[-2rem] h-40 w-40 rounded-full border-[6px] border-amber-500/55"
+        style={{ boxShadow: '0 8px 0 rgba(146, 64, 14, 0.18)' }}
+        animate={driftA}
+        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute -left-6 -bottom-6 h-28 w-28 rotate-12 rounded-2xl border-[5px] border-slate-900 bg-amber-200"
+        style={{ boxShadow: '0 8px 0 rgba(15, 23, 42, 0.45)' }}
+        animate={driftB}
+        transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.svg
+        className="absolute right-[18%] bottom-[12%] h-12 w-12"
+        viewBox="0 0 100 100"
+        animate={driftC}
+        transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <path
+          d="M50 4 L60 38 L96 40 L66 60 L78 96 L50 76 L22 96 L34 60 L4 40 L40 38 Z"
+          fill="rgba(245, 158, 11, 0.9)"
+          stroke="rgba(15, 23, 42, 0.85)"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+      </motion.svg>
+    </div>
+  );
+}
+
 const LAYERS = {
+  chunky: ChunkyLayer,
+  paper: PaperLayer,
   aurora: AuroraLayer,
   mesh: MeshLayer,
   gold: GoldLayer,
@@ -313,7 +463,7 @@ const LAYERS = {
 /* ───────────────────── Main component ───────────────────── */
 
 export default function AnimatedHero({
-  preset = 'aurora',
+  preset = 'chunky',
   height = 'md',
   title,
   subtitle,
@@ -326,15 +476,22 @@ export default function AnimatedHero({
   contentClassName = ''
 }) {
   const reduced = useReducedMotion();
-  const Layer = LAYERS[preset] || LAYERS.aurora;
-  const bg = PRESET_BG[preset] || PRESET_BG.aurora;
-  const textTone = TEXT_TONE[preset] || TEXT_TONE.aurora;
-  const subTone = SUBTITLE_TONE[preset] || SUBTITLE_TONE.aurora;
-  const eyeTone = EYEBROW_TONE[preset] || EYEBROW_TONE.aurora;
+  const Layer = LAYERS[preset] || LAYERS.chunky;
+  const bg = PRESET_BG[preset] || PRESET_BG.chunky;
+  const textTone = TEXT_TONE[preset] || TEXT_TONE.chunky;
+  const subTone = SUBTITLE_TONE[preset] || SUBTITLE_TONE.chunky;
+  const eyeTone = EYEBROW_TONE[preset] || EYEBROW_TONE.chunky;
+
+  const isChunky = preset === 'chunky' || preset === 'paper';
+  const containerBorder = isChunky
+    ? 'border-[3px] border-slate-900 dark:border-white'
+    : 'border border-white/60 dark:border-slate-700/60';
+  const containerShadow = isChunky ? { boxShadow: '0 8px 0 #0f172a' } : undefined;
 
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl border border-white/60 dark:border-slate-700/60 ${bg} ${HEIGHT_CLASSES[height]} ${className}`}
+      className={`relative overflow-hidden rounded-3xl ${containerBorder} ${bg} ${HEIGHT_CLASSES[height]} ${className}`}
+      style={containerShadow}
     >
       <Layer still={reduced} />
 
@@ -342,6 +499,9 @@ export default function AnimatedHero({
       {preset === 'aurora' || preset === 'grid' || preset === 'gold' ? (
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/0 via-white/0 to-white/20" />
       ) : null}
+
+      {/* Chunky preset gets a thick neobrutalism border + offset shadow that matches chunky-card. */}
+      {preset === 'chunky' || preset === 'paper' ? null : null}
 
       <div
         className={`relative z-10 flex h-full flex-col justify-between gap-5 p-6 sm:p-8 ${contentClassName}`}
@@ -354,7 +514,11 @@ export default function AnimatedHero({
                 className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
                   preset === 'mesh' || preset === 'neon'
                     ? 'border border-white/20 bg-white/10 text-white backdrop-blur-xl'
-                    : 'border border-white/70 bg-white/90 text-primary-600 shadow-sm'
+                    : preset === 'chunky'
+                      ? 'border-[3px] border-amber-300 bg-slate-800 text-amber-300'
+                      : preset === 'paper'
+                        ? 'border-[3px] border-slate-900 bg-amber-200 text-slate-900'
+                        : 'border border-white/70 bg-white/90 text-primary-600 shadow-sm'
                 }`}
               >
                 {icon}
@@ -391,25 +555,35 @@ export default function AnimatedHero({
         {Array.isArray(stats) && stats.length > 0 ? (
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {stats.map((stat, i) => {
-              const isDark = preset === 'mesh' || preset === 'neon';
+              const isDark = preset === 'mesh' || preset === 'neon' || preset === 'chunky';
+              const isPaper = preset === 'paper';
               return (
                 <div
                   key={stat.label || i}
-                  className={`inline-flex items-center gap-2 rounded-2xl border-2 px-3 py-2 sm:px-4 sm:py-2.5 ${
-                    isDark
-                      ? 'border-white bg-white/15 text-white backdrop-blur-xl'
-                      : 'border-slate-900 bg-white text-slate-900 dark:border-white dark:bg-slate-900 dark:text-slate-100'
+                  className={`inline-flex items-center gap-2 rounded-2xl border-[3px] px-3 py-2 sm:px-4 sm:py-2.5 ${
+                    isPaper
+                      ? 'border-slate-900 bg-white text-slate-900'
+                      : isDark
+                        ? 'border-white bg-slate-800 text-white'
+                        : 'border-slate-900 bg-white text-slate-900 dark:border-white dark:bg-slate-900 dark:text-slate-100'
                   }`}
                   style={{
-                    boxShadow: isDark
-                      ? '0 3px 0 rgba(255,255,255,0.35)'
-                      : '0 3px 0 #0f172a'
+                    boxShadow:
+                      isPaper
+                        ? '0 4px 0 #0f172a'
+                        : isDark
+                          ? '0 4px 0 rgba(252, 211, 77, 0.7)'
+                          : '0 3px 0 #0f172a'
                   }}
                 >
                   {stat.icon ? (
                     <span
                       className={
-                        isDark ? 'text-primary-300' : 'text-primary-500'
+                        isPaper
+                          ? 'text-amber-600'
+                          : isDark
+                            ? 'text-amber-300'
+                            : 'text-primary-500'
                       }
                     >
                       {stat.icon}

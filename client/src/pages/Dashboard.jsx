@@ -1451,7 +1451,7 @@ export default function Dashboard() {
       <main className="mx-auto max-w-6xl px-3 pb-12 pt-4 sm:px-6 sm:pt-6 lg:px-8">
         {/* Premium animated hero */}
         <AnimatedHero
-          preset="aurora"
+          preset="chunky"
           height="md"
           eyebrow={isAuthenticated ? 'Dashboard' : 'UniTest'}
           icon={<Sparkles size={22} />}
