@@ -9,8 +9,7 @@ import {
   Play,
   Sparkles,
   Star,
-  Trophy,
-  Users
+  Trophy
 } from 'lucide-react';
 import api from '../../services/api';
 import TestCoverArtwork from '../TestCoverArtwork';
@@ -42,6 +41,7 @@ export default function GuestHome({
   onOpenTest
 }) {
   const [popular, setPopular] = useState([]);
+  const [totalPublicTests, setTotalPublicTests] = useState(null);
   const [loading, setLoading] = useState(true);
   const [coversMap, setCoversMap] = useState({});
 
@@ -52,7 +52,12 @@ export default function GuestHome({
     api
       .get('/tests', { params: { sort: 'popular', page: 1, limit: 6 } })
       .then((res) => {
-        if (!cancelled) setPopular(res.data?.tests || []);
+        if (cancelled) return;
+        setPopular(res.data?.tests || []);
+        // Server returns either { total } or { totalCount } depending on the
+        // backend version; fall back gracefully.
+        const total = res.data?.total ?? res.data?.totalCount ?? null;
+        if (typeof total === 'number') setTotalPublicTests(total);
       })
       .catch(() => {
         if (!cancelled) setPopular([]);
@@ -104,9 +109,18 @@ export default function GuestHome({
   ];
 
   const stats = [
-    { Icon: Globe, value: copy.guestStatTestsValue, label: copy.guestStatTestsLabel },
-    { Icon: Users, value: copy.guestStatLearnersValue, label: copy.guestStatLearnersLabel },
-    { Icon: Sparkles, value: copy.guestStatStreakValue, label: copy.guestStatStreakLabel }
+    {
+      Icon: Globe,
+      value:
+        totalPublicTests !== null
+          ? Number(totalPublicTests).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')
+          : popular.length
+            ? `${popular.length}+`
+            : '—',
+      label: copy.guestStatTestsLabel
+    },
+    { Icon: CheckCircle2, value: copy.guestStatFreeValue, label: copy.guestStatFreeLabel },
+    { Icon: Sparkles, value: copy.guestStatLanguagesValue, label: copy.guestStatLanguagesLabel }
   ];
 
   return (
