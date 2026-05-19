@@ -19,6 +19,7 @@ import toast from 'react-hot-toast';
 import CommentsSection from '../components/CommentsSection';
 import Confetti from '../components/ui/Confetti';
 import { LottieIcon } from '../components/LottieIcon';
+import { useCelebration } from '../components/celebration/CelebrationEngine';
 
 const PIE_COLORS = ['#10B981', '#EF4444'];
 const TABS = [
@@ -103,6 +104,7 @@ export default function ResultPage() {
   }, [id]);
 
   // ── Confetti at >=80% (once per result via sessionStorage) ──
+  const celebrate = useCelebration();
   useEffect(() => {
     if (!result) return;
     if (result.percentage < 80) return;
@@ -110,6 +112,9 @@ export default function ResultPage() {
     if (sessionStorage.getItem(key) === '1') return;
     sessionStorage.setItem(key, '1');
     setShowConfetti(true);
+    if (result.percentage === 100) {
+      celebrate({ kind: 'perfect', testTitle: result.test?.title });
+    }
     const t = setTimeout(() => setShowConfetti(false), 3500);
     return () => clearTimeout(t);
   }, [result]);

@@ -39,6 +39,7 @@ import AnimatedCounter from '../components/AnimatedCounter';
 import MissionControl from '../components/dashboard/MissionControl';
 import GuestHome from '../components/dashboard/GuestHome';
 import SkillRadar from '../components/dashboard/SkillRadar';
+import { useCelebration } from '../components/celebration/CelebrationEngine';
 // (AnimatedIcon / BrandLogo removed — using raw Lucide icons for minimalism)
 
 const ACTIVE_SESSION_TTL_MS = 5 * 60 * 1000;
@@ -753,6 +754,66 @@ export default function Dashboard() {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  // ─── Celebration watcher ───────────────────────────────────────────────────
+  // Trigger Dynamic-Island toasts + confetti when the player crosses a
+  // milestone between two /progress/me snapshots: level up, new badge, perfect
+  // score, streak milestone (3/7/14/30/...). Keeps a ref to the previous
+  // snapshot so the very first load (after login / refresh) doesn't fire.
+  const celebrate = useCelebration();
+  const prevSnapshotRef = useRef(null);
+  useEffect(() => {
+    if (!progressData?.progress) return;
+    const next = {
+      level: progressData.progress.level || 0,
+      perfectScores: progressData.progress.stats?.perfectScores || 0,
+      streak: progressData.progress.currentStreakDays || 0,
+      badgeKeys: new Set((progressData.progress.badges || []).map((b) => b.key))
+    };
+    const prev = prevSnapshotRef.current;
+    prevSnapshotRef.current = next;
+    if (!prev) return; // first load — establish baseline only.
+
+    if (next.level > prev.level) {
+      celebrate({ kind: 'levelUp', level: next.level });
+    }
+    if (next.perfectScores > prev.perfectScores) {
+      const recent = progressData.recentResults?.[0];
+      celebrate({ kind: 'perfect', testTitle: recent?.test?.title });
+    }
+    // Badge unlocked — diff by key.
+    for (const key of next.badgeKeys) {
+      if (!prev.badgeKeys.has(key)) {
+        celebrate({ kind: 'badge', badge: key });
+      }
+    }
+    // Streak milestones.
+    const milestones = [3, 7, 14, 30, 60, 100];
+    for (const m of milestones) {
+      if (prev.streak < m && next.streak >= m) {
+        celebrate({ kind: 'streak', days: next.streak });
+        break; // only fire the highest crossed milestone in one go.
+      }
+    }
+  }, [progressData, celebrate]);
+
+  // Sprint-completion watcher (separate snapshot since challenges live in
+  // their own state and refresh independently of progress).
+  const prevSprintRef = useRef(null);
+  useEffect(() => {
+    const sprint = challengeData?.weeklySprint;
+    if (!sprint) {
+      prevSprintRef.current = null;
+      return;
+    }
+    const completed = (sprint.completedCount || 0) >= (sprint.goalCount || 3);
+    const prev = prevSprintRef.current;
+    prevSprintRef.current = { completed, rewardClaimed: !!sprint.rewardClaimed };
+    if (!prev) return; // baseline.
+    if (!prev.completed && completed) {
+      celebrate({ kind: 'sprint', xp: sprint.rewardXp || 120 });
+    }
+  }, [challengeData, celebrate]);
 
   useEffect(() => {
     if (activeTab !== 'explore') return;

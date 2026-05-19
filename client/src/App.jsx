@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
 import toast, { Toaster, ToastBar } from 'react-hot-toast';
 import LoadingIndicator from './components/LoadingIndicator';
+import CelebrationProvider from './components/celebration/CelebrationEngine';
 
 /**
  * Theme-aware Toaster wrapper.
@@ -152,6 +153,7 @@ function PrivateRoute({ children }) {
 export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
+      <CelebrationProvider>
       <Routes>
       {/* Public routes */}
       <Route path="/login" element={<AuthPage />} />
@@ -200,6 +202,7 @@ export default function App() {
       </Routes>
 
       <ThemedToaster />
+      </CelebrationProvider>
     </Suspense>
   );
 }

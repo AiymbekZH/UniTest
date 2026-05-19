@@ -103,7 +103,7 @@ export default function SkillRadar({ copy }) {
       </h3>
       <p className="mt-1 text-sm text-slate-600/85 dark:text-slate-400">{copy.radarDesc}</p>
 
-      <div className="mt-5 h-[420px] w-full sm:h-[500px]">
+      <div className="mt-5 h-[300px] w-full sm:h-[340px]">
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-violet-500" />
