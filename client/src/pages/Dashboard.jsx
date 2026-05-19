@@ -36,6 +36,7 @@ import AnimatedHero from '../components/AnimatedHero';
 import TestCoverArtwork from '../components/TestCoverArtwork';
 import AnimatedFlame from '../components/AnimatedFlame';
 import AnimatedCounter from '../components/AnimatedCounter';
+import MissionControl from '../components/dashboard/MissionControl';
 // (AnimatedIcon / BrandLogo removed — using raw Lucide icons for minimalism)
 
 const ACTIVE_SESSION_TTL_MS = 5 * 60 * 1000;
@@ -721,7 +722,25 @@ export default function Dashboard() {
   const dailyCountdownLabel = dailyCountdownMs === 0 ? copy.resetNow : formatCountdown(dailyCountdownMs || 0);
 
   const homeCards = isAuthenticated ? (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-3 [&>*]:min-w-0 sm:gap-4 lg:grid-cols-3">
+    <div className="space-y-4 sm:space-y-6">
+      <MissionControl
+        level={progressData?.progress?.level || 1}
+        xp={progressData?.progress?.xp || 0}
+        xpIntoLevel={levelMeta?.xpIntoLevel || 0}
+        xpForNextLevel={levelMeta?.xpForNextLevel || 100}
+        continueSession={continueSession}
+        dailyChallenge={dailyChallenge}
+        weeklySprint={weeklySprint}
+        countdownMs={dailyCountdownMs}
+        copy={copy}
+        onContinue={() => continueSession && navigate(`/test/${continueSession.shareLink}`)}
+        onStartDaily={() => dailyChallenge?.test?.shareLink && navigate(`/test/${dailyChallenge.test.shareLink}`)}
+        onClaimDaily={() => dailyChallenge?.test?.shareLink && navigate(`/test/${dailyChallenge.test.shareLink}`)}
+        onOpenSprint={() => setActiveTab('challenges')}
+        onExplore={() => setActiveTab('explore')}
+      />
+
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-3 [&>*]:min-w-0 sm:gap-4 lg:grid-cols-3">
       {/* Main card — continue session or latest result */}
       <div className="lg:col-span-2 chunky-card p-3 sm:p-5 lg:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-300 dark:text-gray-500">
@@ -872,6 +891,7 @@ export default function Dashboard() {
         </div>
       </div>
     </motion.div>
+    </div>
   ) : null;
 
   const challengeCards = isAuthenticated ? (
