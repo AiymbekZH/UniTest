@@ -37,6 +37,7 @@ import TestCoverArtwork from '../components/TestCoverArtwork';
 import AnimatedFlame from '../components/AnimatedFlame';
 import AnimatedCounter from '../components/AnimatedCounter';
 import MissionControl from '../components/dashboard/MissionControl';
+import GuestHome from '../components/dashboard/GuestHome';
 // (AnimatedIcon / BrandLogo removed — using raw Lucide icons for minimalism)
 
 const ACTIVE_SESSION_TTL_MS = 5 * 60 * 1000;
@@ -80,6 +81,29 @@ const dashboardCopy = {
     exploreTests: 'Explore tests',
     progressLeaderboard: 'XP leaderboard',
     guestCta: 'Create account',
+    guestLogin: 'I have an account',
+    guestCtaEyebrow: 'Get started',
+    guestCtaTitle: 'Take real tests, keep your streak alive',
+    guestCtaDesc: 'Sign up in 30 seconds to save progress, climb the leaderboard, and unlock daily challenges.',
+    guestPillarBrowseTitle: 'Browse public tests',
+    guestPillarBrowseDesc: 'Hundreds of community-built tests across languages, school subjects, and exam prep.',
+    guestPillarStreakTitle: 'Keep a daily streak',
+    guestPillarStreakDesc: 'One test a day keeps you on track. Build momentum and watch your streak climb.',
+    guestPillarCompeteTitle: 'Climb the leaderboard',
+    guestPillarCompeteDesc: 'Earn XP for every test, level up your tier, and see how you rank globally.',
+    guestStatTestsValue: '500+',
+    guestStatTestsLabel: 'Public tests',
+    guestStatLearnersValue: '10k+',
+    guestStatLearnersLabel: 'Learners',
+    guestStatStreakValue: '24/7',
+    guestStatStreakLabel: 'Live activity',
+    guestPopularEyebrow: 'Trending right now',
+    guestPopularTitle: 'Popular tests this week',
+    guestPopularCta: 'See all',
+    guestPopularPlay: 'Try',
+    guestPopularEmpty: 'No public tests available yet — check back soon.',
+    guestFinalTitle: 'Free forever for learners',
+    guestFinalDesc: 'No credit card. No paywalls on public tests. Just learning.',
     heroLevelHint: 'Progress level',
     heroStreakHint: 'Keep momentum alive',
     heroXpHint: '{{xp}} XP to next level',
@@ -152,6 +176,29 @@ const dashboardCopy = {
     exploreTests: 'Смотреть тесты',
     progressLeaderboard: 'Лидерборд XP',
     guestCta: 'Создать аккаунт',
+    guestLogin: 'У меня есть аккаунт',
+    guestCtaEyebrow: 'Начни сейчас',
+    guestCtaTitle: 'Проходи реальные тесты и держи серию',
+    guestCtaDesc: 'Регистрация за 30 секунд: сохранишь прогресс, попадёшь в лидерборд и откроешь ежедневные челленджи.',
+    guestPillarBrowseTitle: 'Каталог публичных тестов',
+    guestPillarBrowseDesc: 'Сотни тестов от сообщества: языки, школьные предметы, подготовка к экзаменам.',
+    guestPillarStreakTitle: 'Держи серию',
+    guestPillarStreakDesc: 'Один тест в день — и ты в ритме. Серия растёт, а вместе с ней и привычка.',
+    guestPillarCompeteTitle: 'Поднимайся в рейтинге',
+    guestPillarCompeteDesc: 'Получай XP за каждый тест, прокачивай уровень и смотри, как поднимаешься в лидерборде.',
+    guestStatTestsValue: '500+',
+    guestStatTestsLabel: 'Публичных тестов',
+    guestStatLearnersValue: '10k+',
+    guestStatLearnersLabel: 'Учеников',
+    guestStatStreakValue: '24/7',
+    guestStatStreakLabel: 'Активность',
+    guestPopularEyebrow: 'В тренде сейчас',
+    guestPopularTitle: 'Популярные тесты этой недели',
+    guestPopularCta: 'Все тесты',
+    guestPopularPlay: 'Попробовать',
+    guestPopularEmpty: 'Пока нет публичных тестов — загляни позже.',
+    guestFinalTitle: 'Бесплатно для учеников',
+    guestFinalDesc: 'Без карты. Без paywall на публичных тестах. Только учёба.',
     heroLevelHint: 'Уровень прогресса',
     heroStreakHint: 'Поддерживай темп',
     heroXpHint: '{{xp}} XP до следующего уровня',
@@ -224,6 +271,29 @@ const dashboardCopy = {
     exploreTests: 'Тесттерді қарау',
     progressLeaderboard: 'XP лидерборды',
     guestCta: 'Аккаунт ашу',
+    guestLogin: 'Аккаунтым бар',
+    guestCtaEyebrow: 'Қазір баста',
+    guestCtaTitle: 'Нақты тесттерді тапсыр, серияңды сақта',
+    guestCtaDesc: '30 секундта тіркел: прогресс сақталады, лидербордқа кіресің, күн челленджтері ашылады.',
+    guestPillarBrowseTitle: 'Қоғамдық тесттер каталогы',
+    guestPillarBrowseDesc: 'Қоғам жасаған жүздеген тест: тілдер, мектеп пәндері, емтихан дайындығы.',
+    guestPillarStreakTitle: 'Серияны сақта',
+    guestPillarStreakDesc: 'Күніне бір тест — қарқын сақталады, серия өседі, әдет қалыптасады.',
+    guestPillarCompeteTitle: 'Рейтингте көтеріл',
+    guestPillarCompeteDesc: 'Әр тест үшін XP ал, деңгейіңді көтер, лидербордта өз орныңды қара.',
+    guestStatTestsValue: '500+',
+    guestStatTestsLabel: 'Қоғамдық тест',
+    guestStatLearnersValue: '10k+',
+    guestStatLearnersLabel: 'Оқушы',
+    guestStatStreakValue: '24/7',
+    guestStatStreakLabel: 'Белсенділік',
+    guestPopularEyebrow: 'Қазір трендте',
+    guestPopularTitle: 'Осы аптадағы танымал тесттер',
+    guestPopularCta: 'Барлығын көру',
+    guestPopularPlay: 'Бастау',
+    guestPopularEmpty: 'Әзірге қоғамдық тест жоқ — кейінірек қайтып кел.',
+    guestFinalTitle: 'Оқушыларға тегін',
+    guestFinalDesc: 'Картасыз. Қоғамдық тесттерде ақы жоқ. Тек оқу.',
     heroLevelHint: 'Прогресс деңгейі',
     heroStreakHint: 'Қарқынды сақта',
     heroXpHint: 'Келесі деңгейге {{xp}} XP',
@@ -296,6 +366,29 @@ const dashboardCopy = {
     exploreTests: 'Explorar tests',
     progressLeaderboard: 'Clasificación XP',
     guestCta: 'Crear cuenta',
+    guestLogin: 'Ya tengo cuenta',
+    guestCtaEyebrow: 'Empieza ahora',
+    guestCtaTitle: 'Resuelve tests reales y mantén tu racha',
+    guestCtaDesc: 'Regístrate en 30 segundos para guardar progreso, subir en la clasificación y desbloquear desafíos diarios.',
+    guestPillarBrowseTitle: 'Explora tests públicos',
+    guestPillarBrowseDesc: 'Cientos de tests creados por la comunidad: idiomas, materias escolares, preparación de exámenes.',
+    guestPillarStreakTitle: 'Mantén una racha diaria',
+    guestPillarStreakDesc: 'Un test al día y vas en ritmo. La racha crece, el hábito se queda.',
+    guestPillarCompeteTitle: 'Sube en la clasificación',
+    guestPillarCompeteDesc: 'Gana XP en cada test, sube de nivel y mira tu posición global.',
+    guestStatTestsValue: '500+',
+    guestStatTestsLabel: 'Tests públicos',
+    guestStatLearnersValue: '10k+',
+    guestStatLearnersLabel: 'Estudiantes',
+    guestStatStreakValue: '24/7',
+    guestStatStreakLabel: 'Actividad',
+    guestPopularEyebrow: 'En tendencia ahora',
+    guestPopularTitle: 'Tests populares esta semana',
+    guestPopularCta: 'Ver todos',
+    guestPopularPlay: 'Probar',
+    guestPopularEmpty: 'Todavía no hay tests públicos — vuelve pronto.',
+    guestFinalTitle: 'Gratis para los estudiantes',
+    guestFinalDesc: 'Sin tarjeta. Sin paywall en tests públicos. Solo aprender.',
     heroLevelHint: 'Nivel de progreso',
     heroStreakHint: 'Mantén el ritmo',
     heroXpHint: '{{xp}} XP para el siguiente nivel',
@@ -892,7 +985,16 @@ export default function Dashboard() {
       </div>
     </motion.div>
     </div>
-  ) : null;
+  ) : (
+    <GuestHome
+      copy={copy}
+      t={t}
+      onExplore={() => setActiveTab('explore')}
+      onRegister={() => navigate('/register')}
+      onLogin={() => navigate('/auth')}
+      onOpenTest={(test) => test?.shareLink && navigate(`/test-profile/${test.shareLink}`)}
+    />
+  );
 
   const challengeCards = isAuthenticated ? (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-3 [&>*]:min-w-0 sm:gap-4 lg:grid-cols-2">
