@@ -122,6 +122,9 @@ const dashboardCopy = {
     radarEmptyTitle: 'Not enough data yet',
     radarEmptyDesc: 'Complete tests in 3+ topics to see your skill map.',
     radarError: 'Could not load skill map',
+    radarBestEyebrow: 'Strongest topic',
+    radarWorstEyebrow: 'Needs work',
+    radarVsAvg: '{{n}}% vs platform avg',
     levelShort: 'Lvl',
     availableToday: 'Available today',
     completedToday: 'Completed today',
@@ -226,6 +229,9 @@ const dashboardCopy = {
     radarEmptyTitle: 'Пока мало данных',
     radarEmptyDesc: 'Пройди тесты по 3+ темам, чтобы увидеть свою карту навыков.',
     radarError: 'Не удалось загрузить карту навыков',
+    radarBestEyebrow: 'Сильная тема',
+    radarWorstEyebrow: 'Над этим стоит поработать',
+    radarVsAvg: '{{n}}% к среднему',
     levelShort: 'Ур.',
     availableToday: 'Доступно сегодня',
     completedToday: 'Выполнено сегодня',
@@ -330,6 +336,9 @@ const dashboardCopy = {
     radarEmptyTitle: 'Дерек әлі аз',
     radarEmptyDesc: '3+ тақырып бойынша тест тапсыр, дағдылар картасы шығады.',
     radarError: 'Дағдылар картасын жүктеу мүмкін болмады',
+    radarBestEyebrow: 'Мықты тақырып',
+    radarWorstEyebrow: 'Көбірек тапсыруға тұрарлық',
+    radarVsAvg: 'Орташаға {{n}}%',
     levelShort: 'Деңг.',
     availableToday: 'Бүгін қолжетімді',
     completedToday: 'Бүгін аяқталды',
@@ -434,6 +443,9 @@ const dashboardCopy = {
     radarEmptyTitle: 'Aún no hay datos',
     radarEmptyDesc: 'Completa tests en 3+ temas para ver tu mapa.',
     radarError: 'No se pudo cargar el mapa de habilidades',
+    radarBestEyebrow: 'Tu fuerte',
+    radarWorstEyebrow: 'A mejorar',
+    radarVsAvg: '{{n}}% vs promedio',
     levelShort: 'Nv.',
     availableToday: 'Disponible hoy',
     completedToday: 'Completado hoy',
@@ -1154,7 +1166,6 @@ export default function Dashboard() {
 
   const progressCards = isAuthenticated ? (
     <div className="space-y-4 sm:space-y-6">
-      <SkillRadar copy={copy} />
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid gap-3 [&>*]:min-w-0 sm:gap-4 lg:grid-cols-[1.15fr_0.85fr]">
       {/* Progress detail */}
       <div className="chunky-card p-3 sm:p-5 lg:p-6">
@@ -1341,6 +1352,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
     </motion.div>
+      <SkillRadar copy={copy} />
     </div>
   ) : null;
 

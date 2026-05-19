@@ -152,10 +152,62 @@ router.get('/leaderboard', auth, async (req, res) => {
 //
 // Caveat: tests without tags fall under the "Без темы / Untagged" bucket so
 // users with un-tagged tests still see something on the chart.
+
+// Aliases so users don't see the same topic split across spellings/languages.
+// Maps lower-cased trimmed tag → canonical display label (in Russian, since
+// the dashboard's primary audience uses ru/kz). Front-end localizes if needed.
+const TAG_ALIASES = {
+  'kazakhstan': 'История Казахстана',
+  'kz history': 'История Казахстана',
+  'история казахстана': 'История Казахстана',
+  'қазақстан тарихы': 'История Казахстана',
+  'қазақстан': 'История Казахстана',
+  'казахстан': 'История Казахстана',
+  'history': 'История',
+  'история': 'История',
+  'тарих': 'История',
+  'math': 'Математика',
+  'maths': 'Математика',
+  'mathematics': 'Математика',
+  'математика': 'Математика',
+  'математикa': 'Математика',
+  'математика ': 'Математика',
+  'english': 'Английский',
+  'english language': 'Английский',
+  'английский': 'Английский',
+  'агылшын': 'Английский',
+  'russian': 'Русский язык',
+  'русский': 'Русский язык',
+  'русский язык': 'Русский язык',
+  'kazakh': 'Казахский язык',
+  'қазақ тілі': 'Казахский язык',
+  'казахский': 'Казахский язык',
+  'physics': 'Физика',
+  'физика': 'Физика',
+  'chemistry': 'Химия',
+  'химия': 'Химия',
+  'biology': 'Биология',
+  'биология': 'Биология',
+  'geography': 'География',
+  'география': 'География',
+  'geometry': 'Геометрия',
+  'геометрия': 'Геометрия',
+  'literature': 'Литература',
+  'литература': 'Литература'
+};
+
+function canonicalizeTag(rawTag) {
+  if (!rawTag || typeof rawTag !== 'string') return null;
+  const key = rawTag.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!key) return null;
+  if (TAG_ALIASES[key]) return TAG_ALIASES[key];
+  // No alias hit — fall back to a Title Case version of the original so the
+  // axis label stays readable.
+  return rawTag.trim().slice(0, 22);
+}
+
 router.get('/me/skills', auth, async (req, res) => {
   try {
-    const Test = require('../models/Test');
-
     // 1. Player's results joined with their test's tags.
     const myAggregation = await Result.aggregate([
       { $match: { user: req.user._id, status: 'completed' } },
@@ -180,59 +232,76 @@ router.get('/me/skills', auth, async (req, res) => {
           }
         }
       },
-      { $unwind: '$tags' },
-      {
-        $group: {
-          _id: '$tags',
-          myAvg: { $avg: '$percentage' },
-          myCount: { $sum: 1 }
-        }
-      }
+      { $unwind: '$tags' }
     ]);
 
     if (!myAggregation.length) {
       return res.json({ skills: [] });
     }
 
-    // 2. Platform averages for the same tags.
-    const tagList = myAggregation.map((r) => r._id).filter((t) => t !== '__untagged__');
-    let globalLookup = {};
-    if (tagList.length) {
-      const globalAgg = await Result.aggregate([
-        { $match: { status: 'completed' } },
-        {
-          $lookup: {
-            from: 'tests',
-            localField: 'test',
-            foreignField: '_id',
-            as: 'testDoc'
-          }
-        },
-        { $unwind: { path: '$testDoc', preserveNullAndEmptyArrays: true } },
-        { $unwind: { path: '$testDoc.tags', preserveNullAndEmptyArrays: true } },
-        { $match: { 'testDoc.tags': { $in: tagList } } },
-        {
-          $group: {
-            _id: '$testDoc.tags',
-            globalAvg: { $avg: '$percentage' },
-            globalCount: { $sum: 1 }
-          }
-        }
-      ]);
-      globalLookup = Object.fromEntries(
-        globalAgg.map((g) => [g._id, { avg: g.globalAvg, count: g.globalCount }])
-      );
+    // 2. Bucket by canonical tag in Node (so we benefit from TAG_ALIASES merging).
+    const buckets = new Map(); // canonical -> { sum, count, originals: Set }
+    for (const row of myAggregation) {
+      const original = row.tags;
+      const canonical =
+        original === '__untagged__' ? null : canonicalizeTag(original);
+      if (!canonical) continue;
+      const slot = buckets.get(canonical) || { sum: 0, count: 0, originals: new Set() };
+      slot.sum += Number(row.percentage) || 0;
+      slot.count += 1;
+      slot.originals.add(original);
+      buckets.set(canonical, slot);
+    }
+    if (!buckets.size) {
+      return res.json({ skills: [] });
     }
 
-    const skills = myAggregation
-      .map((entry) => ({
-        tag: entry._id === '__untagged__' ? '' : entry._id,
-        myAvg: Math.round(entry.myAvg || 0),
-        myCount: entry.myCount,
-        globalAvg: Math.round(globalLookup[entry._id]?.avg || 0),
-        globalCount: globalLookup[entry._id]?.count || 0
-      }))
-      // Surface the most-played tags first, cap to 8 axes (radar gets unreadable beyond that).
+    // 3. Platform averages — pull all results joined with tags, canonicalize,
+    //    and keep only the canonical labels the user has played.
+    const wantedCanonicals = new Set(buckets.keys());
+    const globalAgg = await Result.aggregate([
+      { $match: { status: 'completed' } },
+      {
+        $lookup: {
+          from: 'tests',
+          localField: 'test',
+          foreignField: '_id',
+          as: 'testDoc'
+        }
+      },
+      { $unwind: { path: '$testDoc', preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: '$testDoc.tags', preserveNullAndEmptyArrays: true } },
+      { $match: { 'testDoc.tags': { $exists: true, $ne: null } } },
+      {
+        $project: {
+          percentage: 1,
+          tag: '$testDoc.tags'
+        }
+      }
+    ]);
+
+    const globalBuckets = new Map();
+    for (const row of globalAgg) {
+      const canonical = canonicalizeTag(row.tag);
+      if (!canonical || !wantedCanonicals.has(canonical)) continue;
+      const slot = globalBuckets.get(canonical) || { sum: 0, count: 0 };
+      slot.sum += Number(row.percentage) || 0;
+      slot.count += 1;
+      globalBuckets.set(canonical, slot);
+    }
+
+    const skills = Array.from(buckets.entries())
+      .map(([canonical, slot]) => {
+        const g = globalBuckets.get(canonical) || { sum: 0, count: 0 };
+        return {
+          tag: canonical,
+          myAvg: Math.round(slot.sum / Math.max(1, slot.count)),
+          myCount: slot.count,
+          globalAvg: g.count > 0 ? Math.round(g.sum / g.count) : 0,
+          globalCount: g.count
+        };
+      })
+      // Surface most-played first, cap to 8 axes (radar gets unreadable beyond that).
       .sort((a, b) => b.myCount - a.myCount)
       .slice(0, 8);
 
