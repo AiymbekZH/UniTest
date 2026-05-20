@@ -34,6 +34,22 @@ const userSchema = new mongoose.Schema({
   coverPreset: { type: String, enum: ['aurora', 'mesh', 'wave', 'grid'], default: 'aurora' },
   isBanned: { type: Boolean, default: false },
   banReason: { type: String, default: '' },
+  // Temporary moderation states. When the timestamp is in the future, the
+  // status is active. Background-checked via `isMutedNow` / `isSuspendedNow`
+  // helpers and surfaced in the admin user-detail view.
+  bannedUntil: { type: Date, default: null },         // temporary ban (overrides isBanned permanence)
+  mutedUntil: { type: Date, default: null },          // can browse but can't post comments/messages
+  suspendedUntil: { type: Date, default: null },      // can't publish tests/arena
+  // Email verification state. Existing users default to `true` so the change
+  // is non-breaking; new sign-ups will set this to `false` and flip on after
+  // confirming a 6-digit code.
+  emailVerified: { type: Boolean, default: true, index: true },
+  emailVerificationCodeHash: { type: String, default: '' },
+  emailVerificationExpiresAt: { type: Date, default: null },
+  emailVerificationAttempts: { type: Number, default: 0 },
+  emailVerificationLastSentAt: { type: Date, default: null },
+  // Free-form admin notes (private). Visible only in the admin panel.
+  adminNotes: { type: String, default: '', maxlength: 2000 },
   aiAccess: { type: Boolean, default: false }, // AI generation and translation access
   warnings: [{
     message: { type: String },
@@ -64,6 +80,19 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 userSchema.methods.isLocked = function() {
   return !!(this.lockUntil && this.lockUntil > new Date());
+};
+
+userSchema.methods.isMutedNow = function() {
+  return !!(this.mutedUntil && this.mutedUntil > new Date());
+};
+
+userSchema.methods.isSuspendedNow = function() {
+  return !!(this.suspendedUntil && this.suspendedUntil > new Date());
+};
+
+userSchema.methods.isBannedNow = function() {
+  if (this.isBanned) return true;
+  return !!(this.bannedUntil && this.bannedUntil > new Date());
 };
 
 // Auto-generate username for new users (uniqueness is best-effort here; the

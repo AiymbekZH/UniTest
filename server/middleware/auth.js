@@ -57,6 +57,14 @@ const auth = async (req, res, next) => {
     if (user.isBanned) {
       return res.status(403).json({ message: 'Ваш аккаунт заблокирован', reason: user.banReason });
     }
+    // Temporary ban (bannedUntil in the future) blocks access until expiry.
+    if (user.bannedUntil && new Date(user.bannedUntil) > new Date()) {
+      return res.status(403).json({
+        message: 'Ваш аккаунт временно заблокирован',
+        reason: user.banReason,
+        until: user.bannedUntil
+      });
+    }
     req.user = user;
     next();
   } catch (error) {
