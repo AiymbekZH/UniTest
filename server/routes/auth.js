@@ -1,10 +1,11 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
-const { sendPasswordResetEmail } = require('../utils/mailer');
+const { sendPasswordResetEmail, sendVerificationCodeEmail } = require('../utils/mailer');
 const { validateRegister, validateLogin } = require('../utils/validate');
 const { sanitizePlainText } = require('../utils/sanitize');
 
@@ -14,6 +15,23 @@ const OWNER_ID = (process.env.ADMIN_UNIQUE_ID || 'OWNERUNITEST').toUpperCase();
 const SELF_REGISTER_ROLES = new Set(['student', 'teacher']);
 const MAX_LOGIN_ATTEMPTS = 10;
 const LOGIN_LOCK_MS = 10 * 60 * 1000;
+const VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000; // 15 минут
+const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000; // не чаще раза в минуту
+const VERIFICATION_MAX_ATTEMPTS = 6;
+
+function generateVerificationCode() {
+  // 6-digit code, padded — `crypto.randomInt` is unbiased.
+  return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+}
+
+async function hashCode(code) {
+  return bcrypt.hash(String(code), 8);
+}
+
+async function compareCode(code, hash) {
+  if (!hash) return false;
+  return bcrypt.compare(String(code), hash);
+}
 
 function getCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -94,13 +112,66 @@ async function ensureOwnerAdmin(user) {
   }
 }
 
-// Register
+// Register — теперь регистрация двухшаговая:
+//  1) POST /auth/register — создаёт пользователя с emailVerified=false, шлёт 6-значный код, возвращает email
+//  2) POST /auth/verify-email — пользователь вводит код, мы выдаём JWT
+// Это блокирует регистрацию через одноразовые/чужие email-адреса и приучает
+// к подтверждению. SMTP настраивается через .env (см. mailer.js).
 router.post('/register', validateRegister, async (req, res) => {
   try {
     const { firstName, lastName, middleName, email, password, role } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      // Если уже существует, но email не подтверждён — перевыдадим код тому же
+      // пользователю, не плодим дубли. Это покрывает кейс «закрыл вкладку,
+      // открыл заново».
+      if (existingUser.emailVerified === false) {
+        const now = Date.now();
+        const lastSent = existingUser.emailVerificationLastSentAt
+          ? existingUser.emailVerificationLastSentAt.getTime()
+          : 0;
+        if (now - lastSent < VERIFICATION_RESEND_COOLDOWN_MS) {
+          const wait = Math.ceil((VERIFICATION_RESEND_COOLDOWN_MS - (now - lastSent)) / 1000);
+          return res.status(429).json({
+            message: `Код уже отправлен. Подождите ${wait}с перед следующим запросом.`,
+            email: existingUser.email,
+            requiresVerification: true,
+            cooldownSec: wait
+          });
+        }
+
+        // Обновим имя/фамилию/пароль, если пользователь повторно проходит форму.
+        existingUser.firstName = sanitizePlainText(firstName);
+        existingUser.lastName = sanitizePlainText(lastName);
+        existingUser.middleName = sanitizePlainText(middleName || '');
+        existingUser.password = password; // pre-save hash сработает
+        existingUser.role = SELF_REGISTER_ROLES.has(role) ? role : 'student';
+
+        const code = generateVerificationCode();
+        existingUser.emailVerificationCodeHash = await hashCode(code);
+        existingUser.emailVerificationExpiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
+        existingUser.emailVerificationAttempts = 0;
+        existingUser.emailVerificationLastSentAt = new Date();
+        await existingUser.save();
+
+        const sent = await sendVerificationCodeEmail({
+          email: existingUser.email,
+          firstName: existingUser.firstName,
+          code,
+          expiresMinutes: 15
+        });
+        if (!sent && process.env.NODE_ENV === 'production') {
+          return res.status(503).json({ message: 'Не удалось отправить письмо. Попробуйте позже.' });
+        }
+
+        return res.status(200).json({
+          email: existingUser.email,
+          requiresVerification: true,
+          message: 'Код отправлен на email.'
+        });
+      }
+
       return res.status(400).json({ message: 'Пользователь с таким email уже существует' });
     }
 
@@ -111,19 +182,164 @@ router.post('/register', validateRegister, async (req, res) => {
       middleName: sanitizePlainText(middleName || ''),
       email,
       password,
-      role: safeRole
+      role: safeRole,
+      emailVerified: false
     });
+
+    const code = generateVerificationCode();
+    user.emailVerificationCodeHash = await hashCode(code);
+    user.emailVerificationExpiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
+    user.emailVerificationAttempts = 0;
+    user.emailVerificationLastSentAt = new Date();
+    await user.save();
+    await ensureOwnerAdmin(user);
+
+    const sent = await sendVerificationCodeEmail({
+      email: user.email,
+      firstName: user.firstName,
+      code,
+      expiresMinutes: 15
+    });
+    if (!sent && process.env.NODE_ENV === 'production') {
+      // Если SMTP не настроен в проде — это критично, аккаунт уже создан
+      // но без email верификации. Удалим, чтобы пользователь мог попробовать
+      // ещё раз позже.
+      await User.deleteOne({ _id: user._id });
+      return res.status(503).json({
+        message: 'Сервис отправки писем недоступен. Попробуйте позже.'
+      });
+    }
+
+    return res.status(201).json({
+      email: user.email,
+      requiresVerification: true,
+      message: 'Аккаунт создан. Введите код из письма для активации.'
+    });
+  } catch (error) {
+    console.error('register failed:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// POST /auth/verify-email { email, code } — финализирует регистрацию.
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { email, code } = req.body || {};
+    if (!email || !code || typeof code !== 'string') {
+      return res.status(400).json({ message: 'Email и код обязательны' });
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const cleanCode = code.replace(/\D/g, '').slice(0, 6);
+    if (cleanCode.length !== 6) {
+      return res.status(400).json({ message: 'Код должен состоять из 6 цифр' });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(400).json({ message: 'Код или email недействительны' });
+    }
+
+    if (user.emailVerified) {
+      // Уже подтверждено — просто сразу выдаём токен (на случай повторного
+      // нажатия / двойной отправки формы).
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      setAuthCookie(res, token);
+      return res.json({ token, user: buildAuthPayload(user) });
+    }
+
+    if (!user.emailVerificationExpiresAt || user.emailVerificationExpiresAt < new Date()) {
+      return res.status(400).json({
+        message: 'Код истёк. Запросите новый.',
+        expired: true
+      });
+    }
+
+    if ((user.emailVerificationAttempts || 0) >= VERIFICATION_MAX_ATTEMPTS) {
+      return res.status(429).json({
+        message: 'Слишком много неверных попыток. Запросите новый код.',
+        expired: true
+      });
+    }
+
+    const ok = await compareCode(cleanCode, user.emailVerificationCodeHash);
+    if (!ok) {
+      await User.updateOne(
+        { _id: user._id },
+        { $inc: { emailVerificationAttempts: 1 } }
+      );
+      const remaining = VERIFICATION_MAX_ATTEMPTS - (user.emailVerificationAttempts || 0) - 1;
+      return res.status(400).json({
+        message: 'Неверный код',
+        attemptsLeft: Math.max(remaining, 0)
+      });
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationCodeHash = '';
+    user.emailVerificationExpiresAt = null;
+    user.emailVerificationAttempts = 0;
     await user.save();
     await ensureOwnerAdmin(user);
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     setAuthCookie(res, token);
 
-    res.status(201).json({
+    res.json({
       token,
       user: buildAuthPayload(user)
     });
   } catch (error) {
+    console.error('verify-email failed:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+});
+
+// POST /auth/resend-code { email } — повторно отправить код, rate-limited.
+router.post('/resend-code', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ message: 'Email обязателен' });
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+    // Anti-enumeration: всегда отвечаем одинаково положительно для несуществующих email.
+    if (!user || user.emailVerified) {
+      return res.json({ message: 'Если аккаунт ждёт подтверждения, код отправлен.' });
+    }
+
+    const now = Date.now();
+    const lastSent = user.emailVerificationLastSentAt
+      ? user.emailVerificationLastSentAt.getTime()
+      : 0;
+    if (now - lastSent < VERIFICATION_RESEND_COOLDOWN_MS) {
+      const wait = Math.ceil((VERIFICATION_RESEND_COOLDOWN_MS - (now - lastSent)) / 1000);
+      return res.status(429).json({
+        message: `Подождите ${wait}с перед повторной отправкой.`,
+        cooldownSec: wait
+      });
+    }
+
+    const code = generateVerificationCode();
+    user.emailVerificationCodeHash = await hashCode(code);
+    user.emailVerificationExpiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
+    user.emailVerificationAttempts = 0;
+    user.emailVerificationLastSentAt = new Date();
+    await user.save();
+
+    const sent = await sendVerificationCodeEmail({
+      email: user.email,
+      firstName: user.firstName,
+      code,
+      expiresMinutes: 15
+    });
+    if (!sent && process.env.NODE_ENV === 'production') {
+      return res.status(503).json({ message: 'Не удалось отправить письмо. Попробуйте позже.' });
+    }
+
+    res.json({ message: 'Код отправлен на email.' });
+  } catch (error) {
+    console.error('resend-code failed:', error);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 });
@@ -159,6 +375,33 @@ router.post('/login', validateLogin, async (req, res) => {
       }
       await User.updateOne({ _id: user._id }, update);
       return res.status(400).json({ message: 'Неверный email или пароль' });
+    }
+
+    // Аккаунт ещё не подтверждён — отправим новый код и попросим верифицировать.
+    if (user.emailVerified === false) {
+      const now = Date.now();
+      const lastSent = user.emailVerificationLastSentAt
+        ? user.emailVerificationLastSentAt.getTime()
+        : 0;
+      if (now - lastSent >= VERIFICATION_RESEND_COOLDOWN_MS) {
+        const code = generateVerificationCode();
+        user.emailVerificationCodeHash = await hashCode(code);
+        user.emailVerificationExpiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
+        user.emailVerificationAttempts = 0;
+        user.emailVerificationLastSentAt = new Date();
+        await user.save();
+        sendVerificationCodeEmail({
+          email: user.email,
+          firstName: user.firstName,
+          code,
+          expiresMinutes: 15
+        }).catch(() => {});
+      }
+      return res.status(403).json({
+        message: 'Email ещё не подтверждён. Введите код из письма.',
+        requiresVerification: true,
+        email: user.email
+      });
     }
 
     // Reset attempt counter atomically (avoids re-writing the full document).
@@ -351,13 +594,18 @@ router.get('/google/callback', async (req, res) => {
         password: crypto.randomBytes(24).toString('hex'),
         avatar: payload.picture || '',
         authProvider: 'google',
-        googleId: payload.sub
+        googleId: payload.sub,
+        // Google уже проверил email на своей стороне.
+        emailVerified: true
       });
       await user.save();
     } else {
       if (!user.googleId) user.googleId = payload.sub;
       user.authProvider = 'google';
       if (!user.avatar && payload.picture) user.avatar = payload.picture;
+      // Если человек ранее зарегистрировался через email и не подтвердил —
+      // повторный вход через Google разблокирует аккаунт автоматически.
+      if (!user.emailVerified) user.emailVerified = true;
       await user.save();
     }
 

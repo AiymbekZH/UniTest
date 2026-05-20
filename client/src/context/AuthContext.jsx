@@ -227,8 +227,24 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (data) => {
+    // Backend больше не возвращает токен на этом шаге — он шлёт код на email
+    // и возвращает { requiresVerification: true, email }. Реальный логин
+    // случается в verifyEmail. Этот вызов не должен мутировать активную
+    // сессию, иначе пользователь "зайдёт" с пустыми данными.
     const res = await api.post('/auth/register', data);
-    persistSession(res.data.token, res.data.user);
+    return res.data;
+  };
+
+  const verifyEmail = async (email, code) => {
+    const res = await api.post('/auth/verify-email', { email, code });
+    if (res.data?.token && res.data?.user) {
+      persistSession(res.data.token, res.data.user);
+    }
+    return res.data;
+  };
+
+  const resendVerificationCode = async (email) => {
+    const res = await api.post('/auth/resend-code', { email });
     return res.data;
   };
 
@@ -274,6 +290,8 @@ export const AuthProvider = ({ children }) => {
         savedSessions,
         login,
         register,
+        verifyEmail,
+        resendVerificationCode,
         forgotPassword,
         resetPassword,
         loginWithGoogleRedirect,

@@ -177,4 +177,69 @@ async function sendPasswordResetEmail({ email, firstName, resetUrl }) {
   }
 }
 
-module.exports = { notifyTestCompletion, sendPasswordResetEmail };
+/* ── Email verification (6-digit code) ── */
+async function sendVerificationCodeEmail({ email, firstName, code, expiresMinutes = 15 }) {
+  const transport = getTransporter();
+  if (!transport) {
+    // Dev fallback — print code to console so local development works
+    // even without configured SMTP. Production must have SMTP set.
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n📧 [DEV] Verification code for ${email}: ${code} (expires in ${expiresMinutes}min)\n`);
+      return true;
+    }
+    return false;
+  }
+
+  try {
+    // Render code as 6 chunky digit cells.
+    const digitCells = String(code).split('').map(d => `
+      <td align="center" style="
+        width:46px;height:54px;
+        background:#fff8ee;
+        border:2px solid #0f172a;
+        border-radius:10px;
+        font-family:'Courier New',monospace;
+        font-size:26px;font-weight:800;color:#0f172a;
+        box-shadow:0 3px 0 #0f172a;
+      ">${d}</td>`).join('<td width="6"></td>');
+
+    const content = `
+      <p style="margin:0 0 6px;font-size:14px;color:#64748b;">Здравствуйте, ${firstName || 'пользователь'}!</p>
+      <h2 style="margin:0 0 12px;font-size:22px;color:#0f172a;font-weight:800;">Подтвердите email</h2>
+      <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.6;">
+        Введите этот код на странице регистрации, чтобы активировать аккаунт UniTest:
+      </p>
+
+      <table cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 22px;">
+        <tr>${digitCells}</tr>
+      </table>
+
+      <div style="background:#fff8ee;border:2px solid #0f172a;border-radius:12px;padding:14px 18px;box-shadow:0 4px 0 #0f172a;">
+        <p style="margin:0;font-size:13px;color:#0f172a;line-height:1.5;">
+          Код действует <strong>${expiresMinutes} минут</strong>. Никому его не сообщайте — сотрудники UniTest никогда не запрашивают коды.
+        </p>
+      </div>
+
+      <p style="margin:18px 0 0;font-size:12px;color:#94a3b8;">
+        Если вы не регистрировались на UniTest, просто проигнорируйте это письмо.
+      </p>
+    `;
+
+    await transport.sendMail({
+      from: process.env.SMTP_FROM || `"UniTest" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: `Код подтверждения: ${code}`,
+      html: emailLayout(content),
+    });
+    return true;
+  } catch (error) {
+    console.error('Verification email error:', error.message);
+    return false;
+  }
+}
+
+module.exports = {
+  notifyTestCompletion,
+  sendPasswordResetEmail,
+  sendVerificationCodeEmail
+};

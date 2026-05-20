@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, LogIn, UserPlus, UserRound, Users, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import {
+  Eye, EyeOff, LogIn, UserPlus, UserRound, Users,
+  RefreshCw, Mail, Shield, ArrowLeft, CheckCircle2,
+  ArrowRight, Sparkles, KeyRound
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import BrandLogo from '../components/BrandLogo';
 import SliderCaptcha from '../components/SliderCaptcha';
 
-/* ─── Google SVG ─── */
+/* ───────── Google SVG ───────── */
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5 flex-shrink-0">
@@ -19,66 +23,221 @@ function GoogleIcon() {
   );
 }
 
-/* ─── Blue panel with spheres ─── */
-function AccentPanel({ isRegister }) {
+/* ───────── Chunky paper input ───────── */
+const chunkyInput =
+  'w-full rounded-2xl border-[3px] border-slate-900 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition-shadow placeholder:font-medium placeholder:text-slate-400 focus:translate-y-0.5 focus:[box-shadow:0_3px_0_#0f172a] dark:border-white/80 dark:bg-slate-900 dark:text-white';
+const chunkyInputShadow = { boxShadow: '0 4px 0 #0f172a' };
+
+/* ───────── Left brand panel — paper preset, chunky illustration ───────── */
+function BrandPanel({ mode }) {
+  const reduced = useReducedMotion();
+  const driftA = reduced ? {} : { x: [0, 6, 0], y: [0, -5, 0] };
+  const driftB = reduced ? {} : { x: [0, -5, 0], y: [0, 7, 0] };
+  const driftC = reduced ? {} : { rotate: [0, 8, 0], y: [0, -4, 0] };
+
+  const heading = mode === 'register'
+    ? 'Создайте аккаунт за минуту'
+    : mode === 'verify'
+      ? 'Почти готово'
+      : mode === 'forgot'
+        ? 'Сбросим пароль'
+        : 'С возвращением!';
+
+  const sub = mode === 'register'
+    ? 'Регистрируйтесь, проходите тесты, создавайте свои и поднимайтесь в рейтинге.'
+    : mode === 'verify'
+      ? 'Введите 6-значный код, который мы отправили вам на email.'
+      : mode === 'forgot'
+        ? 'Мы пришлём ссылку для восстановления пароля.'
+        : 'Войдите в аккаунт и продолжите там, где остановились.';
+
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden bg-gradient-to-br from-primary-500 via-orange-500 to-neutral-950 p-8 lg:p-10">
-      {/* Animated spheres */}
-      <motion.div animate={{ y: [0, -14, 0], x: [0, 6, 0] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-orange-300/35" />
-      <motion.div animate={{ y: [0, 12, 0], x: [0, -8, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-        className="absolute -right-10 top-20 h-40 w-40 rounded-full bg-amber-200/25" />
-      <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        className="absolute left-1/3 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-orange-400/20" />
-      <motion.div animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.25, 0.15] }} transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute right-8 bottom-12 h-24 w-24 rounded-full bg-white/10" />
+    <div className="relative flex h-full flex-col justify-between overflow-hidden bg-[#FFF8EE] p-8 lg:p-10">
+      {/* Paper grain */}
+      <div
+        className="absolute inset-0 opacity-[0.10]"
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(15,23,42,0.5) 1px, transparent 1px)',
+          backgroundSize: '22px 22px'
+        }}
+      />
 
-      {/* SVG wave lines */}
-      <svg className="absolute inset-0 h-full w-full opacity-[0.07]" viewBox="0 0 400 500" preserveAspectRatio="none">
-        <motion.path d="M0 200 Q100 150 200 250 T400 200" fill="none" stroke="white" strokeWidth="1.5"
-          initial={{ pathLength: 0 }} animate={{ pathLength: [0, 1, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }} />
-        <motion.path d="M0 350 Q150 280 250 380 T400 320" fill="none" stroke="white" strokeWidth="1"
-          initial={{ pathLength: 0 }} animate={{ pathLength: [0, 1, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 2 }} />
-      </svg>
+      {/* Chunky decor: outline circle, top-right */}
+      <motion.div
+        className="absolute right-[-2.5rem] top-[-2.5rem] h-44 w-44 rounded-full border-[6px] border-amber-500/55"
+        style={{ boxShadow: '0 8px 0 rgba(146, 64, 14, 0.18)' }}
+        animate={driftA}
+        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+      />
 
-      {/* Top: Logo + Welcome */}
-      <div className="relative z-10">
-        <div className="mb-6 flex items-center gap-2.5">
-          <BrandLogo size={34} showWordmark wordmarkClassName="text-lg text-white/90" />
-        </div>
+      {/* Chunky decor: filled square, bottom-left */}
+      <motion.div
+        className="absolute -left-8 -bottom-10 h-32 w-32 rotate-12 rounded-2xl border-[5px] border-slate-900 bg-amber-200"
+        style={{ boxShadow: '0 8px 0 rgba(15, 23, 42, 0.45)' }}
+        animate={driftB}
+        transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* Chunky decor: star */}
+      <motion.svg
+        className="absolute right-[20%] bottom-[18%] h-14 w-14"
+        viewBox="0 0 100 100"
+        animate={driftC}
+        transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <path
+          d="M50 4 L60 38 L96 40 L66 60 L78 96 L50 76 L22 96 L34 60 L4 40 L40 38 Z"
+          fill="rgba(245, 158, 11, 0.9)"
+          stroke="rgba(15, 23, 42, 0.85)"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+      </motion.svg>
+
+      {/* Top: brand */}
+      <div className="relative z-10 flex items-center gap-2.5">
+        <BrandLogo size={36} />
+        <span className="text-xl font-black tracking-tight text-slate-900">UniTest</span>
+      </div>
+
+      {/* Middle: heading + sub */}
+      <div className="relative z-10 max-w-sm">
         <AnimatePresence mode="wait">
-          <motion.div key={isRegister ? 'reg' : 'log'} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
-            <h2 className="text-3xl font-bold italic text-white leading-tight">
-              {isRegister ? 'WELCOME' : 'WELCOME'}
-            </h2>
-            <p className="mt-1 text-lg font-semibold text-white/80">
-              {isRegister ? 'Создайте аккаунт' : 'Платформа тестирования'}
+          <motion.div
+            key={mode}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25 }}
+          >
+            <p className="mb-3 inline-flex items-center gap-1.5 rounded-full border-[3px] border-slate-900 bg-white px-3 py-1 text-[11px] font-black uppercase tracking-widest text-slate-900 [box-shadow:0_3px_0_#0f172a]">
+              <Sparkles size={12} strokeWidth={2.6} />
+              UniTest
             </p>
+            <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-900 sm:text-4xl">
+              {heading}
+            </h2>
+            <p className="mt-3 text-sm font-medium leading-relaxed text-slate-700">{sub}</p>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Bottom: Description */}
-      <div className="relative z-10">
-        <AnimatePresence mode="wait">
-          <motion.p key={isRegister ? 'reg' : 'log'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-            className="max-w-xs text-sm leading-relaxed text-white/60">
-            {isRegister
-              ? 'Присоединяйтесь к UniTest. Выберите роль, заполните данные и начните работу.'
-              : 'Создавайте тесты с AI, проходите и анализируйте результаты. Быстрый вход через Google или email.'}
-          </motion.p>
-        </AnimatePresence>
+      {/* Bottom: pillars */}
+      <div className="relative z-10 grid grid-cols-3 gap-2">
+        {[
+          { icon: Sparkles, label: 'AI вопросы' },
+          { icon: Shield, label: 'Анти-чит' },
+          { icon: Users, label: 'Группы' }
+        ].map((p) => (
+          <div
+            key={p.label}
+            className="rounded-2xl border-[3px] border-slate-900 bg-white px-3 py-3 text-center [box-shadow:0_4px_0_#0f172a]"
+          >
+            <p.icon size={16} className="mx-auto mb-1 text-amber-700" strokeWidth={2.6} />
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">{p.label}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-/* ─── Input styles ─── */
-const inputCls = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary-400 focus:bg-white focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-primary-500 dark:focus:ring-primary-900/30';
-const inputWithIcon = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-11 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary-400 focus:bg-white focus:ring-2 focus:ring-primary-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-primary-500 dark:focus:ring-primary-900/30';
+/* ───────── Password strength meter ───────── */
+function passwordStrength(pw) {
+  if (!pw) return 0;
+  let score = 0;
+  if (pw.length >= 6) score += 1;
+  if (pw.length >= 10) score += 1;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 1;
+  if (/\d/.test(pw)) score += 1;
+  if (/[^A-Za-z0-9]/.test(pw)) score += 1;
+  return Math.min(score, 4);
+}
+function PasswordMeter({ pw }) {
+  const score = passwordStrength(pw);
+  const colors = ['bg-slate-200', 'bg-rose-400', 'bg-amber-400', 'bg-emerald-400', 'bg-emerald-500'];
+  const labels = ['', 'Слабый', 'Средний', 'Хороший', 'Отличный'];
+  return (
+    <div className="mt-1.5">
+      <div className="flex gap-1">
+        {[0, 1, 2, 3].map(i => (
+          <div
+            key={i}
+            className={`h-1.5 flex-1 rounded-full transition-colors ${i < score ? colors[score] : 'bg-slate-200 dark:bg-slate-700'}`}
+          />
+        ))}
+      </div>
+      {pw && (
+        <p className="mt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+          {labels[score]}
+        </p>
+      )}
+    </div>
+  );
+}
 
-/* ─── LOGIN FORM ─── */
-function LoginForm({ onSwitch }) {
+/* ───────── 6-cell code input ───────── */
+function CodeInput({ value, onChange, disabled, autoSubmit }) {
+  const refs = useRef([]);
+  const digits = value.padEnd(6, ' ').split('').slice(0, 6);
+
+  const setDigit = (i, ch) => {
+    const next = (value.padEnd(6, ' ').slice(0, 6)).split('');
+    next[i] = ch;
+    const merged = next.join('').replace(/\s/g, '');
+    onChange(merged);
+    if (ch && i < 5) refs.current[i + 1]?.focus();
+    if (merged.length === 6 && autoSubmit) autoSubmit(merged);
+  };
+
+  const handleKey = (i, e) => {
+    if (e.key === 'Backspace' && !digits[i].trim() && i > 0) {
+      refs.current[i - 1]?.focus();
+    } else if (e.key === 'ArrowLeft' && i > 0) {
+      refs.current[i - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && i < 5) {
+      refs.current[i + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    const pasted = (e.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+    if (pasted) {
+      e.preventDefault();
+      onChange(pasted);
+      if (pasted.length === 6 && autoSubmit) autoSubmit(pasted);
+      else refs.current[Math.min(pasted.length, 5)]?.focus();
+    }
+  };
+
+  return (
+    <div className="flex justify-center gap-2 sm:gap-3">
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={el => refs.current[i] = el}
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={1}
+          disabled={disabled}
+          value={d.trim()}
+          onChange={e => {
+            const ch = e.target.value.replace(/\D/g, '').slice(0, 1);
+            setDigit(i, ch);
+          }}
+          onKeyDown={e => handleKey(i, e)}
+          onPaste={handlePaste}
+          onFocus={e => e.target.select()}
+          className="h-14 w-11 rounded-2xl border-[3px] border-slate-900 bg-white text-center font-mono text-2xl font-black text-slate-900 outline-none transition-shadow [box-shadow:0_4px_0_#0f172a] focus:translate-y-0.5 focus:[box-shadow:0_2px_0_#0f172a] disabled:opacity-50 dark:border-white/80 dark:bg-slate-900 dark:text-white sm:h-16 sm:w-12 sm:text-3xl"
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ───────── LOGIN form ───────── */
+function LoginForm({ onSwitchRegister, onNeedsVerification }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -101,98 +260,164 @@ function LoginForm({ onSwitch }) {
     if (!email || !password) return toast.error('Заполните все поля');
     if (!captchaOk) return toast.error('Пройдите проверку');
     setLoading(true);
-    try { await login(email, password); toast.success('Вход выполнен'); navigate('/dashboard'); }
-    catch (err) { toast.error(err.response?.data?.message || 'Ошибка входа'); resetCaptcha(); }
-    finally { setLoading(false); }
+    try {
+      await login(email, password);
+      toast.success('Вход выполнен');
+      navigate('/dashboard');
+    } catch (err) {
+      const status = err?.response?.status;
+      const data = err?.response?.data || {};
+      if (status === 403 && data.requiresVerification) {
+        toast('Подтвердите email', { icon: '✉️' });
+        onNeedsVerification?.(data.email || email);
+        return;
+      }
+      toast.error(data.message || 'Ошибка входа');
+      resetCaptcha();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const quickLogin = async id => {
     setSwitchingId(id);
-    try { await switchAccount(id); window.location.assign('/dashboard'); }
-    catch (err) { toast.error(err.response?.data?.message || 'Не удалось'); }
-    finally { setSwitchingId(''); }
+    try {
+      await switchAccount(id);
+      window.location.assign('/dashboard');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Не удалось');
+    } finally {
+      setSwitchingId('');
+    }
   };
 
   return (
-    <div className="flex flex-col justify-center">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Вход</h1>
-      <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Войдите в учётную запись UniTest</p>
+    <div className="flex flex-col">
+      <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">Вход</h1>
+      <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Войдите в учётную запись UniTest</p>
 
-      <form onSubmit={handleSubmit} className="mt-7 space-y-4">
-        <div className="relative">
-          <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-          </svg>
-          <input type="email" className={inputWithIcon} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Email</label>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={2.4} />
+            <input
+              type="email"
+              className={`${chunkyInput} pl-11`}
+              style={chunkyInputShadow}
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+          </div>
         </div>
 
-        <div className="relative">
-          <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          <input type={showPw ? 'text' : 'password'} className={`${inputWithIcon} pr-20`} placeholder="Пароль" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
-          <button type="button" onClick={() => setShowPw(v => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold uppercase tracking-wide text-primary-500 hover:text-primary-600 transition">
-            {showPw ? 'Скрыть' : 'Показать'}
-          </button>
-        </div>
-
-        <div className="flex justify-end">
-          <Link to="/forgot-password" className="text-xs font-medium text-primary-500 hover:text-primary-600 transition">Забыли пароль?</Link>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Пароль</label>
+            <Link to="/forgot-password" className="text-xs font-black text-primary-600 hover:text-primary-700 dark:text-primary-400">
+              Забыли?
+            </Link>
+          </div>
+          <div className="relative">
+            <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={2.4} />
+            <input
+              type={showPw ? 'text' : 'password'}
+              className={`${chunkyInput} pl-11 pr-12`}
+              style={chunkyInputShadow}
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-200"
+              tabIndex={-1}
+            >
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
 
         <SliderCaptcha onVerify={setCaptchaOk} resetKey={captchaKey} />
 
-        <button type="submit" disabled={loading}
-          className="chunky-btn-primary flex w-full items-center justify-center gap-2 py-3 text-sm">
-          {loading ? <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><LogIn size={16} /> Войти</>}
+        <button
+          type="submit"
+          disabled={loading}
+          className="chunky-btn-primary w-full justify-center py-3 text-sm"
+        >
+          {loading
+            ? <div className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            : <><LogIn size={16} strokeWidth={2.6} /> Войти</>}
         </button>
 
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-gray-200 dark:bg-slate-600" />
-          <span className="text-xs text-gray-400">Или</span>
-          <div className="h-px flex-1 bg-gray-200 dark:bg-slate-600" />
+        <div className="flex items-center gap-3 py-1">
+          <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">или</span>
+          <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
         </div>
 
-        <button type="button" onClick={loginWithGoogleRedirect}
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">
+        <button
+          type="button"
+          onClick={loginWithGoogleRedirect}
+          className="chunky-btn-ghost w-full justify-center gap-2.5 py-3 text-sm"
+        >
           <GoogleIcon /> Войти через Google
         </button>
       </form>
 
       {savedSessions?.length > 0 && (
-        <div className="mt-5 rounded-2xl border border-gray-100 bg-gray-50 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
-          <p className="mb-2 text-xs font-semibold text-gray-500 dark:text-slate-400">Быстрый вход</p>
+        <div className="mt-5 rounded-2xl border-[3px] border-slate-900 bg-amber-50 p-3 [box-shadow:0_4px_0_#0f172a] dark:border-white/70 dark:bg-slate-800">
+          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+            Быстрый вход
+          </p>
           <div className="space-y-1.5">
             {savedSessions.map(s => (
-              <button key={s.id} type="button" onClick={() => quickLogin(s.id)} disabled={switchingId === s.id}
-                className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-primary-300 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:hover:border-primary-500">
-                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-primary-100 text-xs font-bold text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
-                  {s.user?.avatar ? <img src={s.user.avatar} alt="" className="h-full w-full object-cover" /> : <>{s.user?.firstName?.[0]}{s.user?.lastName?.[0]}</>}
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => quickLogin(s.id)}
+                disabled={switchingId === s.id}
+                className="flex w-full items-center gap-3 rounded-xl border-2 border-slate-900 bg-white px-3 py-2 text-left transition-transform hover:translate-y-px disabled:opacity-50 dark:border-white/60 dark:bg-slate-900"
+              >
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 border-slate-900 bg-amber-200 text-xs font-black text-slate-900 dark:border-white/60">
+                  {s.user?.avatar
+                    ? <img src={s.user.avatar} alt="" className="h-full w-full object-cover" />
+                    : <>{s.user?.firstName?.[0]}{s.user?.lastName?.[0]}</>}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-gray-800 dark:text-white">{s.user?.firstName} {s.user?.lastName}</p>
-                  <p className="truncate text-xs text-gray-400">{s.user?.email}</p>
+                  <p className="truncate text-sm font-black text-slate-900 dark:text-white">
+                    {s.user?.firstName} {s.user?.lastName}
+                  </p>
+                  <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{s.user?.email}</p>
                 </div>
-                {switchingId === s.id ? <div className="h-3.5 w-3.5 rounded-full border-2 border-primary-300 border-t-primary-600 animate-spin" /> : <RefreshCw size={13} className="text-gray-400" />}
+                {switchingId === s.id
+                  ? <div className="h-4 w-4 rounded-full border-2 border-primary-300 border-t-primary-600 animate-spin" />
+                  : <RefreshCw size={14} className="text-slate-400" />}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      <p className="mt-6 text-center text-sm text-gray-500 dark:text-slate-400">
+      <p className="mt-6 text-center text-sm font-medium text-slate-500 dark:text-slate-400">
         Нет аккаунта?{' '}
-        <button type="button" onClick={onSwitch} className="font-semibold text-primary-500 hover:text-primary-600 transition">Зарегистрироваться</button>
+        <button type="button" onClick={onSwitchRegister} className="font-black text-primary-600 hover:text-primary-700 dark:text-primary-400">
+          Зарегистрироваться
+        </button>
       </p>
     </div>
   );
 }
 
-/* ─── REGISTER FORM ─── */
-function RegisterForm({ onSwitch }) {
+/* ───────── REGISTER form (single step before verify) ───────── */
+function RegisterForm({ onSwitchLogin, onCodeSent }) {
   const [form, setForm] = useState({
-    firstName: '', lastName: '', middleName: '', email: '', password: '', confirmPassword: '', role: 'student'
+    firstName: '', lastName: '', middleName: '',
+    email: '', password: '', confirmPassword: '', role: 'student'
   });
   const [showPw, setShowPw] = useState(false);
   const [showCpw, setShowCpw] = useState(false);
@@ -200,7 +425,6 @@ function RegisterForm({ onSwitch }) {
   const [captchaOk, setCaptchaOk] = useState(false);
   const [captchaKey, setCaptchaKey] = useState(0);
   const { register, loginWithGoogleRedirect } = useAuth();
-  const navigate = useNavigate();
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const resetCaptcha = () => { setCaptchaOk(false); setCaptchaKey(n => n + 1); };
@@ -214,27 +438,53 @@ function RegisterForm({ onSwitch }) {
     setLoading(true);
     try {
       const { confirmPassword, ...payload } = form;
-      await register(payload);
-      toast.success('Аккаунт создан');
-      navigate('/dashboard');
+      const data = await register(payload);
+      // Сервер всегда возвращает requiresVerification=true для новых аккаунтов.
+      if (data?.requiresVerification) {
+        toast.success('Код отправлен на email');
+        onCodeSent(data.email || form.email);
+      } else if (data?.token) {
+        // На случай старого поведения сервера — fallback.
+        window.location.assign('/dashboard');
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Ошибка регистрации');
+      const data = err?.response?.data || {};
+      if (data.requiresVerification) {
+        // Аккаунт уже существует и не подтверждён — переключаемся на verify.
+        toast('Код отправлен повторно', { icon: '✉️' });
+        onCodeSent(data.email || form.email);
+        return;
+      }
+      toast.error(data.message || 'Ошибка регистрации');
       resetCaptcha();
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex flex-col justify-center">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Создать аккаунт</h1>
-      <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Присоединяйтесь к UniTest</p>
+    <div className="flex flex-col">
+      <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">Создать аккаунт</h1>
+      <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Присоединяйтесь к UniTest за минуту</p>
 
-      <div className="mt-5 grid grid-cols-2 gap-1.5 rounded-xl border border-gray-200 bg-gray-50 p-1 dark:border-slate-600 dark:bg-slate-700">
-        {[{ value: 'student', label: 'Студент', icon: UserRound }, { value: 'teacher', label: 'Преподаватель', icon: Users }].map(r => (
-          <button key={r.value} type="button" onClick={() => set('role', r.value)}
-            className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
-              form.role === r.value ? 'bg-white text-primary-600 shadow-sm dark:bg-slate-600 dark:text-primary-300' : 'text-gray-500 hover:text-gray-700 dark:text-slate-400'
-            }`}>
-            <r.icon size={15} /> {r.label}
+      <div
+        className="mt-5 grid grid-cols-2 gap-1 rounded-2xl border-[3px] border-slate-900 bg-amber-50 p-1 [box-shadow:0_4px_0_#0f172a] dark:border-white/70 dark:bg-slate-800"
+      >
+        {[
+          { value: 'student', label: 'Студент', icon: UserRound },
+          { value: 'teacher', label: 'Преподаватель', icon: Users }
+        ].map(r => (
+          <button
+            key={r.value}
+            type="button"
+            onClick={() => set('role', r.value)}
+            className={`flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black transition ${
+              form.role === r.value
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-white/60 dark:text-slate-300 dark:hover:bg-slate-700/60'
+            }`}
+          >
+            <r.icon size={15} strokeWidth={2.6} /> {r.label}
           </button>
         ))}
       </div>
@@ -242,187 +492,361 @@ function RegisterForm({ onSwitch }) {
       <form onSubmit={handleSubmit} className="mt-5 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-slate-400">Фамилия *</label>
-            <input className={inputCls} placeholder="Иванов" value={form.lastName} onChange={e => set('lastName', e.target.value)} autoComplete="family-name" />
+            <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Фамилия</label>
+            <input className={chunkyInput} style={chunkyInputShadow} placeholder="Иванов" value={form.lastName} onChange={e => set('lastName', e.target.value)} autoComplete="family-name" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-slate-400">Имя *</label>
-            <input className={inputCls} placeholder="Иван" value={form.firstName} onChange={e => set('firstName', e.target.value)} autoComplete="given-name" />
+            <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Имя</label>
+            <input className={chunkyInput} style={chunkyInputShadow} placeholder="Иван" value={form.firstName} onChange={e => set('firstName', e.target.value)} autoComplete="given-name" />
           </div>
         </div>
+
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-slate-400">Отчество</label>
-          <input className={inputCls} placeholder="Иванович" value={form.middleName} onChange={e => set('middleName', e.target.value)} />
+          <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Email</label>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={2.4} />
+            <input
+              type="email"
+              className={`${chunkyInput} pl-11`}
+              style={chunkyInputShadow}
+              placeholder="you@example.com"
+              value={form.email}
+              onChange={e => set('email', e.target.value)}
+              autoComplete="email"
+            />
+          </div>
+          <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            На этот email мы отправим 6-значный код подтверждения.
+          </p>
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-slate-400">Email *</label>
-          <input type="email" className={inputCls} placeholder="your@email.com" value={form.email} onChange={e => set('email', e.target.value)} autoComplete="email" />
-        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-slate-400">Пароль *</label>
+            <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Пароль</label>
             <div className="relative">
-              <input type={showPw ? 'text' : 'password'} className={`${inputCls} pr-10`} placeholder="Мин. 6 символов" value={form.password} onChange={e => set('password', e.target.value)} autoComplete="new-password" />
-              <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition dark:hover:text-slate-200">
+              <input
+                type={showPw ? 'text' : 'password'}
+                className={`${chunkyInput} pr-10`}
+                style={chunkyInputShadow}
+                placeholder="Мин. 6 символов"
+                value={form.password}
+                onChange={e => set('password', e.target.value)}
+                autoComplete="new-password"
+              />
+              <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" tabIndex={-1}>
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            <PasswordMeter pw={form.password} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-slate-400">Подтвердите *</label>
+            <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Подтвердите</label>
             <div className="relative">
-              <input type={showCpw ? 'text' : 'password'} className={`${inputCls} pr-10`} placeholder="Повторите" value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} autoComplete="new-password" />
-              <button type="button" onClick={() => setShowCpw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition dark:hover:text-slate-200">
+              <input
+                type={showCpw ? 'text' : 'password'}
+                className={`${chunkyInput} pr-10`}
+                style={chunkyInputShadow}
+                placeholder="Повторите"
+                value={form.confirmPassword}
+                onChange={e => set('confirmPassword', e.target.value)}
+                autoComplete="new-password"
+              />
+              <button type="button" onClick={() => setShowCpw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" tabIndex={-1}>
                 {showCpw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {form.confirmPassword && form.password && (
+              <p className={`mt-1.5 text-[11px] font-bold ${form.password === form.confirmPassword ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {form.password === form.confirmPassword ? '✓ Пароли совпадают' : '✗ Пароли не совпадают'}
+              </p>
+            )}
           </div>
         </div>
 
         <SliderCaptcha onVerify={setCaptchaOk} resetKey={captchaKey} />
 
-        <button type="submit" disabled={loading}
-          className="chunky-btn-primary flex w-full items-center justify-center gap-2 py-3 text-sm">
-          {loading ? <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <><UserPlus size={16} /> Создать аккаунт</>}
+        <button type="submit" disabled={loading} className="chunky-btn-primary w-full justify-center py-3 text-sm">
+          {loading
+            ? <div className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            : <><UserPlus size={16} strokeWidth={2.6} /> Создать аккаунт</>}
         </button>
 
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-gray-200 dark:bg-slate-600" />
-          <span className="text-xs text-gray-400">Или</span>
-          <div className="h-px flex-1 bg-gray-200 dark:bg-slate-600" />
+        <div className="flex items-center gap-3 py-1">
+          <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">или</span>
+          <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
         </div>
 
-        <button type="button" onClick={loginWithGoogleRedirect}
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">
+        <button type="button" onClick={loginWithGoogleRedirect} className="chunky-btn-ghost w-full justify-center gap-2.5 py-3 text-sm">
           <GoogleIcon /> Продолжить с Google
         </button>
       </form>
 
-      <p className="mt-5 text-center text-sm text-gray-500 dark:text-slate-400">
+      <p className="mt-5 text-center text-sm font-medium text-slate-500 dark:text-slate-400">
         Уже есть аккаунт?{' '}
-        <button type="button" onClick={onSwitch} className="font-semibold text-primary-500 hover:text-primary-600 transition">Войти</button>
+        <button type="button" onClick={onSwitchLogin} className="font-black text-primary-600 hover:text-primary-700 dark:text-primary-400">
+          Войти
+        </button>
       </p>
     </div>
   );
 }
 
-/* ─── Background grid pattern for the dark area ─── */
-function BackgroundPattern() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* Dotted grid */}
-      <svg className="absolute inset-0 h-full w-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="grid-dots" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="1" fill="#94a3b8" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid-dots)" />
-      </svg>
+/* ───────── VERIFY form ───────── */
+function VerifyForm({ email, onBack, onSwitchLogin }) {
+  const { verifyEmail, resendVerificationCode } = useAuth();
+  const navigate = useNavigate();
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const submittedRef = useRef('');
 
-      {/* Subtle radial glows */}
-      <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-orange-400/[0.10] blur-[120px]" />
-      <div className="absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-neutral-950/[0.08] blur-[120px]" />
-      <motion.div
-        animate={{ opacity: [0.03, 0.07, 0.03] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-300/12 blur-[80px]" />
+  // Countdown for resend cooldown
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const id = setInterval(() => setCooldown(c => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
+
+  // Initial cooldown — server enforces 60s, mirror it client-side.
+  useEffect(() => {
+    setCooldown(60);
+  }, []);
+
+  const submit = async (codeStr) => {
+    if (loading) return;
+    if (!codeStr || codeStr.length !== 6) return;
+    if (submittedRef.current === codeStr) return; // защита от дубль-сабмитов
+    submittedRef.current = codeStr;
+    setLoading(true);
+    try {
+      const data = await verifyEmail(email, codeStr);
+      if (data?.token) {
+        toast.success('Email подтверждён!');
+        navigate('/dashboard');
+      } else {
+        toast.error('Не удалось подтвердить');
+        submittedRef.current = '';
+      }
+    } catch (err) {
+      const d = err?.response?.data || {};
+      toast.error(d.message || 'Неверный код');
+      if (d.expired) {
+        // Дать ввести заново
+        setCode('');
+      }
+      submittedRef.current = '';
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onChange = (next) => {
+    setCode(next);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    submit(code);
+  };
+
+  const resend = async () => {
+    if (cooldown > 0) return;
+    setResending(true);
+    try {
+      await resendVerificationCode(email);
+      toast.success('Новый код отправлен');
+      setCooldown(60);
+      setCode('');
+      submittedRef.current = '';
+    } catch (err) {
+      const d = err?.response?.data || {};
+      if (d.cooldownSec) setCooldown(d.cooldownSec);
+      toast.error(d.message || 'Не удалось отправить');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full border-2 border-slate-900 bg-white px-3 py-1 text-[11px] font-black text-slate-700 transition-transform hover:translate-y-px dark:border-white/70 dark:bg-slate-900 dark:text-slate-200"
+      >
+        <ArrowLeft size={12} strokeWidth={2.6} /> Назад
+      </button>
+
+      <div className="mb-4 inline-flex w-fit items-center gap-1.5 rounded-full border-[3px] border-slate-900 bg-amber-300 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-slate-900 [box-shadow:0_3px_0_#0f172a]">
+        <Mail size={12} strokeWidth={2.6} /> Шаг 2 из 2
+      </div>
+
+      <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">Подтвердите email</h1>
+      <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
+        Мы отправили 6-значный код на{' '}
+        <span className="font-black text-slate-900 dark:text-white">{email}</span>
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+        <CodeInput value={code} onChange={onChange} disabled={loading} autoSubmit={submit} />
+
+        <button
+          type="submit"
+          disabled={loading || code.length !== 6}
+          className="chunky-btn-primary w-full justify-center py-3 text-sm"
+        >
+          {loading
+            ? <div className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            : <><CheckCircle2 size={16} strokeWidth={2.6} /> Подтвердить</>}
+        </button>
+
+        <div className="rounded-2xl border-[3px] border-slate-900 bg-white p-4 [box-shadow:0_4px_0_#0f172a] dark:border-white/70 dark:bg-slate-900">
+          <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            Не получили письмо? Проверьте папку «Спам».
+          </p>
+          <button
+            type="button"
+            onClick={resend}
+            disabled={cooldown > 0 || resending}
+            className="mt-2 inline-flex items-center gap-1.5 text-sm font-black text-primary-600 transition hover:text-primary-700 disabled:cursor-not-allowed disabled:text-slate-400 dark:text-primary-400"
+          >
+            <RefreshCw size={14} strokeWidth={2.6} className={resending ? 'animate-spin' : ''} />
+            {cooldown > 0 ? `Отправить ещё раз (${cooldown}с)` : 'Отправить ещё раз'}
+          </button>
+        </div>
+      </form>
+
+      <p className="mt-5 text-center text-sm font-medium text-slate-500 dark:text-slate-400">
+        Не тот email?{' '}
+        <button type="button" onClick={onBack} className="font-black text-primary-600 hover:text-primary-700 dark:text-primary-400">
+          Изменить
+        </button>{' '}
+        ·{' '}
+        <button type="button" onClick={onSwitchLogin} className="font-black text-primary-600 hover:text-primary-700 dark:text-primary-400">
+          Войти
+        </button>
+      </p>
     </div>
   );
 }
 
-/* ─── MAIN: AuthPage with animated panel swap ─── */
+/* ───────── MAIN ───────── */
 export default function AuthPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isRegister, setIsRegister] = useState(location.pathname === '/register');
 
-  // Sync URL <> state
+  // Mode is one of: 'login' | 'register' | 'verify'.
+  // Verify is intermediate — kicked into when register or login returns
+  // requiresVerification.
+  const [mode, setMode] = useState(location.pathname === '/register' ? 'register' : 'login');
+  const [verifyEmail, setVerifyEmail] = useState('');
+
   useEffect(() => {
-    setIsRegister(location.pathname === '/register');
+    if (location.pathname === '/register') setMode(prev => (prev === 'verify' ? prev : 'register'));
+    else setMode(prev => (prev === 'verify' ? prev : 'login'));
   }, [location.pathname]);
 
-  const switchTo = (register) => {
-    setIsRegister(register);
-    navigate(register ? '/register' : '/login', { replace: true });
+  const switchMode = (next) => {
+    setMode(next);
+    if (next === 'register') navigate('/register', { replace: true });
+    else if (next === 'login') navigate('/login', { replace: true });
   };
 
+  const goVerify = (email) => {
+    setVerifyEmail(email);
+    setMode('verify');
+  };
+
+  // Brand panel sits on the right for register, left for login —
+  // mirrors classic split layout and adds visual distinction.
+  const brandSide = mode === 'register' ? 'right' : 'left';
+
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-[#fff8ef] via-white to-[#fff1df] p-3 sm:p-4">
-      <BackgroundPattern />
+    <div className="relative flex min-h-screen items-center justify-center bg-[#FFF8EE] p-4">
+      {/* Subtle paper grain on the page bg */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(15,23,42,0.6) 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}
+      />
 
+      {/* Card */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 flex w-full max-w-[960px] overflow-hidden rounded-3xl border-2 border-slate-900"
-        style={{ minHeight: 'min(700px, 90vh)', boxShadow: '0 8px 0 #0f172a' }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="relative z-10 grid w-full max-w-[1080px] overflow-hidden rounded-3xl border-[3px] border-slate-900 bg-white dark:border-white/80 dark:bg-slate-900 lg:grid-cols-[44%_56%]"
+        style={{ minHeight: 'min(640px, 92vh)', boxShadow: '0 8px 0 #0f172a' }}
       >
-        {/* ── DESKTOP: animated panel swap ── */}
-        <div className="hidden lg:flex lg:w-full">
-          {/* Blue panel — slides left/right */}
-          <motion.div
-            layout
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            style={{ order: isRegister ? 2 : 1 }}
-            className="w-[44%] flex-shrink-0"
-          >
-            <AccentPanel isRegister={isRegister} />
-          </motion.div>
-
-          {/* White form panel */}
-          <motion.div
-            layout
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            style={{ order: isRegister ? 1 : 2 }}
-            className="flex flex-1 flex-col bg-white dark:bg-slate-800"
-          >
-            <div className="flex-1 overflow-y-auto px-8 py-8 lg:px-10 lg:py-10 custom-scrollbar">
-              <AnimatePresence mode="wait">
-                {isRegister ? (
-                  <motion.div key="register" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }} transition={{ duration: 0.3 }}>
-                    <RegisterForm onSwitch={() => switchTo(false)} />
-                  </motion.div>
-                ) : (
-                  <motion.div key="login" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3 }}>
-                    <LoginForm onSwitch={() => switchTo(true)} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
+        {/* Brand panel — desktop only on chosen side */}
+        <div className={`hidden lg:block ${brandSide === 'right' ? 'order-2' : 'order-1'}`}>
+          <BrandPanel mode={mode} />
         </div>
 
-        {/* ── MOBILE: single column ── */}
-        <div className="flex w-full flex-col lg:hidden">
-          {/* Compact accent header */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-primary-500 via-orange-500 to-neutral-950 px-6 py-8">
-            <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-orange-300/30" />
-            <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-              className="absolute -left-6 bottom-0 h-28 w-28 rounded-full bg-amber-200/25" />
-
-            <div className="relative z-10">
-            <div className="mb-4 flex items-center gap-2">
-                <BrandLogo size={28} showWordmark wordmarkClassName="text-base text-white/90" />
-              </div>
-              <h2 className="text-xl font-bold italic text-white">WELCOME</h2>
-              <p className="mt-1 text-sm text-white/70">
-                {isRegister ? 'Создайте аккаунт' : 'Войдите в учётную запись'}
-              </p>
+        {/* Form panel */}
+        <div className={`relative bg-white dark:bg-slate-900 ${brandSide === 'right' ? 'lg:order-1' : 'lg:order-2'}`}>
+          {/* Mobile header (compact) */}
+          <div className="relative overflow-hidden border-b-[3px] border-slate-900 bg-[#FFF8EE] px-5 py-5 dark:border-white/70 lg:hidden">
+            <div
+              className="absolute inset-0 opacity-[0.10]"
+              style={{
+                backgroundImage: 'radial-gradient(circle, rgba(15,23,42,0.5) 1px, transparent 1px)',
+                backgroundSize: '20px 20px'
+              }}
+            />
+            <div className="relative flex items-center gap-2.5">
+              <BrandLogo size={28} />
+              <span className="text-base font-black tracking-tight text-slate-900">UniTest</span>
             </div>
           </div>
 
-          {/* Mobile form */}
-          <div className="flex-1 overflow-y-auto bg-white px-5 py-6 dark:bg-slate-800">
+          <div className="px-6 py-7 sm:px-9 sm:py-9 lg:px-10 lg:py-10">
             <AnimatePresence mode="wait">
-              {isRegister ? (
-                <motion.div key="register-m" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <RegisterForm onSwitch={() => switchTo(false)} />
+              {mode === 'login' && (
+                <motion.div
+                  key="login"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <LoginForm
+                    onSwitchRegister={() => switchMode('register')}
+                    onNeedsVerification={goVerify}
+                  />
                 </motion.div>
-              ) : (
-                <motion.div key="login-m" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <LoginForm onSwitch={() => switchTo(true)} />
+              )}
+              {mode === 'register' && (
+                <motion.div
+                  key="register"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <RegisterForm
+                    onSwitchLogin={() => switchMode('login')}
+                    onCodeSent={goVerify}
+                  />
+                </motion.div>
+              )}
+              {mode === 'verify' && (
+                <motion.div
+                  key="verify"
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <VerifyForm
+                    email={verifyEmail}
+                    onBack={() => switchMode('register')}
+                    onSwitchLogin={() => switchMode('login')}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
