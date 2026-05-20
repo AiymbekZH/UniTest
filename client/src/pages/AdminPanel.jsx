@@ -556,7 +556,7 @@ export default function AdminPanel() {
             {section === 'users' && <AdminUsersSection copy={copy} />}
             {section === 'content' && <AdminContentSection copy={copy} />}
             {section === 'reports' && <AdminReportsSection copy={copy} />}
-            {section === 'audit' && <AdminAuditSection copy={copy} />}
+            {section === 'audit' && <AdminAuditSection copy={copy} lang={lang} />}
           </section>
         </div>
       </main>

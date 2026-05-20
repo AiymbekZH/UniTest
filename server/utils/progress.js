@@ -11,20 +11,20 @@ const UserProgress = require('../models/UserProgress');
 // XP needed to GO FROM level L to L+1:
 //   xpForLevelGap(L) = round(BASE_XP * L ^ EXPONENT)
 //
-// Examples (BASE_XP=60, EXPONENT=1.5):
-//   L=1  →   60 xp     (cheap onboarding)
-//   L=5  →  ~671 xp
-//   L=10 → ~1898 xp
-//   L=25 → ~7500 xp
-//   L=50 → ~21213 xp
-//   L=100 → ~60000 xp
+// Examples (BASE_XP=50, EXPONENT=1.2):
+//   L=1   →    50 xp   (cheap onboarding)
+//   L=5   →   345 xp
+//   L=10  →   792 xp
+//   L=25  →  2375 xp
+//   L=50  →  5605 xp
+//   L=100 → 12559 xp
 //
 // Total XP needed to reach level L from zero = sum_{k=1..L-1} xpForLevelGap(k).
 //
 // We expose a legacy XP_PER_LEVEL constant set to BASE_XP so any external
 // reference doesn't crash, but no internal code paths use it anymore.
-const BASE_XP = 60;
-const EXPONENT = 1.5;
+const BASE_XP = 50;
+const EXPONENT = 1.2;
 const MAX_LEVEL_LOOKUP = 500; // hard cap — beyond this we just keep extrapolating
 const XP_PER_LEVEL = BASE_XP; // legacy export, no longer used internally
 
@@ -203,9 +203,10 @@ async function awardCompletionProgress({ userId, isPractice = false, percentage 
   const progress = await ensureUserProgress(userId);
   const { sameDay } = updateDailyActivity(progress, completedAt);
 
-  let xpGain = isPractice ? 25 : 50;
-  if (percentage >= 80) xpGain += 25;
-  if (!sameDay) xpGain += 10;
+  let xpGain = isPractice ? 30 : 70;
+  if (percentage >= 80) xpGain += 35;
+  if (percentage === 100) xpGain += 25;     // явная награда за идеал
+  if (!sameDay) xpGain += 15;                // первая попытка дня
 
   const previousLevel = progress.level;
 

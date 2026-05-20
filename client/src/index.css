@@ -368,6 +368,21 @@
     box-shadow: 0 6px 0 var(--shadow-chunky);
   }
 
+  /* `chunky-paper` — utility for sub-panels styled with the AuthPage / hero
+     paper-look (cream bg, thick slate-900 border, offset shadow). In dark
+     mode the cream becomes a warm elev-2 surface so the chunky aesthetic
+     stays without burning the user's eyes. */
+  .chunky-paper {
+    @apply relative rounded-3xl bg-[#FFF8EE] border-[3px] border-slate-900 text-slate-900;
+    box-shadow: 0 6px 0 #0f172a;
+  }
+  .dark .chunky-paper {
+    background-color: var(--bg-elev-2);
+    border-color: #4a4030;
+    color: var(--text-primary);
+    box-shadow: 0 6px 0 var(--shadow-chunky);
+  }
+
   .chunky-card-dark {
     @apply relative rounded-3xl border-2 text-white;
     background-color: theme('colors.slate.900');
@@ -596,9 +611,43 @@
   color: #FFEDD5;
 }
 
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
+/* ── Cream paper backgrounds in dark mode ──
+   AuthPage, AdminPanel hero, dashboard hero etc. all use the literal
+   `bg-[#FFF8EE]` cream colour. Without an override that's pure beige
+   on a black page in dark mode — disorienting. Map it to the same
+   warm elev-2 surface so chunky surfaces blend with the rest of the
+   dark theme instead of glowing at the user. */
+.dark .bg-\[\#FFF8EE\] {
+  background-color: var(--bg-elev-2) !important;
+  color: var(--text-primary);
+}
+.dark .bg-\[\#FEF7E0\],
+.dark .bg-\[\#F0F7EC\],
+.dark .bg-\[\#FBF1F0\],
+.dark .bg-\[\#F1F4F7\],
+.dark .bg-\[\#EEF6FB\] {
+  background-color: var(--bg-elev-2) !important;
+  color: var(--text-primary);
+}
+
+/* Slate-900 hardcoded borders should soften in dark mode — pure black-on-black
+   is invisible. Excludes elements that USE slate-900 as their background
+   (chunky-btn-dark, active sidebar item etc.). */
+.dark .border-slate-900:not(.bg-slate-900):not(.chunky-btn-dark) {
+  border-color: #4a4030 !important;
+}
+
+/* Chunky offset-shadow on cream surfaces uses hex #0f172a. In dark mode
+   that's invisible-on-black; soften to a near-black warm shadow. */
+.dark [style*="box-shadow: 0 6px 0 #0f172a"],
+.dark [style*="box-shadow:0 6px 0 #0f172a"],
+.dark [style*="box-shadow: 0 4px 0 #0f172a"],
+.dark [style*="box-shadow:0 4px 0 #0f172a"],
+.dark [style*="box-shadow: 0 8px 0 #0f172a"],
+.dark [style*="box-shadow:0 8px 0 #0f172a"],
+.dark [style*="box-shadow: 0 3px 0 #0f172a"],
+.dark [style*="box-shadow:0 3px 0 #0f172a"] {
+  box-shadow: 0 4px 0 #0a0a0a !important;
 }
 
 /* Hide scrollbar but allow scrolling */

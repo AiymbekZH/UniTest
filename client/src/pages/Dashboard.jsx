@@ -23,7 +23,8 @@ import {
   Target,
   Trash2,
   Trophy,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -1419,13 +1420,16 @@ export default function Dashboard() {
 
   const renderExplore = () => (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
-      {/* Search + sort */}
+      {/* Search + sort — chunky-paper styling that matches the rest of
+          the dashboard. The previous bordered "input-field" look felt
+          like a different app glued on top. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <form onSubmit={handleSearch} className="relative min-w-[200px] flex-1 sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={15} />
+        <form onSubmit={handleSearch} className="relative min-w-[200px] flex-1 sm:max-w-md">
+          <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} strokeWidth={2.4} />
           <input
             type="text"
-            className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm text-dark placeholder-gray-300 transition focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-400/30 dark:border-slate-600 dark:bg-slate-800 dark:placeholder-gray-500 dark:focus:border-primary-500"
+            className="w-full rounded-2xl border-2 border-slate-900 bg-white py-3 pl-11 pr-4 text-sm font-bold text-slate-900 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:translate-y-0.5 focus:[box-shadow:0_2px_0_#0f172a] dark:border-white/70 dark:bg-slate-900 dark:text-white"
+            style={{ boxShadow: '0 4px 0 #0f172a' }}
             placeholder={t('searchTests')}
             value={search}
             onChange={(event) => {
@@ -1433,9 +1437,19 @@ export default function Dashboard() {
               setPage(1);
             }}
           />
+          {search ? (
+            <button
+              type="button"
+              onClick={() => { setSearch(''); setPage(1); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+              aria-label="Clear"
+            >
+              <X size={14} strokeWidth={2.6} />
+            </button>
+          ) : null}
         </form>
 
-        <div className="flex gap-0.5 rounded-xl border border-gray-100 bg-gray-50 p-0.5 dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex gap-1 rounded-2xl border-2 border-slate-900 bg-amber-50 p-1 dark:border-white/70 dark:bg-slate-800" style={{ boxShadow: '0 4px 0 #0f172a' }}>
           {[
             { key: 'latest', label: t('newest') },
             { key: 'popular', label: t('popular') },
@@ -1448,10 +1462,10 @@ export default function Dashboard() {
                 setSort(option.key);
                 setPage(1);
               }}
-              className={`btn-press rounded-lg px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition ${
+              className={`btn-press rounded-xl px-3.5 py-1.5 text-xs font-black whitespace-nowrap transition ${
                 sort === option.key
-                  ? 'bg-white text-dark shadow-sm dark:bg-slate-700 dark:text-white'
-                  : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                  : 'text-slate-600 hover:bg-white/80 dark:text-slate-300 dark:hover:bg-slate-700/60'
               }`}
             >
               {option.label}
@@ -1724,18 +1738,22 @@ export default function Dashboard() {
           }
         />
 
-        {/* Tab bar - chunky pills */}
-        <div className="mt-6">
-          <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar [&>*]:min-w-0">
-            {availableTabs.map((tabKey) => (
-              <DashboardTabButton
-                key={tabKey}
-                tabKey={tabKey}
-                active={activeTab === tabKey}
-                onClick={setActiveTab}
-                label={copy[`${tabKey}Tab`]}
-              />
-            ))}
+        {/* Tab bar — sticky chunky pills.
+            Sticks just under the navbar so on long catalogue lists the user
+            can switch sections without scrolling all the way to the top. */}
+        <div className="sticky top-2 z-30 mt-6 -mx-3 sm:-mx-4 lg:-mx-6">
+          <div className="rounded-2xl border border-amber-100/70 bg-[#FFF8EE]/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-[#FFF8EE]/80 dark:border-slate-700/60 dark:bg-slate-900/90 sm:px-4 lg:px-6">
+            <div className="flex gap-2 overflow-x-auto hide-scrollbar [&>*]:min-w-0">
+              {availableTabs.map((tabKey) => (
+                <DashboardTabButton
+                  key={tabKey}
+                  tabKey={tabKey}
+                  active={activeTab === tabKey}
+                  onClick={setActiveTab}
+                  label={copy[`${tabKey}Tab`]}
+                />
+              ))}
+            </div>
           </div>
         </div>
 

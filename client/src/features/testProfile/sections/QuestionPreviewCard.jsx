@@ -65,10 +65,21 @@ export default function QuestionPreviewCard({ test }) {
           {t('sampleQuestionHint')}
         </p>
 
-        {/* Question text */}
-        <p className="mt-2 text-sm font-bold leading-relaxed text-slate-900 dark:text-white">
-          {sample.questionText || sample.text || sample.question || '—'}
-        </p>
+        {/* Question text — questionText comes from TipTap so it's HTML.
+            Plain-text fallback for legacy `text`/`question` fields. */}
+        {sample.questionText
+          ? (
+            <div
+              className="prose prose-sm mt-2 max-w-none text-sm font-bold leading-relaxed text-slate-900 dark:prose-invert dark:text-white [&_*]:!my-0 [&_p]:!my-0"
+              dangerouslySetInnerHTML={{ __html: sample.questionText }}
+            />
+          )
+          : (
+            <p className="mt-2 text-sm font-bold leading-relaxed text-slate-900 dark:text-white">
+              {sample.text || sample.question || '—'}
+            </p>
+          )
+        }
 
         {/* Options grid (or fake-blank for open-ended) */}
         {isOpen ? (
